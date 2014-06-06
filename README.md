@@ -13,6 +13,13 @@ go get github.com/lestrrat/percol
 (Go by default compiles binaries based on the directory name -- that's why
 the repo name is the same as the original percol version :/)
 
+The repo name may change in the near future
+
+TODO
+====
+
+Test it. In doing so, we may change the repo structure
+
 Notes
 =====
 
