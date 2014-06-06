@@ -20,6 +20,8 @@ TODO
 
 Test it. In doing so, we may change the repo structure
 
+Break things up into separate goroutines to handle terminal drawing and user-input handling
+
 Notes
 =====
 
