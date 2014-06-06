@@ -91,6 +91,7 @@ Options:
 type CmdOptions struct {
 	Help bool   `short:"h" long:"help" description:"show this help message and exit"`
 	TTY  string `long:"tty" description:"path to the TTY (usually, the value of $TTY)"`
+	Query string `long:"query"`
 }
 
 func main() {
@@ -134,6 +135,11 @@ func main() {
 		}
 
 		ctx.lines = append(ctx.lines, Match{line, nil})
+	}
+
+	if opts.Query != "" {
+		ctx.dirty = true
+		ctx.query = []rune(opts.Query)
 	}
 
 	err = termbox.Init()
