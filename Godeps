@@ -1,0 +1,20 @@
+{
+	"ImportPath": "github.com/lestrrat/percol",
+	"GoVersion": "go1.2.1",
+	"Deps": [
+		{
+			"ImportPath": "github.com/jessevdk/go-flags",
+			"Comment": "v1-172-g8ec9564",
+			"Rev": "8ec9564882e7923e632f012761c81c46dcf5bec1"
+		},
+		{
+			"ImportPath": "github.com/mattn/go-runewidth",
+			"Comment": "travisish-12-g39104c7",
+			"Rev": "39104c78546f11be4bbc161e39858258aac6d9b8"
+		},
+		{
+			"ImportPath": "github.com/nsf/termbox-go",
+			"Rev": "9aecf65084a5754f12d27508fa2e6ed56851953b"
+		}
+	]
+}
