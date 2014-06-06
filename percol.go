@@ -274,6 +274,8 @@ func handleKeyEvent(ev termbox.Event) {
 			case termbox.KeyEnter:
 				if len(ctx.current) == 1 {
 					ctx.result = ctx.current[0].line
+				} else {
+					ctx.result = ctx.current[ctx.selectedLine - 1].line
 				}
 				ctx.loop = false
 /*
