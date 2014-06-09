@@ -107,7 +107,6 @@ func main() {
 		os.Exit(1)
 	}
 	defer termbox.Close()
-	termbox.SetInputMode(termbox.InputEsc)
 
 	ui := ctx.NewUI()
 	filter := ctx.NewFilter()
