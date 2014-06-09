@@ -95,6 +95,12 @@ func main() {
 
 	ctx.ReadBuffer(input)
 
+	err = percol.TtyReady()
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
+	}
+
 	err = termbox.Init()
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
