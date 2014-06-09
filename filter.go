@@ -1,28 +1,22 @@
-package main
+package percol
 
 import (
 	"regexp"
-	"sync"
 )
 
 type Filter struct {
-	queryCh chan string
-	wait    *sync.WaitGroup
-}
-
-func (f *Filter) Execute(v string) {
-	f.queryCh <- v
+	*Ctx
 }
 
 func (f *Filter) Loop() {
-	f.wait.Add(1)
-	defer f.wait.Done()
+	f.AddWaitGroup()
+	defer f.ReleaseWaitGroup()
 
 	for {
 		select {
-		case <-ctx.loopCh:
+		case <-f.LoopCh():
 			return
-		case q := <-f.queryCh:
+		case q := <-f.QueryCh():
 			results := []Match{}
 			re, err := regexp.Compile(regexp.QuoteMeta(q))
 			if err != nil {
@@ -31,8 +25,7 @@ func (f *Filter) Loop() {
 				continue
 			}
 
-			// XXX accessing ctx.lines is bad idea
-			for _, line := range ctx.lines {
+			for _, line := range f.Buffer() {
 				ms := re.FindAllStringSubmatchIndex(line.line, 1)
 				if ms == nil {
 					continue
@@ -40,7 +33,8 @@ func (f *Filter) Loop() {
 				results = append(results, Match{line.line, ms})
 			}
 
-			ui.DrawMatches(results)
+			f.query = []rune(q)
+			f.DrawMatches(results)
 		}
 	}
 }

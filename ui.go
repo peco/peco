@@ -1,7 +1,6 @@
-package main
+package percol
 
 import (
-	"sync"
 	"unicode/utf8"
 
 	"github.com/mattn/go-runewidth"
@@ -9,29 +8,18 @@ import (
 )
 
 type UI struct {
-	drawCh chan []Match
-	wait   *sync.WaitGroup
-}
-
-func (u *UI) DrawMatches(m []Match) {
-	u.drawCh <- m
-}
-func (u *UI) Refresh() {
-	u.DrawMatches(nil)
+	*Ctx
 }
 
 func (u *UI) Loop() {
-	ctx.wait.Add(1)
-	defer ctx.wait.Done()
+	u.AddWaitGroup()
+	defer u.ReleaseWaitGroup()
 	for {
 		select {
-		case <-ctx.loopCh:
+		case <-u.LoopCh():
 			return
-		case lines := <-u.drawCh:
-			if lines != nil {
-				ctx.current = lines
-			}
-			ui.drawScreen()
+		case lines := <-u.DrawCh():
+			u.drawScreen(lines)
 		}
 	}
 }
@@ -39,29 +27,30 @@ func (u *UI) Loop() {
 func printTB(x, y int, fg, bg termbox.Attribute, msg string) {
 	for len(msg) > 0 {
 		c, w := utf8.DecodeRuneInString(msg)
+		if c == utf8.RuneError {
+			continue
+		}
 		msg = msg[w:]
 		termbox.SetCell(x, y, c, fg, bg)
 		x += w
 	}
 }
 
-func (u *UI) drawScreen() {
-	ctx.mutex.Lock()
-	defer ctx.mutex.Unlock()
+func (u *UI) drawScreen(targets []Match) {
+	u.mutex.Lock()
+	defer u.mutex.Unlock()
 
 	width, height := termbox.Size()
 	_ = width
 	termbox.Clear(termbox.ColorDefault, termbox.ColorDefault)
 
-	var targets []Match
-	if ctx.current == nil {
-		targets = ctx.lines
-	} else {
-		targets = ctx.current
+	if targets == nil {
+		targets = u.Ctx.lines
 	}
 
 	printTB(0, 0, termbox.ColorDefault, termbox.ColorDefault, "QUERY>")
-	printTB(8, 0, termbox.ColorDefault, termbox.ColorDefault, string(ctx.query))
+
+	printTB(8, 0, termbox.ColorDefault, termbox.ColorDefault, string(u.query))
 	for n := 1; n+2 < height; n++ {
 		if n-1 >= len(targets) {
 			break
@@ -69,7 +58,7 @@ func (u *UI) drawScreen() {
 
 		fgAttr := termbox.ColorDefault
 		bgAttr := termbox.ColorDefault
-		if n == ctx.selectedLine {
+		if n == u.selectedLine {
 			fgAttr = termbox.AttrUnderline
 			bgAttr = termbox.ColorMagenta
 		}
@@ -98,78 +87,7 @@ func (u *UI) drawScreen() {
 		}
 	}
 	termbox.Flush()
-}
 
-func handleKeyEvent(ev termbox.Event) {
-	switch ev.Key {
-	case termbox.KeyEsc:
-		termbox.Close()
-		close(ctx.loopCh)
-		/*
-			case termbox.KeyHome, termbox.KeyCtrlA:
-				cursor_x = 0
-			case termbox.KeyEnd, termbox.KeyCtrlE:
-				cursor_x = len(input)
-		*/
-	case termbox.KeyEnter:
-		if len(ctx.current) == 1 {
-			ctx.result = ctx.current[0].line
-		} else if ctx.selectedLine > 0 && ctx.selectedLine < len(ctx.current) {
-			ctx.result = ctx.current[ctx.selectedLine].line
-		}
-		close(ctx.loopCh)
-		/*
-			case termbox.KeyArrowLeft:
-				if cursor_x > 0 {
-					cursor_x--
-				}
-			case termbox.KeyArrowRight:
-				if cursor_x < len([]rune(input)) {
-					cursor_x++
-				}
-		*/
-	case termbox.KeyArrowUp, termbox.KeyCtrlK:
-		ctx.selectedLine--
-		/*
-			if cursor_y < len(current)-1 {
-				if cursor_y < height-4 {
-					cursor_y++
-				}
-			}
-		*/
-	case termbox.KeyArrowDown, termbox.KeyCtrlJ:
-		ctx.selectedLine++
-		/*
-				if cursor_y > 0 {
-					cursor_y--
-				}
-			case termbox.KeyCtrlO:
-				if cursor_y >= 0 && cursor_y < len(current) {
-					*edit = true
-					break loop
-				}
-			case termbox.KeyCtrlI:
-				heading = !heading
-			case termbox.KeyCtrlL:
-				update = true
-			case termbox.KeyCtrlU:
-				cursor_x = 0
-				input = []rune{}
-				update = true
-		*/
-	case termbox.KeyBackspace, termbox.KeyBackspace2:
-		if len(ctx.query) >= 0 {
-			ctx.query = ctx.query[:len(ctx.query)-1]
-			filter.Execute(string(ctx.query))
-		}
-	default:
-		if ev.Key == termbox.KeySpace {
-			ev.Ch = ' '
-		}
-
-		if ev.Ch > 0 {
-			ctx.query = append(ctx.query, ev.Ch)
-			filter.Execute(string(ctx.query))
-		}
-	}
+	// FIXME
+	u.current = targets
 }

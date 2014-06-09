@@ -1,4 +1,4 @@
-percol
+go-percol
 ======
 
 (VERY ALPHA) Port of percol to Go
@@ -7,7 +7,7 @@ Installation
 ============
 
 ```
-go get github.com/lestrrat/percol
+go get github.com/lestrrat/percol/cmd/percol/
 ```
 
 (Go by default compiles binaries based on the directory name -- that's why

@@ -1,4 +1,4 @@
-package main
+package percol
 
 import (
 	"os"
@@ -28,7 +28,7 @@ func setStdHandle(stdhandle int32, handle syscall.Handle) error {
 	return nil
 }
 
-func isTty() bool {
+func IsTty() bool {
 	f := syscall.MustLoadDLL("kernel32.dll").MustFindProc("GetConsoleMode")
 	var st uint32
 	r1, _, err := f.Call(uintptr(os.Stdin.Fd()), uintptr(unsafe.Pointer(&st)))

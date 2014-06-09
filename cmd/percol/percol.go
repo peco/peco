@@ -1,57 +1,13 @@
 package main
 
 import (
-	"bufio"
 	"fmt"
 	"os"
-	"sync"
-	"time"
 
 	"github.com/jessevdk/go-flags"
+	"github.com/lestrrat/percol"
 	"github.com/nsf/termbox-go"
 )
-
-type Ctx struct {
-	result       string
-	loopCh       chan struct{}
-	mutex        sync.Mutex
-	query        []rune
-	dirty        bool // true if filtering must be redone
-	cursorX      int
-	selectedLine int
-	lines        []Match
-	current      []Match
-
-	wait *sync.WaitGroup
-}
-
-type Match struct {
-	line    string
-	matches [][]int
-}
-
-var ctx = Ctx{
-	"",
-	make(chan struct{}),
-	sync.Mutex{},
-	[]rune{},
-	false,
-	0,
-	1,
-	[]Match{},
-	nil,
-	&sync.WaitGroup{},
-}
-var ui = &UI{
-	make(chan []Match),
-	ctx.wait,
-}
-var filter = &Filter{
-	make(chan string),
-	ctx.wait,
-}
-
-var timer *time.Timer
 
 func showHelp() {
 	const v = ` 
@@ -105,12 +61,6 @@ type CmdOptions struct {
 func main() {
 	var err error
 
-	defer func() {
-		if ctx.result != "" {
-			os.Stdout.WriteString(ctx.result)
-		}
-	}()
-
 	opts := &CmdOptions{}
 	p := flags.NewParser(opts, flags.PrintErrors)
 	args, err := p.Parse() // &opts, os.Args)
@@ -132,22 +82,18 @@ func main() {
 		if err != nil {
 			os.Exit(1)
 		}
-	} else if !isTty() {
+	} else if !percol.IsTty() {
 		input = os.Stdin
 	}
-	rdr := bufio.NewReader(input)
-	for {
-		line, err := rdr.ReadString('\n')
-		if err != nil {
-			break
+
+	ctx := percol.NewCtx()
+	defer func() {
+		if result := ctx.Result(); result != "" {
+			os.Stdout.WriteString(result)
 		}
+	}()
 
-		ctx.lines = append(ctx.lines, Match{line, nil})
-	}
-
-	if opts.Query != "" {
-		ctx.query = []rune(opts.Query)
-	}
+	ctx.ReadBuffer(input)
 
 	err = termbox.Init()
 	if err != nil {
@@ -155,37 +101,21 @@ func main() {
 		os.Exit(1)
 	}
 	defer termbox.Close()
-
 	termbox.SetInputMode(termbox.InputEsc)
+
+	ui := ctx.NewUI()
+	filter := ctx.NewFilter()
 
 	go ui.Loop()
 	go filter.Loop()
-	go mainLoop()
+	go ctx.Loop()
 
-	if len(ctx.query) > 0 {
-		filter.Execute(string(ctx.query))
+	if len(opts.Query) > 0 {
+		ctx.ExecQuery(string(string(opts.Query)))
 	} else {
 		ui.Refresh()
 	}
 
-	ctx.wait.Wait()
-}
-
-func mainLoop() {
-	ctx.wait.Add(1)
-	defer ctx.wait.Done()
-
-	for {
-		select {
-		case <-ctx.loopCh: // can only fall here if we closed ctx.loop
-			return
-		default:
-			ev := termbox.PollEvent()
-			if ev.Type == termbox.EventError {
-				//update = false
-			} else if ev.Type == termbox.EventKey {
-				handleKeyEvent(ev)
-			}
-		}
-	}
+	ctx.WaitDone()
+	ctx.PrintResult()
 }
