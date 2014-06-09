@@ -38,7 +38,7 @@ func IsTty() bool {
 var stdout = os.Stdout
 var stdin = os.Stdin
 
-func ttyReady() error {
+func TtyReady() error {
 	var err error
 	_stdin, err := os.Open("CONIN$")
 	if err != nil {
@@ -69,7 +69,7 @@ func ttyReady() error {
 	return nil
 }
 
-func ttyTerm() {
+func TtyTerm() {
 	os.Stdin = stdin
 	syscall.Stdin = syscall.Handle(os.Stdin.Fd())
 	setStdHandle(syscall.STD_INPUT_HANDLE, syscall.Stdin)

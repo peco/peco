@@ -5,7 +5,7 @@ import (
 	"os"
 
 	"github.com/jessevdk/go-flags"
-	"github.com/lestrrat/percol"
+	"github.com/lestrrat/go-percol"
 	"github.com/nsf/termbox-go"
 )
 
@@ -95,13 +95,18 @@ func main() {
 
 	ctx.ReadBuffer(input)
 
+	err = percol.TtyReady()
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
+	}
+
 	err = termbox.Init()
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
 	defer termbox.Close()
-	termbox.SetInputMode(termbox.InputEsc)
 
 	ui := ctx.NewUI()
 	filter := ctx.NewFilter()

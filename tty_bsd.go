@@ -14,9 +14,9 @@ func IsTty() bool {
   return err == 0
 }
 
-func ttyReady() error {
+func TtyReady() error {
   return nil
 }
 
-func ttyTerm() {
+func TtyTerm() {
 }
