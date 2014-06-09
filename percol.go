@@ -15,8 +15,10 @@ import (
 )
 
 type Ctx struct {
-	result string
-	loop bool
+	result       string
+	loopCh       chan struct{}
+	queryCh      chan string
+	drawCh       chan []Match
 	mutex        sync.Mutex
 	query        []rune
 	dirty        bool // true if filtering must be redone
@@ -24,6 +26,8 @@ type Ctx struct {
 	selectedLine int
 	lines        []Match
 	current      []Match
+
+	wait sync.WaitGroup
 }
 
 type Match struct {
@@ -33,7 +37,9 @@ type Match struct {
 
 var ctx = Ctx{
 	"",
-	true,
+	make(chan struct{}),
+	make(chan string),
+	make(chan []Match),
 	sync.Mutex{},
 	[]rune{},
 	false,
@@ -41,6 +47,7 @@ var ctx = Ctx{
 	1,
 	[]Match{},
 	nil,
+	sync.WaitGroup{},
 }
 
 var timer *time.Timer
@@ -89,8 +96,8 @@ Options:
 }
 
 type CmdOptions struct {
-	Help bool   `short:"h" long:"help" description:"show this help message and exit"`
-	TTY  string `long:"tty" description:"path to the TTY (usually, the value of $TTY)"`
+	Help  bool   `short:"h" long:"help" description:"show this help message and exit"`
+	TTY   string `long:"tty" description:"path to the TTY (usually, the value of $TTY)"`
 	Query string `long:"query"`
 }
 
@@ -138,7 +145,6 @@ func main() {
 	}
 
 	if opts.Query != "" {
-		ctx.dirty = true
 		ctx.query = []rune(opts.Query)
 	}
 
@@ -150,8 +156,20 @@ func main() {
 	defer termbox.Close()
 
 	termbox.SetInputMode(termbox.InputEsc)
-	refreshScreen(0)
-	mainLoop()
+
+	go uiLoop()
+
+	ctx.drawCh <- ctx.lines
+
+	go filterLines()
+
+	if len(ctx.query) > 0 {
+		ctx.queryCh <- string(ctx.query)
+	}
+
+	go mainLoop()
+
+	ctx.wait.Wait()
 }
 
 func printTB(x, y int, fg, bg termbox.Attribute, msg string) {
@@ -164,32 +182,47 @@ func printTB(x, y int, fg, bg termbox.Attribute, msg string) {
 }
 
 func filterLines() {
-	ctx.current = []Match{}
+	ctx.wait.Add(1)
+	defer ctx.wait.Done()
 
-	re := regexp.MustCompile(regexp.QuoteMeta(string(ctx.query)))
-	for _, line := range ctx.lines {
-		ms := re.FindAllStringSubmatchIndex(line.line, 1)
-		if ms == nil {
-			continue
+	for {
+		select {
+		case <-ctx.loopCh:
+			return
+		case q := <-ctx.queryCh:
+			results := []Match{}
+			re, err := regexp.Compile(regexp.QuoteMeta(q))
+			if err != nil {
+				// Should display this at the bottom of the screen, but for now,
+				// ignore it
+				continue
+			}
+
+			// XXX accessing ctx.lines is bad idea
+			for _, line := range ctx.lines {
+				ms := re.FindAllStringSubmatchIndex(line.line, 1)
+				if ms == nil {
+					continue
+				}
+				results = append(results, Match{line.line, ms})
+			}
+
+			ctx.drawCh <- results
 		}
-		ctx.current = append(ctx.current, Match{line.line, ms})
-	}
-	if len(ctx.current) == 0 {
-		ctx.current = nil
 	}
 }
 
-func refreshScreen(delay time.Duration) {
-	if timer == nil {
-		timer = time.AfterFunc(delay, func() {
-			if ctx.dirty {
-				filterLines()
-			}
+func uiLoop() {
+	ctx.wait.Add(1)
+	defer ctx.wait.Done()
+	for {
+		select {
+		case <-ctx.loopCh:
+			return
+		case lines := <-ctx.drawCh:
+			ctx.current = lines
 			drawScreen()
-			ctx.dirty = false
-		})
-	} else {
-		timer.Reset(delay)
+		}
 	}
 }
 
@@ -249,36 +282,43 @@ func drawScreen() {
 }
 
 func mainLoop() {
-	for ctx.loop {
-		ev := termbox.PollEvent()
-		if ev.Type == termbox.EventError {
-			//update = false
-		} else if ev.Type == termbox.EventKey {
-			handleKeyEvent(ev)
+	ctx.wait.Add(1)
+	defer ctx.wait.Done()
+
+	for {
+		select {
+		case <-ctx.loopCh: // can only fall here if we closed ctx.loop
+			return
+		default:
+			ev := termbox.PollEvent()
+			if ev.Type == termbox.EventError {
+				//update = false
+			} else if ev.Type == termbox.EventKey {
+				handleKeyEvent(ev)
+			}
 		}
 	}
 }
 
 func handleKeyEvent(ev termbox.Event) {
-	update := true
 	switch ev.Key {
 	case termbox.KeyEsc:
 		termbox.Close()
-		os.Exit(1)
+		close(ctx.loopCh)
 		/*
 			case termbox.KeyHome, termbox.KeyCtrlA:
 				cursor_x = 0
 			case termbox.KeyEnd, termbox.KeyCtrlE:
 				cursor_x = len(input)
-*/
-			case termbox.KeyEnter:
-				if len(ctx.current) == 1 {
-					ctx.result = ctx.current[0].line
-				} else if ctx.selectedLine > 0 && ctx.selectedLine < len(ctx.current) {
-					ctx.result = ctx.current[ctx.selectedLine].line
-				}
-				ctx.loop = false
-/*
+		*/
+	case termbox.KeyEnter:
+		if len(ctx.current) == 1 {
+			ctx.result = ctx.current[0].line
+		} else if ctx.selectedLine > 0 && ctx.selectedLine < len(ctx.current) {
+			ctx.result = ctx.current[ctx.selectedLine].line
+		}
+		close(ctx.loopCh)
+		/*
 			case termbox.KeyArrowLeft:
 				if cursor_x > 0 {
 					cursor_x--
@@ -318,11 +358,9 @@ func handleKeyEvent(ev termbox.Event) {
 				update = true
 		*/
 	case termbox.KeyBackspace, termbox.KeyBackspace2:
-		if len(ctx.query) == 0 {
-			update = false
-		} else {
+		if len(ctx.query) >= 0 {
 			ctx.query = ctx.query[:len(ctx.query)-1]
-			ctx.dirty = true
+			ctx.queryCh <- string(ctx.query)
 		}
 	default:
 		if ev.Key == termbox.KeySpace {
@@ -331,11 +369,7 @@ func handleKeyEvent(ev termbox.Event) {
 
 		if ev.Ch > 0 {
 			ctx.query = append(ctx.query, ev.Ch)
-			ctx.dirty = true
+			ctx.queryCh <- string(ctx.query)
 		}
-	}
-
-	if update {
-		refreshScreen(10 * time.Millisecond)
 	}
 }
