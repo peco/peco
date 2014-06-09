@@ -148,7 +148,7 @@ func (c *Ctx) handleKeyEvent(ev termbox.Event) {
 		if len(c.current) == 1 {
 			c.result = c.current[0].line
 		} else if c.selectedLine > 0 && c.selectedLine < len(c.current) {
-			c.result = c.current[c.selectedLine].line
+			c.result = c.current[c.selectedLine - 1].line
 		}
 		close(c.LoopCh())
 	case termbox.KeyArrowUp, termbox.KeyCtrlK:
