@@ -19,6 +19,17 @@ Use with [ghq](https://github.com/motemen/ghq) to select/display the godoc for y
 godoc $(ghq list --full-path | percol --query $QUERY) | $PAGER
 ```
 
+Filtering
+=========
+
+After you laungu percol, type somethig in. It will be matched against the
+text you fed to percol, and the results will be filtered.
+
+Navigation
+==========
+
+Use the left, right, up, and down arrow keys to navigate through all the results
+
 TODO
 ====
 
@@ -27,8 +38,6 @@ Test it. In doing so, we may change the repo structure
 Break things up into separate goroutines to handle terminal drawing and user-input handling
 
 Implement all(?) of the original percol options
-
-Pagination
 
 Notes
 =====
