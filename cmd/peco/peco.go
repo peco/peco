@@ -50,11 +50,11 @@ func main() {
 		if err != nil {
 			os.Exit(1)
 		}
-	} else if !percol.IsTty() {
+	} else if !peco.IsTty() {
 		in = os.Stdin
 	}
 
-	ctx := percol.NewCtx()
+	ctx := peco.NewCtx()
 	defer func() {
 		if result := ctx.Result(); result != "" {
 			os.Stdout.WriteString(result)
@@ -63,7 +63,7 @@ func main() {
 
 	ctx.ReadBuffer(in)
 
-	err = percol.TtyReady()
+	err = peco.TtyReady()
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)

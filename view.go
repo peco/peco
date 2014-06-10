@@ -1,4 +1,4 @@
-package percol
+package peco
 
 import (
 	"unicode/utf8"

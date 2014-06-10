@@ -1,29 +1,61 @@
-go-percol
+peco
 ======
 
-(VERY ALPHA) Port of percol to Go
+Simplistic interfacting filtering tool
+
+Description
+===========
+
+peco is based on [percol](https://github.com/mooz/percol). The idea is that percol was darn useful, but I wanted a tool that was a single binary.
+
+peco is written in Go, and as of this writing only implements the basic filtering feature (mainly because that's the only thing I use -- you're welcome to send me pull requests to make peco more compatible with percol). I have also been told that peco even works on windows :)
 
 Installation
 ============
 
 ```
-go get github.com/lestrrat/percol/cmd/percol/
+go get github.com/lestrrat/peco/cmd/peco/
 ```
 
 Usage
 =====
 
-Use with [ghq](https://github.com/motemen/ghq) to select/display the godoc for your work in your GOPATH
+If you can read Japanese, [here's one cool usage](http://blog.kentarok.org/entry/2014/06/03/135300).
 
+Basically, you can define a simple function to easily move around your source code tree:
+
+```zsh
+function peco-src () {
+    local selected_dir=$(ghq list --full-path | peco --query "$LBUFFER")
+    if [ -n "$selected_dir" ]; then
+        BUFFER="cd ${selected_dir}"
+        zle accept-line
+    fi    
+    zle clear-screen
+}         
+zle -N peco-src
 ```
-godoc $(ghq list --full-path | percol --query $QUERY) | $PAGER
+
+Or to easily navigate godoc for your local stuff:
+
+```zsh
+function peco-godoc() { 
+    local selected_dir=$(ghq list --full-path | peco --query "$LBUFFER")
+    if [ -n "$selected_dir" ]; then
+        BUFFER="godoc ${selected_dir} | less"
+        zle accept-line 
+    fi 
+    zle clear-screen 
+}
+    
+zle -N peco-godoc 
 ```
 
 Filtering
 =========
 
-After you laungu percol, type somethig in. It will be matched against the
-text you fed to percol, and the results will be filtered.
+After you laungu peco, type somethig in. It will be matched against the
+text you fed to peco, and the results will be filtered.
 
 Navigation
 ==========
@@ -35,20 +67,9 @@ TODO
 
 Test it. In doing so, we may change the repo structure
 
-Break things up into separate goroutines to handle terminal drawing and user-input handling
-
 Implement all(?) of the original percol options
 
 Notes
 =====
 
 Much code stolen from https://github.com/mattn/gof
-Currently can only search by entering characters, and then when you have 1 entry, you can press enter to print the selected line, which you can feed to another command
-
-Example:
-
-```
-ps aux | percol
-```
-
-Then try typing the PID of some running process, then press enter.
