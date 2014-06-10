@@ -51,6 +51,11 @@ function peco-godoc() {
 zle -N peco-godoc 
 ```
 
+Command Line Options
+====================
+
+TODO
+
 Filtering
 =========
 
