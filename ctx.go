@@ -100,13 +100,10 @@ func (c *Ctx) Buffer() []Match {
 }
 
 func (c *Ctx) ReadBuffer(input io.Reader) error {
-	rdr := bufio.NewReader(input)
-	for {
-		line, err := rdr.ReadString('\n')
+	scanner := bufio.NewScanner(input)
+	for scanner.Scan() {
+		line := scanner.Text()
 		c.lines = append(c.lines, Match{line, nil})
-		if err != nil {
-			break
-		}
 	}
 
 	if len(c.lines) > 0 {
