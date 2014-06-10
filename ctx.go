@@ -104,10 +104,10 @@ func (c *Ctx) ReadBuffer(input io.Reader) error {
 	rdr := bufio.NewReader(input)
 	for {
 		line, err := rdr.ReadString('\n')
+		c.lines = append(c.lines, Match{line, nil})
 		if err != nil {
 			break
 		}
-		c.lines = append(c.lines, Match{line, nil})
 	}
 
 	if len(c.lines) > 0 {
