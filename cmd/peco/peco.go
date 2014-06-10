@@ -95,5 +95,4 @@ func main() {
 	}
 
 	ctx.WaitDone()
-	ctx.PrintResult()
 }

@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"fmt"
 	"io"
-	"os"
 	"sync"
 )
 
@@ -114,12 +113,6 @@ func (c *Ctx) ReadBuffer(input io.Reader) error {
 		return nil
 	}
 	return fmt.Errorf("No buffer to work with was available")
-}
-
-func (c *Ctx) PrintResult() {
-	if r := c.result; r != "" {
-		fmt.Fprintln(os.Stderr, c.result)
-	}
 }
 
 func (c *Ctx) NewView() *View {
