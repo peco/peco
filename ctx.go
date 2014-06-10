@@ -131,9 +131,12 @@ func (c *Ctx) Loop() {
 			return
 		default:
 			ev := termbox.PollEvent()
-			if ev.Type == termbox.EventError {
+			switch ev.Type {
+			case termbox.EventError:
 				//update = false
-			} else if ev.Type == termbox.EventKey {
+			case termbox.EventResize:
+				c.DrawMatches(nil)
+			case termbox.EventKey:
 				c.handleKeyEvent(ev)
 			}
 		}
@@ -152,8 +155,10 @@ func (c *Ctx) handleKeyEvent(ev termbox.Event) {
 		}
 		close(c.LoopCh())
 	case termbox.KeyArrowUp, termbox.KeyCtrlK:
-		c.selectedLine--
-		c.DrawMatches(nil)
+		if c.selectedLine > 1 { // starts at 1
+			c.selectedLine--
+			c.DrawMatches(nil)
+		}
 	case termbox.KeyArrowDown, termbox.KeyCtrlJ:
 		c.selectedLine++
 		c.DrawMatches(nil)

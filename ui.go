@@ -1,6 +1,7 @@
 package percol
 
 import (
+	"fmt"
 	"unicode/utf8"
 
 	"github.com/mattn/go-runewidth"
@@ -40,30 +41,40 @@ func (u *UI) drawScreen(targets []Match) {
 	u.mutex.Lock()
 	defer u.mutex.Unlock()
 
-	width, height := termbox.Size()
-	_ = width
 	termbox.Clear(termbox.ColorDefault, termbox.ColorDefault)
 
 	if targets == nil {
-		targets = u.Ctx.lines
+		if current := u.Ctx.current; current != nil {
+			targets = u.Ctx.current
+		} else {
+			targets = u.Ctx.lines
+		}
 	}
 
+	_, height := termbox.Size()
+	perPage := height - 4
+	currentPage := ((u.Ctx.selectedLine - 1) / perPage) + 1
+	if currentPage <= 0 {
+		currentPage = 1
+	}
+	offset := (currentPage - 1) * perPage
+
 	printTB(0, 0, termbox.ColorDefault, termbox.ColorDefault, "QUERY>")
-
 	printTB(8, 0, termbox.ColorDefault, termbox.ColorDefault, string(u.query))
-	for n := 1; n+2 < height; n++ {
-		if n-1 >= len(targets) {
-			break
-		}
 
+	for n := 1; n <= perPage; n++ {
 		fgAttr := termbox.ColorDefault
 		bgAttr := termbox.ColorDefault
-		if n == u.selectedLine {
+		if n == u.selectedLine-offset {
 			fgAttr = termbox.AttrUnderline
 			bgAttr = termbox.ColorMagenta
 		}
 
-		target := targets[n-1]
+		targetIdx := offset + n - 1
+		if targetIdx >= len(targets) {
+			break
+		}
+		target := targets[targetIdx]
 		line := target.line
 		if target.matches == nil {
 			printTB(0, n, fgAttr, bgAttr, line)
