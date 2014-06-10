@@ -5,7 +5,7 @@ import (
 	"os"
 
 	"github.com/jessevdk/go-flags"
-	"github.com/lestrrat/go-percol"
+	"github.com/lestrrat/peco"
 	"github.com/nsf/termbox-go"
 )
 
