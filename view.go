@@ -71,7 +71,7 @@ func (v *View) movePage(p PagingRequest) {
 		} else {
 			v.selectedLine = 1
 		}
-	} else if v.current != nil && v.selectedLine >= len(v.current) {
+	} else if v.current != nil && v.selectedLine > len(v.current) {
 		v.selectedLine = 1
 	}
 }
