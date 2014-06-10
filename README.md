@@ -20,7 +20,7 @@ go get github.com/lestrrat/peco/cmd/peco/
 Usage
 =====
 
-If you can read Japanese, [here's one cool usage](http://blog.kentarok.org/entry/2014/06/03/135300).
+If you can read Japanese, [here's one cool usage](http://blog.kentarok.org/entry/2014/06/03/135300) using [ghq](https://github.com/motemen/ghq)
 
 Basically, you can define a simple function to easily move around your source code tree:
 
