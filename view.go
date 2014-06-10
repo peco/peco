@@ -100,7 +100,12 @@ CALCULATE_PAGE:
 		currentPage = 1
 	}
 	offset := (currentPage - 1) * perPage
-	maxPage := (len(targets) / perPage) + 1
+	var maxPage int
+	if len(targets) == 0 {
+		maxPage = 1
+	} else {
+		maxPage = ((len(targets) + perPage - 1) / perPage)
+	}
 
 	if maxPage < currentPage {
 		u.Ctx.selectedLine = offset
