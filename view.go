@@ -11,6 +11,15 @@ type View struct {
 	*Ctx
 }
 
+type PagingRequest int
+
+const (
+	ToNextLine PagingRequest = iota
+	ToNextPage
+	ToPrevLine
+	ToPrevPage
+)
+
 func (u *View) Loop() {
 	u.AddWaitGroup()
 	defer u.ReleaseWaitGroup()
@@ -18,6 +27,8 @@ func (u *View) Loop() {
 		select {
 		case <-u.LoopCh():
 			return
+		case r := <-u.PagingCh():
+			u.movePage(r)
 		case lines := <-u.DrawCh():
 			u.drawScreen(lines)
 		}
@@ -33,6 +44,35 @@ func printTB(x, y int, fg, bg termbox.Attribute, msg string) {
 		msg = msg[w:]
 		termbox.SetCell(x, y, c, fg, bg)
 		x += w
+	}
+}
+
+func (v *View) movePage(p PagingRequest) {
+	_, height := termbox.Size()
+	perPage := height - 4
+
+	switch p {
+	case ToPrevLine:
+		v.selectedLine--
+	case ToNextLine:
+		v.selectedLine++
+	case ToPrevPage, ToNextPage:
+		if p == ToPrevPage {
+			v.selectedLine -= perPage
+		} else {
+			v.selectedLine += perPage
+		}
+	}
+
+	if v.selectedLine < 1 {
+		if v.current != nil && len(v.current) > perPage {
+			// Go to last page, if possible
+			v.selectedLine = len(v.current)
+		} else {
+			v.selectedLine = 1
+		}
+	} else if v.current != nil && v.selectedLine >= len(v.current) {
+		v.selectedLine = 1
 	}
 }
 

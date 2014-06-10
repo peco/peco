@@ -39,13 +39,17 @@ func (i *Input) handleKeyEvent(ev termbox.Event) {
 			i.result = i.current[i.selectedLine-1].line
 		}
 		close(i.LoopCh())
+	case termbox.KeyArrowRight:
+		i.PagingCh() <- ToNextPage
+		i.DrawMatches(nil)
+	case termbox.KeyArrowLeft:
+		i.PagingCh() <- ToPrevPage
+		i.DrawMatches(nil)
 	case termbox.KeyArrowUp, termbox.KeyCtrlK:
-		if i.selectedLine > 1 { // starts at 1
-			i.selectedLine--
-			i.DrawMatches(nil)
-		}
+		i.PagingCh() <- ToPrevLine
+		i.DrawMatches(nil)
 	case termbox.KeyArrowDown, termbox.KeyCtrlJ:
-		i.selectedLine++
+		i.PagingCh() <- ToNextLine
 		i.DrawMatches(nil)
 	case termbox.KeyBackspace, termbox.KeyBackspace2:
 		if len(i.query) > 0 {

@@ -15,6 +15,7 @@ type Ctx struct {
 	loopCh       chan struct{}
 	queryCh      chan string
 	drawCh       chan []Match
+	pagingCh     chan PagingRequest
 	mutex        sync.Mutex
 	query        []rune
 	selectedLine int
@@ -32,9 +33,10 @@ type Match struct {
 func NewCtx() *Ctx {
 	return &Ctx{
 		"",
-		make(chan struct{}), // loopCh
-		make(chan string),   // queryCh
-		make(chan []Match),  // drawCh
+		make(chan struct{}),      // loopCh
+		make(chan string),        // queryCh
+		make(chan []Match),       // drawCh
+		make(chan PagingRequest), // pagingCh
 		sync.Mutex{},
 		[]rune{},
 		1,
@@ -70,6 +72,10 @@ func (c *Ctx) QueryCh() chan string {
 
 func (c *Ctx) DrawCh() chan []Match {
 	return c.drawCh
+}
+
+func (c *Ctx) PagingCh() chan PagingRequest {
+	return c.pagingCh
 }
 
 func (c *Ctx) Terminate() {
