@@ -93,12 +93,19 @@ func (u *View) drawScreen(targets []Match) {
 
 	width, height := termbox.Size()
 	perPage := height - 4
+
+CALCULATE_PAGE:
 	currentPage := ((u.Ctx.selectedLine - 1) / perPage) + 1
 	if currentPage <= 0 {
 		currentPage = 1
 	}
 	offset := (currentPage - 1) * perPage
 	maxPage := (len(targets) / perPage) + 1
+
+	if maxPage < currentPage {
+		u.Ctx.selectedLine = offset
+		goto CALCULATE_PAGE
+	}
 
 	printTB(0, 0, termbox.ColorDefault, termbox.ColorDefault, "QUERY>")
 
