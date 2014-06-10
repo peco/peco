@@ -1,6 +1,7 @@
 package peco
 
 import (
+	"fmt"
 	"unicode/utf8"
 
 	"github.com/mattn/go-runewidth"
@@ -90,16 +91,20 @@ func (u *View) drawScreen(targets []Match) {
 		}
 	}
 
-	_, height := termbox.Size()
+	width, height := termbox.Size()
 	perPage := height - 4
 	currentPage := ((u.Ctx.selectedLine - 1) / perPage) + 1
 	if currentPage <= 0 {
 		currentPage = 1
 	}
 	offset := (currentPage - 1) * perPage
+	maxPage := (len(targets) / perPage) + 1
 
 	printTB(0, 0, termbox.ColorDefault, termbox.ColorDefault, "QUERY>")
+
 	printTB(8, 0, termbox.ColorDefault, termbox.ColorDefault, string(u.query))
+	pmsg := fmt.Sprintf("[%d/%d]", currentPage, maxPage)
+	printTB(width-runewidth.StringWidth(pmsg), 0, termbox.ColorDefault, termbox.ColorDefault, pmsg)
 
 	for n := 1; n <= perPage; n++ {
 		fgAttr := termbox.ColorDefault
