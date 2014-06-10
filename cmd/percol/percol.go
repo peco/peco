@@ -74,16 +74,16 @@ func main() {
 		os.Exit(1)
 	}
 
-	var input *os.File
+	var in *os.File
 
-	// receive input from either a file or Stdin
+	// receive in from either a file or Stdin
 	if len(args) > 0 {
-		input, err = os.Open(args[0])
+		in, err = os.Open(args[0])
 		if err != nil {
 			os.Exit(1)
 		}
 	} else if !percol.IsTty() {
-		input = os.Stdin
+		in = os.Stdin
 	}
 
 	ctx := percol.NewCtx()
@@ -93,7 +93,7 @@ func main() {
 		}
 	}()
 
-	ctx.ReadBuffer(input)
+	ctx.ReadBuffer(in)
 
 	err = percol.TtyReady()
 	if err != nil {
@@ -108,17 +108,18 @@ func main() {
 	}
 	defer termbox.Close()
 
-	ui := ctx.NewUI()
+	view := ctx.NewView()
 	filter := ctx.NewFilter()
+	input := ctx.NewInput()
 
-	go ui.Loop()
+	go view.Loop()
 	go filter.Loop()
-	go ctx.Loop()
+	go input.Loop()
 
 	if len(opts.Query) > 0 {
 		ctx.ExecQuery(string(string(opts.Query)))
 	} else {
-		ui.Refresh()
+		view.Refresh()
 	}
 
 	ctx.WaitDone()

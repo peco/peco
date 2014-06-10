@@ -6,8 +6,6 @@ import (
 	"io"
 	"os"
 	"sync"
-
-	"github.com/nsf/termbox-go"
 )
 
 // Ctx contains all the important data. while you can easily access
@@ -113,73 +111,14 @@ func (c *Ctx) PrintResult() {
 	}
 }
 
-func (c *Ctx) NewUI() *UI {
-	return &UI{c}
+func (c *Ctx) NewView() *View {
+	return &View{c}
 }
 
 func (c *Ctx) NewFilter() *Filter {
 	return &Filter{c}
 }
 
-func (c *Ctx) Loop() {
-	c.AddWaitGroup()
-	defer c.ReleaseWaitGroup()
-
-	for {
-		select {
-		case <-c.LoopCh(): // can only fall here if we closed c.loopCh
-			return
-		default:
-			ev := termbox.PollEvent()
-			switch ev.Type {
-			case termbox.EventError:
-				//update = false
-			case termbox.EventResize:
-				c.DrawMatches(nil)
-			case termbox.EventKey:
-				c.handleKeyEvent(ev)
-			}
-		}
-	}
-}
-
-func (c *Ctx) handleKeyEvent(ev termbox.Event) {
-	switch ev.Key {
-	case termbox.KeyEsc:
-		close(c.LoopCh())
-	case termbox.KeyEnter:
-		if len(c.current) == 1 {
-			c.result = c.current[0].line
-		} else if c.selectedLine > 0 && c.selectedLine < len(c.current) {
-			c.result = c.current[c.selectedLine - 1].line
-		}
-		close(c.LoopCh())
-	case termbox.KeyArrowUp, termbox.KeyCtrlK:
-		if c.selectedLine > 1 { // starts at 1
-			c.selectedLine--
-			c.DrawMatches(nil)
-		}
-	case termbox.KeyArrowDown, termbox.KeyCtrlJ:
-		c.selectedLine++
-		c.DrawMatches(nil)
-	case termbox.KeyBackspace, termbox.KeyBackspace2:
-		if len(c.query) > 0 {
-			c.query = c.query[:len(c.query)-1]
-			if len(c.query) > 0 {
-				c.ExecQuery(string(c.query))
-			} else {
-				c.current = nil
-				c.DrawMatches(nil)
-			}
-		}
-	default:
-		if ev.Key == termbox.KeySpace {
-			ev.Ch = ' '
-		}
-
-		if ev.Ch > 0 {
-			c.query = append(c.query, ev.Ch)
-			c.ExecQuery(string(c.query))
-		}
-	}
+func (c *Ctx) NewInput() *Input {
+	return &Input{c}
 }

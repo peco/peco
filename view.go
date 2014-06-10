@@ -1,18 +1,17 @@
 package percol
 
 import (
-	"fmt"
 	"unicode/utf8"
 
 	"github.com/mattn/go-runewidth"
 	"github.com/nsf/termbox-go"
 )
 
-type UI struct {
+type View struct {
 	*Ctx
 }
 
-func (u *UI) Loop() {
+func (u *View) Loop() {
 	u.AddWaitGroup()
 	defer u.ReleaseWaitGroup()
 	for {
@@ -37,7 +36,7 @@ func printTB(x, y int, fg, bg termbox.Attribute, msg string) {
 	}
 }
 
-func (u *UI) drawScreen(targets []Match) {
+func (u *View) drawScreen(targets []Match) {
 	u.mutex.Lock()
 	defer u.mutex.Unlock()
 
