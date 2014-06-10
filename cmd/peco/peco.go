@@ -61,7 +61,11 @@ func main() {
 		}
 	}()
 
-	ctx.ReadBuffer(in)
+	if err = ctx.ReadBuffer(in); err != nil {
+		// Nothing to process, bail out
+		fmt.Fprintln(os.Stderr, "You must supply something to work with via filename or stdin")
+		os.Exit(1)
+	}
 
 	err = peco.TtyReady()
 	if err != nil {

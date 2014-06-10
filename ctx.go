@@ -100,7 +100,7 @@ func (c *Ctx) Buffer() []Match {
 	return lcopy
 }
 
-func (c *Ctx) ReadBuffer(input io.Reader) {
+func (c *Ctx) ReadBuffer(input io.Reader) error {
 	rdr := bufio.NewReader(input)
 	for {
 		line, err := rdr.ReadString('\n')
@@ -109,6 +109,11 @@ func (c *Ctx) ReadBuffer(input io.Reader) {
 		}
 		c.lines = append(c.lines, Match{line, nil})
 	}
+
+	if len(c.lines) > 0 {
+		return nil
+	}
+	return fmt.Errorf("No buffer to work with was available")
 }
 
 func (c *Ctx) PrintResult() {
