@@ -44,7 +44,7 @@ func printTB(x, y int, fg, bg termbox.Attribute, msg string) {
 		}
 		msg = msg[w:]
 		termbox.SetCell(x, y, c, fg, bg)
-		x += w
+		x += runewidth.RuneWidth(c)
 	}
 }
 
@@ -126,6 +126,7 @@ CALCULATE_PAGE:
 		printTB(8, 0, termbox.ColorDefault, termbox.ColorDefault, string(u.query))
 		termbox.SetCell(8+len(u.query), 0, rune(' '), termbox.ColorDefault|termbox.AttrReverse, termbox.ColorDefault|termbox.AttrReverse)
 	} else {
+		prev := 0
 		for i, r := range u.query {
 			fg := termbox.ColorDefault
 			bg := termbox.ColorDefault
@@ -133,7 +134,8 @@ CALCULATE_PAGE:
 				fg |= termbox.AttrReverse
 				bg |= termbox.AttrReverse
 			}
-			termbox.SetCell(8+i, 0, r, fg, bg)
+			termbox.SetCell(8+prev, 0, r, fg, bg)
+			prev += runewidth.RuneWidth(r)
 		}
 	}
 
@@ -158,13 +160,18 @@ CALCULATE_PAGE:
 			printTB(0, n, fgAttr, bgAttr, line)
 		} else {
 			prev := 0
+			index := 0
 			for _, m := range target.matches {
-				if m[0] > prev {
-					printTB(prev, n, fgAttr, bgAttr, line[prev:m[0]])
-					prev += runewidth.StringWidth(line[prev:m[0]])
+				if m[0] > index {
+					c := line[index:m[0]]
+					printTB(prev, n, fgAttr, bgAttr, c)
+					prev += runewidth.StringWidth(c)
+					index += len(c)
 				}
-				printTB(prev, n, fgAttr|termbox.ColorCyan, bgAttr, line[m[0]:m[1]])
-				prev += runewidth.StringWidth(line[m[0]:m[1]])
+				c := line[m[0]:m[1]]
+				printTB(prev, n, fgAttr|termbox.ColorCyan, bgAttr, c)
+				prev += runewidth.StringWidth(c)
+				index += len(c)
 			}
 
 			m := target.matches[len(target.matches)-1]
