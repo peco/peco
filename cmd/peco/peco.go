@@ -17,7 +17,7 @@ Usage: percol [options] [FILE]
 
 Options:
   -h, --help            show this help message and exit
-	--rcfile=RCFILE       path to the settings file
+  --rcfile=RCFILE       path to the settings file
   --query=QUERY         pre-input query
 `
 	os.Stderr.Write([]byte(v))
