@@ -188,6 +188,49 @@ func handleForwardWord(i *Input, _ termbox.Event) {
 
 }
 
+func handleBackwardWord(i *Input, _ termbox.Event) {
+	if i.caretPos == 0 {
+		return
+	}
+
+	if i.caretPos >= len(i.query) {
+		i.caretPos--
+	}
+
+	// if we start from a whitespace-ish position, we should
+	// rewind to the end of the previous word, and then do the
+	// search all over again
+SEARCH_PREV_WORD:
+	if unicode.IsSpace(i.query[i.caretPos]) {
+		for pos := i.caretPos; pos > 0; pos-- {
+			if !unicode.IsSpace(i.query[pos]) {
+				i.caretPos = pos
+				break
+			}
+		}
+	}
+
+	// if we start from the first character of a word, we
+	// should attempt to move back and search for the previous word
+	if i.caretPos > 0 && unicode.IsSpace(i.query[i.caretPos-1]) {
+		i.caretPos--
+		goto SEARCH_PREV_WORD
+	}
+
+	// Now look for a space
+	for pos := i.caretPos; pos > 0; pos-- {
+		if unicode.IsSpace(i.query[pos]) {
+			i.caretPos = pos + 1
+			i.DrawMatches(nil)
+			return
+		}
+	}
+
+	// not found. just move to the beginning of the buffer
+	i.caretPos = 0
+	i.DrawMatches(nil)
+}
+
 func handleForwardChar(i *Input, _ termbox.Event) {
 	if i.caretPos >= len(i.query) {
 		return
@@ -290,6 +333,8 @@ func (ksh KeymapStringHandler) ToHandler() (h KeymapHandler, err error) {
 		h = handleBackwardChar
 	case "peco.ForwardWord":
 		h = handleForwardWord
+	case "peco.BackwardWord":
+		h = handleBackwardWord
 	case "peco.DeleteForwardChar":
 		h = handleDeleteForwardChar
 	case "peco.DeleteBackwardChar":
