@@ -245,6 +245,8 @@ func NewKeymap() Keymap {
 		termbox.KeyArrowRight: handleSelectNextPage,
 		termbox.KeyBackspace:  handleDeleteBackwardChar,
 		termbox.KeyBackspace2: handleDeleteBackwardChar,
+		termbox.KeyCtrlB:      handleBackwardChar,
+		termbox.KeyCtrlF:      handleForwardChar,
 	}
 }
 
