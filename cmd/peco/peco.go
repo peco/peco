@@ -81,27 +81,31 @@ func main() {
 		err = ctx.ReadConfig(opts.Rcfile)
 		if err != nil {
 			fmt.Fprintln(os.Stderr, err)
-			os.Exit(1)
+			ctx.ExitStatus = 1
+			return
 		}
 	}
 
 	if err = ctx.ReadBuffer(in); err != nil {
 		// Nothing to process, bail out
 		fmt.Fprintln(os.Stderr, "You must supply something to work with via filename or stdin")
-		os.Exit(1)
+		ctx.ExitStatus = 1
+		return
 	}
 
 	err = peco.TtyReady()
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
-		os.Exit(1)
+		ctx.ExitStatus = 1
+		return
 	}
 	defer peco.TtyTerm()
 
 	err = termbox.Init()
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
-		os.Exit(1)
+		ctx.ExitStatus = 1
+		return
 	}
 	defer termbox.Close()
 
