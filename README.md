@@ -8,7 +8,27 @@ Description
 
 peco is based on [percol](https://github.com/mooz/percol). The idea is that percol was darn useful, but I wanted a tool that was a single binary.
 
-peco is written in Go, and as of this writing only implements the basic filtering feature (mainly because that's the only thing I use -- you're welcome to send me pull requests to make peco more compatible with percol). I have also been told that peco even works on windows :)
+peco is written in Go, and as of this writing only implements the basic filtering feature (mainly because that's the only thing I use -- you're welcome to send me pull requests to make peco more compatible with percol).
+
+
+Features
+========
+
+## Incremental search
+
+Search results are filtered as you type. This is great to drill down to the
+line you are looking for
+
+Multiple terms turn the query into an "AND" query:
+
+![optimized](https://cloud.githubusercontent.com/assets/554281/3241419/d5fccc5c-f13c-11e3-898b-280a246b083c.gif)
+
+When you find that line that you want, press enter, and the resulting line
+is printed to stdout, which allows you to pipe it to other tools
+
+## Works on Windows!
+
+I have been told that peco even works on windows :)
 
 Installation
 ============
