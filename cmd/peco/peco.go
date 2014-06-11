@@ -61,6 +61,9 @@ func main() {
 	ctx := peco.NewCtx()
 	defer func() {
 		if result := ctx.Result(); result != "" {
+			if result[len(result)-1] != '\n' {
+				result = result + "\n"
+			}
 			os.Stdout.WriteString(result)
 		}
 		os.Exit(ctx.ExitStatus)
