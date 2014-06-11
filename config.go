@@ -2,7 +2,6 @@ package peco
 
 import (
 	"encoding/json"
-	"io/ioutil"
 	"os"
 )
 
@@ -23,12 +22,7 @@ func (c *Config) ReadFilename(filename string) error {
 	}
 	defer f.Close()
 
-	buf, err := ioutil.ReadAll(f)
-	if err != nil {
-		return err
-	}
-
-	err = json.Unmarshal(buf, c)
+	err = json.NewDecoder(f).Decode(c)
 	if err != nil {
 		return err
 	}
