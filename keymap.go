@@ -195,6 +195,24 @@ func handleKillEndOfLine(i *Input, _ termbox.Event) {
 	i.DrawMatches(nil)
 }
 
+func handleDeleteForwardChar(i *Input, ev termbox.Event) {
+	if len(i.query) == i.caretPos {
+		return
+	}
+
+	buf := make([]rune, len(i.query)-1)
+	copy(buf, i.query[:i.caretPos])
+	copy(buf[i.caretPos:], i.query[i.caretPos+1:])
+	i.query = buf
+	if len(i.query) > 0 {
+		i.ExecQuery(string(i.query))
+		return
+	}
+
+	i.current = nil
+	i.DrawMatches(nil)
+}
+
 func handleDeleteBackwardChar(i *Input, ev termbox.Event) {
 	if len(i.query) <= 0 {
 		return
@@ -242,6 +260,8 @@ func (ksh KeymapStringHandler) ToHandler() (h KeymapHandler, err error) {
 		h = handleForwardChar
 	case "peco.BackwardChar":
 		h = handleBackwardChar
+	case "peco.DeleteForwardChar":
+		h = handleDeleteForwardChar
 	case "peco.DeleteBackwardChar":
 		h = handleDeleteBackwardChar
 	case "peco.SelectPreviousPage":
