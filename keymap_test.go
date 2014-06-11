@@ -11,7 +11,7 @@ func TestReadRC(t *testing.T) {
 	txt := `
 {
   "Keymap": {
-   "C-k": "peco.Exit"
+   "C-j": "peco.Finish"
   }
 }
 `
