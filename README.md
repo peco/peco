@@ -88,7 +88,17 @@ zle -N peco-godoc
 Command Line Options
 ====================
 
-TODO
+### --help
+
+Display a help message
+
+### --query <query>
+
+Specifies the default query to be used upon startup. This is useful for scripts and functions where you can figure out before hand what the most likely query string is.
+
+### --rcfile <filename>
+
+Pass peco a configuration file, which currently must be a JSON file. If unspecified, it will read ~/.peco/config.json by default (if available)
 
 Configuration File
 ==================
