@@ -6,9 +6,23 @@ Simplistic interfacting filtering tool
 Description
 ===========
 
-peco is based on [percol](https://github.com/mooz/percol). The idea is that percol was darn useful, but I wanted a tool that was a single binary.
+peco is based on [percol](https://github.com/mooz/percol). The idea is that percol was darn useful, but I wanted a tool that was a single binary. peco is written in Go, and as of this writing only implements the basic filtering feature (mainly because that's the only thing I use -- you're welcome to send me pull requests to make peco more compatible with percol).
 
-peco is written in Go, and as of this writing only implements the basic filtering feature (mainly because that's the only thing I use -- you're welcome to send me pull requests to make peco more compatible with percol).
+peco can be a great tool to filter stuff like logs, process stats, find files, because unlike grep, you can type as you think and look through the current results.
+
+## Demo
+
+Demos speak more than a thousand words! Here's me looking for a process on my mac. As you can see, you can page through your results, and you can keep changing the query:
+
+![optimized](http://lestrrat.github.io/peco/peco-demo-ps.gif)
+
+Here's me trying to figure out which file to open:
+
+![optimized](http://lestrrat.github.io/peco/peco-demo-filename.gif)
+
+When you combine tools like zsh, peco, and [ghq](https://github.com/motemen/ghq), you can make managing/moving around your huge dev area a piece of cake! (this example doesn't use zsh functions so you can see what I'm doing)
+
+![optimized](http://lestrrat.github.io/peco/peco-demo-ghq.gif)
 
 
 Features
