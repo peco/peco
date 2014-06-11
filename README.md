@@ -68,7 +68,7 @@ Currently only keymaps are supported:
 {
     "Keymap": {
         "C-p": "peco.SelectPrevious",
-        "C-n": "peco.SelectNext",
+        "C-n": "peco.SelectNext"
     }
 }
 ```
