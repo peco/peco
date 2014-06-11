@@ -37,8 +37,6 @@ func TestKeymapStrToKeyValue(t *testing.T) {
 		"C-8": termbox.KeyCtrl8,
 	}
 
-t.Logf("%#q", stringToKey)
-
 	t.Logf("Checking key name -> actual key value mapping...")
 	for n, v := range expected {
 		t.Logf("    checking %s...", n)
