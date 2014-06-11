@@ -186,6 +186,15 @@ func handleEndOfLine(i *Input, _ termbox.Event) {
 	i.DrawMatches(nil)
 }
 
+func handleKillEndOfLine(i *Input, _ termbox.Event) {
+	if len(i.query) <= i.caretPos {
+		return
+	}
+
+	i.query = i.query[0:i.caretPos]
+	i.DrawMatches(nil)
+}
+
 func handleDeleteBackwardChar(i *Input, ev termbox.Event) {
 	if len(i.query) <= 0 {
 		return
@@ -223,6 +232,8 @@ func (ksk KeymapStringKey) ToKey() (k termbox.Key, err error) {
 
 func (ksh KeymapStringHandler) ToHandler() (h KeymapHandler, err error) {
 	switch ksh {
+	case "peco.KillEndOfLine":
+		h = handleKillEndOfLine
 	case "peco.BeginningOfLine":
 		h = handleBeginningOfLine
 	case "peco.EndOfLine":
