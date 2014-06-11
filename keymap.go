@@ -146,6 +146,7 @@ func handleDeleteBackwardChar(i *Input) {
 	}
 
 	i.query = i.query[:len(i.query)-1]
+	i.caretPos--
 	if len(i.query) > 0 {
 		i.ExecQuery(string(i.query))
 		return

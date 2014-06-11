@@ -40,6 +40,7 @@ func (i *Input) handleKeyEvent(ev termbox.Event) {
 
 	if ev.Ch > 0 {
 		i.query = append(i.query, ev.Ch)
+		i.caretPos++
 		i.ExecQuery(string(i.query))
 	}
 }

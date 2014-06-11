@@ -17,6 +17,7 @@ type Ctx struct {
 	pagingCh     chan PagingRequest
 	mutex        sync.Mutex
 	query        []rune
+	caretPos int
 	selectedLine int
 	lines        []Match
 	current      []Match
@@ -40,6 +41,7 @@ func NewCtx() *Ctx {
 		make(chan PagingRequest), // pagingCh
 		sync.Mutex{},
 		[]rune{},
+		0,
 		1,
 		[]Match{},
 		nil,
