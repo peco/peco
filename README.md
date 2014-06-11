@@ -108,10 +108,11 @@ Currently only keymaps are supported:
 | peco.BackwardWord       | Move caret backward 1 word|
 | peco.BeginnigOfLine     | Move caret to the beginning of line |
 | peco.EndOfLine          | Move caret to the end of line |
-| peco.DeleteForwardChar  | Deletes one character forward |
-| peco.DeleteBackwardChar | Deletes one character backward |
-| peco.DeleteForwardWord  | Deletes one word forward |
-| peco.DeleteBackwardWord | Deletes one word backward |
+| peco.DeleteForwardChar  | Delete one character forward |
+| peco.DeleteBackwardChar | Delete one character backward |
+| peco.DeleteForwardWord  | Delete one word forward |
+| peco.DeleteBackwardWord | Delete one word backward |
+| peco.KillEndOfLine      | Delete the characters under the cursor until the end of the line |
 | peco.SelectPreviousPage | Jumps to previous page |
 | peco.SelectNextPage     | Jumps to next page|
 | peco.SelectPrevious     | Selects previous line |
