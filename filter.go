@@ -97,7 +97,6 @@ func (f *Filter) Loop() {
 				results = append(results, Match{line.line, ms})
 			}
 
-			f.query = []rune(q)
 			f.DrawMatches(results)
 		}
 	}
