@@ -8,7 +8,7 @@ import (
 	"github.com/nsf/termbox-go"
 )
 
-type KeymapHandler func(i *Input)
+type KeymapHandler func(*Input, termbox.Event)
 type Keymap map[termbox.Key]KeymapHandler
 type KeymapStringKey string
 type KeymapStringHandler string
@@ -53,38 +53,38 @@ func init() {
 	}
 
 	whacky := [][]string{
-		{ "~", "2", "Space" },
-		{ "a" },
-		{ "b" },
-		{ "c" },
-		{ "d" },
-		{ "e" },
-		{ "f" },
-		{ "g" },
-		{ "h" },
-		{ "i" },
-		{ "j" },
-		{ "k" },
-		{ "l" },
-		{ "m" },
-		{ "n" },
-		{ "o" },
-		{ "p" },
-		{ "q" },
-		{ "r" },
-		{ "s" },
-		{ "t" },
-		{ "u" },
-		{ "v" },
-		{ "w" },
-		{ "x" },
-		{ "y" },
-		{ "z" },
-		{ "[", "3" },
-		{ "4", "\\" },
-		{ "5", "]" },
-		{ "6" },
-		{ "7", "/", "_" },
+		{"~", "2", "Space"},
+		{"a"},
+		{"b"},
+		{"c"},
+		{"d"},
+		{"e"},
+		{"f"},
+		{"g"},
+		{"h"},
+		{"i"},
+		{"j"},
+		{"k"},
+		{"l"},
+		{"m"},
+		{"n"},
+		{"o"},
+		{"p"},
+		{"q"},
+		{"r"},
+		{"s"},
+		{"t"},
+		{"u"},
+		{"v"},
+		{"w"},
+		{"x"},
+		{"y"},
+		{"z"},
+		{"[", "3"},
+		{"4", "\\"},
+		{"5", "]"},
+		{"6"},
+		{"7", "/", "_"},
 	}
 	for i, list := range whacky {
 		for _, n := range list {
@@ -101,11 +101,31 @@ func init() {
 	stringToKey["BS2"] = termbox.KeyBackspace2
 	stringToKey["C-8"] = termbox.KeyCtrl8
 
-//	panic(fmt.Sprintf("%#q", stringToKey))
+	//	panic(fmt.Sprintf("%#q", stringToKey))
+}
+
+func handleAcceptChar(i *Input, ev termbox.Event) {
+	if ev.Key == termbox.KeySpace {
+		ev.Ch = ' '
+	}
+
+	if ev.Ch > 0 {
+		if len(i.query) == i.caretPos {
+			i.query = append(i.query, ev.Ch)
+		} else {
+			buf := make([]rune, len(i.query)+1)
+			copy(buf, i.query[:i.caretPos])
+			buf[i.caretPos] = ev.Ch
+			copy(buf[i.caretPos+1:], i.query[i.caretPos:])
+			i.query = buf
+		}
+		i.caretPos++
+		i.ExecQuery(string(i.query))
+	}
 }
 
 // peco.Finish -> end program, exit with success
-func handleFinish(i *Input) {
+func handleFinish(i *Input, _ termbox.Event) {
 	if len(i.current) == 1 {
 		i.result = i.current[0].line
 	} else if i.selectedLine > 0 && i.selectedLine < len(i.current) {
@@ -115,37 +135,60 @@ func handleFinish(i *Input) {
 }
 
 // peco.Cancel -> end program, exit with failure
-func handleCancel(i *Input) {
+func handleCancel(i *Input, ev termbox.Event) {
 	i.ExitStatus = 1
 	i.Finish()
 }
 
-func handleSelectPrevious(i *Input) {
+func handleSelectPrevious(i *Input, ev termbox.Event) {
 	i.PagingCh() <- ToPrevLine
 	i.DrawMatches(nil)
 }
 
-func handleSelectNext(i *Input) {
+func handleSelectNext(i *Input, ev termbox.Event) {
 	i.PagingCh() <- ToNextLine
 	i.DrawMatches(nil)
 }
 
-func handleSelectPreviousPage(i *Input) {
+func handleSelectPreviousPage(i *Input, ev termbox.Event) {
 	i.PagingCh() <- ToPrevPage
 	i.DrawMatches(nil)
 }
 
-func handleSelectNextPage(i *Input) {
+func handleSelectNextPage(i *Input, ev termbox.Event) {
 	i.PagingCh() <- ToNextPage
 	i.DrawMatches(nil)
 }
 
-func handleDeleteBackwardChar(i *Input) {
+func handleForwardChar(i *Input, _ termbox.Event) {
+	if i.caretPos >= len(i.query) {
+		return
+	}
+	i.caretPos++
+	i.DrawMatches(nil)
+}
+
+func handleBackwardChar(i *Input, _ termbox.Event) {
+	if i.caretPos <= 0 {
+		return
+	}
+	i.caretPos--
+	i.DrawMatches(nil)
+}
+
+func handleDeleteBackwardChar(i *Input, ev termbox.Event) {
 	if len(i.query) <= 0 {
 		return
 	}
 
-	i.query = i.query[:len(i.query)-1]
+	if i.caretPos == len(i.query) {
+		i.query = i.query[:len(i.query)-1]
+	} else {
+		buf := make([]rune, len(i.query) - 1)
+		copy(buf, i.query[:i.caretPos])
+		copy(buf[i.caretPos-1:], i.query[i.caretPos:])
+		i.query = buf
+	}
 	i.caretPos--
 	if len(i.query) > 0 {
 		i.ExecQuery(string(i.query))
@@ -158,7 +201,7 @@ func handleDeleteBackwardChar(i *Input) {
 
 func (ksk KeymapStringKey) ToKey() (k termbox.Key, err error) {
 	k, ok := stringToKey[string(ksk)]
-	if ! ok {
+	if !ok {
 		err = fmt.Errorf("No such key %s", ksk)
 	}
 	return
@@ -166,6 +209,10 @@ func (ksk KeymapStringKey) ToKey() (k termbox.Key, err error) {
 
 func (ksh KeymapStringHandler) ToHandler() (h KeymapHandler, err error) {
 	switch ksh {
+	case "peco.ForwardChar":
+		h = handleForwardChar
+	case "peco.BackwardChar":
+		h = handleBackwardChar
 	case "peco.DeleteBackwardChar":
 		h = handleDeleteBackwardChar
 	case "peco.SelectPreviousPage":
@@ -188,17 +235,25 @@ func (ksh KeymapStringHandler) ToHandler() (h KeymapHandler, err error) {
 
 func NewKeymap() Keymap {
 	return Keymap{
-		termbox.KeyEsc: handleCancel,
-		termbox.KeyEnter: handleFinish,
-		termbox.KeyArrowUp: handleSelectPrevious,
-		termbox.KeyCtrlK: handleSelectPrevious,
-		termbox.KeyArrowDown: handleSelectNext,
-		termbox.KeyCtrlJ: handleSelectNext,
-		termbox.KeyArrowLeft: handleSelectPreviousPage,
+		termbox.KeyEsc:        handleCancel,
+		termbox.KeyEnter:      handleFinish,
+		termbox.KeyArrowUp:    handleSelectPrevious,
+		termbox.KeyCtrlK:      handleSelectPrevious,
+		termbox.KeyArrowDown:  handleSelectNext,
+		termbox.KeyCtrlJ:      handleSelectNext,
+		termbox.KeyArrowLeft:  handleSelectPreviousPage,
 		termbox.KeyArrowRight: handleSelectNextPage,
-		termbox.KeyBackspace: handleDeleteBackwardChar,
+		termbox.KeyBackspace:  handleDeleteBackwardChar,
 		termbox.KeyBackspace2: handleDeleteBackwardChar,
 	}
+}
+
+func (km Keymap) Handler(k termbox.Key) KeymapHandler {
+	h, ok := km[k]
+	if ok {
+		return h
+	}
+	return handleAcceptChar
 }
 
 func (km Keymap) UnmarshalJSON(buf []byte) error {
