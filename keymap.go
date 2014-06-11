@@ -184,7 +184,7 @@ func handleDeleteBackwardChar(i *Input, ev termbox.Event) {
 	if i.caretPos == len(i.query) {
 		i.query = i.query[:len(i.query)-1]
 	} else {
-		buf := make([]rune, len(i.query) - 1)
+		buf := make([]rune, len(i.query)-1)
 		copy(buf, i.query[:i.caretPos])
 		copy(buf[i.caretPos-1:], i.query[i.caretPos:])
 		i.query = buf

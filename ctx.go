@@ -17,7 +17,7 @@ type Ctx struct {
 	pagingCh     chan PagingRequest
 	mutex        sync.Mutex
 	query        []rune
-	caretPos int
+	caretPos     int
 	selectedLine int
 	lines        []Match
 	current      []Match
