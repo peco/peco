@@ -56,6 +56,60 @@ Command Line Options
 
 TODO
 
+Configuration File
+==================
+
+By default configuration file in ~/.peco/config.json will be searched. You may
+also pass an arbitrary filename via the --rcfile option
+
+Currently only keymaps are supported:
+
+```json
+{
+    "Keymap": {
+        "C-p": "peco.SelectPrevious",
+        "C-n": "peco.SelectNext"
+    }
+}
+```
+
+## Available keys:
+
+| Name        | Notes |
+|-------------|-------|
+| C-a ... C-z | Control + whatever character |
+| C-1 ... C-8 | Control + 1..8 |
+| C-[         ||
+| C-]         ||
+| C-~         ||
+| C-\_        ||
+| C-\\\\      | Note that you need to escape the backslash |
+| C-/         ||
+| Esc         ||
+| Tab         ||
+| Insert      ||
+| Delete      ||
+| Home        ||
+| End         ||
+| Pgup        ||
+| Pgdn        ||
+| ArrowUp     ||
+| ArrowDown   ||
+| ArrowLeft   ||
+| ArrowRight  ||
+
+## Available actions
+
+| Name | Notes |
+|------|-------|
+| peco.DeleteBackwardChar | Deletes one character |
+| peco.SelectPreviousPage | Jumps to previous page |
+| peco.SelectNextPage     | Jumps to next page|
+| peco.SelectPrevious     | Selects previous line |
+| peco.SelectNext         | Selects next line |
+| peco.Finish             | Exits from peco, with success status |
+| peco.Cancel             | Exits from peco, with failure status |
+
 Filtering
 =========
 

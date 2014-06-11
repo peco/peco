@@ -3,6 +3,8 @@ package main
 import (
 	"fmt"
 	"os"
+	"os/user"
+	"path/filepath"
 
 	"github.com/jessevdk/go-flags"
 	"github.com/lestrrat/peco"
@@ -15,15 +17,17 @@ Usage: percol [options] [FILE]
 
 Options:
   -h, --help            show this help message and exit
+	--rcfile=RCFILE       path to the settings file
   --query=QUERY         pre-input query
 `
 	os.Stderr.Write([]byte(v))
 }
 
 type CmdOptions struct {
-	Help  bool   `short:"h" long:"help" description:"show this help message and exit"`
-	TTY   string `long:"tty" description:"path to the TTY (usually, the value of $TTY)"`
-	Query string `long:"query"`
+	Help   bool   `short:"h" long:"help" description:"show this help message and exit"`
+	TTY    string `long:"tty" description:"path to the TTY (usually, the value of $TTY)"`
+	Query  string `long:"query"`
+	Rcfile string `long:"rcfile" descriotion:"path to the settings file"`
 }
 
 func main() {
@@ -59,6 +63,7 @@ func main() {
 		if result := ctx.Result(); result != "" {
 			os.Stdout.WriteString(result)
 		}
+		os.Exit(ctx.ExitStatus)
 	}()
 
 	if err = ctx.ReadBuffer(in); err != nil {
@@ -80,6 +85,25 @@ func main() {
 		os.Exit(1)
 	}
 	defer termbox.Close()
+
+	if opts.Rcfile == "" {
+		user, err := user.Current()
+		if err == nil { // silently ignore failure for user.Current()
+			file := filepath.Join(user.HomeDir, ".peco", "config.json")
+			_, err := os.Stat(file)
+			if err == nil {
+				opts.Rcfile = file
+			}
+		}
+	}
+
+	if opts.Rcfile != "" {
+		err = ctx.ReadConfig(opts.Rcfile)
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			os.Exit(1)
+		}
+	}
 
 	view := ctx.NewView()
 	filter := ctx.NewFilter()
