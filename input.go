@@ -29,46 +29,17 @@ func (i *Input) Loop() {
 }
 
 func (i *Input) handleKeyEvent(ev termbox.Event) {
-	switch ev.Key {
-	case termbox.KeyEsc:
-		close(i.LoopCh())
-	case termbox.KeyEnter:
-		if len(i.current) == 1 {
-			i.result = i.current[0].line
-		} else if i.selectedLine > 0 && i.selectedLine < len(i.current) {
-			i.result = i.current[i.selectedLine-1].line
-		}
-		close(i.LoopCh())
-	case termbox.KeyArrowRight:
-		i.PagingCh() <- ToNextPage
-		i.DrawMatches(nil)
-	case termbox.KeyArrowLeft:
-		i.PagingCh() <- ToPrevPage
-		i.DrawMatches(nil)
-	case termbox.KeyArrowUp, termbox.KeyCtrlK:
-		i.PagingCh() <- ToPrevLine
-		i.DrawMatches(nil)
-	case termbox.KeyArrowDown, termbox.KeyCtrlJ:
-		i.PagingCh() <- ToNextLine
-		i.DrawMatches(nil)
-	case termbox.KeyBackspace, termbox.KeyBackspace2:
-		if len(i.query) > 0 {
-			i.query = i.query[:len(i.query)-1]
-			if len(i.query) > 0 {
-				i.ExecQuery(string(i.query))
-			} else {
-				i.current = nil
-				i.DrawMatches(nil)
-			}
-		}
-	default:
-		if ev.Key == termbox.KeySpace {
-			ev.Ch = ' '
-		}
+	if h := i.config.Keymap[ev.Key]; h != nil {
+		h(i)
+		return
+	}
 
-		if ev.Ch > 0 {
-			i.query = append(i.query, ev.Ch)
-			i.ExecQuery(string(i.query))
-		}
+	if ev.Key == termbox.KeySpace {
+		ev.Ch = ' '
+	}
+
+	if ev.Ch > 0 {
+		i.query = append(i.query, ev.Ch)
+		i.ExecQuery(string(i.query))
 	}
 }

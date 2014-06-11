@@ -56,6 +56,20 @@ Command Line Options
 
 TODO
 
+Configuration File
+==================
+
+Currently only keymaps are supported:
+
+```json
+{
+    "Keymap": {
+        "C-p": "peco.SelectPrevious",
+        "C-n": "peco.SelectNext",
+    }
+}
+```
+
 Filtering
 =========
 

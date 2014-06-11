@@ -20,6 +20,8 @@ type Ctx struct {
 	selectedLine int
 	lines        []Match
 	current      []Match
+	config       *Config
+	ExitStatus   int
 
 	wait *sync.WaitGroup
 }
@@ -41,8 +43,14 @@ func NewCtx() *Ctx {
 		1,
 		[]Match{},
 		nil,
+		NewConfig(),
+		0,
 		&sync.WaitGroup{},
 	}
+}
+
+func (c *Ctx) ReadConfig(file string) error {
+	return c.config.ReadFilename(file)
 }
 
 func (c *Ctx) Result() string {
@@ -122,4 +130,8 @@ func (c *Ctx) NewFilter() *Filter {
 
 func (c *Ctx) NewInput() *Input {
 	return &Input{c}
+}
+
+func (c *Ctx) Finish() {
+	close(c.LoopCh())
 }
