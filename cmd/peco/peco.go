@@ -66,6 +66,25 @@ func main() {
 		os.Exit(ctx.ExitStatus)
 	}()
 
+	if opts.Rcfile == "" {
+		user, err := user.Current()
+		if err == nil { // silently ignore failure for user.Current()
+			file := filepath.Join(user.HomeDir, ".peco", "config.json")
+			_, err := os.Stat(file)
+			if err == nil {
+				opts.Rcfile = file
+			}
+		}
+	}
+
+	if opts.Rcfile != "" {
+		err = ctx.ReadConfig(opts.Rcfile)
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			os.Exit(1)
+		}
+	}
+
 	if err = ctx.ReadBuffer(in); err != nil {
 		// Nothing to process, bail out
 		fmt.Fprintln(os.Stderr, "You must supply something to work with via filename or stdin")
@@ -85,25 +104,6 @@ func main() {
 		os.Exit(1)
 	}
 	defer termbox.Close()
-
-	if opts.Rcfile == "" {
-		user, err := user.Current()
-		if err == nil { // silently ignore failure for user.Current()
-			file := filepath.Join(user.HomeDir, ".peco", "config.json")
-			_, err := os.Stat(file)
-			if err == nil {
-				opts.Rcfile = file
-			}
-		}
-	}
-
-	if opts.Rcfile != "" {
-		err = ctx.ReadConfig(opts.Rcfile)
-		if err != nil {
-			fmt.Fprintln(os.Stderr, err)
-			os.Exit(1)
-		}
-	}
 
 	view := ctx.NewView()
 	filter := ctx.NewFilter()
