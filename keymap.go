@@ -317,13 +317,13 @@ func handleDeleteForwardWord(i *Input, _ termbox.Event) {
 	}
 
 	for pos := i.caretPos; pos < len(i.query); pos++ {
-		if pos == len(i.query) - 1 {
+		if pos == len(i.query)-1 {
 			i.query = i.query[:i.caretPos]
 			break
 		}
 
 		if unicode.IsSpace(i.query[pos]) {
-			buf := make([]rune, len(i.query) - (pos - i.caretPos))
+			buf := make([]rune, len(i.query)-(pos-i.caretPos))
 			copy(buf, i.query[:i.caretPos])
 			copy(buf[i.caretPos:], i.query[pos:])
 			i.query = buf
@@ -352,7 +352,7 @@ func handleDeleteBackwardWord(i *Input, _ termbox.Event) {
 		}
 
 		if unicode.IsSpace(i.query[pos]) {
-			buf := make([]rune, len(i.query) - (i.caretPos - pos))
+			buf := make([]rune, len(i.query)-(i.caretPos-pos))
 			copy(buf, i.query[:pos])
 			copy(buf[pos:], i.query[i.caretPos:])
 			i.query = buf
@@ -432,6 +432,8 @@ func NewKeymap() Keymap {
 		termbox.KeyArrowRight: handleSelectNextPage,
 		termbox.KeyBackspace:  handleDeleteBackwardChar,
 		termbox.KeyBackspace2: handleDeleteBackwardChar,
+		termbox.KeyCtrlF:      handleForwardChar,
+		termbox.KeyCtrlB:      handleBackwardChar,
 	}
 }
 
