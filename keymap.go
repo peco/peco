@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"unicode"
 
 	"github.com/nsf/termbox-go"
 )
@@ -160,6 +161,33 @@ func handleSelectNextPage(i *Input, ev termbox.Event) {
 	i.DrawMatches(nil)
 }
 
+func handleForwardWord(i *Input, _ termbox.Event) {
+	if i.caretPos >= len(i.query) {
+		return
+	}
+
+	foundSpace := false
+	for pos := i.caretPos; pos < len(i.query); pos++ {
+		r := i.query[pos]
+		if foundSpace {
+			if !unicode.IsSpace(r) {
+				i.caretPos = pos
+				i.DrawMatches(nil)
+				return
+			}
+		} else {
+			if unicode.IsSpace(r) {
+				foundSpace = true
+			}
+		}
+	}
+
+	// not found. just move to the end of the buffer
+	i.caretPos = len(i.query)
+	i.DrawMatches(nil)
+
+}
+
 func handleForwardChar(i *Input, _ termbox.Event) {
 	if i.caretPos >= len(i.query) {
 		return
@@ -260,6 +288,8 @@ func (ksh KeymapStringHandler) ToHandler() (h KeymapHandler, err error) {
 		h = handleForwardChar
 	case "peco.BackwardChar":
 		h = handleBackwardChar
+	case "peco.ForwardWord":
+		h = handleForwardWord
 	case "peco.DeleteForwardChar":
 		h = handleDeleteForwardChar
 	case "peco.DeleteBackwardChar":
