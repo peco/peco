@@ -114,7 +114,29 @@ CALCULATE_PAGE:
 
 	printTB(0, 0, termbox.ColorDefault, termbox.ColorDefault, "QUERY>")
 
-	printTB(8, 0, termbox.ColorDefault, termbox.ColorDefault, string(u.query))
+	if u.caretPos <= 0 {
+		u.caretPos = 0 // sanity
+	}
+	if u.caretPos > len(u.query) {
+		u.caretPos = len(u.query)
+	}
+
+	// Optimization...
+	if u.caretPos == len(u.query) {
+		printTB(8, 0, termbox.ColorDefault, termbox.ColorDefault, string(u.query))
+		termbox.SetCell(8+len(u.query), 0, rune(' '), termbox.ColorDefault|termbox.AttrReverse, termbox.ColorDefault|termbox.AttrReverse)
+	} else {
+		for i, r := range u.query {
+			fg := termbox.ColorDefault
+			bg := termbox.ColorDefault
+			if i == u.caretPos {
+				fg |= termbox.AttrReverse
+				bg |= termbox.AttrReverse
+			}
+			termbox.SetCell(8+i, 0, r, fg, bg)
+		}
+	}
+
 	pmsg := fmt.Sprintf("[%d/%d]", currentPage, maxPage)
 	printTB(width-runewidth.StringWidth(pmsg), 0, termbox.ColorDefault, termbox.ColorDefault, pmsg)
 

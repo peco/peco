@@ -29,17 +29,8 @@ func (i *Input) Loop() {
 }
 
 func (i *Input) handleKeyEvent(ev termbox.Event) {
-	if h := i.config.Keymap[ev.Key]; h != nil {
-		h(i)
+	if h := i.config.Keymap.Handler(ev.Key); h != nil {
+		h(i, ev)
 		return
-	}
-
-	if ev.Key == termbox.KeySpace {
-		ev.Ch = ' '
-	}
-
-	if ev.Ch > 0 {
-		i.query = append(i.query, ev.Ch)
-		i.ExecQuery(string(i.query))
 	}
 }

@@ -102,6 +102,8 @@ Currently only keymaps are supported:
 
 | Name | Notes |
 |------|-------|
+| peco.ForwardChar        | Moves caret forward |
+| peco.BackwardChar       | Moves caret backward |
 | peco.DeleteBackwardChar | Deletes one character |
 | peco.SelectPreviousPage | Jumps to previous page |
 | peco.SelectNextPage     | Jumps to next page|
