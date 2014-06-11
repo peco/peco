@@ -266,8 +266,8 @@ func handleKillEndOfLine(i *Input, _ termbox.Event) {
 	i.DrawMatches(nil)
 }
 
-func handleDeleteForwardChar(i *Input, ev termbox.Event) {
-	if len(i.query) == i.caretPos {
+func handleDeleteForwardChar(i *Input, _ termbox.Event) {
+	if len(i.query) <= i.caretPos {
 		return
 	}
 
@@ -275,6 +275,35 @@ func handleDeleteForwardChar(i *Input, ev termbox.Event) {
 	copy(buf, i.query[:i.caretPos])
 	copy(buf[i.caretPos:], i.query[i.caretPos+1:])
 	i.query = buf
+	if len(i.query) > 0 {
+		i.ExecQuery(string(i.query))
+		return
+	}
+
+	i.current = nil
+	i.DrawMatches(nil)
+}
+
+func handleDeleteForwardWord(i *Input, _ termbox.Event) {
+	if len(i.query) <= i.caretPos {
+		return
+	}
+
+	for pos := i.caretPos; pos < len(i.query); pos++ {
+		if pos == len(i.query) - 1 {
+			i.query = i.query[:i.caretPos]
+			break
+		}
+
+		if unicode.IsSpace(i.query[pos]) {
+			buf := make([]rune, len(i.query) - (pos - i.caretPos))
+			copy(buf, i.query[:i.caretPos])
+			copy(buf[i.caretPos:], i.query[pos:])
+			i.query = buf
+			break
+		}
+	}
+
 	if len(i.query) > 0 {
 		i.ExecQuery(string(i.query))
 		return
@@ -339,6 +368,8 @@ func (ksh KeymapStringHandler) ToHandler() (h KeymapHandler, err error) {
 		h = handleDeleteForwardChar
 	case "peco.DeleteBackwardChar":
 		h = handleDeleteBackwardChar
+	case "peco.DeleteForwardWord":
+		h = handleDeleteForwardWord
 	case "peco.SelectPreviousPage":
 		h = handleSelectPreviousPage
 	case "peco.SelectNextPage":
