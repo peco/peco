@@ -102,9 +102,17 @@ Currently only keymaps are supported:
 
 | Name | Notes |
 |------|-------|
-| peco.ForwardChar        | Moves caret forward |
-| peco.BackwardChar       | Moves caret backward |
-| peco.DeleteBackwardChar | Deletes one character |
+| peco.ForwardChar        | Move caret forward 1 character |
+| peco.BackwardChar       | Move caret backward 1 character |
+| peco.ForwardWord        | Move caret forward 1 word |
+| peco.BackwardWord       | Move caret backward 1 word|
+| peco.BeginnigOfLine     | Move caret to the beginning of line |
+| peco.EndOfLine          | Move caret to the end of line |
+| peco.DeleteForwardChar  | Delete one character forward |
+| peco.DeleteBackwardChar | Delete one character backward |
+| peco.DeleteForwardWord  | Delete one word forward |
+| peco.DeleteBackwardWord | Delete one word backward |
+| peco.KillEndOfLine      | Delete the characters under the cursor until the end of the line |
 | peco.SelectPreviousPage | Jumps to previous page |
 | peco.SelectNextPage     | Jumps to next page|
 | peco.SelectPrevious     | Selects previous line |
