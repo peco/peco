@@ -284,6 +284,33 @@ func handleDeleteForwardChar(i *Input, _ termbox.Event) {
 	i.DrawMatches(nil)
 }
 
+func handleDeleteBackwardChar(i *Input, ev termbox.Event) {
+	if len(i.query) <= 0 {
+		return
+	}
+
+	switch i.caretPos {
+	case 0:
+		// No op
+		return
+	case len(i.query):
+		i.query = i.query[:len(i.query)-1]
+	default:
+		buf := make([]rune, len(i.query)-1)
+		copy(buf, i.query[:i.caretPos])
+		copy(buf[i.caretPos-1:], i.query[i.caretPos:])
+		i.query = buf
+	}
+	i.caretPos--
+	if len(i.query) > 0 {
+		i.ExecQuery(string(i.query))
+		return
+	}
+
+	i.current = nil
+	i.DrawMatches(nil)
+}
+
 func handleDeleteForwardWord(i *Input, _ termbox.Event) {
 	if len(i.query) <= i.caretPos {
 		return
@@ -313,24 +340,27 @@ func handleDeleteForwardWord(i *Input, _ termbox.Event) {
 	i.DrawMatches(nil)
 }
 
-func handleDeleteBackwardChar(i *Input, ev termbox.Event) {
-	if len(i.query) <= 0 {
+func handleDeleteBackwardWord(i *Input, _ termbox.Event) {
+	if i.caretPos == 0 {
 		return
 	}
 
-	switch i.caretPos {
-	case 0:
-		// No op
-		return
-	case len(i.query):
-		i.query = i.query[:len(i.query)-1]
-	default:
-		buf := make([]rune, len(i.query)-1)
-		copy(buf, i.query[:i.caretPos])
-		copy(buf[i.caretPos-1:], i.query[i.caretPos:])
-		i.query = buf
+	for pos := i.caretPos - 1; pos >= 0; pos-- {
+		if pos == 0 {
+			i.query = i.query[i.caretPos:]
+			break
+		}
+
+		if unicode.IsSpace(i.query[pos]) {
+			buf := make([]rune, len(i.query) - (i.caretPos - pos))
+			copy(buf, i.query[:pos])
+			copy(buf[pos:], i.query[i.caretPos:])
+			i.query = buf
+			i.caretPos = pos
+			break
+		}
 	}
-	i.caretPos--
+
 	if len(i.query) > 0 {
 		i.ExecQuery(string(i.query))
 		return
@@ -370,6 +400,8 @@ func (ksh KeymapStringHandler) ToHandler() (h KeymapHandler, err error) {
 		h = handleDeleteBackwardChar
 	case "peco.DeleteForwardWord":
 		h = handleDeleteForwardWord
+	case "peco.DeleteBackwardWord":
+		h = handleDeleteBackwardWord
 	case "peco.SelectPreviousPage":
 		h = handleSelectPreviousPage
 	case "peco.SelectNextPage":
