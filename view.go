@@ -121,16 +121,23 @@ CALCULATE_PAGE:
 		u.caretPos = len(u.query)
 	}
 
-	prev := 0
-	for i, r := range u.query {
-		fg := termbox.ColorDefault
-		bg := termbox.ColorDefault
-		if i == u.caretPos {
-			fg |= termbox.AttrReverse
-			bg |= termbox.AttrReverse
+	if u.caretPos == len(u.query) {
+		// the entire string + the caret after the string
+		printTB(8, 0, termbox.ColorDefault, termbox.ColorDefault, string(u.query))
+		termbox.SetCell(8+runewidth.StringWidth(string(u.query)), 0, ' ', termbox.ColorDefault|termbox.AttrReverse, termbox.ColorDefault|termbox.AttrReverse)
+	} else {
+		// the caret is in the middle of the string
+		prev := 0
+		for i, r := range u.query {
+			fg := termbox.ColorDefault
+			bg := termbox.ColorDefault
+			if i == u.caretPos {
+				fg |= termbox.AttrReverse
+				bg |= termbox.AttrReverse
+			}
+			termbox.SetCell(8+prev, 0, r, fg, bg)
+			prev += runewidth.RuneWidth(r)
 		}
-		termbox.SetCell(8+prev, 0, r, fg, bg)
-		prev += runewidth.RuneWidth(r)
 	}
 
 	pmsg := fmt.Sprintf("[%d/%d]", currentPage, maxPage)
@@ -153,7 +160,7 @@ CALCULATE_PAGE:
 		if target.matches == nil {
 			printTB(0, n, fgAttr, bgAttr, line)
 		} else {
-			prev = 0
+			prev := 0
 			index := 0
 			for _, m := range target.matches {
 				if m[0] > index {
