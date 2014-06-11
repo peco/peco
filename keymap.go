@@ -176,14 +176,28 @@ func handleBackwardChar(i *Input, _ termbox.Event) {
 	i.DrawMatches(nil)
 }
 
+func handleBeginningOfLine(i *Input, _ termbox.Event) {
+	i.caretPos = 0
+	i.DrawMatches(nil)
+}
+
+func handleEndOfLine(i *Input, _ termbox.Event) {
+	i.caretPos = len(i.query)
+	i.DrawMatches(nil)
+}
+
 func handleDeleteBackwardChar(i *Input, ev termbox.Event) {
 	if len(i.query) <= 0 {
 		return
 	}
 
-	if i.caretPos == len(i.query) {
+	switch i.caretPos {
+	case 0:
+		// No op
+		return
+	case len(i.query):
 		i.query = i.query[:len(i.query)-1]
-	} else {
+	default:
 		buf := make([]rune, len(i.query) - 1)
 		copy(buf, i.query[:i.caretPos])
 		copy(buf[i.caretPos-1:], i.query[i.caretPos:])
@@ -209,6 +223,10 @@ func (ksk KeymapStringKey) ToKey() (k termbox.Key, err error) {
 
 func (ksh KeymapStringHandler) ToHandler() (h KeymapHandler, err error) {
 	switch ksh {
+	case "peco.BeginningOfLine":
+		h = handleBeginningOfLine
+	case "peco.EndOfLine":
+		h = handleEndOfLine
 	case "peco.ForwardChar":
 		h = handleForwardChar
 	case "peco.BackwardChar":
