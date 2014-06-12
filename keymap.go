@@ -9,6 +9,26 @@ import (
 	"github.com/nsf/termbox-go"
 )
 
+var handlers = map[KeymapStringHandler]KeymapHandler{
+	"peco.KillEndOfLine":      handleKillEndOfLine,
+	"peco.BeginningOfLine":    handleBeginningOfLine,
+	"peco.EndOfLine":          handleEndOfLine,
+	"peco.ForwardChar":        handleForwardChar,
+	"peco.BackwardChar":       handleBackwardChar,
+	"peco.ForwardWord":        handleForwardWord,
+	"peco.BackwardWord":       handleBackwardWord,
+	"peco.DeleteForwardChar":  handleDeleteForwardChar,
+	"peco.DeleteBackwardChar": handleDeleteBackwardChar,
+	"peco.DeleteForwardWord":  handleDeleteForwardWord,
+	"peco.DeleteBackwardWord": handleDeleteBackwardWord,
+	"peco.SelectPreviousPage": handleSelectPreviousPage,
+	"peco.SelectNextPage":     handleSelectNextPage,
+	"peco.SelectPrevious":     handleSelectPrevious,
+	"peco.SelectNext":         handleSelectNext,
+	"peco.Finish":             handleFinish,
+	"peco.Cancel":             handleCancel,
+}
+
 type KeymapHandler func(*Input, termbox.Event)
 type Keymap map[termbox.Key]KeymapHandler
 type KeymapStringKey string
@@ -383,42 +403,8 @@ func (ksk KeymapStringKey) ToKey() (k termbox.Key, err error) {
 }
 
 func (ksh KeymapStringHandler) ToHandler() (h KeymapHandler, err error) {
-	switch ksh {
-	case "peco.KillEndOfLine":
-		h = handleKillEndOfLine
-	case "peco.BeginningOfLine":
-		h = handleBeginningOfLine
-	case "peco.EndOfLine":
-		h = handleEndOfLine
-	case "peco.ForwardChar":
-		h = handleForwardChar
-	case "peco.BackwardChar":
-		h = handleBackwardChar
-	case "peco.ForwardWord":
-		h = handleForwardWord
-	case "peco.BackwardWord":
-		h = handleBackwardWord
-	case "peco.DeleteForwardChar":
-		h = handleDeleteForwardChar
-	case "peco.DeleteBackwardChar":
-		h = handleDeleteBackwardChar
-	case "peco.DeleteForwardWord":
-		h = handleDeleteForwardWord
-	case "peco.DeleteBackwardWord":
-		h = handleDeleteBackwardWord
-	case "peco.SelectPreviousPage":
-		h = handleSelectPreviousPage
-	case "peco.SelectNextPage":
-		h = handleSelectNextPage
-	case "peco.SelectPrevious":
-		h = handleSelectPrevious
-	case "peco.SelectNext":
-		h = handleSelectNext
-	case "peco.Finish":
-		h = handleFinish
-	case "peco.Cancel":
-		h = handleCancel
-	default:
+	var ok bool
+	if h, ok = handlers[ksh]; !ok {
 		err = fmt.Errorf("No such handler %s", ksh)
 	}
 	return
