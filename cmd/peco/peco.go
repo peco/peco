@@ -1,5 +1,3 @@
-// +build build
-
 package main
 
 import (
@@ -13,12 +11,7 @@ import (
 	"github.com/nsf/termbox-go"
 )
 
-// This value is to be initialized by an external tool at link time
-// via
-//
-//     go build -ldflags "-X  main.version vX.Y.Z" ...
-//
-var version string
+var version = "v0.1.1"
 
 func showHelp() {
 	const v = ` 
