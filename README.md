@@ -47,8 +47,16 @@ I have been told that peco even works on windows :)
 Installation
 ============
 
+If you just want the command:
+
 ```
-go get github.com/lestrrat/peco/cmd/peco/
+go install github.com/lestrrat/peco/cmd/peco/
+```
+
+If you want the source code:
+
+```
+go get github.com/lestrrat/peco
 ```
 
 Usage
