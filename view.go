@@ -114,7 +114,7 @@ CALCULATE_PAGE:
 	}
 
 	prompt := "QUERY>"
-	promptLen := len(prompt)
+	promptLen := runewidth.StringWidth(prompt)
 	printTB(0, 0, termbox.ColorDefault, termbox.ColorDefault, prompt)
 
 	if u.caretPos <= 0 {
