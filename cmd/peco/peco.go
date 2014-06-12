@@ -13,7 +13,7 @@ import (
 
 func showHelp() {
 	const v = ` 
-Usage: percol [options] [FILE]
+Usage: peco [options] [FILE]
 
 Options:
   -h, --help            show this help message and exit
