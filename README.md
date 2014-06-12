@@ -165,17 +165,6 @@ Currently only keymaps are supported:
 | peco.Finish             | Exits from peco, with success status |
 | peco.Cancel             | Exits from peco, with failure status |
 
-Filtering
-=========
-
-After you laungu peco, type somethig in. It will be matched against the
-text you fed to peco, and the results will be filtered.
-
-Navigation
-==========
-
-Use the left, right, up, and down arrow keys to navigate through all the results
-
 TODO
 ====
 
@@ -186,4 +175,5 @@ Implement all(?) of the original percol options
 Notes
 =====
 
+Obviously, kudos to the original percol: https://github.com/mooz/percol
 Much code stolen from https://github.com/mattn/gof
