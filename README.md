@@ -206,11 +206,10 @@ Note that we have a Godeps file in source tree, for now it's just there for a pe
 Then from the root of this repository run:
 
 ```
-go run releng/build.go
+go build cmd/peco/peco.go
 ```
 
-This will create a `peco` binary in the local directory, with a version string "git@....".
-You obviously don't want to install this in the wild.
+This will create a `peco` binary in the local directory.
 
 TODO
 ====
