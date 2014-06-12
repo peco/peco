@@ -40,6 +40,12 @@ Multiple terms turn the query into an "AND" query:
 When you find that line that you want, press enter, and the resulting line
 is printed to stdout, which allows you to pipe it to other tools
 
+## Case Sensitivity
+
+Case sensitive mode can be toggled on/off 
+
+![optimized](http://lestrrat.github.io/peco/peco-demo-case-sensitive.gif)
+
 ## Works on Windows!
 
 I have been told that peco even works on windows :)
@@ -114,6 +120,10 @@ Specifies the default query to be used upon startup. This is useful for scripts 
 ### --rcfile <filename>
 
 Pass peco a configuration file, which currently must be a JSON file. If unspecified, it will read ~/.peco/config.json by default (if available)
+
+### --no-ignore-case
+
+By default peco starts in case insensitive mode. When this option is specified, peco will start in case sensitive mode. This can be toggled while peco is still in session.
 
 Configuration File
 ==================
