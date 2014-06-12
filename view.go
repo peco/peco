@@ -140,12 +140,7 @@ CALCULATE_PAGE:
 		}
 	}
 
-	var pmsg string
-	if u.Ctx.IgnoreCase {
-		pmsg = fmt.Sprintf("IgnorCase [%d/%d]", currentPage, maxPage)
-	} else {
-		pmsg = fmt.Sprintf("[%d/%d]", currentPage, maxPage)
-	}
+	pmsg := fmt.Sprintf("%s [%d/%d]", u.Ctx.Matcher().String(), currentPage, maxPage)
 
 	printTB(width-runewidth.StringWidth(pmsg), 0, termbox.ColorDefault, termbox.ColorDefault, pmsg)
 
