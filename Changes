@@ -1,0 +1,15 @@
+Changes
+=======
+
+v0.1.1 - 12 Jun 2014
+  * Fix handling malformed input (e.g. cp932 or euc-jp)
+  * Make non case sensitive matching the default. C-r allows you to toggle
+    between match algorithms. You can also change the default behavior
+    by passing --no-ignore-case
+  * Fix terminal not being updated upon executing DeleteAll
+  * Fix prompt spacing
+  * Add more default keymappings
+  * Add peco --version
+
+v0.1.0 - 12 Jun 2014
+  * Initial versioned release
