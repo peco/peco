@@ -6,6 +6,7 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
 	"os"
 	"os/exec"
@@ -16,7 +17,8 @@ import (
 
 type cmdOptions struct {
 	Debug   bool   `default:"false" long:"debug" description:"enable debug output"`
-	Version string `default:"development-version" long:"version" description:"print the version and exit"`
+	Install bool   `default:"false" long:"install" description:"run go install"`
+	Version string `long:"version" description:"print the version and exit"`
 }
 
 func main() {
@@ -32,6 +34,27 @@ func main() {
 		return
 	}
 
+	if opts.Version == "" {
+		out := &bytes.Buffer{}
+		cmd := exec.Command(
+			"git",
+			"log",
+			"-n", "1",
+			"--format=%H",
+		)
+		cmd.Stdout = out
+		if err = cmd.Run(); err != nil {
+			fmt.Fprintf(os.Stderr, "Failed to get SHA1. Bailing out. %s\n", err)
+			st = 1
+			return
+		}
+		v := out.String()
+		if v[len(v)-1] == '\n' {
+			v = v[:len(v)-1]
+		}
+		opts.Version = fmt.Sprintf("git@%s", v)
+	}
+
 	if _, err = os.Stat("peco"); err == nil {
 		fmt.Fprintln(os.Stderr, "File 'peco' already exists. removing file...")
 		if err = os.Remove("peco"); err != nil {
@@ -41,8 +64,12 @@ func main() {
 		}
 	}
 
+	subcmd := "build"
+	if opts.Install {
+		subcmd = "install"
+	}
 	buildCmd := []string{
-		"build",
+		subcmd,
 		"-a",
 		"-tags",
 		"build",

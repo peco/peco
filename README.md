@@ -57,13 +57,9 @@ brew install peco
 If you want to go the Go way (install in GOPATH/bin) and just want the command:
 
 ```
-go install github.com/lestrrat/peco/cmd/peco/
-```
-
-If you want the source code:
-
-```
 go get github.com/lestrrat/peco
+cd /path/to/github.com/lestrrat/peco
+go run releng/build.go --install
 ```
 
 Usage
@@ -199,12 +195,8 @@ Then from the root of this repository run:
 go run releng/build.go
 ```
 
-This will create a `peco` binary in the local directory, with a version string "development-version". You obviously don't want to install this in the wild.
-
-```
-$ ./peco --version
-development-version
-```
+This will create a `peco` binary in the local directory, with a version string "git@....".
+You obviously don't want to install this in the wild.
 
 TODO
 ====
