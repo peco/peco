@@ -19,6 +19,7 @@ Options:
   -h, --help            show this help message and exit
   --rcfile=RCFILE       path to the settings file
   --query=QUERY         pre-input query
+  --no-ignore-case      start in case-sensitive mode
 `
 	os.Stderr.Write([]byte(v))
 }
@@ -28,6 +29,7 @@ type CmdOptions struct {
 	TTY    string `long:"tty" description:"path to the TTY (usually, the value of $TTY)"`
 	Query  string `long:"query"`
 	Rcfile string `long:"rcfile" descriotion:"path to the settings file"`
+	NoIgnoreCase bool `long:"no-ignore-case" description:"start in case-sensitive-mode" default:"false"`
 }
 
 func main() {
@@ -88,6 +90,8 @@ func main() {
 			return
 		}
 	}
+
+	ctx.IgnoreCase = !opts.NoIgnoreCase
 
 	if err = ctx.ReadBuffer(in); err != nil {
 		// Nothing to process, bail out
