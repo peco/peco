@@ -435,6 +435,7 @@ func NewKeymap() Keymap {
 		termbox.KeyBackspace2: handleDeleteBackwardChar,
 		termbox.KeyCtrlF:      handleForwardChar,
 		termbox.KeyCtrlB:      handleBackwardChar,
+		termbox.KeyCtrlR:      handleRotateMatcher,
 	}
 }
 

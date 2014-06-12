@@ -177,7 +177,7 @@ Currently only keymaps are supported:
 | peco.SelectNextPage     | Jumps to next page|
 | peco.SelectPrevious     | Selects previous line |
 | peco.SelectNext         | Selects next line |
-| peco.ToggleIgnoreCase   | Toggle ignore case |
+| peco.RotateMatcher      | Rotate between matchers (by default, ignore-case/no-ignore-case)|
 | peco.Finish             | Exits from peco, with success status |
 | peco.Cancel             | Exits from peco, with failure status |
 
