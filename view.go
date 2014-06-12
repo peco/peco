@@ -21,17 +21,17 @@ const (
 	ToPrevPage
 )
 
-func (u *View) Loop() {
-	u.AddWaitGroup()
-	defer u.ReleaseWaitGroup()
+func (v *View) Loop() {
+	v.AddWaitGroup()
+	defer v.ReleaseWaitGroup()
 	for {
 		select {
-		case <-u.LoopCh():
+		case <-v.LoopCh():
 			return
-		case r := <-u.PagingCh():
-			u.movePage(r)
-		case lines := <-u.DrawCh():
-			u.drawScreen(lines)
+		case r := <-v.PagingCh():
+			v.movePage(r)
+		case lines := <-v.DrawCh():
+			v.drawScreen(lines)
 		}
 	}
 }

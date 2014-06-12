@@ -23,9 +23,8 @@ Options:
 	os.Stderr.Write([]byte(v))
 }
 
-type CmdOptions struct {
+type cmdOptions struct {
 	Help   bool   `short:"h" long:"help" description:"show this help message and exit"`
-	TTY    string `long:"tty" description:"path to the TTY (usually, the value of $TTY)"`
 	Query  string `long:"query"`
 	Rcfile string `long:"rcfile" descriotion:"path to the settings file"`
 }
@@ -33,7 +32,7 @@ type CmdOptions struct {
 func main() {
 	var err error
 
-	opts := &CmdOptions{}
+	opts := &cmdOptions{}
 	p := flags.NewParser(opts, flags.PrintErrors)
 	args, err := p.Parse() // &opts, os.Args)
 	if err != nil {
@@ -66,6 +65,7 @@ func main() {
 			}
 			os.Stdout.WriteString(result)
 		}
+		// ONLY call exit in this defer
 		os.Exit(ctx.ExitStatus)
 	}()
 
@@ -96,6 +96,7 @@ func main() {
 		return
 	}
 
+	// Check TTY
 	err = peco.TtyReady()
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
@@ -104,6 +105,7 @@ func main() {
 	}
 	defer peco.TtyTerm()
 
+	// Initialize the terminal
 	err = termbox.Init()
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
@@ -112,12 +114,16 @@ func main() {
 	}
 	defer termbox.Close()
 
+	// View does the drawing
 	view := ctx.NewView()
-	filter := ctx.NewFilter()
-	input := ctx.NewInput()
-
 	go view.Loop()
+
+	// Filter runs the query against the current buffer
+	filter := ctx.NewFilter()
 	go filter.Loop()
+
+	// Input interfaces with the user (accepts key inputs)
+	input := ctx.NewInput()
 	go input.Loop()
 
 	if len(opts.Query) > 0 {
