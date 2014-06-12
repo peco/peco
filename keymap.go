@@ -275,6 +275,7 @@ func handleKillBeginOfLine(i *Input, _ termbox.Event) {
 		i.ExecQuery(string(i.query))
 		return
 	}
+	i.current = nil
 	i.DrawMatches(nil)
 }
 
@@ -288,6 +289,7 @@ func handleKillEndOfLine(i *Input, _ termbox.Event) {
 		i.ExecQuery(string(i.query))
 		return
 	}
+	i.current = nil
 	i.DrawMatches(nil)
 }
 
