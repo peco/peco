@@ -37,7 +37,7 @@ func main() {
 	p := flags.NewParser(opts, flags.PrintErrors)
 	args, err := p.Parse() // &opts, os.Args)
 	if err != nil {
-		panic(err)
+		showHelp()
 		os.Exit(1)
 	}
 
