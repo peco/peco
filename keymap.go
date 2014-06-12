@@ -129,7 +129,7 @@ func handleAcceptChar(i *Input, ev termbox.Event) {
 func handleFinish(i *Input, _ termbox.Event) {
 	if len(i.current) == 1 {
 		i.result = i.current[0].line
-	} else if i.selectedLine > 0 && i.selectedLine < len(i.current) {
+	} else if i.selectedLine > 0 && i.selectedLine <= len(i.current) {
 		i.result = i.current[i.selectedLine-1].line
 	}
 	i.Finish()
