@@ -1,6 +1,7 @@
 package peco
 
 import (
+	"fmt"
 	"regexp"
 	"sort"
 	"strings"
@@ -24,11 +25,22 @@ func (m byStart) Less(i, j int) bool {
 	return m[i][0] < m[j][0]
 }
 
-func queryToRegexps(query string) ([]*regexp.Regexp, error) {
+func (f *Filter) queryToRegexps(query string) ([]*regexp.Regexp, error) {
 	queries := strings.Split(strings.TrimSpace(query), " ")
 	regexps := make([]*regexp.Regexp, 0)
+
+	flags := []string{}
+	if f.IgnoreCase {
+		flags = append(flags, "i")
+	}
+	flagTxt := ""
+	if len(flags) > 0 {
+		flagTxt = fmt.Sprintf("(?%s)", strings.Join(flags, ""))
+	}
+
 	for _, q := range queries {
-		re, err := regexp.Compile(regexp.QuoteMeta(q))
+		reTxt := fmt.Sprintf("%s%s", flagTxt, regexp.QuoteMeta(q))
+		re, err := regexp.Compile(reTxt)
 		if err != nil {
 			return nil, err
 		}
@@ -82,7 +94,7 @@ func (f *Filter) Loop() {
 			return
 		case q := <-f.QueryCh():
 			results := []Match{}
-			regexps, err := queryToRegexps(q)
+			regexps, err := f.queryToRegexps(q)
 			if err != nil {
 				// Should display this at the bottom of the screen, but for now,
 				// ignore it

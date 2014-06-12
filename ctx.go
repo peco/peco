@@ -22,6 +22,7 @@ type Ctx struct {
 	lines        []Match
 	current      []Match
 	config       *Config
+	IgnoreCase   bool
 	ExitStatus   int
 
 	wait *sync.WaitGroup
@@ -46,6 +47,7 @@ func NewCtx() *Ctx {
 		[]Match{},
 		nil,
 		NewConfig(),
+		true,
 		0,
 		&sync.WaitGroup{},
 	}
