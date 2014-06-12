@@ -157,6 +157,7 @@ Currently only keymaps are supported:
 | peco.DeleteForwardWord  | Delete one word forward |
 | peco.DeleteBackwardWord | Delete one word backward |
 | peco.KillEndOfLine      | Delete the characters under the cursor until the end of the line |
+| peco.DeleteAll          | Delete all entered characters |
 | peco.SelectPreviousPage | Jumps to previous page |
 | peco.SelectNextPage     | Jumps to next page|
 | peco.SelectPrevious     | Selects previous line |
