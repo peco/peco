@@ -1,10 +1,8 @@
 package peco
 
 import (
-	"fmt"
 	"regexp"
 	"sort"
-	"strings"
 )
 
 type Filter struct {
@@ -23,31 +21,6 @@ func (m byStart) Swap(i, j int) {
 
 func (m byStart) Less(i, j int) bool {
 	return m[i][0] < m[j][0]
-}
-
-func (f *Filter) queryToRegexps(query string) ([]*regexp.Regexp, error) {
-	queries := strings.Split(strings.TrimSpace(query), " ")
-	regexps := make([]*regexp.Regexp, 0)
-
-	flags := []string{}
-	if f.IgnoreCase {
-		flags = append(flags, "i")
-	}
-	flagTxt := ""
-	if len(flags) > 0 {
-		flagTxt = fmt.Sprintf("(?%s)", strings.Join(flags, ""))
-	}
-
-	for _, q := range queries {
-		reTxt := fmt.Sprintf("%s%s", flagTxt, regexp.QuoteMeta(q))
-		re, err := regexp.Compile(reTxt)
-		if err != nil {
-			return nil, err
-		}
-		regexps = append(regexps, re)
-	}
-
-	return regexps, nil
 }
 
 func matchAllRegexps(line string, regexps []*regexp.Regexp) [][]int {
@@ -93,8 +66,10 @@ func (f *Filter) Loop() {
 		case <-f.LoopCh():
 			return
 		case q := <-f.QueryCh():
+	panic("fooo")
 			results := []Match{}
-			regexps, err := f.queryToRegexps(q)
+	panic("booo")
+			regexps, err := f.Ctx.Matcher().QueryToRegexps(q)
 			if err != nil {
 				// Should display this at the bottom of the screen, but for now,
 				// ignore it
@@ -112,4 +87,8 @@ func (f *Filter) Loop() {
 			f.DrawMatches(results)
 		}
 	}
+}
+
+func (f *Filter) AddMatcher(m Matcher) {
+	f.Ctx.Matchers = append(f.Ctx.Matchers, m)
 }

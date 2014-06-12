@@ -4,26 +4,28 @@ import (
 	"bufio"
 	"fmt"
 	"io"
+	"regexp"
 	"sync"
 )
 
 // Ctx contains all the important data. while you can easily access
 // data in this struct from anwyehre, only do so via channels
 type Ctx struct {
-	result       string
-	loopCh       chan struct{}
-	queryCh      chan string
-	drawCh       chan []Match
-	pagingCh     chan PagingRequest
-	mutex        sync.Mutex
-	query        []rune
-	caretPos     int
-	selectedLine int
-	lines        []Match
-	current      []Match
-	config       *Config
-	IgnoreCase   bool
-	ExitStatus   int
+	result         string
+	loopCh         chan struct{}
+	queryCh        chan string
+	drawCh         chan []Match
+	pagingCh       chan PagingRequest
+	mutex          sync.Mutex
+	query          []rune
+	caretPos       int
+	selectedLine   int
+	lines          []Match
+	current        []Match
+	config         *Config
+	Matchers       []Matcher
+	CurrentMatcher int
+	ExitStatus     int
 
 	wait *sync.WaitGroup
 }
@@ -31,6 +33,11 @@ type Ctx struct {
 type Match struct {
 	line    string
 	matches [][]int
+}
+
+type Matcher interface {
+	QueryToRegexps(string) ([]*regexp.Regexp, error)
+	String() string
 }
 
 func NewCtx() *Ctx {
@@ -47,7 +54,11 @@ func NewCtx() *Ctx {
 		[]Match{},
 		nil,
 		NewConfig(),
-		true,
+		[]Matcher{
+			&CaseSensitiveMatcher{},
+			&IgnoreCaseMatcher{},
+		},
+		0,
 		0,
 		&sync.WaitGroup{},
 	}
@@ -143,4 +154,8 @@ func (c *Ctx) Finish() {
 func (c *Ctx) SetQuery(q []rune) {
 	c.query = q
 	c.caretPos = len(q)
+}
+
+func (c *Ctx) Matcher() Matcher {
+	return c.Matchers[c.CurrentMatcher]
 }

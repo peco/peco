@@ -160,8 +160,11 @@ func handleSelectNextPage(i *Input, ev termbox.Event) {
 	i.DrawMatches(nil)
 }
 
-func handleToggleIgnoreCase(i *Input, ev termbox.Event) {
-	i.Ctx.IgnoreCase = !i.Ctx.IgnoreCase
+func handleRotateMatcher(i *Input, ev termbox.Event) {
+	i.Ctx.CurrentMatcher++
+	if i.Ctx.CurrentMatcher >= len(i.Ctx.Matchers) {
+		i.Ctx.CurrentMatcher = 0
+	}
 	if len(i.query) > 0 {
 		i.ExecQuery(string(i.query))
 		return
@@ -413,7 +416,7 @@ var handlers = map[string]KeymapHandler{
 	"peco.SelectNextPage":     handleSelectNextPage,
 	"peco.SelectPrevious":     handleSelectPrevious,
 	"peco.SelectNext":         handleSelectNext,
-	"peco.ToggleIgnoreCase":   handleToggleIgnoreCase,
+	"peco.RotateMatcher":      handleRotateMatcher,
 	"peco.Finish":             handleFinish,
 	"peco.Cancel":             handleCancel,
 }

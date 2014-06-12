@@ -91,7 +91,11 @@ func main() {
 		}
 	}
 
-	ctx.IgnoreCase = !opts.NoIgnoreCase
+	if opts.NoIgnoreCase {
+		ctx.CurrentMatcher = peco.CaseSensitiveMatch
+	} else {
+		ctx.CurrentMatcher = peco.IgnoreCaseMatch
+	}
 
 	if err = ctx.ReadBuffer(in); err != nil {
 		// Nothing to process, bail out
