@@ -47,7 +47,14 @@ I have been told that peco even works on windows :)
 Installation
 ============
 
-If you just want the command:
+If you're on OS X and want to use homebrew, use my custom tap:
+
+```
+brew tap lestrrat/peco
+brew install peco
+```
+
+If you want to go the Go way (install in GOPATH/bin) and just want the command:
 
 ```
 go install github.com/lestrrat/peco/cmd/peco/
