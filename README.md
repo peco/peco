@@ -192,7 +192,13 @@ First, fork this repo, and get your clone locally.
 
 Note that we have a Godeps file in source tree, for now it's just there for a peace of mind. If you already know about [godep](https://github.com/tools/godep), when you may use that instead of steps 2~4
 
-Because you probably don't want to overwrite your main peco installation, just run `go build cmd/peco/peco.go` from the root of this repository, and you will get the `peco` executable in the current directory. Then just use that instead of the global one, e.g:
+Because you probably don't want to overwrite your main peco installation, just run
+
+```
+go build cmd/peco/peco.go
+```
+
+from the root of this repository, and you will get the `peco` executable in the current directory. Then just use that instead of the global one, e.g:
 
 ```
 ps aux | ./pec
