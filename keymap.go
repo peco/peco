@@ -444,6 +444,8 @@ func NewKeymap() Keymap {
 		termbox.KeyBackspace:  handleDeleteBackwardChar,
 		termbox.KeyBackspace2: handleDeleteBackwardChar,
 		termbox.KeyCtrlW:      handleDeleteBackwardWord,
+		termbox.KeyCtrlA:      handleBeginningOfLine,
+		termbox.KeyCtrlE:      handleEndOfLine,
 		termbox.KeyCtrlF:      handleForwardChar,
 		termbox.KeyCtrlB:      handleBackwardChar,
 		termbox.KeyCtrlSlash:  handleKillEndOfLine,
