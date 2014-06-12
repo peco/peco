@@ -40,7 +40,8 @@ func printTB(x, y int, fg, bg termbox.Attribute, msg string) {
 	for len(msg) > 0 {
 		c, w := utf8.DecodeRuneInString(msg)
 		if c == utf8.RuneError {
-			continue
+			c = '?'
+			w = 1
 		}
 		msg = msg[w:]
 		termbox.SetCell(x, y, c, fg, bg)
