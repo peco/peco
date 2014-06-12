@@ -57,13 +57,9 @@ brew install peco
 If you want to go the Go way (install in GOPATH/bin) and just want the command:
 
 ```
-go install github.com/lestrrat/peco/cmd/peco/
-```
-
-If you want the source code:
-
-```
 go get github.com/lestrrat/peco
+cd /path/to/github.com/lestrrat/peco
+go run releng/build.go --install
 ```
 
 Usage
@@ -193,18 +189,14 @@ First, fork this repo, and get your clone locally.
 
 Note that we have a Godeps file in source tree, for now it's just there for a peace of mind. If you already know about [godep](https://github.com/tools/godep), when you may use that instead of steps 2~4
 
-Because you probably don't want to overwrite your main peco installation, just run
+Then from the root of this repository run:
 
 ```
-go build cmd/peco/peco.go
+go run releng/build.go
 ```
 
-from the root of this repository, and you will get the `peco` executable in the current directory. Then just use that instead of the global one, e.g:
-
-```
-ps aux | ./pec
-```
-
+This will create a `peco` binary in the local directory, with a version string "git@....".
+You obviously don't want to install this in the wild.
 
 TODO
 ====

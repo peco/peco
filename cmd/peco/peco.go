@@ -1,3 +1,5 @@
+// +build build
+
 package main
 
 import (
@@ -11,12 +13,20 @@ import (
 	"github.com/nsf/termbox-go"
 )
 
+// This value is to be initialized by an external tool at link time
+// via
+//
+//     go build -ldflags "-X  main.version vX.Y.Z" ...
+//
+var version string
+
 func showHelp() {
 	const v = ` 
 Usage: peco [options] [FILE]
 
 Options:
   -h, --help            show this help message and exit
+  --version             print the version and exit
   --rcfile=RCFILE       path to the settings file
   --query=QUERY         pre-input query
   --no-ignore-case      start in case-sensitive mode
@@ -30,22 +40,32 @@ type CmdOptions struct {
 	Query  string `long:"query"`
 	Rcfile string `long:"rcfile" descriotion:"path to the settings file"`
 	NoIgnoreCase bool `long:"no-ignore-case" description:"start in case-sensitive-mode" default:"false"`
+	Version bool `long:"version" description:"print the version and exit"`
 }
 
 func main() {
 	var err error
+	var st int
+
+	defer func(){ os.Exit(st) }()
 
 	opts := &CmdOptions{}
 	p := flags.NewParser(opts, flags.PrintErrors)
-	args, err := p.Parse() // &opts, os.Args)
+	args, err := p.Parse()
 	if err != nil {
 		showHelp()
-		os.Exit(1)
+		st = 1
+		return
 	}
 
 	if opts.Help {
 		showHelp()
-		os.Exit(1)
+		return
+	}
+
+	if opts.Version {
+		fmt.Fprintf(os.Stderr, "peco: %s\n", version)
+		return
 	}
 
 	var in *os.File
@@ -54,7 +74,8 @@ func main() {
 	if len(args) > 0 {
 		in, err = os.Open(args[0])
 		if err != nil {
-			os.Exit(1)
+			st = 1
+			return
 		}
 	} else if !peco.IsTty() {
 		in = os.Stdin
@@ -62,13 +83,17 @@ func main() {
 
 	ctx := peco.NewCtx()
 	defer func() {
+		if err := recover(); err != nil {
+			st = 1
+			fmt.Fprintf(os.Stderr, "Error:\n%s", err)
+		}
+
 		if result := ctx.Result(); result != "" {
 			if result[len(result)-1] != '\n' {
 				result = result + "\n"
 			}
 			os.Stdout.WriteString(result)
 		}
-		os.Exit(ctx.ExitStatus)
 	}()
 
 	if opts.Rcfile == "" {
@@ -86,7 +111,7 @@ func main() {
 		err = ctx.ReadConfig(opts.Rcfile)
 		if err != nil {
 			fmt.Fprintln(os.Stderr, err)
-			ctx.ExitStatus = 1
+			st = 1
 			return
 		}
 	}
@@ -100,14 +125,14 @@ func main() {
 	if err = ctx.ReadBuffer(in); err != nil {
 		// Nothing to process, bail out
 		fmt.Fprintln(os.Stderr, "You must supply something to work with via filename or stdin")
-		ctx.ExitStatus = 1
+		st = 1
 		return
 	}
 
 	err = peco.TtyReady()
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
-		ctx.ExitStatus = 1
+		st = 1
 		return
 	}
 	defer peco.TtyTerm()
@@ -115,7 +140,7 @@ func main() {
 	err = termbox.Init()
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
-		ctx.ExitStatus = 1
+		st = 1
 		return
 	}
 	defer termbox.Close()
