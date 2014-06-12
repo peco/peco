@@ -137,3 +137,8 @@ func (c *Ctx) NewInput() *Input {
 func (c *Ctx) Finish() {
 	close(c.LoopCh())
 }
+
+func (c *Ctx) SetQuery(q []rune) {
+	c.query = q
+	c.caretPos = len(q)
+}

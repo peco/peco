@@ -121,7 +121,8 @@ func main() {
 	go input.Loop()
 
 	if len(opts.Query) > 0 {
-		ctx.ExecQuery(string(string(opts.Query)))
+		ctx.SetQuery([]rune(opts.Query))
+		ctx.ExecQuery(opts.Query)
 	} else {
 		view.Refresh()
 	}
