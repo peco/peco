@@ -57,9 +57,7 @@ brew install peco
 If you want to go the Go way (install in GOPATH/bin) and just want the command:
 
 ```
-go get github.com/lestrrat/peco
-cd /path/to/github.com/lestrrat/peco
-go run releng/build.go --install
+go get github.com/lestrrat/peco/cmd/peco
 ```
 
 Usage
