@@ -113,7 +113,9 @@ CALCULATE_PAGE:
 		goto CALCULATE_PAGE
 	}
 
-	printTB(0, 0, termbox.ColorDefault, termbox.ColorDefault, "QUERY>")
+	prompt := "QUERY>"
+	promptLen := len(prompt)
+	printTB(0, 0, termbox.ColorDefault, termbox.ColorDefault, prompt)
 
 	if u.caretPos <= 0 {
 		u.caretPos = 0 // sanity
@@ -124,8 +126,8 @@ CALCULATE_PAGE:
 
 	if u.caretPos == len(u.query) {
 		// the entire string + the caret after the string
-		printTB(8, 0, termbox.ColorDefault, termbox.ColorDefault, string(u.query))
-		termbox.SetCell(8+runewidth.StringWidth(string(u.query)), 0, ' ', termbox.ColorDefault|termbox.AttrReverse, termbox.ColorDefault|termbox.AttrReverse)
+		printTB(promptLen+1, 0, termbox.ColorDefault, termbox.ColorDefault, string(u.query))
+		termbox.SetCell(promptLen+1+runewidth.StringWidth(string(u.query)), 0, ' ', termbox.ColorDefault|termbox.AttrReverse, termbox.ColorDefault|termbox.AttrReverse)
 	} else {
 		// the caret is in the middle of the string
 		prev := 0
@@ -136,7 +138,7 @@ CALCULATE_PAGE:
 				fg |= termbox.AttrReverse
 				bg |= termbox.AttrReverse
 			}
-			termbox.SetCell(8+prev, 0, r, fg, bg)
+			termbox.SetCell(promptLen+1+prev, 0, r, fg, bg)
 			prev += runewidth.RuneWidth(r)
 		}
 	}
