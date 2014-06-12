@@ -180,6 +180,25 @@ Currently only keymaps are supported:
 | peco.Finish             | Exits from peco, with success status |
 | peco.Cancel             | Exits from peco, with failure status |
 
+Hacking
+=======
+
+First, fork this repo, and get your clone locally.
+
+1. Make sure you have [go 1.x](http://golang.org), with GOPATH appropriately set
+2. Run `go get github.com/jessevdk/go-flags`
+3. Run `go get github.com/mattn/go-runewidth`
+4. Run `go get github.com/nsf/termbox-go`
+
+Note that we have a Godeps file in source tree, for now it's just there for a peace of mind. If you already know about [godep](https://github.com/tools/godep), when you may use that instead of steps 2~4
+
+Because you probably don't want to overwrite your main peco installation, just run `go build cmd/peco/peco.go` from the root of this repository, and you will get the `peco` executable in the current directory. Then just use that instead of the global one, e.g:
+
+```
+ps aux | ./pec
+```
+
+
 TODO
 ====
 
