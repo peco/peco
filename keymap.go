@@ -268,6 +268,16 @@ func handleEndOfLine(i *Input, _ termbox.Event) {
 	i.DrawMatches(nil)
 }
 
+func handleKillBeginOfLine(i *Input, _ termbox.Event) {
+	i.query = i.query[i.caretPos:]
+	i.caretPos = 0
+	if len(i.query) > 0 {
+		i.ExecQuery(string(i.query))
+		return
+	}
+	i.DrawMatches(nil)
+}
+
 func handleKillEndOfLine(i *Input, _ termbox.Event) {
 	if len(i.query) <= i.caretPos {
 		return
@@ -433,8 +443,13 @@ func NewKeymap() Keymap {
 		termbox.KeyArrowRight: handleSelectNextPage,
 		termbox.KeyBackspace:  handleDeleteBackwardChar,
 		termbox.KeyBackspace2: handleDeleteBackwardChar,
+		termbox.KeyCtrlW:      handleDeleteBackwardWord,
+		termbox.KeyCtrlA:      handleBeginningOfLine,
+		termbox.KeyCtrlE:      handleEndOfLine,
 		termbox.KeyCtrlF:      handleForwardChar,
 		termbox.KeyCtrlB:      handleBackwardChar,
+		termbox.KeyCtrlSlash:  handleKillEndOfLine,
+		termbox.KeyCtrlU:      handleKillBeginOfLine,
 		termbox.KeyCtrlR:      handleRotateMatcher,
 	}
 }
