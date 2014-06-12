@@ -66,9 +66,7 @@ func (f *Filter) Loop() {
 		case <-f.LoopCh():
 			return
 		case q := <-f.QueryCh():
-	panic("fooo")
 			results := []Match{}
-	panic("booo")
 			regexps, err := f.Ctx.Matcher().QueryToRegexps(q)
 			if err != nil {
 				// Should display this at the bottom of the screen, but for now,
