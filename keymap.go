@@ -271,6 +271,7 @@ func handleKillEndOfLine(i *Input, _ termbox.Event) {
 
 func handleDeleteAll(i *Input, _ termbox.Event) {
 	i.query = make([]rune, 0)
+	i.current = nil
 	i.DrawMatches(nil)
 }
 
