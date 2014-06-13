@@ -54,8 +54,9 @@ func NewCtx() *Ctx {
 		nil,
 		NewConfig(),
 		[]Matcher{
-			NewCaseSensitiveMatcher(),
 			NewIgnoreCaseMatcher(),
+			NewCaseSensitiveMatcher(),
+			NewRegexpMatcher(),
 		},
 		0,
 		0,

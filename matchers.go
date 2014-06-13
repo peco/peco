@@ -8,37 +8,54 @@ import (
 )
 
 const (
-	CaseSensitiveMatch = iota
-	IgnoreCaseMatch
+	IgnoreCaseMatch = iota
+	CaseSensitiveMatch
+	RegexpMatch
 )
 
-type StraightMatcher struct {
+type RegexpMatcher struct {
 	flags []string
+	quotemeta bool
 }
 
 type CaseSensitiveMatcher struct {
-	StraightMatcher
+	*RegexpMatcher
 }
 
 type IgnoreCaseMatcher struct {
-	StraightMatcher
+	*RegexpMatcher
 }
 
 func NewCaseSensitiveMatcher() *CaseSensitiveMatcher {
-	return &CaseSensitiveMatcher{StraightMatcher{nil}}
+	m := &CaseSensitiveMatcher{NewRegexpMatcher()}
+	m.quotemeta = true
+	return m
 }
 
 func NewIgnoreCaseMatcher() *IgnoreCaseMatcher {
-	return &IgnoreCaseMatcher{StraightMatcher{[]string{"i"}}}
+	m := &IgnoreCaseMatcher{NewRegexpMatcher()}
+	m.flags = []string{ "i" }
+	m.quotemeta = true
+	return m
 }
 
-func regexpFor(q string, flags []string) (*regexp.Regexp, error) {
-	var reTxt string
-	if flags == nil || len(flags) <= 0 {
-		reTxt = fmt.Sprintf("%s", regexp.QuoteMeta(q))
-	} else {
-		reTxt = fmt.Sprintf("(?%s)%s", strings.Join(flags, ""), regexp.QuoteMeta(q))
+func NewRegexpMatcher() *RegexpMatcher {
+	return &RegexpMatcher{
+		[]string{},
+		false,
 	}
+}
+
+func regexpFor(q string, flags []string, quotemeta bool) (*regexp.Regexp, error) {
+	reTxt := q
+	if quotemeta {
+		reTxt = regexp.QuoteMeta(q)
+	}
+
+	if flags != nil && len(flags) > 0 {
+		reTxt = fmt.Sprintf("(?%s)%s", strings.Join(flags, ""), reTxt)
+	}
+
 	re, err := regexp.Compile(reTxt)
 	if err != nil {
 		return nil, err
@@ -46,12 +63,12 @@ func regexpFor(q string, flags []string) (*regexp.Regexp, error) {
 	return re, nil
 }
 
-func (m *StraightMatcher) QueryToRegexps(query string) ([]*regexp.Regexp, error) {
+func (m *RegexpMatcher) QueryToRegexps(query string) ([]*regexp.Regexp, error) {
 	queries := strings.Split(strings.TrimSpace(query), " ")
 	regexps := make([]*regexp.Regexp, 0)
 
 	for _, q := range queries {
-		re, err := regexpFor(q, m.flags)
+		re, err := regexpFor(q, m.flags, m.quotemeta)
 		if err != nil {
 			return nil, err
 		}
@@ -59,6 +76,10 @@ func (m *StraightMatcher) QueryToRegexps(query string) ([]*regexp.Regexp, error)
 	}
 
 	return regexps, nil
+}
+
+func (m *RegexpMatcher) String() string {
+	return "Regexp"
 }
 
 func (m *CaseSensitiveMatcher) String() string {
@@ -84,7 +105,7 @@ func (m byStart) Less(i, j int) bool {
 	return m[i][0] < m[j][0]
 }
 
-func (m *StraightMatcher) Match(q string, buffer []Match) []Match {
+func (m *RegexpMatcher) Match(q string, buffer []Match) []Match {
 	results := []Match{}
 	regexps, err := m.QueryToRegexps(q)
 	if err != nil {
@@ -101,7 +122,7 @@ func (m *StraightMatcher) Match(q string, buffer []Match) []Match {
 	return results
 }
 
-func (m *StraightMatcher) MatchAllRegexps(regexps []*regexp.Regexp, line string) [][]int {
+func (m *RegexpMatcher) MatchAllRegexps(regexps []*regexp.Regexp, line string) [][]int {
 	matches := make([][]int, 0)
 
 	allMatched := true
