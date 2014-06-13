@@ -100,6 +100,9 @@ func main() {
 		}
 	}
 
+	// Default matcher is IgnoreCase
+	ctx.SetCurrentMatcher(peco.IgnoreCaseMatch)
+
 	if opts.Rcfile != "" {
 		err = ctx.ReadConfig(opts.Rcfile)
 		if err != nil {
@@ -110,9 +113,7 @@ func main() {
 	}
 
 	if opts.NoIgnoreCase {
-		ctx.CurrentMatcher = peco.CaseSensitiveMatch
-	} else {
-		ctx.CurrentMatcher = peco.IgnoreCaseMatch
+		ctx.SetCurrentMatcher(peco.CaseSensitiveMatch)
 	}
 
 	if err = ctx.ReadBuffer(in); err != nil {

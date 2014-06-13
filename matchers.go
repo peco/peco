@@ -8,13 +8,13 @@ import (
 )
 
 const (
-	IgnoreCaseMatch = iota
-	CaseSensitiveMatch
-	RegexpMatch
+	IgnoreCaseMatch    = "IgnoreCase"
+	CaseSensitiveMatch = "CaseSensitive"
+	RegexpMatch        = "Regexp"
 )
 
 type RegexpMatcher struct {
-	flags []string
+	flags     []string
 	quotemeta bool
 }
 
@@ -34,7 +34,7 @@ func NewCaseSensitiveMatcher() *CaseSensitiveMatcher {
 
 func NewIgnoreCaseMatcher() *IgnoreCaseMatcher {
 	m := &IgnoreCaseMatcher{NewRegexpMatcher()}
-	m.flags = []string{ "i" }
+	m.flags = []string{"i"}
 	m.quotemeta = true
 	return m
 }
