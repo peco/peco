@@ -28,19 +28,19 @@ Options:
 }
 
 type CmdOptions struct {
-	Help   bool   `short:"h" long:"help" description:"show this help message and exit"`
-	TTY    string `long:"tty" description:"path to the TTY (usually, the value of $TTY)"`
-	Query  string `long:"query"`
-	Rcfile string `long:"rcfile" descriotion:"path to the settings file"`
-	NoIgnoreCase bool `long:"no-ignore-case" description:"start in case-sensitive-mode" default:"false"`
-	Version bool `long:"version" description:"print the version and exit"`
+	Help         bool   `short:"h" long:"help" description:"show this help message and exit"`
+	TTY          string `long:"tty" description:"path to the TTY (usually, the value of $TTY)"`
+	Query        string `long:"query"`
+	Rcfile       string `long:"rcfile" descriotion:"path to the settings file"`
+	NoIgnoreCase bool   `long:"no-ignore-case" description:"start in case-sensitive-mode" default:"false"`
+	Version      bool   `long:"version" description:"print the version and exit"`
 }
 
 func main() {
 	var err error
 	var st int
 
-	defer func(){ os.Exit(st) }()
+	defer func() { os.Exit(st) }()
 
 	opts := &CmdOptions{}
 	p := flags.NewParser(opts, flags.PrintErrors)

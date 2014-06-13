@@ -35,7 +35,7 @@ type Match struct {
 }
 
 type Matcher interface {
-	Match(string, []Match) ([]Match)
+	Match(string, []Match) []Match
 	String() string
 }
 
