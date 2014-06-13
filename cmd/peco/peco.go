@@ -3,8 +3,10 @@ package main
 import (
 	"fmt"
 	"os"
+	"os/signal"
 	"os/user"
 	"path/filepath"
+	"syscall"
 
 	"github.com/jessevdk/go-flags"
 	"github.com/lestrrat/peco"
@@ -144,10 +146,14 @@ func main() {
 	input := ctx.NewInput()
 
 	// AddWaitGroup must be called in this main thread
-	ctx.AddWaitGroup(3)
+	sigCh := make(chan os.Signal, 1)
+	signal.Notify(sigCh, syscall.SIGINT)
+
+	ctx.AddWaitGroup(4)
 	go view.Loop()
 	go filter.Loop()
 	go input.Loop()
+	go ctx.SignalHandlerLoop(sigCh)
 
 	if len(opts.Query) > 0 {
 		ctx.SetQuery([]rune(opts.Query))

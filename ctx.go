@@ -4,7 +4,10 @@ import (
 	"bufio"
 	"fmt"
 	"io"
+	"os"
 	"sync"
+
+	"github.com/nsf/termbox-go"
 )
 
 // Ctx contains all the important data. while you can easily access
@@ -176,4 +179,19 @@ func (c *Ctx) SetCurrentMatcher(n string) bool {
 		}
 	}
 	return false
+}
+
+func (c *Ctx) SignalHandlerLoop(sigCh chan os.Signal) {
+	defer c.ReleaseWaitGroup()
+
+	for {
+		select {
+		case <-c.LoopCh():
+			return
+		case <-sigCh:
+			termbox.Close()
+			c.Finish()
+			return
+		}
+	}
 }
