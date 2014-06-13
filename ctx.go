@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"fmt"
 	"io"
-	"regexp"
 	"sync"
 )
 
@@ -36,7 +35,7 @@ type Match struct {
 }
 
 type Matcher interface {
-	QueryToRegexps(string) ([]*regexp.Regexp, error)
+	Match(string, []Match) ([]Match)
 	String() string
 }
 
@@ -55,8 +54,8 @@ func NewCtx() *Ctx {
 		nil,
 		NewConfig(),
 		[]Matcher{
-			&CaseSensitiveMatcher{},
-			&IgnoreCaseMatcher{},
+			NewCaseSensitiveMatcher(),
+			NewIgnoreCaseMatcher(),
 		},
 		0,
 		0,
