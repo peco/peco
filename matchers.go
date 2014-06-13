@@ -107,30 +107,32 @@ func (m *StraightMatcher) MatchAllRegexps(regexps []*regexp.Regexp, line string)
 	allMatched := true
 Match:
 	for _, re := range regexps {
-		match := re.FindAllStringSubmatchIndex(line, 1)
+		match := re.FindAllStringSubmatchIndex(line, -1)
 		if match == nil {
 			allMatched = false
 			break Match
 		}
 
-		start, end := match[0][0], match[0][1]
-		for _, m := range matches {
-			if start >= m[0] && start < m[1] {
-				continue Match
-			}
+		for _, ma := range match {
+			start, end := ma[0], ma[1]
+			for _, m := range matches {
+				if start >= m[0] && start < m[1] {
+					continue Match
+				}
 
-			if start < m[0] && end >= m[0] {
-				continue Match
+				if start < m[0] && end >= m[0] {
+					continue Match
+				}
 			}
+			matches = append(matches, ma)
 		}
-
-		matches = append(matches, match[0])
-		sort.Sort(byStart(matches))
 	}
 
 	if !allMatched {
 		return nil
 	}
+
+	sort.Sort(byStart(matches))
 
 	return matches
 }
