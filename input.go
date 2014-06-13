@@ -7,7 +7,6 @@ type Input struct {
 }
 
 func (i *Input) Loop() {
-	i.AddWaitGroup()
 	defer i.ReleaseWaitGroup()
 
 	for {

@@ -22,7 +22,6 @@ const (
 )
 
 func (u *View) Loop() {
-	u.AddWaitGroup()
 	defer u.ReleaseWaitGroup()
 	for {
 		select {

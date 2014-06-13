@@ -5,7 +5,6 @@ type Filter struct {
 }
 
 func (f *Filter) Loop() {
-	f.AddWaitGroup()
 	defer f.ReleaseWaitGroup()
 
 	for {

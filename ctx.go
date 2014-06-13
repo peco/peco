@@ -76,8 +76,8 @@ func (c *Ctx) Result() string {
 	return c.result
 }
 
-func (c *Ctx) AddWaitGroup() {
-	c.wait.Add(1)
+func (c *Ctx) AddWaitGroup(v int) {
+	c.wait.Add(v)
 }
 
 func (c *Ctx) ReleaseWaitGroup() {
