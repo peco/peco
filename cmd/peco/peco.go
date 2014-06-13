@@ -143,6 +143,8 @@ func main() {
 	filter := ctx.NewFilter()
 	input := ctx.NewInput()
 
+	// AddWaitGroup must be called in this main thread
+	ctx.AddWaitGroup(3)
 	go view.Loop()
 	go filter.Loop()
 	go input.Loop()
