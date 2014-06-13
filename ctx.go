@@ -65,7 +65,11 @@ func NewCtx() *Ctx {
 }
 
 func (c *Ctx) ReadConfig(file string) error {
-	return c.config.ReadFilename(file)
+	err := c.config.ReadFilename(file)
+	if err == nil {
+		c.SetCurrentMatcher(c.config.Matcher)
+	}
+	return err
 }
 
 func (c *Ctx) Result() string {
@@ -158,4 +162,19 @@ func (c *Ctx) SetQuery(q []rune) {
 
 func (c *Ctx) Matcher() Matcher {
 	return c.Matchers[c.CurrentMatcher]
+}
+
+func (c *Ctx) AddMatcher(m Matcher) {
+	c.Matchers = append(c.Matchers, m)
+}
+
+func (c *Ctx) SetCurrentMatcher(n string) bool {
+	for i, m := range c.Matchers {
+		println(m.String(), n)
+		if m.String() == n {
+			c.CurrentMatcher = i
+			return true
+		}
+	}
+	return false
 }

@@ -6,12 +6,14 @@ import (
 )
 
 type Config struct {
-	Keymap Keymap `json:"Keymap"`
+	Keymap  Keymap `json:"Keymap"`
+	Matcher string `json:"Matcher"`
 }
 
 func NewConfig() *Config {
 	return &Config{
 		Keymap: NewKeymap(),
+		Matcher: CaseSensitiveMatch,
 	}
 }
 

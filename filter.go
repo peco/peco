@@ -18,7 +18,3 @@ func (f *Filter) Loop() {
 		}
 	}
 }
-
-func (f *Filter) AddMatcher(m Matcher) {
-	f.Ctx.Matchers = append(f.Ctx.Matchers, m)
-}
