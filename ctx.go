@@ -170,7 +170,6 @@ func (c *Ctx) AddMatcher(m Matcher) {
 
 func (c *Ctx) SetCurrentMatcher(n string) bool {
 	for i, m := range c.Matchers {
-		println(m.String(), n)
 		if m.String() == n {
 			c.CurrentMatcher = i
 			return true
