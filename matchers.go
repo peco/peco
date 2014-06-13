@@ -62,7 +62,7 @@ func (m *StraightMatcher) QueryToRegexps(query string) ([]*regexp.Regexp, error)
 }
 
 func (m *CaseSensitiveMatcher) String() string {
-	return "CaseSentive"
+	return "CaseSensitive"
 }
 
 func (m *IgnoreCaseMatcher) String() string {
