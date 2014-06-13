@@ -67,7 +67,7 @@ func (v *View) movePage(p PagingRequest) {
 	}
 
 	if v.selectedLine < 1 {
-		if v.current != nil && len(v.current) > perPage {
+		if v.current != nil {
 			// Go to last page, if possible
 			v.selectedLine = len(v.current)
 		} else {
