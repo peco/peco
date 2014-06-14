@@ -191,7 +191,6 @@ func (c *Ctx) SignalHandlerLoop(sigCh chan os.Signal) {
 			return
 		case sig := <-sigCh:
 			termbox.Close()
-			TtyTerm()
 			c.Finish()
 			switch sig {
 			case os.Interrupt:
