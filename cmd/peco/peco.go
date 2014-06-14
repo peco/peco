@@ -3,8 +3,10 @@ package main
 import (
 	"fmt"
 	"os"
+	"os/signal"
 	"os/user"
 	"path/filepath"
+	"syscall"
 
 	"github.com/jessevdk/go-flags"
 	"github.com/lestrrat/peco"
@@ -142,6 +144,26 @@ func main() {
 	view := ctx.NewView()
 	filter := ctx.NewFilter()
 	input := ctx.NewInput()
+
+	// respond to SIGINT and SIGTERM
+	c := make(chan os.Signal, 1)
+	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
+	go func() {
+		for sig := range c {
+			termbox.Close()
+			peco.TtyTerm()
+			input.ExitStatus = 1
+			input.Finish()
+			switch sig {
+			case os.Interrupt:
+				os.Exit(130)
+			case syscall.SIGTERM:
+				os.Exit(143)
+			default:
+				os.Exit(1)
+			}
+		}
+	}()
 
 	// AddWaitGroup must be called in this main thread
 	ctx.AddWaitGroup(3)
