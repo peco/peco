@@ -185,18 +185,24 @@ func (c *Ctx) SetCurrentMatcher(n string) bool {
 func (c *Ctx) SignalHandlerLoop(sigCh chan os.Signal) {
 	defer c.ReleaseWaitGroup()
 
-	sig := <-sigCh
-	termbox.Close()
-	TtyTerm()
-	c.Finish()
-	switch sig {
-	case os.Interrupt:
-		// this exit code corresponds to SIGINT
-		os.Exit(130)
-	case syscall.SIGTERM:
-		// this exit code corresponds to SIGTERM
-		os.Exit(143)
-	default:
-		os.Exit(1)
+	for {
+		select {
+		case <-c.LoopCh():
+			return
+		case sig := <-sigCh:
+			termbox.Close()
+			TtyTerm()
+			c.Finish()
+			switch sig {
+			case os.Interrupt:
+				// this exit code corresponds to SIGINT
+				os.Exit(130)
+			case syscall.SIGTERM:
+				// this exit code corresponds to SIGTERM
+				os.Exit(143)
+			default:
+				os.Exit(1)
+			}
+		}
 	}
 }
