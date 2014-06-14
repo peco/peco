@@ -147,7 +147,7 @@ func main() {
 
 	// AddWaitGroup must be called in this main thread
 	sigCh := make(chan os.Signal, 1)
-	signal.Notify(sigCh, syscall.SIGINT)
+	signal.Notify(sigCh, os.Interrupt, syscall.SIGTERM)
 
 	ctx.AddWaitGroup(4)
 	go view.Loop()
