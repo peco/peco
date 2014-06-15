@@ -13,7 +13,7 @@ type Config struct {
 func NewConfig() *Config {
 	return &Config{
 		Keymap:  NewKeymap(),
-		Matcher: CaseSensitiveMatch,
+		Matcher: IgnoreCaseMatch,
 	}
 }
 
