@@ -46,6 +46,11 @@ func printTB(x, y int, fg, bg termbox.Attribute, msg string) {
 		termbox.SetCell(x, y, c, fg, bg)
 		x += runewidth.RuneWidth(c)
 	}
+
+	width, _ := termbox.Size()
+	for ; x < width; x++ {
+		termbox.SetCell(x, y, ' ', fg, bg)
+	}
 }
 
 func (v *View) movePage(p PagingRequest) {
