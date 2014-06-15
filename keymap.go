@@ -268,6 +268,14 @@ func handleEndOfLine(i *Input, _ termbox.Event) {
 	i.DrawMatches(nil)
 }
 
+func handleEndOfFile(i *Input, ev termbox.Event) {
+	if len(i.query) > 0 {
+		handleDeleteForwardChar(i, ev)
+	} else {
+		handleCancel(i, ev)
+	}
+}
+
 func handleKillBeginOfLine(i *Input, _ termbox.Event) {
 	i.query = i.query[i.caretPos:]
 	i.caretPos = 0
@@ -416,6 +424,7 @@ var handlers = map[string]KeymapHandler{
 	"peco.DeleteAll":          handleDeleteAll,
 	"peco.BeginningOfLine":    handleBeginningOfLine,
 	"peco.EndOfLine":          handleEndOfLine,
+	"peco.EndOfFile":          handleEndOfFile,
 	"peco.ForwardChar":        handleForwardChar,
 	"peco.BackwardChar":       handleBackwardChar,
 	"peco.ForwardWord":        handleForwardWord,
