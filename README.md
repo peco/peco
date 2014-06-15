@@ -131,7 +131,9 @@ Configuration File
 By default configuration file in ~/.peco/config.json will be searched. You may
 also pass an arbitrary filename via the --rcfile option
 
-Currently only keymaps are supported:
+Currently keymaps and styles are supported.
+
+## Keymaps
 
 ```json
 {
@@ -142,7 +144,7 @@ Currently only keymaps are supported:
 }
 ```
 
-## Available keys:
+### Available keys
 
 | Name        | Notes |
 |-------------|-------|
@@ -167,7 +169,7 @@ Currently only keymaps are supported:
 | ArrowLeft   ||
 | ArrowRight  ||
 
-## Available actions
+### Available actions
 
 | Name | Notes |
 |------|-------|
@@ -191,6 +193,48 @@ Currently only keymaps are supported:
 | peco.RotateMatcher      | Rotate between matchers (by default, ignore-case/no-ignore-case)|
 | peco.Finish             | Exits from peco, with success status |
 | peco.Cancel             | Exits from peco, with failure status |
+
+## Styles
+
+For now, styles of following 3 items can be customized in `config.json`.
+
+```json
+{
+    "Style": {
+        "Basic": ["on_default", "default"],
+        "Selected": ["underline", "on_cyan", "black"],
+        "Query": ["yellow", "bold"]
+    }
+}
+```
+
+### Foreground Colors
+
+- `"black"` for `termbox.ColorBlack`
+- `"red"` for `termbox.ColorRed`
+- `"green"` for `termbox.ColorGreen`
+- `"yellow"` for `termbox.ColorYellow`
+- `"blue"` for `termbox.ColorBlue`
+- `"magenta"` for `termbox.ColorMagenta`
+- `"cyan"` for `termbox.ColorCyan`
+- `"white"` for `termbox.ColorWhite`
+
+### Background Colors
+
+- `"on_black"` for `termbox.ColorBlack`
+- `"on_red"` for `termbox.ColorRed`
+- `"on_green"` for `termbox.ColorGreen`
+- `"on_yellow"` for `termbox.ColorYellow`
+- `"on_blue"` for `termbox.ColorBlue`
+- `"on_magenta"` for `termbox.ColorMagenta`
+- `"on_cyan"` for `termbox.ColorCyan`
+- `"on_white"` for `termbox.ColorWhite`
+
+### Attributes
+
+- `"bold"` for `termbox.AttrBold`
+- `"underline"` for `termbox.AttrUnderline`
+- `"blink"` for `termbox.AttrReverse`
 
 Hacking
 =======
