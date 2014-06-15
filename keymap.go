@@ -443,6 +443,7 @@ func NewKeymap() Keymap {
 		termbox.KeyCtrlN:      handleSelectNext,
 		termbox.KeyArrowLeft:  handleSelectPreviousPage,
 		termbox.KeyArrowRight: handleSelectNextPage,
+		termbox.KeyCtrlD:      handleDeleteForwardChar,
 		termbox.KeyBackspace:  handleDeleteBackwardChar,
 		termbox.KeyBackspace2: handleDeleteBackwardChar,
 		termbox.KeyCtrlW:      handleDeleteBackwardWord,
