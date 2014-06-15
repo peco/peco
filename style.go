@@ -45,8 +45,8 @@ type StyleSet struct {
 func NewStyleSet() StyleSet {
 	return StyleSet{
 		Basic:    Style{fg: termbox.ColorDefault, bg: termbox.ColorDefault},
-		Selected: Style{fg: termbox.ColorDefault, bg: termbox.ColorDefault},
-		Query:    Style{fg: termbox.ColorDefault, bg: termbox.ColorDefault},
+		Selected: Style{fg: termbox.ColorDefault | termbox.AttrUnderline, bg: termbox.ColorMagenta},
+		Query:    Style{fg: termbox.ColorCyan, bg: termbox.ColorDefault},
 	}
 }
 
