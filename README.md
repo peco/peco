@@ -177,6 +177,7 @@ Currently only keymaps are supported:
 | peco.BackwardWord       | Move caret backward 1 word|
 | peco.BeginningOfLine    | Move caret to the beginning of line |
 | peco.EndOfLine          | Move caret to the end of line |
+| peco.EndOfFile          | Delete one character forward, otherwise exit from peco with failure status |
 | peco.DeleteForwardChar  | Delete one character forward |
 | peco.DeleteBackwardChar | Delete one character backward |
 | peco.DeleteForwardWord  | Delete one word forward |
