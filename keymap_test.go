@@ -1,26 +1,10 @@
 package peco
 
 import (
-	"encoding/json"
 	"testing"
 
 	"github.com/nsf/termbox-go"
 )
-
-func TestReadRC(t *testing.T) {
-	txt := `
-{
-  "Keymap": {
-   "C-j": "peco.Finish"
-  }
-}
-`
-	cfg := NewConfig()
-	if err := json.Unmarshal([]byte(txt), cfg); err != nil {
-		t.Fatalf("Error unmarshaling json: %s", err)
-	}
-	t.Logf("%#q", cfg)
-}
 
 func TestKeymapStrToKeyValue(t *testing.T) {
 	expected := map[string]termbox.Key{
