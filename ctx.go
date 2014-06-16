@@ -6,8 +6,6 @@ import (
 	"io"
 	"os"
 	"sync"
-
-	"github.com/nsf/termbox-go"
 )
 
 // Ctx contains all the important data. while you can easily access
@@ -189,7 +187,12 @@ func (c *Ctx) SignalHandlerLoop(sigCh chan os.Signal) {
 		case <-c.LoopCh():
 			return
 		case <-sigCh:
-			termbox.Close()
+			// XXX For future reference: DO NOT, and I mean DO NOT call
+			// termbox.Close() here. Calling termbox.Close() twice in our
+			// context actually BLOCKS. Can you believe it? IT BLOCKS.
+			//
+			// So if in main(), defer termbox.Close() blocks if we also
+			// call termbox.Close() here. Not cool.
 			c.Finish()
 			return
 		}
