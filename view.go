@@ -80,6 +80,7 @@ func (v *View) movePage(p PagingRequest) {
 	} else if v.current != nil && v.selectedLine > len(v.current) {
 		v.selectedLine = 1
 	}
+	v.drawScreen(nil)
 }
 
 func (u *View) drawScreen(targets []Match) {
