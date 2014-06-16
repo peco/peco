@@ -40,11 +40,11 @@ Multiple terms turn the query into an "AND" query:
 When you find that line that you want, press enter, and the resulting line
 is printed to stdout, which allows you to pipe it to other tools
 
-## Case Sensitivity
+## Select Matchers
 
-Case sensitive mode can be toggled on/off 
+Different types of matchers are available. Default is case-insensitive matcher, so lines with any case will match. You can toggle between IgnoreCase, CaseSensitive, and RegExp matchers. The RegExp matcher allows you to use any valid regular expression to match lines
 
-![optimized](http://lestrrat.github.io/peco/peco-demo-case-sensitive.gif)
+![optimized](http://lestrrat.github.io/peco/peco-demo-matchers.gif)
 
 ## Works on Windows!
 
