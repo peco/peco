@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	"io"
+	"os"
 	"sync"
 )
 
@@ -176,4 +177,24 @@ func (c *Ctx) SetCurrentMatcher(n string) bool {
 		}
 	}
 	return false
+}
+
+func (c *Ctx) SignalHandlerLoop(sigCh chan os.Signal) {
+	defer c.ReleaseWaitGroup()
+
+	for {
+		select {
+		case <-c.LoopCh():
+			return
+		case <-sigCh:
+			// XXX For future reference: DO NOT, and I mean DO NOT call
+			// termbox.Close() here. Calling termbox.Close() twice in our
+			// context actually BLOCKS. Can you believe it? IT BLOCKS.
+			//
+			// So if in main(), defer termbox.Close() blocks if we also
+			// call termbox.Close() here. Not cool.
+			c.Finish()
+			return
+		}
+	}
 }

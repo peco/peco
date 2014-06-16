@@ -46,6 +46,11 @@ func printTB(x, y int, fg, bg termbox.Attribute, msg string) {
 		termbox.SetCell(x, y, c, fg, bg)
 		x += runewidth.RuneWidth(c)
 	}
+
+	width, _ := termbox.Size()
+	for ; x < width; x++ {
+		termbox.SetCell(x, y, ' ', fg, bg)
+	}
 }
 
 func (v *View) movePage(p PagingRequest) {
@@ -147,11 +152,11 @@ CALCULATE_PAGE:
 	printTB(width-runewidth.StringWidth(pmsg), 0, termbox.ColorDefault, termbox.ColorDefault, pmsg)
 
 	for n := 1; n <= perPage; n++ {
-		fgAttr := termbox.ColorDefault
-		bgAttr := termbox.ColorDefault
+		fgAttr := u.config.Style.Basic.fg
+		bgAttr := u.config.Style.Basic.bg
 		if n == u.selectedLine-offset {
-			fgAttr = termbox.AttrUnderline
-			bgAttr = termbox.ColorMagenta
+			fgAttr = u.config.Style.Selected.fg
+			bgAttr = u.config.Style.Selected.bg
 		}
 
 		targetIdx := offset + n - 1
@@ -173,14 +178,14 @@ CALCULATE_PAGE:
 					index += len(c)
 				}
 				c := line[m[0]:m[1]]
-				printTB(prev, n, fgAttr|termbox.ColorCyan, bgAttr, c)
+				printTB(prev, n, u.config.Style.Query.fg, bgAttr|u.config.Style.Query.bg, c)
 				prev += runewidth.StringWidth(c)
 				index += len(c)
 			}
 
 			m := target.matches[len(target.matches)-1]
 			if m[0] > prev {
-				printTB(prev, n, fgAttr|termbox.ColorCyan, bgAttr, line[m[0]:m[1]])
+				printTB(prev, n, u.config.Style.Query.fg, bgAttr|u.config.Style.Query.bg, line[m[0]:m[1]])
 			} else if len(line) > m[1] {
 				printTB(prev, n, fgAttr, bgAttr, line[m[1]:len(line)])
 			}
