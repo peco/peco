@@ -216,30 +216,35 @@ func (m *CustomMatcher) Match(q string, buffer []Match) []Match {
 		return []Match{}
 	}
 
-	lines := []string{}
-	for _, line := range buffer {
-		lines = append(lines, line.Line() + "\n")
-	}
-
 	results := []Match{}
-	args := []string{}
-	for _, arg := range m.args {
-		if arg == "$QUERY" {
-			arg = q
+	if q != "" {
+		lines := []string{}
+		for _, line := range buffer {
+			lines = append(lines, line.Line() + "\n")
 		}
-		args = append(args, arg)
-	}
-	cmd := exec.Command(args[0], args[1:]...)
-	cmd.Stdin = strings.NewReader(strings.Join(lines, "\n"))
-	b, err := cmd.Output()
-	if err != nil {
-		return []Match{}
+		args := []string{}
+		for _, arg := range m.args {
+			if arg == "$QUERY" {
+				arg = q
+			}
+			args = append(args, arg)
+		}
+		cmd := exec.Command(args[0], args[1:]...)
+		cmd.Stdin = strings.NewReader(strings.Join(lines, "\n"))
+		b, err := cmd.Output()
+		if err != nil {
+			return []Match{}
+		}
+		for _, line := range strings.Split(string(b), "\n") {
+			if len(line) > 0 {
+				results = append(results, DidMatch{line, nil})
+			}
+		}
+	} else {
+		for _, m := range buffer {
+			results = append(results, DidMatch{m.Line(), nil})
+		}
 	}
 
-	for _, line := range strings.Split(string(b), "\n") {
-		if len(line) > 0 {
-			results = append(results, DidMatch{line, nil})
-		}
-	}
 	return results
 }
