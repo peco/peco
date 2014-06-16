@@ -2,6 +2,7 @@ package peco
 
 import (
 	"fmt"
+	"os/exec"
 	"regexp"
 	"sort"
 	"strings"
@@ -65,6 +66,11 @@ type IgnoreCaseMatcher struct {
 	*RegexpMatcher
 }
 
+type CustomMatcher struct {
+	name string
+	args []string
+}
+
 func NewCaseSensitiveMatcher() *CaseSensitiveMatcher {
 	m := &CaseSensitiveMatcher{NewRegexpMatcher()}
 	m.quotemeta = true
@@ -83,6 +89,10 @@ func NewRegexpMatcher() *RegexpMatcher {
 		[]string{},
 		false,
 	}
+}
+
+func NewCustomMatcher(name string, args []string) *CustomMatcher {
+	return &CustomMatcher{name, args}
 }
 
 func regexpFor(q string, flags []string, quotemeta bool) (*regexp.Regexp, error) {
@@ -127,6 +137,10 @@ func (m *CaseSensitiveMatcher) String() string {
 
 func (m *IgnoreCaseMatcher) String() string {
 	return "IgnoreCase"
+}
+
+func (m *CustomMatcher) String() string {
+	return m.name
 }
 
 // sort related stuff
@@ -195,4 +209,37 @@ Match:
 	sort.Sort(byStart(matches))
 
 	return matches
+}
+
+func (m *CustomMatcher) Match(q string, buffer []Match) []Match {
+	if len(m.args) < 1 {
+		return []Match{}
+	}
+
+	lines := []string{}
+	for _, line := range buffer {
+		lines = append(lines, line.Line() + "\n")
+	}
+
+	results := []Match{}
+	args := []string{}
+	for _, arg := range m.args {
+		if arg == "$WORD" {
+			arg = q
+		}
+		args = append(args, arg)
+	}
+	cmd := exec.Command(args[0], args[1:]...)
+	cmd.Stdin = strings.NewReader(strings.Join(lines, "\n"))
+	b, err := cmd.Output()
+	if err != nil {
+		return []Match{}
+	}
+
+	for _, line := range strings.Split(string(b), "\n") {
+		if len(line) > 0 {
+			results = append(results, DidMatch{line, nil})
+		}
+	}
+	return results
 }

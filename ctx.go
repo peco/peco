@@ -108,6 +108,7 @@ func NewCtx() *Ctx {
 func (c *Ctx) ReadConfig(file string) error {
 	err := c.config.ReadFilename(file)
 	if err == nil {
+		c.LoadCustomMatcher()
 		c.SetCurrentMatcher(c.config.Matcher)
 	}
 	return err
@@ -215,6 +216,13 @@ func (c *Ctx) SetCurrentMatcher(n string) bool {
 			c.CurrentMatcher = i
 			return true
 		}
+	}
+	return false
+}
+
+func (c *Ctx) LoadCustomMatcher() bool {
+	for name, args := range c.config.CustomMatcher {
+		c.AddMatcher(NewCustomMatcher(name, args))
 	}
 	return false
 }

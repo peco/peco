@@ -8,9 +8,10 @@ import (
 )
 
 type Config struct {
-	Keymap  Keymap   `json:"Keymap"`
-	Matcher string   `json:"Matcher"`
-	Style   StyleSet `json:"Style"`
+	Keymap        Keymap   `json:"Keymap"`
+	Matcher       string   `json:"Matcher"`
+	Style         StyleSet `json:"Style"`
+	CustomMatcher map[string][]string
 }
 
 func NewConfig() *Config {
