@@ -1,0 +1,48 @@
+box: motemen/golang-goxc
+build:
+  steps:
+    - setup-go-workspace
+    - script:
+        name: go get
+        code: |
+          go version
+          go get -t ./...
+    - script:
+        name: go test
+        code: |
+          go test ./...
+    - script:
+        name: goxc build & archive
+        code: |
+          goxc -tasks='xc archive' -bc 'linux,!arm windows darwin' -d $WERCKER_OUTPUT_DIR/ -build-ldflags "\"$(git describe --tags --always --dirty) ($(git name-rev --name-only HEAD | sed 's/^remotes\/origin\///'))\"" -resources-include='README*'
+    - script:
+        name: output release tag
+        code: |
+          git describe --tags --exact --match 'v*' > $WERCKER_OUTPUT_DIR/.release_tag || true
+deploy:
+  steps:
+    - script:
+        name: restore release tag
+        code: |
+          export RELEASE_TAG=$(cat .release_tag)
+    - motemen/github-create-release:
+        token: $GITHUB_TOKEN
+        tag: $RELEASE_TAG
+    - wercker/github-upload-asset:
+        token: $GITHUB_TOKEN
+        file: snapshot/peco_linux_386.tar.gz
+    - wercker/github-upload-asset:
+        token: $GITHUB_TOKEN
+        file: snapshot/peco_linux_amd64.tar.gz
+    - wercker/github-upload-asset:
+        token: $GITHUB_TOKEN
+        file: snapshot/peco_darwin_386.zip
+    - wercker/github-upload-asset:
+        token: $GITHUB_TOKEN
+        file: snapshot/peco_darwin_amd64.zip
+    - wercker/github-upload-asset:
+        token: $GITHUB_TOKEN
+        file: snapshot/peco_windows_386.zip
+    - wercker/github-upload-asset:
+        token: $GITHUB_TOKEN
+        file: snapshot/peco_windows_amd64.zip
