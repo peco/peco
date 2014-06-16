@@ -44,7 +44,7 @@ is printed to stdout, which allows you to pipe it to other tools
 
 Different types of matchers are available. Default is case-insensitive matcher, so lines with any case will match. You can toggle between IgnoreCase, CaseSensitive, and RegExp matchers. The RegExp matcher allows you to use any valid regular expression to match lines
 
-![optimized](http://lestrrat.github.io/peco/peco-demo-matchers.gif)
+![optimized](http://lestrrat.github.io/peco/peco-demo-matcher.gif)
 
 ## Works on Windows!
 
