@@ -43,10 +43,10 @@ type Matcher interface {
 func NewCtx() *Ctx {
 	return &Ctx{
 		"",
-		make(chan struct{}),      // loopCh
-		make(chan string),        // queryCh
-		make(chan []Match),       // drawCh
-		make(chan PagingRequest), // pagingCh
+		make(chan struct{}),         // loopCh. You never send messages to this. no point in buffering
+		make(chan string, 5),        // queryCh.
+		make(chan []Match, 5),       // drawCh.
+		make(chan PagingRequest, 5), // pagingCh
 		sync.Mutex{},
 		[]rune{},
 		0,
