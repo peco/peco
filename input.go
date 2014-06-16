@@ -20,7 +20,9 @@ func (i *Input) Loop() {
 	// safe from being stuck.
 	evCh := make(chan termbox.Event)
 	go func() {
-		evCh <- termbox.PollEvent()
+		for {
+			evCh <- termbox.PollEvent()
+		}
 	}()
 
 	for {
