@@ -6,6 +6,7 @@ import (
 	"io"
 	"os"
 	"sync"
+	"syscall"
 
 	"github.com/nsf/termbox-go"
 )
@@ -188,10 +189,19 @@ func (c *Ctx) SignalHandlerLoop(sigCh chan os.Signal) {
 		select {
 		case <-c.LoopCh():
 			return
-		case <-sigCh:
+		case sig := <-sigCh:
 			termbox.Close()
 			c.Finish()
-			return
+			switch sig {
+			case os.Interrupt:
+				// this exit code corresponds to SIGINT
+				os.Exit(130)
+			case syscall.SIGTERM:
+				// this exit code corresponds to SIGTERM
+				os.Exit(143)
+			default:
+				os.Exit(1)
+			}
 		}
 	}
 }
