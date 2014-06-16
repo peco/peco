@@ -155,9 +155,12 @@ CALCULATE_PAGE:
 	for n := 1; n <= perPage; n++ {
 		fgAttr := u.config.Style.Basic.fg
 		bgAttr := u.config.Style.Basic.bg
-		if n+offset == u.currentLine || u.selection.Has(n+offset) {
+		if n+offset == u.currentLine {
 			fgAttr = u.config.Style.Selected.fg
 			bgAttr = u.config.Style.Selected.bg
+		} else if u.selection.Has(n+offset) {
+			fgAttr = u.config.Style.SavedSelection.fg
+			bgAttr = u.config.Style.SavedSelection.bg
 		}
 
 		targetIdx := offset + n - 1

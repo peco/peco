@@ -37,16 +37,18 @@ var (
 )
 
 type StyleSet struct {
-	Basic    Style `json:"Basic"`
-	Selected Style `json:"Selected"`
-	Query    Style `json:"Query"`
+	Basic          Style `json:"Basic"`
+	SavedSelection Style `json:"SavedSelection"`
+	Selected       Style `json:"Selected"`
+	Query          Style `json:"Query"`
 }
 
 func NewStyleSet() StyleSet {
 	return StyleSet{
-		Basic:    Style{fg: termbox.ColorDefault, bg: termbox.ColorDefault},
-		Selected: Style{fg: termbox.ColorDefault | termbox.AttrUnderline, bg: termbox.ColorMagenta},
-		Query:    Style{fg: termbox.ColorCyan, bg: termbox.ColorDefault},
+		Basic:          Style{fg: termbox.ColorDefault, bg: termbox.ColorDefault},
+		SavedSelection: Style{fg: termbox.ColorDefault | termbox.AttrUnderline, bg: termbox.ColorMagenta},
+		Selected:       Style{fg: termbox.ColorBlack | termbox.AttrBold, bg: termbox.ColorCyan},
+		Query:          Style{fg: termbox.ColorCyan, bg: termbox.ColorDefault},
 	}
 }
 
