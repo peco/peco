@@ -59,26 +59,26 @@ func (v *View) movePage(p PagingRequest) {
 
 	switch p {
 	case ToPrevLine:
-		v.selectedLine--
+		v.currentLine--
 	case ToNextLine:
-		v.selectedLine++
+		v.currentLine++
 	case ToPrevPage, ToNextPage:
 		if p == ToPrevPage {
-			v.selectedLine -= perPage
+			v.currentLine -= perPage
 		} else {
-			v.selectedLine += perPage
+			v.currentLine += perPage
 		}
 	}
 
-	if v.selectedLine < 1 {
+	if v.currentLine < 1 {
 		if v.current != nil {
 			// Go to last page, if possible
-			v.selectedLine = len(v.current)
+			v.currentLine = len(v.current)
 		} else {
-			v.selectedLine = 1
+			v.currentLine = 1
 		}
-	} else if v.current != nil && v.selectedLine > len(v.current) {
-		v.selectedLine = 1
+	} else if v.current != nil && v.currentLine > len(v.current) {
+		v.currentLine = 1
 	}
 	v.drawScreen(nil)
 }
@@ -101,7 +101,7 @@ func (u *View) drawScreen(targets []Match) {
 	perPage := height - 4
 
 CALCULATE_PAGE:
-	currentPage := ((u.Ctx.selectedLine - 1) / perPage) + 1
+	currentPage := ((u.Ctx.currentLine - 1) / perPage) + 1
 	if currentPage <= 0 {
 		currentPage = 1
 	}
@@ -114,7 +114,7 @@ CALCULATE_PAGE:
 	}
 
 	if maxPage < currentPage {
-		u.Ctx.selectedLine = offset
+		u.Ctx.currentLine = offset
 		goto CALCULATE_PAGE
 	}
 
@@ -155,9 +155,12 @@ CALCULATE_PAGE:
 	for n := 1; n <= perPage; n++ {
 		fgAttr := u.config.Style.Basic.fg
 		bgAttr := u.config.Style.Basic.bg
-		if n == u.selectedLine-offset {
+		if n+offset == u.currentLine {
 			fgAttr = u.config.Style.Selected.fg
 			bgAttr = u.config.Style.Selected.bg
+		} else if u.selection.Has(n+offset) {
+			fgAttr = u.config.Style.SavedSelection.fg
+			bgAttr = u.config.Style.SavedSelection.bg
 		}
 
 		targetIdx := offset + n - 1
