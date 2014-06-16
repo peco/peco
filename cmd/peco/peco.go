@@ -83,11 +83,13 @@ func main() {
 			fmt.Fprintf(os.Stderr, "Error:\n%s", err)
 		}
 
-		if result := ctx.Result(); result != "" {
-			if result[len(result)-1] != '\n' {
-				result = result + "\n"
+		if result := ctx.Result(); result != nil {
+			for _, line := range result {
+				if line[len(line)-1] != '\n' {
+					line = line + "\n"
+				}
+				fmt.Fprint(os.Stdout, line)
 			}
-			os.Stdout.WriteString(result)
 		}
 	}()
 
