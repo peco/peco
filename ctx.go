@@ -5,13 +5,61 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"sort"
 	"sync"
 )
+
+type Selection []int
+
+func (s Selection) Has(v int) bool {
+	for _, i := range []int(s) {
+		if i == v {
+			return true
+		}
+	}
+	return false
+}
+
+func (s *Selection) Add(v int) {
+	if s.Has(v) {
+		return
+	}
+	*s = Selection(append([]int(*s), v))
+	sort.Sort(s)
+}
+
+func (s *Selection) Remove(v int) {
+	a := []int(*s)
+	for k, i := range a {
+		if i == v {
+			tmp := a[:k]
+			tmp = append(tmp, a[k+1:]...)
+			*s = Selection(tmp)
+			return
+		}
+	}
+}
+
+func (s *Selection) Clear() {
+	*s = Selection([]int{})
+}
+
+func (s Selection) Len() int {
+	return len(s)
+}
+
+func (s Selection) Swap(i, j int) {
+	s[i], s[j] = s[j], s[i]
+}
+
+func (s Selection) Less(i, j int) bool {
+	return s[i] < s[j]
+}
 
 // Ctx contains all the important data. while you can easily access
 // data in this struct from anwyehre, only do so via channels
 type Ctx struct {
-	result         string
+	result         []string
 	loopCh         chan struct{}
 	queryCh        chan string
 	drawCh         chan []Match
@@ -19,7 +67,8 @@ type Ctx struct {
 	mutex          sync.Mutex
 	query          []rune
 	caretPos       int
-	selectedLine   int
+	currentLine    int
+	selection      Selection
 	lines          []Match
 	current        []Match
 	config         *Config
@@ -42,7 +91,7 @@ type Matcher interface {
 
 func NewCtx() *Ctx {
 	return &Ctx{
-		"",
+		[]string{},
 		make(chan struct{}),         // loopCh. You never send messages to this. no point in buffering
 		make(chan string, 5),        // queryCh.
 		make(chan []Match, 5),       // drawCh.
@@ -51,6 +100,7 @@ func NewCtx() *Ctx {
 		[]rune{},
 		0,
 		1,
+		Selection([]int{}),
 		[]Match{},
 		nil,
 		NewConfig(),
@@ -73,7 +123,7 @@ func (c *Ctx) ReadConfig(file string) error {
 	return err
 }
 
-func (c *Ctx) Result() string {
+func (c *Ctx) Result() []string {
 	return c.result
 }
 

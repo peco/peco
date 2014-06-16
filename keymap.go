@@ -126,12 +126,22 @@ func handleAcceptChar(i *Input, ev termbox.Event) {
 
 // peco.Finish -> end program, exit with success
 func handleFinish(i *Input, _ termbox.Event) {
-	if len(i.current) == 1 {
-		i.result = i.current[0].line
-	} else if i.selectedLine > 0 && i.selectedLine <= len(i.current) {
-		i.result = i.current[i.selectedLine-1].line
+	// Must end with all the selected lines.
+	i.selection.Add(i.currentLine)
+
+	i.result = []string{}
+	for _, lineno := range i.selection {
+		i.result = append(i.result, i.current[lineno-1].line)
 	}
 	i.Finish()
+}
+
+func handleToggleSelection(i *Input, _ termbox.Event) {
+	if i.selection.Has(i.currentLine) {
+		i.selection.Remove(i.currentLine)
+		return
+	}
+	i.selection.Add(i.currentLine)
 }
 
 // peco.Cancel -> end program, exit with failure
@@ -437,6 +447,7 @@ var handlers = map[string]KeymapHandler{
 	"peco.SelectNextPage":     handleSelectNextPage,
 	"peco.SelectPrevious":     handleSelectPrevious,
 	"peco.SelectNext":         handleSelectNext,
+	"peco.ToggleSelection":    handleToggleSelection,
 	"peco.RotateMatcher":      handleRotateMatcher,
 	"peco.Finish":             handleFinish,
 	"peco.Cancel":             handleCancel,
