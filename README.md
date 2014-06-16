@@ -135,6 +135,8 @@ Currently keymaps and styles are supported.
 
 ## Keymaps
 
+Example:
+
 ```json
 {
     "Keymap": {
