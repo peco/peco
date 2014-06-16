@@ -29,7 +29,7 @@ Options:
 	os.Stderr.Write([]byte(v))
 }
 
-type CmdOptions struct {
+type cmdOptions struct {
 	Help         bool   `short:"h" long:"help" description:"show this help message and exit"`
 	TTY          string `long:"tty" description:"path to the TTY (usually, the value of $TTY)"`
 	Query        string `long:"query"`
@@ -44,7 +44,7 @@ func main() {
 
 	defer func() { os.Exit(st) }()
 
-	opts := &CmdOptions{}
+	opts := &cmdOptions{}
 	p := flags.NewParser(opts, flags.PrintErrors)
 	args, err := p.Parse()
 	if err != nil {
