@@ -1,7 +1,7 @@
 peco
 ======
 
-Simplistic interfacting filtering tool
+Simplistic interactive filtering tool
 
 Description
 ===========
