@@ -263,6 +263,19 @@ Test it. In doing so, we may change the repo structure
 
 Implement all(?) of the original percol options
 
+AUTHORS
+=======
+
+Daisuke Maki
+Shinya Ohyanagi
+syohex
+Takashi Kokubun
+cho45
+cubicdaiya
+lestrrat
+mattn
+swdyh
+
 Notes
 =====
 
