@@ -224,7 +224,7 @@ func (m *CustomMatcher) Match(q string, buffer []Match) []Match {
 	results := []Match{}
 	args := []string{}
 	for _, arg := range m.args {
-		if arg == "$WORD" {
+		if arg == "$QUERY" {
 			arg = q
 		}
 		args = append(args, arg)
