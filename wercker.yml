@@ -14,7 +14,7 @@ build:
     - script:
         name: goxc build & archive
         code: |
-          goxc -tasks='xc archive' -bc 'linux,!arm windows darwin' -d $WERCKER_OUTPUT_DIR/ -build-ldflags "\"$(git describe --tags --always --dirty) ($(git name-rev --name-only HEAD | sed 's/^remotes\/origin\///'))\"" -resources-include='README*'
+          goxc -tasks='xc archive' -bc 'linux,!arm windows,386 darwin' -d $WERCKER_OUTPUT_DIR/ -build-ldflags "\"$(git describe --tags --always --dirty) ($(git name-rev --name-only HEAD | sed 's/^remotes\/origin\///'))\"" -resources-include='README*'
     - script:
         name: output release tag
         code: |
