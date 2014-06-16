@@ -29,6 +29,12 @@ Options:
 	os.Stderr.Write([]byte(v))
 }
 
+func getConfigFile(tryDir string) (string, error) {
+	file := filepath.Join(tryDir, "config.json")
+	_, err := os.Stat(file)
+	return file, err
+}
+
 type cmdOptions struct {
 	Help         bool   `short:"h" long:"help" description:"show this help message and exit"`
 	TTY          string `long:"tty" description:"path to the TTY (usually, the value of $TTY)"`
@@ -96,8 +102,14 @@ func main() {
 	if opts.Rcfile == "" {
 		user, err := user.Current()
 		if err == nil { // silently ignore failure for user.Current()
-			file := filepath.Join(user.HomeDir, ".peco", "config.json")
-			_, err := os.Stat(file)
+			configDir := os.Getenv("XDG_CONFIG_HOME")
+			if configDir == "" {
+				configDir = filepath.Join(user.HomeDir, ".config")
+			}
+			file, err := getConfigFile(filepath.Join(configDir, "peco"))
+			if err != nil {
+				file, err = getConfigFile(filepath.Join(user.HomeDir, ".peco"))
+			}
 			if err == nil {
 				opts.Rcfile = file
 			}
