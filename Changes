@@ -1,6 +1,23 @@
 Changes
 =======
 
+v0.1.2
+  Bugs/Fixes:
+  * Multiple queries were not being match fully until the end of line
+    (i.e. matches showed up correctly, but the display was not)
+  * Going back to previous item from first item now pages back to last item.
+  * Sending INT/TERM to peco now properly exits.
+  * Some synchronization issues have been fixed (although, it would have
+    never manifested itself when we were running with non-buffered channels)
+  * Make sure default matcher is IgnoreCase
+  Features:
+  * RegExp match mode. e.g. match against "^root" or "2014-[0-9]+", etc
+  * Default match mode is now configurable.
+  * The entire selected line is now highlighted
+  * Styles (colors and what not) can now be configured.
+  * Add C-d as a default keymap for ForwardDelete
+  * Add EOF handler
+
 v0.1.1 - 12 Jun 2014
   * Fix handling malformed input (e.g. cp932 or euc-jp)
   * Make non case sensitive matching the default. C-r allows you to toggle
