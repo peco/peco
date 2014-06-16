@@ -127,9 +127,9 @@ func handleAcceptChar(i *Input, ev termbox.Event) {
 // peco.Finish -> end program, exit with success
 func handleFinish(i *Input, _ termbox.Event) {
 	if len(i.current) == 1 {
-		i.result = i.current[0].line
+		i.result = i.current[0].Line()
 	} else if i.selectedLine > 0 && i.selectedLine <= len(i.current) {
-		i.result = i.current[i.selectedLine-1].line
+		i.result = i.current[i.selectedLine-1].Line()
 	}
 	i.Finish()
 }

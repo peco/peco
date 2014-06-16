@@ -164,14 +164,16 @@ CALCULATE_PAGE:
 		if targetIdx >= len(targets) {
 			break
 		}
+
 		target := targets[targetIdx]
-		line := target.line
-		if target.matches == nil {
+		line   := target.Line()
+		matches := target.Indices()
+		if matches == nil {
 			printTB(0, n, fgAttr, bgAttr, line)
 		} else {
 			prev := 0
 			index := 0
-			for _, m := range target.matches {
+			for _, m := range matches {
 				if m[0] > index {
 					c := line[index:m[0]]
 					printTB(prev, n, fgAttr, bgAttr, c)
@@ -184,7 +186,7 @@ CALCULATE_PAGE:
 				index += len(c)
 			}
 
-			m := target.matches[len(target.matches)-1]
+			m := matches[len(matches)-1]
 			if m[0] > prev {
 				printTB(prev, n, u.config.Style.Query.fg, bgAttr|u.config.Style.Query.bg, line[m[0]:m[1]])
 			} else if len(line) > m[1] {

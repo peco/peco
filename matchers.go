@@ -7,6 +7,45 @@ import (
 	"strings"
 )
 
+// Match defines the interface for matches. Note that to make drawing easier,
+// we have a DidMatch and NoMatch types instead of using []Match and []string.
+type Match interface {
+	Line() string
+	Indices() [][]int
+}
+
+// NoMatch is actually an alias to a regular string. It implements the
+// Match interface, but just returns the underlying string with no matches
+type NoMatch string
+func (m NoMatch) Line() string {
+	return string(m)
+}
+func (m NoMatch) Indices() [][]int {
+	return nil
+}
+
+// DidMatch contains the actual match, and the indices to the matches 
+// in the line
+type DidMatch struct {
+	line string
+	matches [][]int
+}
+
+func (d DidMatch) Line() string {
+	return d.line
+}
+
+func (d DidMatch) Indices() [][]int {
+	return d.matches
+}
+
+// Matcher interface defines the API for things that want to
+// match against the buffer
+type Matcher interface {
+	Match(string, []Match) []Match
+	String() string
+}
+
 const (
 	IgnoreCaseMatch    = "IgnoreCase"
 	CaseSensitiveMatch = "CaseSensitive"
@@ -109,15 +148,15 @@ func (m *RegexpMatcher) Match(q string, buffer []Match) []Match {
 	results := []Match{}
 	regexps, err := m.QueryToRegexps(q)
 	if err != nil {
-		return []Match{}
+		return results
 	}
 
 	for _, line := range buffer {
-		ms := m.MatchAllRegexps(regexps, line.line)
+		ms := m.MatchAllRegexps(regexps, line.Line())
 		if ms == nil {
 			continue
 		}
-		results = append(results, Match{line.line, ms})
+		results = append(results, DidMatch{line.Line(), ms})
 	}
 	return results
 }

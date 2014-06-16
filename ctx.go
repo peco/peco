@@ -30,16 +30,6 @@ type Ctx struct {
 	wait *sync.WaitGroup
 }
 
-type Match struct {
-	line    string
-	matches [][]int
-}
-
-type Matcher interface {
-	Match(string, []Match) []Match
-	String() string
-}
-
 func NewCtx() *Ctx {
 	return &Ctx{
 		"",
@@ -131,7 +121,7 @@ func (c *Ctx) ReadBuffer(input io.Reader) error {
 	scanner := bufio.NewScanner(input)
 	for scanner.Scan() {
 		line := scanner.Text()
-		c.lines = append(c.lines, Match{line, nil})
+		c.lines = append(c.lines, NoMatch(line))
 	}
 
 	if len(c.lines) > 0 {
