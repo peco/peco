@@ -127,9 +127,7 @@ func handleAcceptChar(i *Input, ev termbox.Event) {
 // peco.Finish -> end program, exit with success
 func handleFinish(i *Input, _ termbox.Event) {
 	// Must end with all the selected lines.
-	if len(i.current) == 1 {
-		i.selection.Add(i.currentLine)
-	}
+	i.selection.Add(i.currentLine)
 
 	i.result = []string{}
 	for _, lineno := range i.selection {
