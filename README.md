@@ -268,15 +268,14 @@ Implement all(?) of the original percol options
 AUTHORS
 =======
 
-Daisuke Maki
-Shinya Ohyanagi
-syohex
-Takashi Kokubun
-cho45
-cubicdaiya
-lestrrat
-mattn
-swdyh
+* Daisuke Maki (lestrrat)
+* Shinya Ohyanagi
+* syohex
+* Takashi Kokubun
+* cho45
+* cubicdaiya
+* mattn
+* swdyh
 
 Notes
 =====
