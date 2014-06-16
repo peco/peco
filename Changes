@@ -1,7 +1,7 @@
 Changes
 =======
 
-v0.1.2
+v0.1.2 - 16 Jun 2014
   Bugs/Fixes:
   * Multiple queries were not being match fully until the end of line
     (i.e. matches showed up correctly, but the display was not)

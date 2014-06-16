@@ -13,7 +13,7 @@ import (
 	"github.com/nsf/termbox-go"
 )
 
-var version = "v0.1.1"
+var version = "v0.1.2"
 
 func showHelp() {
 	const v = ` 
