@@ -163,4 +163,6 @@ func main() {
 	}
 
 	ctx.WaitDone()
+
+	st = ctx.ExitStatus
 }
