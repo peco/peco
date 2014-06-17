@@ -240,7 +240,7 @@ For now, styles of following 3 items can be customized in `config.json`.
 
 ## CustomMatcher
 
-It possible to put your customizable matcher. It must be key and values. values are array of string means program arguments. `$QUERY` is replaced by the query you typed.
+It's possible to put your customizable matcher. It must be key and values. values are array of string means program arguments. `$QUERY` is replaced by the query you typed.
 ```
 "MyFilter": ["/usr/bin/my-matcher", "$QUERY"]
 ```
