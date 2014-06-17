@@ -59,6 +59,7 @@ func (s Selection) Less(i, j int) bool {
 // Ctx contains all the important data. while you can easily access
 // data in this struct from anwyehre, only do so via channels
 type Ctx struct {
+	statusMessage  string
 	result         []string
 	loopCh         chan struct{}
 	queryCh        chan string
@@ -81,6 +82,7 @@ type Ctx struct {
 
 func NewCtx() *Ctx {
 	return &Ctx{
+		"",
 		[]string{},
 		make(chan struct{}),         // loopCh. You never send messages to this. no point in buffering
 		make(chan string, 5),        // queryCh.
@@ -186,7 +188,7 @@ func (c *Ctx) NewView() *View {
 }
 
 func (c *Ctx) NewFilter() *Filter {
-	return &Filter{c}
+	return &Filter{c, make(chan string)}
 }
 
 func (c *Ctx) NewInput() *Input {
