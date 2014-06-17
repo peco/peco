@@ -242,7 +242,7 @@ For now, styles of following 3 items can be customized in `config.json`.
 
 This is an experimental feature. Please note that some details of this specificaiton may change
 
-By default `peco` comes with `IgnoreCase`, `CaseSensitive`, and `Regexp` matchers, but it is possible to create your own custom matcher.
+By default `peco` comes with `IgnoreCase`, `CaseSensitive`, and `Regexp` matchers, but since v0.1.3, it is possible to create your own custom matcher.
 
 The matcher will be executed via  `Command.Run()` as an external process, and it will be passed the query values in the command line, and the original unaltered buffer is passed via `os.Stdin`. Your matcher must perform the matching, and print out to `os.Stdout` matched lines. Note that currently there is no way to specify where in the line the match occurred.
 
@@ -262,7 +262,7 @@ You may specify as many matchers as you like.
 
 ## Examples
 
-* [C/Migemo](https://github.com/lestrrat/peco/wiki/CustoMatcher-CMigemo)
+* [C/Migemo](https://github.com/mattn/peco-cmigemo/)
 
 Hacking
 =======
