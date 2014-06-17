@@ -2,12 +2,10 @@ package peco
 
 import (
 	"fmt"
-	"os"
 	"os/exec"
 	"regexp"
 	"sort"
 	"strings"
-	"time"
 )
 
 // Match defines the interface for matches. Note that to make drawing easier,
@@ -46,6 +44,14 @@ func (d DidMatch) Indices() [][]int {
 // Matcher interface defines the API for things that want to
 // match against the buffer
 type Matcher interface {
+	// Match takes in three parameters.
+	//
+	// The first chan is the channel where cancel requests are sent.
+	// If you receive a request here, you should stop running your query.
+	//
+	// The second is the query. Do what you want with it
+	//
+	// The third is the buffer in which to match the query against.
 	Match(chan struct{}, string, []Match) []Match
 	String() string
 }
@@ -168,10 +174,20 @@ func (m *RegexpMatcher) Match(quit chan struct{}, q string, buffer []Match) []Ma
 		return results
 	}
 
+	// The actual matching is done in a separate goroutine
 	iter := make(chan Match, len(buffer))
 	go func() {
+		// This protects us from panics, caused when we cancel the
+		// query and forcefully close the channel (and thereby
+		// causing a "close of a closed channel"
 		defer func() { recover() }()
+
+		// This must be here to make sure the channel is properly
+		// closed in normal cases
 		defer close(iter)
+
+		// Iterate through the lines, and do the match.
+		// Upon success, send it through the channel
 		for _, line := range buffer {
 			ms := m.MatchAllRegexps(regexps, line.Line())
 			if ms == nil {
@@ -186,9 +202,13 @@ MATCH:
 	for {
 		select {
 		case <-quit:
+			// If we recieved a cancel request, we immediately bail out.
+			// It's a little dirty, but we focefully terminate the other
+			// goroutine by closing the channel, and invoking a panic
 			close(iter)
 			break MATCH
 		case match := <-iter:
+			// Receive elements from the goroutine performing the match
 			if match == nil {
 				break MATCH
 			}
@@ -245,6 +265,7 @@ func (m *CustomMatcher) Match(quit chan struct{}, q string, buffer []Match) []Ma
 		for _, m := range buffer {
 			results = append(results, DidMatch{m.Line(), nil})
 		}
+		// Receive elements from the goroutine performing the match
 	}
 
 	lines := []string{}
@@ -261,10 +282,16 @@ func (m *CustomMatcher) Match(quit chan struct{}, q string, buffer []Match) []Ma
 	cmd := exec.Command(args[0], args[1:]...)
 	cmd.Stdin = strings.NewReader(strings.Join(lines, "\n"))
 
+	// See RegexpMatcher.Match() for explanation of constructs
 	iter := make(chan Match, len(buffer))
 	go func() {
 		defer func() { recover() }()
-		defer close(iter)
+		defer func() {
+			close(iter)
+			if p := cmd.Process; p != nil {
+				p.Kill()
+			}
+		}()
 		b, err := cmd.Output()
 		if err != nil {
 			iter <- nil
