@@ -2,11 +2,16 @@ package peco
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
+	"os/user"
+	"path/filepath"
+	"strings"
 
 	"github.com/nsf/termbox-go"
 )
 
+var currentUser = user.Current
 type Config struct {
 	Keymap  Keymap   `json:"Keymap"`
 	Matcher string   `json:"Matcher"`
@@ -122,4 +127,61 @@ func stringsToStyle(raw []string) *Style {
 	}
 
 	return style
+}
+
+var _locateRcfileIn = locateRcfileIn
+func locateRcfileIn(dir string) (string, error) {
+	const basename = "config.json"
+	file := filepath.Join(dir, basename)
+fmt.Fprintf(os.Stderr, "Looking for %s\n", file)
+	if _, err := os.Stat(file); err != nil {
+		return "", err
+	}
+	return file, nil
+}
+
+func LocateRcfile() (string, error) {
+	// http://standards.freedesktop.org/basedir-spec/basedir-spec-latest.html
+	//
+	// Try in this order:
+	//	  $XDG_CONFIG_HOME/peco/config.json
+	//    $XDG_CONFIG_DIR/peco/config.json (where XDG_CONFIG_DIR is listed in $XDG_CONFIG_DIRS)
+	//	  ~/.peco/config.json
+
+	user, uErr := currentUser()
+
+	// Try dir supplied via env var
+	if dir := os.Getenv("XDG_CONFIG_HOME"); dir != "" {
+		file, err := _locateRcfileIn(filepath.Join(dir, "peco"))
+		if err == nil {
+			return file, nil
+		}
+	} else if uErr == nil { // silently ignore failure for user.Current()
+		// Try "default" XDG location, is user is available
+		file, err := _locateRcfileIn(filepath.Join(user.HomeDir, ".config", "peco"))
+		if err == nil {
+			return file, nil
+		}
+	}
+
+	// this standard does not take into consideration windows (duh)
+	// while the spec says use ":" as the separator, Go provides us
+	// with filepath.ListSeparator, so use it
+	if dirs := os.Getenv("XDG_CONFIG_DIRS"); dirs != "" {
+		for _, dir := range strings.Split(dirs, fmt.Sprintf("%c", filepath.ListSeparator)) {
+			file, err := _locateRcfileIn(filepath.Join(dir, "peco"))
+			if err == nil {
+				return file, nil
+			}
+		}
+	}
+
+	if uErr == nil { // silently ignore failure for user.Current()
+		file, err := _locateRcfileIn(filepath.Join(user.HomeDir, ".peco"))
+		if err == nil {
+			return file, nil
+		}
+	}
+
+	return "", fmt.Errorf("Config file not found")
 }

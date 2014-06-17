@@ -2,6 +2,12 @@ package peco
 
 import (
 	"encoding/json"
+	"path/filepath"
+	"fmt"
+	"io/ioutil"
+	"os"
+	"os/user"
+	"strings"
 	"testing"
 
 	"github.com/nsf/termbox-go"
@@ -59,4 +65,57 @@ func TestStringsToStyle(t *testing.T) {
 			t.Errorf("Expected '%s' to be '%#v', but got '%#v'", test.strings, test.style, a)
 		}
 	}
+}
+
+func TestLocateRcfile(t *testing.T) {
+	dir, err := ioutil.TempDir("", "peco-")
+	if err != nil {
+		t.Fatalf("Failed to create temporary directory: %s", err)
+	}
+
+	currentUser = func() (*user.User, error) {
+		return &user.User{
+			HomeDir: dir,
+		}, nil
+	}
+
+	expected := []string{
+			filepath.Join(dir, "peco"),
+			filepath.Join(dir, "1", "peco"),
+			filepath.Join(dir, "2", "peco"),
+			filepath.Join(dir, "3", "peco"),
+			filepath.Join(dir, ".peco"),
+	}
+
+	i := 0
+	_locateRcfileIn = func(dir string) (string, error) {
+		t.Logf("looking for file in %s", dir)
+		if i > len(expected) - 1 {
+			t.Fatalf("Got %d directories, only have %d", i + 1, len(expected))
+		}
+
+		if expected[i] != dir {
+			t.Errorf("Expected %s, got %s", expected[i], dir)
+		}
+		i++
+		return "", fmt.Errorf("Not found")
+	}
+
+	os.Setenv("XDG_CONFIG_HOME", dir)
+	os.Setenv("XDG_CONFIG_DIRS", strings.Join(
+		[]string{
+			filepath.Join(dir, "1"),
+			filepath.Join(dir, "2"),
+			filepath.Join(dir, "3"),
+		},
+		fmt.Sprintf("%c", filepath.ListSeparator),
+	))
+
+	LocateRcfile()
+	expected[0] = filepath.Join(dir, ".config", "peco")
+	os.Setenv("XDG_CONFIG_HOME", "")
+	i = 0
+	LocateRcfile()
+
+
 }

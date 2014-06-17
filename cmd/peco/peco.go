@@ -4,9 +4,6 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
-	"os/user"
-	"path/filepath"
-	"strings"
 	"syscall"
 
 	"github.com/jessevdk/go-flags"
@@ -37,62 +34,6 @@ type cmdOptions struct {
 	Rcfile       string `long:"rcfile" descriotion:"path to the settings file"`
 	NoIgnoreCase bool   `long:"no-ignore-case" description:"start in case-sensitive-mode" default:"false"`
 	Version      bool   `long:"version" description:"print the version and exit"`
-}
-
-func locateRcfileIn(dir string) (string, error) {
-	const basename = "config.json"
-	file := filepath.Join(dir, basename)
-	if _, err := os.Stat(file); err != nil {
-		return "", err
-	}
-	return file, nil
-}
-
-func locateRcfile() (string, error) {
-	// http://standards.freedesktop.org/basedir-spec/basedir-spec-latest.html
-	//
-	// Try in this order:
-	//	  $XDG_CONFIG_HOME/peco/config.json
-	//    $XDG_CONFIG_DIR/peco/config.json (where XDG_CONFIG_DIR is listed in $XDG_CONFIG_DIRS)
-	//	  ~/.peco/config.json
-
-	// Try dir supplied via env var
-	if dir := os.Getenv("XDG_CONFIG_HOME"); dir != "" {
-		file, err := locateRcfileIn(filepath.Join(dir, "peco"))
-		if err == nil {
-			return file, nil
-		}
-	}
-
-	// Try "default" XDG location, is user is available
-	user, uErr := user.Current()
-	if uErr == nil { // silently ignore failure for user.Current()
-		file, err := locateRcfileIn(filepath.Join(user.HomeDir, ".config", "peco"))
-		if err == nil {
-			return file, nil
-		}
-	}
-
-	// this standard does not take into consideration windows (duh)
-	// while the spec says use ":" as the separator, Go provides us
-	// with filepath.ListSeparator, so use it
-	if dirs := os.Getenv("XDG_CONFIG_DIRS"); dirs != "" {
-		for _, dir := range strings.Split(dirs, fmt.Sprintf("%c", filepath.ListSeparator)) {
-			file, err := locateRcfileIn(dir)
-			if err == nil {
-				return file, nil
-			}
-		}
-	}
-
-	if uErr == nil { // silently ignore failure for user.Current()
-		file, err := locateRcfileIn(filepath.Join(user.HomeDir, ".peco"))
-		if err == nil {
-			return file, nil
-		}
-	}
-
-	return "", fmt.Errorf("Config file not found")
 }
 
 func main() {
@@ -151,7 +92,7 @@ func main() {
 	}()
 
 	if opts.Rcfile == "" {
-		file, err := locateRcfile()
+		file, err := peco.LocateRcfile()
 		if err == nil {
 			opts.Rcfile = file
 		}
