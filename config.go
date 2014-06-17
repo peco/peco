@@ -12,6 +12,7 @@ import (
 )
 
 var currentUser = user.Current
+
 type Config struct {
 	Keymap        Keymap   `json:"Keymap"`
 	Matcher       string   `json:"Matcher"`
@@ -131,10 +132,10 @@ func stringsToStyle(raw []string) *Style {
 }
 
 var _locateRcfileIn = locateRcfileIn
+
 func locateRcfileIn(dir string) (string, error) {
 	const basename = "config.json"
 	file := filepath.Join(dir, basename)
-fmt.Fprintf(os.Stderr, "Looking for %s\n", file)
 	if _, err := os.Stat(file); err != nil {
 		return "", err
 	}
