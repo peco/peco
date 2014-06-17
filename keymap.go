@@ -146,6 +146,11 @@ func handleToggleSelection(i *Input, _ termbox.Event) {
 	i.selection.Add(i.currentLine)
 }
 
+func handleToggleSelectionAndSelectNext(i *Input, ev termbox.Event) {
+	handleToggleSelection(i, ev)
+	handleSelectNext(i, ev)
+}
+
 // peco.Cancel -> end program, exit with failure
 func handleCancel(i *Input, ev termbox.Event) {
 	i.ExitStatus = 1
@@ -432,27 +437,28 @@ func (ksk KeymapStringKey) ToKey() (k termbox.Key, err error) {
 }
 
 var handlers = map[string]KeymapHandler{
-	"peco.KillEndOfLine":      handleKillEndOfLine,
-	"peco.DeleteAll":          handleDeleteAll,
-	"peco.BeginningOfLine":    handleBeginningOfLine,
-	"peco.EndOfLine":          handleEndOfLine,
-	"peco.EndOfFile":          handleEndOfFile,
-	"peco.ForwardChar":        handleForwardChar,
-	"peco.BackwardChar":       handleBackwardChar,
-	"peco.ForwardWord":        handleForwardWord,
-	"peco.BackwardWord":       handleBackwardWord,
-	"peco.DeleteForwardChar":  handleDeleteForwardChar,
-	"peco.DeleteBackwardChar": handleDeleteBackwardChar,
-	"peco.DeleteForwardWord":  handleDeleteForwardWord,
-	"peco.DeleteBackwardWord": handleDeleteBackwardWord,
-	"peco.SelectPreviousPage": handleSelectPreviousPage,
-	"peco.SelectNextPage":     handleSelectNextPage,
-	"peco.SelectPrevious":     handleSelectPrevious,
-	"peco.SelectNext":         handleSelectNext,
-	"peco.ToggleSelection":    handleToggleSelection,
-	"peco.RotateMatcher":      handleRotateMatcher,
-	"peco.Finish":             handleFinish,
-	"peco.Cancel":             handleCancel,
+	"peco.KillEndOfLine":                handleKillEndOfLine,
+	"peco.DeleteAll":                    handleDeleteAll,
+	"peco.BeginningOfLine":              handleBeginningOfLine,
+	"peco.EndOfLine":                    handleEndOfLine,
+	"peco.EndOfFile":                    handleEndOfFile,
+	"peco.ForwardChar":                  handleForwardChar,
+	"peco.BackwardChar":                 handleBackwardChar,
+	"peco.ForwardWord":                  handleForwardWord,
+	"peco.BackwardWord":                 handleBackwardWord,
+	"peco.DeleteForwardChar":            handleDeleteForwardChar,
+	"peco.DeleteBackwardChar":           handleDeleteBackwardChar,
+	"peco.DeleteForwardWord":            handleDeleteForwardWord,
+	"peco.DeleteBackwardWord":           handleDeleteBackwardWord,
+	"peco.SelectPreviousPage":           handleSelectPreviousPage,
+	"peco.SelectNextPage":               handleSelectNextPage,
+	"peco.SelectPrevious":               handleSelectPrevious,
+	"peco.SelectNext":                   handleSelectNext,
+	"peco.ToggleSelection":              handleToggleSelection,
+	"peco.ToggleSelectionAndSelectNext": handleToggleSelectionAndSelectNext,
+	"peco.RotateMatcher":                handleRotateMatcher,
+	"peco.Finish":                       handleFinish,
+	"peco.Cancel":                       handleCancel,
 }
 
 func NewKeymap() Keymap {
