@@ -474,6 +474,7 @@ func NewKeymap() Keymap {
 		termbox.KeyCtrlK:      handleKillEndOfLine,
 		termbox.KeyCtrlU:      handleKillBeginOfLine,
 		termbox.KeyCtrlR:      handleRotateMatcher,
+		termbox.KeyCtrlSpace:  handleToggleSelection,
 	}
 }
 
