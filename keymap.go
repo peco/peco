@@ -478,10 +478,12 @@ func NewKeymap() Keymap {
 	}
 }
 
-func (km Keymap) Handler(k termbox.Key) KeymapHandler {
-	h, ok := km[k]
-	if ok {
-		return h
+func (km Keymap) Handler(ev termbox.Event) KeymapHandler {
+	if ev.Ch == 0 {
+		h, ok := km[ev.Key]
+		if ok {
+			return h
+		}
 	}
 	return handleAcceptChar
 }
