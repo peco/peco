@@ -203,6 +203,8 @@ Example:
 | peco.SelectNextPage     | Jumps to next page|
 | peco.SelectPrevious     | Selects previous line |
 | peco.SelectNext         | Selects next line |
+| peco.ToggleSelection    | Selects the current line, and saves it |
+| peco.ToggleSelectionAndSelectNext | Selects the current line, saves it, and proceeds to the next line |
 | peco.RotateMatcher      | Rotate between matchers (by default, ignore-case/no-ignore-case)|
 | peco.Finish             | Exits from peco, with success status |
 | peco.Cancel             | Exits from peco, with failure status |
