@@ -260,6 +260,10 @@ Elements in the `CustomMatcher` section are string keys to array of program argu
 
 You may specify as many matchers as you like. 
 
+## Examples
+
+* [C/Migemo](https://github.com/lestrrat/peco/wiki/CustoMatcher-CMigemo)
+
 Hacking
 =======
 
