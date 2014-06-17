@@ -35,7 +35,7 @@ line you are looking for
 
 Multiple terms turn the query into an "AND" query:
 
-![optimized](https://cloud.githubusercontent.com/assets/554281/3241419/d5fccc5c-f13c-11e3-898b-280a246b083c.gif)
+![optimized](http://lestrrat.github.io/peco/peco/multiple-queries.git)
 
 When you find that line that you want, press enter, and the resulting line
 is printed to stdout, which allows you to pipe it to other tools
