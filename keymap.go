@@ -131,7 +131,9 @@ func handleFinish(i *Input, _ termbox.Event) {
 
 	i.result = []string{}
 	for _, lineno := range i.selection {
-		i.result = append(i.result, i.current[lineno-1].Line())
+		if lineno <= len(i.current) {
+			i.result = append(i.result, i.current[lineno-1].Line())
+		}
 	}
 	i.Finish()
 }
