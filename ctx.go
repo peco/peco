@@ -151,6 +151,15 @@ func (c *Ctx) Terminate() {
 }
 
 func (c *Ctx) ExecQuery(v string) {
+	// Clear existing queries
+	CLEAR: for {
+		select {
+			case <-c.queryCh:
+				// discard
+			default:
+				break CLEAR
+		}
+	}
 	c.queryCh <- v
 }
 
