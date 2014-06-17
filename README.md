@@ -28,7 +28,7 @@ When you combine tools like zsh, peco, and [ghq](https://github.com/motemen/ghq)
 Features
 ========
 
-## Incremental search
+## Incremental Search
 
 Search results are filtered as you type. This is great to drill down to the
 line you are looking for
@@ -39,6 +39,12 @@ Multiple terms turn the query into an "AND" query:
 
 When you find that line that you want, press enter, and the resulting line
 is printed to stdout, which allows you to pipe it to other tools
+
+## Select Multiple Lines
+
+You can select multiple lines! 
+
+![optimized](http://lestrrat.github.io/peco/peco-demo-multiple-selection.gif)
 
 ## Select Matchers
 
