@@ -119,7 +119,7 @@ Specifies the default query to be used upon startup. This is useful for scripts 
 
 ### --rcfile <filename>
 
-Pass peco a configuration file, which currently must be a JSON file. If unspecified, it will read ~/.peco/config.json by default (if available)
+Pass peco a configuration file, which currently must be a JSON file. If unspecified it will try a series of files by default. See `Configuration File` for the actual locationes searched.
 
 ### --no-ignore-case
 
@@ -128,10 +128,15 @@ By default peco starts in case insensitive mode. When this option is specified, 
 Configuration File
 ==================
 
-By default configuration file in ~/.peco/config.json will be searched. You may
-also pass an arbitrary filename via the --rcfile option
+peco by default consults a few locations for the config files.
 
-Currently keymaps and styles are supported.
+1. Location specified in --rcfile. If this doesn't exist, peco complains and exits
+2. $XDG\_CONFIG\_HOME/config.json
+3. $HOME/.config/peco/config.json
+4. for each directories listed in $XDG\_CONFIG\_DIRS, $DIR/peco/config.json
+5. If all else fails, $HOME/.peco/config.json
+
+Below are configuration sections that you may specify in your config file:
 
 ## Keymaps
 
