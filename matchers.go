@@ -18,6 +18,7 @@ type Match interface {
 // NoMatch is actually an alias to a regular string. It implements the
 // Match interface, but just returns the underlying string with no matches
 type NoMatch string
+
 func (m NoMatch) Line() string {
 	return string(m)
 }
@@ -25,10 +26,10 @@ func (m NoMatch) Indices() [][]int {
 	return nil
 }
 
-// DidMatch contains the actual match, and the indices to the matches 
+// DidMatch contains the actual match, and the indices to the matches
 // in the line
 type DidMatch struct {
-	line string
+	line    string
 	matches [][]int
 }
 
@@ -43,7 +44,15 @@ func (d DidMatch) Indices() [][]int {
 // Matcher interface defines the API for things that want to
 // match against the buffer
 type Matcher interface {
-	Match(string, []Match) []Match
+	// Match takes in three parameters.
+	//
+	// The first chan is the channel where cancel requests are sent.
+	// If you receive a request here, you should stop running your query.
+	//
+	// The second is the query. Do what you want with it
+	//
+	// The third is the buffer in which to match the query against.
+	Match(chan struct{}, string, []Match) []Match
 	String() string
 }
 
@@ -158,19 +167,54 @@ func (m byStart) Less(i, j int) bool {
 	return m[i][0] < m[j][0]
 }
 
-func (m *RegexpMatcher) Match(q string, buffer []Match) []Match {
+func (m *RegexpMatcher) Match(quit chan struct{}, q string, buffer []Match) []Match {
 	results := []Match{}
 	regexps, err := m.QueryToRegexps(q)
 	if err != nil {
 		return results
 	}
 
-	for _, line := range buffer {
-		ms := m.MatchAllRegexps(regexps, line.Line())
-		if ms == nil {
-			continue
+	// The actual matching is done in a separate goroutine
+	iter := make(chan Match, len(buffer))
+	go func() {
+		// This protects us from panics, caused when we cancel the
+		// query and forcefully close the channel (and thereby
+		// causing a "close of a closed channel"
+		defer func() { recover() }()
+
+		// This must be here to make sure the channel is properly
+		// closed in normal cases
+		defer close(iter)
+
+		// Iterate through the lines, and do the match.
+		// Upon success, send it through the channel
+		for _, line := range buffer {
+			ms := m.MatchAllRegexps(regexps, line.Line())
+			if ms == nil {
+				continue
+			}
+			iter <- DidMatch{line.Line(), ms}
 		}
-		results = append(results, DidMatch{line.Line(), ms})
+		iter <- nil
+	}()
+
+MATCH:
+	for {
+		select {
+		case <-quit:
+			// If we recieved a cancel request, we immediately bail out.
+			// It's a little dirty, but we focefully terminate the other
+			// goroutine by closing the channel, and invoking a panic
+			close(iter)
+			break MATCH
+		case match := <-iter:
+			// Receive elements from the goroutine performing the match
+			if match == nil {
+				break MATCH
+			}
+
+			results = append(results, match)
+		}
 	}
 	return results
 }
@@ -211,38 +255,65 @@ Match:
 	return matches
 }
 
-func (m *CustomMatcher) Match(q string, buffer []Match) []Match {
+func (m *CustomMatcher) Match(quit chan struct{}, q string, buffer []Match) []Match {
 	if len(m.args) < 1 {
 		return []Match{}
 	}
 
 	results := []Match{}
-	if q != "" {
-		lines := []string{}
-		for _, line := range buffer {
-			lines = append(lines, line.Line() + "\n")
+	if q == "" {
+		for _, m := range buffer {
+			results = append(results, DidMatch{m.Line(), nil})
 		}
-		args := []string{}
-		for _, arg := range m.args {
-			if arg == "$QUERY" {
-				arg = q
+		// Receive elements from the goroutine performing the match
+	}
+
+	lines := []string{}
+	for _, line := range buffer {
+		lines = append(lines, line.Line()+"\n")
+	}
+	args := []string{}
+	for _, arg := range m.args {
+		if arg == "$QUERY" {
+			arg = q
+		}
+		args = append(args, arg)
+	}
+	cmd := exec.Command(args[0], args[1:]...)
+	cmd.Stdin = strings.NewReader(strings.Join(lines, "\n"))
+
+	// See RegexpMatcher.Match() for explanation of constructs
+	iter := make(chan Match, len(buffer))
+	go func() {
+		defer func() { recover() }()
+		defer func() {
+			close(iter)
+			if p := cmd.Process; p != nil {
+				p.Kill()
 			}
-			args = append(args, arg)
-		}
-		cmd := exec.Command(args[0], args[1:]...)
-		cmd.Stdin = strings.NewReader(strings.Join(lines, "\n"))
+		}()
 		b, err := cmd.Output()
 		if err != nil {
-			return []Match{}
+			iter <- nil
 		}
 		for _, line := range strings.Split(string(b), "\n") {
 			if len(line) > 0 {
-				results = append(results, DidMatch{line, nil})
+				iter <- DidMatch{line, nil}
 			}
 		}
-	} else {
-		for _, m := range buffer {
-			results = append(results, DidMatch{m.Line(), nil})
+		iter <- nil
+	}()
+MATCH:
+	for {
+		select {
+		case <-quit:
+			close(iter)
+			break MATCH
+		case match := <-iter:
+			if match == nil {
+				break MATCH
+			}
+			results = append(results, match)
 		}
 	}
 

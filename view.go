@@ -35,6 +35,23 @@ func (u *View) Loop() {
 	}
 }
 
+func (v *View) printStatus() {
+	w, h := termbox.Size()
+
+	msg := v.statusMessage
+	width := runewidth.StringWidth(msg)
+
+	pad := make([]byte, w - width)
+	for i := 0; i < w - width; i++ {
+		pad[i] = ' '
+	}
+
+	printTB(0, h - 2, termbox.ColorDefault, termbox.ColorDefault, string(pad))
+	if width > 0 {
+		printTB(w - width, h - 2, termbox.AttrReverse|termbox.ColorDefault|termbox.AttrBold, termbox.AttrReverse|termbox.ColorDefault, msg)
+	}
+}
+
 func printTB(x, y int, fg, bg termbox.Attribute, msg string) {
 	for len(msg) > 0 {
 		c, w := utf8.DecodeRuneInString(msg)
@@ -197,6 +214,8 @@ CALCULATE_PAGE:
 			}
 		}
 	}
+
+	u.printStatus()
 	termbox.Flush()
 
 	// FIXME
