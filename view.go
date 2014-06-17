@@ -29,15 +29,15 @@ const (
 
 // Loop receives requests to update the screen
 func (v *View) Loop() {
-	defer u.ReleaseWaitGroup()
+	defer v.ReleaseWaitGroup()
 	for {
 		select {
-		case <-u.LoopCh():
+		case <-v.LoopCh():
 			return
-		case r := <-u.PagingCh():
-			u.movePage(r)
-		case lines := <-u.DrawCh():
-			u.drawScreen(lines)
+		case r := <-v.PagingCh():
+			v.movePage(r)
+		case lines := <-v.DrawCh():
+			v.drawScreen(lines)
 		}
 	}
 }
@@ -108,16 +108,16 @@ func (v *View) movePage(p PagingRequest) {
 }
 
 func (v *View) drawScreen(targets []Match) {
-	u.mutex.Lock()
-	defer u.mutex.Unlock()
+	v.mutex.Lock()
+	defer v.mutex.Unlock()
 
 	termbox.Clear(termbox.ColorDefault, termbox.ColorDefault)
 
 	if targets == nil {
-		if current := u.Ctx.current; current != nil {
-			targets = u.Ctx.current
+		if current := v.Ctx.current; current != nil {
+			targets = v.Ctx.current
 		} else {
-			targets = u.Ctx.lines
+			targets = v.Ctx.lines
 		}
 	}
 
@@ -125,7 +125,7 @@ func (v *View) drawScreen(targets []Match) {
 	perPage := height - 4
 
 CALCULATE_PAGE:
-	currentPage := ((u.Ctx.currentLine - 1) / perPage) + 1
+	currentPage := ((v.Ctx.currentLine - 1) / perPage) + 1
 	if currentPage <= 0 {
 		currentPage = 1
 	}
@@ -138,7 +138,7 @@ CALCULATE_PAGE:
 	}
 
 	if maxPage < currentPage {
-		u.Ctx.currentLine = offset
+		v.Ctx.currentLine = offset
 		goto CALCULATE_PAGE
 	}
 
@@ -146,24 +146,24 @@ CALCULATE_PAGE:
 	promptLen := runewidth.StringWidth(prompt)
 	printTB(0, 0, termbox.ColorDefault, termbox.ColorDefault, prompt)
 
-	if u.caretPos <= 0 {
-		u.caretPos = 0 // sanity
+	if v.caretPos <= 0 {
+		v.caretPos = 0 // sanity
 	}
-	if u.caretPos > len(u.query) {
-		u.caretPos = len(u.query)
+	if v.caretPos > len(v.query) {
+		v.caretPos = len(v.query)
 	}
 
-	if u.caretPos == len(u.query) {
+	if v.caretPos == len(v.query) {
 		// the entire string + the caret after the string
-		printTB(promptLen+1, 0, termbox.ColorDefault, termbox.ColorDefault, string(u.query))
-		termbox.SetCell(promptLen+1+runewidth.StringWidth(string(u.query)), 0, ' ', termbox.ColorDefault|termbox.AttrReverse, termbox.ColorDefault|termbox.AttrReverse)
+		printTB(promptLen+1, 0, termbox.ColorDefault, termbox.ColorDefault, string(v.query))
+		termbox.SetCell(promptLen+1+runewidth.StringWidth(string(v.query)), 0, ' ', termbox.ColorDefault|termbox.AttrReverse, termbox.ColorDefault|termbox.AttrReverse)
 	} else {
 		// the caret is in the middle of the string
 		prev := 0
-		for i, r := range u.query {
+		for i, r := range v.query {
 			fg := termbox.ColorDefault
 			bg := termbox.ColorDefault
-			if i == u.caretPos {
+			if i == v.caretPos {
 				fg |= termbox.AttrReverse
 				bg |= termbox.AttrReverse
 			}
@@ -172,19 +172,19 @@ CALCULATE_PAGE:
 		}
 	}
 
-	pmsg := fmt.Sprintf("%s [%d/%d]", u.Ctx.Matcher().String(), currentPage, maxPage)
+	pmsg := fmt.Sprintf("%s [%d/%d]", v.Ctx.Matcher().String(), currentPage, maxPage)
 
 	printTB(width-runewidth.StringWidth(pmsg), 0, termbox.ColorDefault, termbox.ColorDefault, pmsg)
 
 	for n := 1; n <= perPage; n++ {
-		fgAttr := u.config.Style.Basic.fg
-		bgAttr := u.config.Style.Basic.bg
-		if n+offset == u.currentLine {
-			fgAttr = u.config.Style.Selected.fg
-			bgAttr = u.config.Style.Selected.bg
-		} else if u.selection.Has(n+offset) {
-			fgAttr = u.config.Style.SavedSelection.fg
-			bgAttr = u.config.Style.SavedSelection.bg
+		fgAttr := v.config.Style.Basic.fg
+		bgAttr := v.config.Style.Basic.bg
+		if n+offset == v.currentLine {
+			fgAttr = v.config.Style.Selected.fg
+			bgAttr = v.config.Style.Selected.bg
+		} else if v.selection.Has(n+offset) {
+			fgAttr = v.config.Style.SavedSelection.fg
+			bgAttr = v.config.Style.SavedSelection.bg
 		}
 
 		targetIdx := offset + n - 1
@@ -208,23 +208,23 @@ CALCULATE_PAGE:
 					index += len(c)
 				}
 				c := line[m[0]:m[1]]
-				printTB(prev, n, u.config.Style.Query.fg, bgAttr|u.config.Style.Query.bg, c)
+				printTB(prev, n, v.config.Style.Query.fg, bgAttr|v.config.Style.Query.bg, c)
 				prev += runewidth.StringWidth(c)
 				index += len(c)
 			}
 
 			m := matches[len(matches)-1]
 			if m[0] > prev {
-				printTB(prev, n, u.config.Style.Query.fg, bgAttr|u.config.Style.Query.bg, line[m[0]:m[1]])
+				printTB(prev, n, v.config.Style.Query.fg, bgAttr|v.config.Style.Query.bg, line[m[0]:m[1]])
 			} else if len(line) > m[1] {
 				printTB(prev, n, fgAttr, bgAttr, line[m[1]:len(line)])
 			}
 		}
 	}
 
-	u.printStatus()
+	v.printStatus()
 	termbox.Flush()
 
 	// FIXME
-	u.current = targets
+	v.current = targets
 }
