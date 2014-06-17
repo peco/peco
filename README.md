@@ -257,7 +257,7 @@ This is an experimental feature. Please note that some details of this specifica
 
 By default `peco` comes with `IgnoreCase`, `CaseSensitive`, and `Regexp` matchers, but since v0.1.3, it is possible to create your own custom matcher.
 
-The matcher will be executed via  `Command.Run()` as an external process, and it will be passed the query values in the command line, and the original unaltered buffer is passed via `os.Stdin`. Your matcher must perform the matching, and print out to `os.Stdout` matched lines. Note that currently there is no way to specify where in the line the match occurred.
+The matcher will be executed via  `Command.Run()` as an external process, and it will be passed the query values in the command line, and the original unaltered buffer is passed via `os.Stdin`. Your matcher must perform the matching, and print out to `os.Stdout` matched lines. Note that currently there is no way to specify where in the line the match occurred. Note that the matcher does not need to be a go program. It can be a perl/ruby/python/bash script, or anything else that is executable.
 
 Once you have a matcher, you must specify how the matcher is spawned:
 
@@ -275,6 +275,7 @@ You may specify as many matchers as you like.
 
 ## Examples
 
+* [An example of a simple perl regexp matcher](https://gist.github.com/mattn/24712964da6e3112251c)
 * [C/Migemo](https://github.com/mattn/peco-cmigemo/)
 
 Hacking
