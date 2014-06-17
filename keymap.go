@@ -509,6 +509,11 @@ func (km Keymap) UnmarshalJSON(buf []byte) error {
 			continue
 		}
 
+		if vs == "-" {
+			delete(km, k)
+			continue
+		}
+
 		v, ok := handlers[vs]
 		if !ok {
 			fmt.Fprintf(os.Stderr, "Unknown handler %s", vs)
