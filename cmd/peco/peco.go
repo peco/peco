@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
-	"os/user"
-	"path/filepath"
 	"syscall"
 
 	"github.com/jessevdk/go-flags"
@@ -94,13 +92,9 @@ func main() {
 	}()
 
 	if opts.Rcfile == "" {
-		user, err := user.Current()
-		if err == nil { // silently ignore failure for user.Current()
-			file := filepath.Join(user.HomeDir, ".peco", "config.json")
-			_, err := os.Stat(file)
-			if err == nil {
-				opts.Rcfile = file
-			}
+		file, err := peco.LocateRcfile()
+		if err == nil {
+			opts.Rcfile = file
 		}
 	}
 
