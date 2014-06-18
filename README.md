@@ -137,6 +137,8 @@ WARNING: EXPERIMENTAL. This feature will probably stay, but the option name may 
 
 Changes how peco interprets incoming data. When this flag is set, you may insert NUL ('\0') characters in your input. Anything before the NUL character is treated as the string to be displaed by peco and is used for matching against user query. Anything after the NUL character is used as the "result": i.e., when peco is about to exit, it displays this string instead of the original string displayed.
 
+[Here's a simple example of how to use this feature](https://gist.github.com/mattn/3c7a14c1677ecb193acd)
+
 ### --no-ignore-case
 
 By default peco starts in case insensitive mode. When this option is specified, peco will start in case sensitive mode. This can be toggled while peco is still in session.
