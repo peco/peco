@@ -23,7 +23,7 @@ Options:
   --rcfile=RCFILE       path to the settings file
   --query=QUERY         pre-input query
   --no-ignore-case      start in case-sensitive mode
-  --null                expect NUL (\\0) as separator for target/output (EXPERIMENTAL)
+  --null                expect NUL (\0) as separator for target/output (EXPERIMENTAL)
 `
 	os.Stderr.Write([]byte(v))
 }
