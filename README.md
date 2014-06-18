@@ -243,6 +243,32 @@ For now, styles of following 3 items can be customized in `config.json`.
 - `"underline"` for `termbox.AttrUnderline`
 - `"blink"` for `termbox.AttrReverse`
 
+## CustomMatcher
+
+This is an experimental feature. Please note that some details of this specificaiton may change
+
+By default `peco` comes with `IgnoreCase`, `CaseSensitive`, and `Regexp` matchers, but it is possible to create your own custom matcher.
+
+The matcher will be executed via  `Command.Run()` as an external process, and it will be passed the query values in the command line, and the original unaltered buffer is passed via `os.Stdin`. Your matcher must perform the matching, and print out to `os.Stdout` matched lines. Note that currently there is no way to specify where in the line the match occurred.
+
+Once you have a matcher, you must specify how the matcher is spawned:
+
+```json
+{
+    "CustomMatcher": {
+        "MyMatcher": [ "/path/to/my-matcher", "$QUERY" ]
+    }
+}
+```
+
+Elements in the `CustomMatcher` section are string keys to array of program arguments. The special token `$QUERY` will be replaced with the unaltered query as the user typed in (i.e. multiple-word queries will be passed as a single string). You may pass in any other arguments in this array.
+
+You may specify as many matchers as you like. 
+
+## Examples
+
+* [C/Migemo](https://github.com/lestrrat/peco/wiki/CustoMatcher-CMigemo)
+
 Hacking
 =======
 

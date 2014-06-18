@@ -2,6 +2,7 @@ package peco
 
 import (
 	"fmt"
+	"os/exec"
 	"regexp"
 	"sort"
 	"strings"
@@ -115,6 +116,12 @@ type IgnoreCaseMatcher struct {
 	*RegexpMatcher
 }
 
+type CustomMatcher struct {
+	enableSep bool
+	name string
+	args []string
+}
+
 func NewCaseSensitiveMatcher(enableSep bool) *CaseSensitiveMatcher {
 	m := &CaseSensitiveMatcher{NewRegexpMatcher(enableSep)}
 	m.quotemeta = true
@@ -134,6 +141,10 @@ func NewRegexpMatcher(enableSep bool) *RegexpMatcher {
 		[]string{},
 		false,
 	}
+}
+
+func NewCustomMatcher(enableSep bool, name string, args []string) *CustomMatcher {
+	return &CustomMatcher{enableSep, name, args}
 }
 
 func regexpFor(q string, flags []string, quotemeta bool) (*regexp.Regexp, error) {
@@ -178,6 +189,10 @@ func (m *CaseSensitiveMatcher) String() string {
 
 func (m *IgnoreCaseMatcher) String() string {
 	return "IgnoreCase"
+}
+
+func (m *CustomMatcher) String() string {
+	return m.name
 }
 
 // sort related stuff
@@ -246,4 +261,44 @@ Match:
 	sort.Sort(byStart(matches))
 
 	return matches
+}
+
+func (m *CustomMatcher) Match(q string, buffer []Match) []Match {
+	if len(m.args) < 1 {
+		return []Match{}
+	}
+
+	results := []Match{}
+	if q != "" {
+		lines := []Match{}
+		matcherInput := ""
+		for _, match := range buffer {
+			matcherInput += match.Line() + "\n"
+			lines = append(lines, match)
+		}
+		args := []string{}
+		for _, arg := range m.args {
+			if arg == "$QUERY" {
+				arg = q
+			}
+			args = append(args, arg)
+		}
+		cmd := exec.Command(args[0], args[1:]...)
+		cmd.Stdin = strings.NewReader(matcherInput)
+		b, err := cmd.Output()
+		if err != nil {
+			return []Match{}
+		}
+		for _, line := range strings.Split(string(b), "\n") {
+			if len(line) > 0 {
+				results = append(results, NewDidMatch(line, m.enableSep, nil))
+			}
+		}
+	} else {
+		for _, match := range buffer {
+			results = append(results, NewDidMatch(match.Buffer(), m.enableSep, nil))
+		}
+	}
+
+	return results
 }
