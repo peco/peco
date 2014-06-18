@@ -30,8 +30,13 @@ func NewMatchString(v string, enableSep bool) *MatchString {
 		return m
 	}
 
-	if i := strings.IndexByte(string(m.buf), '\000'); i > -1 {
-		m.sepLoc = i
+	// XXX This may be silly, but we're avoiding using strings.IndexByte()
+	// here because it doesn't exist on go1.1. Let's remove support for
+	// 1.1 when 1.4 comes out (or something)
+	for i := 0; i < len(m.buf); i++ {
+		if m.buf[i] == '\000' {
+			m.sepLoc = i
+		}
 	}
 	return m
 }
