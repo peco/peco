@@ -1,8 +1,12 @@
 Changes
 =======
 
+v0.1.5 - 18 Jun 2014
+  Features:
+  * Add experimental --null option
+  
 v0.1.4 - 17 Jun 2014
-  Buts/Fixes:
+  Bugs/Fixes:
   * Check for ev.Ch and ev.Key (should fix input problems)
   * Fix crashing issue on empty match
   Features:
