@@ -214,7 +214,7 @@ CALCULATE_PAGE:
 			}
 
 			m := matches[len(matches)-1]
-			if m[0] > prev {
+			if m[0] > index {
 				printTB(prev, n, v.config.Style.Query.fg, bgAttr|v.config.Style.Query.bg, line[m[0]:m[1]])
 			} else if len(line) > m[1] {
 				printTB(prev, n, fgAttr, bgAttr, line[m[1]:len(line)])
