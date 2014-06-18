@@ -23,7 +23,7 @@ Options:
   --rcfile=RCFILE       path to the settings file
   --query=QUERY         pre-input query
   --no-ignore-case      start in case-sensitive mode
-  --zero                expect NUL (\\0) as separator for target/output
+  --null                expect NUL (\\0) as separator for target/output
 `
 	os.Stderr.Write([]byte(v))
 }
@@ -35,7 +35,7 @@ type cmdOptions struct {
 	Rcfile       string `long:"rcfile" descriotion:"path to the settings file"`
 	NoIgnoreCase bool   `long:"no-ignore-case" description:"start in case-sensitive-mode" default:"false"`
 	Version      bool   `long:"version" description:"print the version and exit"`
-	ContextSep   bool   `long:"zero" description:"expect NUL (\\0) as separator for target/output"`
+	ContextSep   bool   `long:"null" description:"expect NUL (\\0) as separator for target/output"`
 }
 
 func main() {
