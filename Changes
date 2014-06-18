@@ -1,6 +1,32 @@
 Changes
 =======
 
+v0.1.4 - 17 Jun 2014
+  Buts/Fixes:
+  * Check for ev.Ch and ev.Key (should fix input problems)
+  * Fix crashing issue on empty match
+  Features:
+  * In your config, setting the value to "-" will remove the
+    binding.
+  * Default ToggleSelect binding has been changed to
+    ToggleSelectAndSelectNext
+
+v0.1.3 - 17 Jun 2014
+  Bugs/Fixes:
+  * When dealing with fast/successive user input on large buffers,
+    peco was taking too long to execute queries.
+  * XDG style config directories are now searched, and if all fails,
+    falls back to the original ~/.peco/config.json
+  * Some internal cleanup
+  Features:
+  * Multiple line selection has been implemented. Ctrl-Space will
+    toggle the currently selected line, and peco will exit after
+    printing all the selected lines. Note that on OS X, Spotlight
+    by default captures these keys. You may need to reconfigure
+    your settings.
+  * Custom matchers via external processes have been implemented.
+    See the README for more details
+
 v0.1.2 - 16 Jun 2014
   Bugs/Fixes:
   * Multiple queries were not being match fully until the end of line

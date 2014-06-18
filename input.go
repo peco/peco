@@ -43,7 +43,7 @@ func (i *Input) Loop() {
 }
 
 func (i *Input) handleKeyEvent(ev termbox.Event) {
-	if h := i.config.Keymap.Handler(ev.Key); h != nil {
+	if h := i.config.Keymap.Handler(ev); h != nil {
 		h(i, ev)
 		return
 	}

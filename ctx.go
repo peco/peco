@@ -60,6 +60,7 @@ func (s Selection) Less(i, j int) bool {
 // data in this struct from anwyehre, only do so via channels
 type Ctx struct {
 	enableSep bool
+	statusMessage  string
 	result         []Match
 	loopCh         chan struct{}
 	queryCh        chan string
@@ -83,6 +84,7 @@ type Ctx struct {
 func NewCtx(enableSep bool) *Ctx {
 	return &Ctx{
 		enableSep,
+		"",
 		[]Match{},
 		make(chan struct{}),         // loopCh. You never send messages to this. no point in buffering
 		make(chan string, 5),        // queryCh.
@@ -188,7 +190,7 @@ func (c *Ctx) NewView() *View {
 }
 
 func (c *Ctx) NewFilter() *Filter {
-	return &Filter{c}
+	return &Filter{c, make(chan string)}
 }
 
 func (c *Ctx) NewInput() *Input {

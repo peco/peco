@@ -12,13 +12,13 @@ import (
 // we have a DidMatch and NoMatch types instead of using []Match and []string.
 type Match interface {
 	Buffer() string // Raw buffer, may contain null
-	Line() string // Line to be displayed
+	Line() string   // Line to be displayed
 	Output() string // Output string to be displayed after peco is done
 	Indices() [][]int
 }
 
 type MatchString struct {
-	buf string
+	buf    string
 	sepLoc int
 }
 
@@ -74,7 +74,7 @@ func (m NoMatch) Indices() [][]int {
 	return nil
 }
 
-// DidMatch contains the actual match, and the indices to the matches 
+// DidMatch contains the actual match, and the indices to the matches
 // in the line
 type DidMatch struct {
 	*MatchString
@@ -92,7 +92,15 @@ func (d DidMatch) Indices() [][]int {
 // Matcher interface defines the API for things that want to
 // match against the buffer
 type Matcher interface {
-	Match(string, []Match) []Match
+	// Match takes in three parameters.
+	//
+	// The first chan is the channel where cancel requests are sent.
+	// If you receive a request here, you should stop running your query.
+	//
+	// The second is the query. Do what you want with it
+	//
+	// The third is the buffer in which to match the query against.
+	Match(chan struct{}, string, []Match) []Match
 	String() string
 }
 
@@ -118,8 +126,8 @@ type IgnoreCaseMatcher struct {
 
 type CustomMatcher struct {
 	enableSep bool
-	name string
-	args []string
+	name      string
+	args      []string
 }
 
 func NewCaseSensitiveMatcher(enableSep bool) *CaseSensitiveMatcher {
@@ -210,19 +218,54 @@ func (m byStart) Less(i, j int) bool {
 	return m[i][0] < m[j][0]
 }
 
-func (m *RegexpMatcher) Match(q string, buffer []Match) []Match {
+func (m *RegexpMatcher) Match(quit chan struct{}, q string, buffer []Match) []Match {
 	results := []Match{}
 	regexps, err := m.QueryToRegexps(q)
 	if err != nil {
 		return results
 	}
 
-	for _, line := range buffer {
-		ms := m.MatchAllRegexps(regexps, line.Line())
-		if ms == nil {
-			continue
+	// The actual matching is done in a separate goroutine
+	iter := make(chan Match, len(buffer))
+	go func() {
+		// This protects us from panics, caused when we cancel the
+		// query and forcefully close the channel (and thereby
+		// causing a "close of a closed channel"
+		defer func() { recover() }()
+
+		// This must be here to make sure the channel is properly
+		// closed in normal cases
+		defer close(iter)
+
+		// Iterate through the lines, and do the match.
+		// Upon success, send it through the channel
+		for _, match := range buffer {
+			ms := m.MatchAllRegexps(regexps, match.Line())
+			if ms == nil {
+				continue
+			}
+			iter <- NewDidMatch(match.Buffer(), m.enableSep, ms)
 		}
-		results = append(results, NewDidMatch(line.Buffer(), m.enableSep, ms))
+		iter <- nil
+	}()
+
+MATCH:
+	for {
+		select {
+		case <-quit:
+			// If we recieved a cancel request, we immediately bail out.
+			// It's a little dirty, but we focefully terminate the other
+			// goroutine by closing the channel, and invoking a panic
+			close(iter)
+			break MATCH
+		case match := <-iter:
+			// Receive elements from the goroutine performing the match
+			if match == nil {
+				break MATCH
+			}
+
+			results = append(results, match)
+		}
 	}
 	return results
 }
@@ -263,40 +306,68 @@ Match:
 	return matches
 }
 
-func (m *CustomMatcher) Match(q string, buffer []Match) []Match {
+func (m *CustomMatcher) Match(quit chan struct{}, q string, buffer []Match) []Match {
 	if len(m.args) < 1 {
 		return []Match{}
 	}
 
 	results := []Match{}
-	if q != "" {
-		lines := []Match{}
-		matcherInput := ""
+	if q == "" {
 		for _, match := range buffer {
-			matcherInput += match.Line() + "\n"
-			lines = append(lines, match)
+			results = append(results, NewDidMatch(match.Buffer(), m.enableSep, nil))
 		}
-		args := []string{}
-		for _, arg := range m.args {
-			if arg == "$QUERY" {
-				arg = q
+		return results
+	}
+
+	// Receive elements from the goroutine performing the match
+	lines := []Match{}
+	matcherInput := ""
+	for _, match := range buffer {
+		matcherInput += match.Line() + "\n"
+		lines = append(lines, match)
+	}
+	args := []string{}
+	for _, arg := range m.args {
+		if arg == "$QUERY" {
+			arg = q
+		}
+		args = append(args, arg)
+	}
+	cmd := exec.Command(args[0], args[1:]...)
+	cmd.Stdin = strings.NewReader(matcherInput)
+
+	// See RegexpMatcher.Match() for explanation of constructs
+	iter := make(chan Match, len(buffer))
+	go func() {
+		defer func() { recover() }()
+		defer func() {
+			close(iter)
+			if p := cmd.Process; p != nil {
+				p.Kill()
 			}
-			args = append(args, arg)
-		}
-		cmd := exec.Command(args[0], args[1:]...)
-		cmd.Stdin = strings.NewReader(matcherInput)
+		}()
 		b, err := cmd.Output()
 		if err != nil {
-			return []Match{}
+			iter <- nil
 		}
 		for _, line := range strings.Split(string(b), "\n") {
 			if len(line) > 0 {
-				results = append(results, NewDidMatch(line, m.enableSep, nil))
+				iter <- NewDidMatch(line, m.enableSep, nil)
 			}
 		}
-	} else {
-		for _, match := range buffer {
-			results = append(results, NewDidMatch(match.Buffer(), m.enableSep, nil))
+		iter <- nil
+	}()
+MATCH:
+	for {
+		select {
+		case <-quit:
+			close(iter)
+			break MATCH
+		case match := <-iter:
+			if match == nil {
+				break MATCH
+			}
+			results = append(results, match)
 		}
 	}
 

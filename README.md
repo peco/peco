@@ -28,17 +28,23 @@ When you combine tools like zsh, peco, and [ghq](https://github.com/motemen/ghq)
 Features
 ========
 
-## Incremental search
+## Incremental Search
 
 Search results are filtered as you type. This is great to drill down to the
 line you are looking for
 
 Multiple terms turn the query into an "AND" query:
 
-![optimized](https://cloud.githubusercontent.com/assets/554281/3241419/d5fccc5c-f13c-11e3-898b-280a246b083c.gif)
+![optimized](http://lestrrat.github.io/peco/peco-demo-multiple-queries.gif)
 
 When you find that line that you want, press enter, and the resulting line
 is printed to stdout, which allows you to pipe it to other tools
+
+## Select Multiple Lines
+
+You can select multiple lines! 
+
+![optimized](http://lestrrat.github.io/peco/peco-demo-multiple-selection.gif)
 
 ## Select Matchers
 
@@ -197,6 +203,8 @@ Example:
 | peco.SelectNextPage     | Jumps to next page|
 | peco.SelectPrevious     | Selects previous line |
 | peco.SelectNext         | Selects next line |
+| peco.ToggleSelection    | Selects the current line, and saves it |
+| peco.ToggleSelectionAndSelectNext | Selects the current line, saves it, and proceeds to the next line |
 | peco.RotateMatcher      | Rotate between matchers (by default, ignore-case/no-ignore-case)|
 | peco.Finish             | Exits from peco, with success status |
 | peco.Cancel             | Exits from peco, with failure status |
@@ -247,9 +255,9 @@ For now, styles of following 3 items can be customized in `config.json`.
 
 This is an experimental feature. Please note that some details of this specificaiton may change
 
-By default `peco` comes with `IgnoreCase`, `CaseSensitive`, and `Regexp` matchers, but it is possible to create your own custom matcher.
+By default `peco` comes with `IgnoreCase`, `CaseSensitive`, and `Regexp` matchers, but since v0.1.3, it is possible to create your own custom matcher.
 
-The matcher will be executed via  `Command.Run()` as an external process, and it will be passed the query values in the command line, and the original unaltered buffer is passed via `os.Stdin`. Your matcher must perform the matching, and print out to `os.Stdout` matched lines. Note that currently there is no way to specify where in the line the match occurred.
+The matcher will be executed via  `Command.Run()` as an external process, and it will be passed the query values in the command line, and the original unaltered buffer is passed via `os.Stdin`. Your matcher must perform the matching, and print out to `os.Stdout` matched lines. Note that currently there is no way to specify where in the line the match occurred. Note that the matcher does not need to be a go program. It can be a perl/ruby/python/bash script, or anything else that is executable.
 
 Once you have a matcher, you must specify how the matcher is spawned:
 
@@ -267,7 +275,8 @@ You may specify as many matchers as you like.
 
 ## Examples
 
-* [C/Migemo](https://github.com/lestrrat/peco/wiki/CustoMatcher-CMigemo)
+* [An example of a simple perl regexp matcher](https://gist.github.com/mattn/24712964da6e3112251c)
+* [C/Migemo](https://github.com/mattn/peco-cmigemo/)
 
 Hacking
 =======

@@ -131,7 +131,9 @@ func handleFinish(i *Input, _ termbox.Event) {
 
 	i.result = []Match{}
 	for _, lineno := range i.selection {
-		i.result = append(i.result, i.current[lineno-1])
+		if lineno <= len(i.current) {
+			i.result = append(i.result, i.current[lineno-1])
+		}
 	}
 	i.Finish()
 }
@@ -142,6 +144,11 @@ func handleToggleSelection(i *Input, _ termbox.Event) {
 		return
 	}
 	i.selection.Add(i.currentLine)
+}
+
+func handleToggleSelectionAndSelectNext(i *Input, ev termbox.Event) {
+	handleToggleSelection(i, ev)
+	handleSelectNext(i, ev)
 }
 
 // peco.Cancel -> end program, exit with failure
@@ -430,27 +437,28 @@ func (ksk KeymapStringKey) ToKey() (k termbox.Key, err error) {
 }
 
 var handlers = map[string]KeymapHandler{
-	"peco.KillEndOfLine":      handleKillEndOfLine,
-	"peco.DeleteAll":          handleDeleteAll,
-	"peco.BeginningOfLine":    handleBeginningOfLine,
-	"peco.EndOfLine":          handleEndOfLine,
-	"peco.EndOfFile":          handleEndOfFile,
-	"peco.ForwardChar":        handleForwardChar,
-	"peco.BackwardChar":       handleBackwardChar,
-	"peco.ForwardWord":        handleForwardWord,
-	"peco.BackwardWord":       handleBackwardWord,
-	"peco.DeleteForwardChar":  handleDeleteForwardChar,
-	"peco.DeleteBackwardChar": handleDeleteBackwardChar,
-	"peco.DeleteForwardWord":  handleDeleteForwardWord,
-	"peco.DeleteBackwardWord": handleDeleteBackwardWord,
-	"peco.SelectPreviousPage": handleSelectPreviousPage,
-	"peco.SelectNextPage":     handleSelectNextPage,
-	"peco.SelectPrevious":     handleSelectPrevious,
-	"peco.SelectNext":         handleSelectNext,
-	"peco.ToggleSelection":    handleToggleSelection,
-	"peco.RotateMatcher":      handleRotateMatcher,
-	"peco.Finish":             handleFinish,
-	"peco.Cancel":             handleCancel,
+	"peco.KillEndOfLine":                handleKillEndOfLine,
+	"peco.DeleteAll":                    handleDeleteAll,
+	"peco.BeginningOfLine":              handleBeginningOfLine,
+	"peco.EndOfLine":                    handleEndOfLine,
+	"peco.EndOfFile":                    handleEndOfFile,
+	"peco.ForwardChar":                  handleForwardChar,
+	"peco.BackwardChar":                 handleBackwardChar,
+	"peco.ForwardWord":                  handleForwardWord,
+	"peco.BackwardWord":                 handleBackwardWord,
+	"peco.DeleteForwardChar":            handleDeleteForwardChar,
+	"peco.DeleteBackwardChar":           handleDeleteBackwardChar,
+	"peco.DeleteForwardWord":            handleDeleteForwardWord,
+	"peco.DeleteBackwardWord":           handleDeleteBackwardWord,
+	"peco.SelectPreviousPage":           handleSelectPreviousPage,
+	"peco.SelectNextPage":               handleSelectNextPage,
+	"peco.SelectPrevious":               handleSelectPrevious,
+	"peco.SelectNext":                   handleSelectNext,
+	"peco.ToggleSelection":              handleToggleSelection,
+	"peco.ToggleSelectionAndSelectNext": handleToggleSelectionAndSelectNext,
+	"peco.RotateMatcher":                handleRotateMatcher,
+	"peco.Finish":                       handleFinish,
+	"peco.Cancel":                       handleCancel,
 }
 
 func NewKeymap() Keymap {
@@ -474,13 +482,16 @@ func NewKeymap() Keymap {
 		termbox.KeyCtrlK:      handleKillEndOfLine,
 		termbox.KeyCtrlU:      handleKillBeginOfLine,
 		termbox.KeyCtrlR:      handleRotateMatcher,
+		termbox.KeyCtrlSpace:  handleToggleSelectionAndSelectNext,
 	}
 }
 
-func (km Keymap) Handler(k termbox.Key) KeymapHandler {
-	h, ok := km[k]
-	if ok {
-		return h
+func (km Keymap) Handler(ev termbox.Event) KeymapHandler {
+	if ev.Ch == 0 {
+		h, ok := km[ev.Key]
+		if ok {
+			return h
+		}
 	}
 	return handleAcceptChar
 }
@@ -495,6 +506,11 @@ func (km Keymap) UnmarshalJSON(buf []byte) error {
 		k, err := KeymapStringKey(ks).ToKey()
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Unknown key %s", ks)
+			continue
+		}
+
+		if vs == "-" {
+			delete(km, k)
 			continue
 		}
 
