@@ -321,12 +321,14 @@ AUTHORS
 =======
 
 * Daisuke Maki (lestrrat)
+* Ryota Arai
 * Shinya Ohyanagi
 * syohex
 * Takashi Kokubun
 * cho45
 * cubicdaiya
 * mattn
+* sugyan
 * swdyh
 
 Notes
