@@ -1,6 +1,13 @@
 Changes
 =======
 
+v0.1.6 - 18 Jun 2014
+  Bugs/Fixes:
+  * (You know you will get a bug report only AFTER you release a
+    new version :)
+  * Highlighting wide characters had some issues. This has been
+    there since the first release, apparently
+
 v0.1.5 - 18 Jun 2014
   Features:
   * Add experimental --null option
