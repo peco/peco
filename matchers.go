@@ -54,7 +54,7 @@ func (m MatchString) Line() string {
 
 func (m MatchString) Output() string {
 	if i := m.sepLoc; i > -1 {
-		return m.buf[i:]
+		return m.buf[i+1:]
 	}
 	return m.buf
 }
