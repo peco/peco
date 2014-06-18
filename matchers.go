@@ -11,17 +11,65 @@ import (
 // Match defines the interface for matches. Note that to make drawing easier,
 // we have a DidMatch and NoMatch types instead of using []Match and []string.
 type Match interface {
-	Line() string
+	Buffer() string // Raw buffer, may contain null
+	Line() string   // Line to be displayed
+	Output() string // Output string to be displayed after peco is done
 	Indices() [][]int
+}
+
+type MatchString struct {
+	buf    string
+	sepLoc int
+}
+
+func NewMatchString(v string, enableSep bool) *MatchString {
+	m := &MatchString{
+		v,
+		-1,
+	}
+	if !enableSep {
+		return m
+	}
+
+	// XXX This may be silly, but we're avoiding using strings.IndexByte()
+	// here because it doesn't exist on go1.1. Let's remove support for
+	// 1.1 when 1.4 comes out (or something)
+	for i := 0; i < len(m.buf); i++ {
+		if m.buf[i] == '\000' {
+			m.sepLoc = i
+		}
+	}
+	return m
+}
+
+func (m MatchString) Buffer() string {
+	return m.buf
+}
+
+func (m MatchString) Line() string {
+	if i := m.sepLoc; i > -1 {
+		return m.buf[:i]
+	}
+	return m.buf
+}
+
+func (m MatchString) Output() string {
+	if i := m.sepLoc; i > -1 {
+		return m.buf[i+1:]
+	}
+	return m.buf
 }
 
 // NoMatch is actually an alias to a regular string. It implements the
 // Match interface, but just returns the underlying string with no matches
-type NoMatch string
-
-func (m NoMatch) Line() string {
-	return string(m)
+type NoMatch struct {
+	*MatchString
 }
+
+func NewNoMatch(v string, enableSep bool) *NoMatch {
+	return &NoMatch{NewMatchString(v, enableSep)}
+}
+
 func (m NoMatch) Indices() [][]int {
 	return nil
 }
@@ -29,12 +77,12 @@ func (m NoMatch) Indices() [][]int {
 // DidMatch contains the actual match, and the indices to the matches
 // in the line
 type DidMatch struct {
-	line    string
+	*MatchString
 	matches [][]int
 }
 
-func (d DidMatch) Line() string {
-	return d.line
+func NewDidMatch(v string, enableSep bool, m [][]int) *DidMatch {
+	return &DidMatch{NewMatchString(v, enableSep), m}
 }
 
 func (d DidMatch) Indices() [][]int {
@@ -63,6 +111,7 @@ const (
 )
 
 type RegexpMatcher struct {
+	enableSep bool
 	flags     []string
 	quotemeta bool
 }
@@ -76,32 +125,34 @@ type IgnoreCaseMatcher struct {
 }
 
 type CustomMatcher struct {
-	name string
-	args []string
+	enableSep bool
+	name      string
+	args      []string
 }
 
-func NewCaseSensitiveMatcher() *CaseSensitiveMatcher {
-	m := &CaseSensitiveMatcher{NewRegexpMatcher()}
+func NewCaseSensitiveMatcher(enableSep bool) *CaseSensitiveMatcher {
+	m := &CaseSensitiveMatcher{NewRegexpMatcher(enableSep)}
 	m.quotemeta = true
 	return m
 }
 
-func NewIgnoreCaseMatcher() *IgnoreCaseMatcher {
-	m := &IgnoreCaseMatcher{NewRegexpMatcher()}
+func NewIgnoreCaseMatcher(enableSep bool) *IgnoreCaseMatcher {
+	m := &IgnoreCaseMatcher{NewRegexpMatcher(enableSep)}
 	m.flags = []string{"i"}
 	m.quotemeta = true
 	return m
 }
 
-func NewRegexpMatcher() *RegexpMatcher {
+func NewRegexpMatcher(enableSep bool) *RegexpMatcher {
 	return &RegexpMatcher{
+		enableSep,
 		[]string{},
 		false,
 	}
 }
 
-func NewCustomMatcher(name string, args []string) *CustomMatcher {
-	return &CustomMatcher{name, args}
+func NewCustomMatcher(enableSep bool, name string, args []string) *CustomMatcher {
+	return &CustomMatcher{enableSep, name, args}
 }
 
 func regexpFor(q string, flags []string, quotemeta bool) (*regexp.Regexp, error) {
@@ -188,12 +239,12 @@ func (m *RegexpMatcher) Match(quit chan struct{}, q string, buffer []Match) []Ma
 
 		// Iterate through the lines, and do the match.
 		// Upon success, send it through the channel
-		for _, line := range buffer {
-			ms := m.MatchAllRegexps(regexps, line.Line())
+		for _, match := range buffer {
+			ms := m.MatchAllRegexps(regexps, match.Line())
 			if ms == nil {
 				continue
 			}
-			iter <- DidMatch{line.Line(), ms}
+			iter <- NewDidMatch(match.Buffer(), m.enableSep, ms)
 		}
 		iter <- nil
 	}()
@@ -262,15 +313,18 @@ func (m *CustomMatcher) Match(quit chan struct{}, q string, buffer []Match) []Ma
 
 	results := []Match{}
 	if q == "" {
-		for _, m := range buffer {
-			results = append(results, DidMatch{m.Line(), nil})
+		for _, match := range buffer {
+			results = append(results, NewDidMatch(match.Buffer(), m.enableSep, nil))
 		}
-		// Receive elements from the goroutine performing the match
+		return results
 	}
 
-	lines := []string{}
-	for _, line := range buffer {
-		lines = append(lines, line.Line()+"\n")
+	// Receive elements from the goroutine performing the match
+	lines := []Match{}
+	matcherInput := ""
+	for _, match := range buffer {
+		matcherInput += match.Line() + "\n"
+		lines = append(lines, match)
 	}
 	args := []string{}
 	for _, arg := range m.args {
@@ -280,7 +334,7 @@ func (m *CustomMatcher) Match(quit chan struct{}, q string, buffer []Match) []Ma
 		args = append(args, arg)
 	}
 	cmd := exec.Command(args[0], args[1:]...)
-	cmd.Stdin = strings.NewReader(strings.Join(lines, "\n"))
+	cmd.Stdin = strings.NewReader(matcherInput)
 
 	// See RegexpMatcher.Match() for explanation of constructs
 	iter := make(chan Match, len(buffer))
@@ -298,7 +352,7 @@ func (m *CustomMatcher) Match(quit chan struct{}, q string, buffer []Match) []Ma
 		}
 		for _, line := range strings.Split(string(b), "\n") {
 			if len(line) > 0 {
-				iter <- DidMatch{line, nil}
+				iter <- NewDidMatch(line, m.enableSep, nil)
 			}
 		}
 		iter <- nil

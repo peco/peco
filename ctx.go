@@ -59,8 +59,9 @@ func (s Selection) Less(i, j int) bool {
 // Ctx contains all the important data. while you can easily access
 // data in this struct from anwyehre, only do so via channels
 type Ctx struct {
+	enableSep bool
 	statusMessage  string
-	result         []string
+	result         []Match
 	loopCh         chan struct{}
 	queryCh        chan string
 	drawCh         chan []Match
@@ -80,10 +81,11 @@ type Ctx struct {
 	wait *sync.WaitGroup
 }
 
-func NewCtx() *Ctx {
+func NewCtx(enableSep bool) *Ctx {
 	return &Ctx{
+		enableSep,
 		"",
-		[]string{},
+		[]Match{},
 		make(chan struct{}),         // loopCh. You never send messages to this. no point in buffering
 		make(chan string, 5),        // queryCh.
 		make(chan []Match, 5),       // drawCh.
@@ -97,9 +99,9 @@ func NewCtx() *Ctx {
 		nil,
 		NewConfig(),
 		[]Matcher{
-			NewIgnoreCaseMatcher(),
-			NewCaseSensitiveMatcher(),
-			NewRegexpMatcher(),
+			NewIgnoreCaseMatcher(enableSep),
+			NewCaseSensitiveMatcher(enableSep),
+			NewRegexpMatcher(enableSep),
 		},
 		0,
 		0,
@@ -116,7 +118,7 @@ func (c *Ctx) ReadConfig(file string) error {
 	return err
 }
 
-func (c *Ctx) Result() []string {
+func (c *Ctx) Result() []Match {
 	return c.result
 }
 
@@ -174,7 +176,7 @@ func (c *Ctx) ReadBuffer(input io.Reader) error {
 	scanner := bufio.NewScanner(input)
 	for scanner.Scan() {
 		line := scanner.Text()
-		c.lines = append(c.lines, NoMatch(line))
+		c.lines = append(c.lines, NewNoMatch(line, c.enableSep))
 	}
 
 	if len(c.lines) > 0 {
@@ -224,7 +226,7 @@ func (c *Ctx) SetCurrentMatcher(n string) bool {
 
 func (c *Ctx) LoadCustomMatcher() bool {
 	for name, args := range c.config.CustomMatcher {
-		c.AddMatcher(NewCustomMatcher(name, args))
+		c.AddMatcher(NewCustomMatcher(c.enableSep, name, args))
 	}
 	return false
 }

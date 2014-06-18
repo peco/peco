@@ -129,10 +129,10 @@ func handleFinish(i *Input, _ termbox.Event) {
 	// Must end with all the selected lines.
 	i.selection.Add(i.currentLine)
 
-	i.result = []string{}
+	i.result = []Match{}
 	for _, lineno := range i.selection {
 		if lineno <= len(i.current) {
-			i.result = append(i.result, i.current[lineno-1].Line())
+			i.result = append(i.result, i.current[lineno-1])
 		}
 	}
 	i.Finish()

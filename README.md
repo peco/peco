@@ -119,6 +119,10 @@ Command Line Options
 
 Display a help message
 
+### --version
+
+Display the version of peco
+
 ### --query <query>
 
 Specifies the default query to be used upon startup. This is useful for scripts and functions where you can figure out before hand what the most likely query string is.
@@ -126,6 +130,12 @@ Specifies the default query to be used upon startup. This is useful for scripts 
 ### --rcfile <filename>
 
 Pass peco a configuration file, which currently must be a JSON file. If unspecified it will try a series of files by default. See `Configuration File` for the actual locationes searched.
+
+### --null
+
+WARNING: EXPERIMENTAL. This feature will probably stay, but the option name may change in the future.
+
+Changes how peco interprets incoming data. When this flag is set, you may insert NUL ('\0') characters in your input. Anything before the NUL character is treated as the string to be displaed by peco and is used for matching against user query. Anything after the NUL character is used as the "result": i.e., when peco is about to exit, it displays this string instead of the original string displayed.
 
 ### --no-ignore-case
 
