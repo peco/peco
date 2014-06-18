@@ -10,16 +10,60 @@ import (
 // Match defines the interface for matches. Note that to make drawing easier,
 // we have a DidMatch and NoMatch types instead of using []Match and []string.
 type Match interface {
-	Line() string
+	Buffer() string // Raw buffer, may contain null
+	Line() string // Line to be displayed
+	Output() string // Output string to be displayed after peco is done
 	Indices() [][]int
+}
+
+type MatchString struct {
+	buf string
+	sepLoc int
+}
+
+func NewMatchString(v string, enableSep bool) *MatchString {
+	m := &MatchString{
+		v,
+		-1,
+	}
+	if !enableSep {
+		return m
+	}
+
+	if i := strings.IndexByte(string(m.buf), '\000'); i > -1 {
+		m.sepLoc = i
+	}
+	return m
+}
+
+func (m MatchString) Buffer() string {
+	return m.buf
+}
+
+func (m MatchString) Line() string {
+	if i := m.sepLoc; i > -1 {
+		return m.buf[:i]
+	}
+	return m.buf
+}
+
+func (m MatchString) Output() string {
+	if i := m.sepLoc; i > -1 {
+		return m.buf[i:]
+	}
+	return m.buf
 }
 
 // NoMatch is actually an alias to a regular string. It implements the
 // Match interface, but just returns the underlying string with no matches
-type NoMatch string
-func (m NoMatch) Line() string {
-	return string(m)
+type NoMatch struct {
+	*MatchString
 }
+
+func NewNoMatch(v string, enableSep bool) *NoMatch {
+	return &NoMatch{NewMatchString(v, enableSep)}
+}
+
 func (m NoMatch) Indices() [][]int {
 	return nil
 }
@@ -27,12 +71,12 @@ func (m NoMatch) Indices() [][]int {
 // DidMatch contains the actual match, and the indices to the matches 
 // in the line
 type DidMatch struct {
-	line string
+	*MatchString
 	matches [][]int
 }
 
-func (d DidMatch) Line() string {
-	return d.line
+func NewDidMatch(v string, enableSep bool, m [][]int) *DidMatch {
+	return &DidMatch{NewMatchString(v, enableSep), m}
 }
 
 func (d DidMatch) Indices() [][]int {
@@ -53,6 +97,7 @@ const (
 )
 
 type RegexpMatcher struct {
+	enableSep bool
 	flags     []string
 	quotemeta bool
 }
@@ -65,21 +110,22 @@ type IgnoreCaseMatcher struct {
 	*RegexpMatcher
 }
 
-func NewCaseSensitiveMatcher() *CaseSensitiveMatcher {
-	m := &CaseSensitiveMatcher{NewRegexpMatcher()}
+func NewCaseSensitiveMatcher(enableSep bool) *CaseSensitiveMatcher {
+	m := &CaseSensitiveMatcher{NewRegexpMatcher(enableSep)}
 	m.quotemeta = true
 	return m
 }
 
-func NewIgnoreCaseMatcher() *IgnoreCaseMatcher {
-	m := &IgnoreCaseMatcher{NewRegexpMatcher()}
+func NewIgnoreCaseMatcher(enableSep bool) *IgnoreCaseMatcher {
+	m := &IgnoreCaseMatcher{NewRegexpMatcher(enableSep)}
 	m.flags = []string{"i"}
 	m.quotemeta = true
 	return m
 }
 
-func NewRegexpMatcher() *RegexpMatcher {
+func NewRegexpMatcher(enableSep bool) *RegexpMatcher {
 	return &RegexpMatcher{
+		enableSep,
 		[]string{},
 		false,
 	}
@@ -156,7 +202,7 @@ func (m *RegexpMatcher) Match(q string, buffer []Match) []Match {
 		if ms == nil {
 			continue
 		}
-		results = append(results, DidMatch{line.Line(), ms})
+		results = append(results, NewDidMatch(line.Buffer(), m.enableSep, ms))
 	}
 	return results
 }
