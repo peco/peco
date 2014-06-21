@@ -14,7 +14,7 @@ build:
     - script:
         name: goxc build & archive
         code: |
-          goxc -tasks='xc archive' -bc 'linux,!arm windows,386 darwin' -d $WERCKER_OUTPUT_DIR/ -resources-include='README*'
+          goxc -tasks='xc archive' -bc 'linux,!386 windows darwin' -d $WERCKER_OUTPUT_DIR/ -resources-include='README*' -resources-include='Changes'
     - script:
         name: output release tag
         code: |
@@ -28,9 +28,10 @@ deploy:
     - motemen/github-create-release:
         token: $GITHUB_TOKEN
         tag: $RELEASE_TAG
-    - wercker/github-upload-asset:
-        token: $GITHUB_TOKEN
-        file: snapshot/peco_linux_386.tar.gz
+# Try as I might, I can't see any linux_386 builds in my wercker box
+#    - wercker/github-upload-asset:
+#        token: $GITHUB_TOKEN
+#        file: snapshot/peco_linux_386.tar.gz
     - wercker/github-upload-asset:
         token: $GITHUB_TOKEN
         file: snapshot/peco_linux_amd64.tar.gz
