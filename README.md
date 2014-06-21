@@ -16,15 +16,15 @@ For basic usage, continue down below. For more cool elaborate usage samples, [pl
 
 Demos speak more than a thousand words! Here's me looking for a process on my mac. As you can see, you can page through your results, and you can keep changing the query:
 
-![optimized](http://lestrrat.github.io/peco/peco-demo-ps.gif)
+![optimized](http://peco.github.io/images/peco-demo-ps.gif)
 
 Here's me trying to figure out which file to open:
 
-![optimized](http://lestrrat.github.io/peco/peco-demo-filename.gif)
+![optimized](http://peco.github.io/images/peco-demo-filename.gif)
 
 When you combine tools like zsh, peco, and [ghq](https://github.com/motemen/ghq), you can make managing/moving around your huge dev area a piece of cake! (this example doesn't use zsh functions so you can see what I'm doing)
 
-![optimized](http://lestrrat.github.io/peco/peco-demo-ghq.gif)
+![optimized](http://peco.github.io/images/peco-demo-ghq.gif)
 
 
 Features
@@ -37,7 +37,7 @@ line you are looking for
 
 Multiple terms turn the query into an "AND" query:
 
-![optimized](http://lestrrat.github.io/peco/peco-demo-multiple-queries.gif)
+![optimized](http://peco.github.io/images/peco-demo-multiple-queries.gif)
 
 When you find that line that you want, press enter, and the resulting line
 is printed to stdout, which allows you to pipe it to other tools
@@ -46,13 +46,13 @@ is printed to stdout, which allows you to pipe it to other tools
 
 You can select multiple lines! 
 
-![optimized](http://lestrrat.github.io/peco/peco-demo-multiple-selection.gif)
+![optimized](http://peco.github.io/images/peco-demo-multiple-selection.gif)
 
 ## Select Matchers
 
 Different types of matchers are available. Default is case-insensitive matcher, so lines with any case will match. You can toggle between IgnoreCase, CaseSensitive, and RegExp matchers. The RegExp matcher allows you to use any valid regular expression to match lines
 
-![optimized](http://lestrrat.github.io/peco/peco-demo-matcher.gif)
+![optimized](http://peco.github.io/images/peco-demo-matcher.gif)
 
 ## Works on Windows!
 
@@ -70,7 +70,7 @@ brew tap peco/peco
 brew install peco
 ```
 
-![optimized](http://lestrrat.github.io/peco/peco-demo-homebrew.gif)
+![optimized](http://peco.github.io/images/peco-demo-homebrew.gif)
 
 ### go get
 
