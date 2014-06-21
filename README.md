@@ -64,7 +64,7 @@ Installation
 If you're on OS X and want to use homebrew, use my custom tap:
 
 ```
-brew tap lestrrat/peco
+brew tap peco/peco
 brew install peco
 ```
 
