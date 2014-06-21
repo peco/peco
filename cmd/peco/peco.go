@@ -7,7 +7,7 @@ import (
 	"syscall"
 
 	"github.com/jessevdk/go-flags"
-	"github.com/lestrrat/peco"
+	"github.com/peco/peco"
 	"github.com/nsf/termbox-go"
 )
 
