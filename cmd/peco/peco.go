@@ -44,7 +44,6 @@ func main() {
 	var st int
 
 	defer func() { os.Exit(st) }()
-	defer func() { fmt.Fprintf(os.Stdout, "%d\n", runtime.GOMAXPROCS(-1)) }()
 
 	if envvar := os.Getenv("GOMAXPROCS"); envvar == "" {
 		 runtime.GOMAXPROCS(runtime.NumCPU());
