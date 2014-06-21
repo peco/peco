@@ -28,9 +28,10 @@ deploy:
     - motemen/github-create-release:
         token: $GITHUB_TOKEN
         tag: $RELEASE_TAG
-    - wercker/github-upload-asset:
-        token: $GITHUB_TOKEN
-        file: snapshot/peco_linux_386.tar.gz
+# Try as I might, I can't see any linux_386 builds in my wercker box
+#    - wercker/github-upload-asset:
+#        token: $GITHUB_TOKEN
+#        file: snapshot/peco_linux_386.tar.gz
     - wercker/github-upload-asset:
         token: $GITHUB_TOKEN
         file: snapshot/peco_linux_amd64.tar.gz
