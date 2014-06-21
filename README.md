@@ -6,9 +6,11 @@ Simplistic interactive filtering tool
 Description
 ===========
 
-peco is based on [percol](https://github.com/mooz/percol). The idea is that percol was darn useful, but I wanted a tool that was a single binary. peco is written in Go, and as of this writing only implements the basic filtering feature (mainly because that's the only thing I use -- you're welcome to send me pull requests to make peco more compatible with percol).
+`peco` is based on [percol](https://github.com/mooz/percol). The idea is that percol was darn useful, but I wanted a tool that was a single binary. peco is written in Go, and as of this writing only implements the basic filtering feature (mainly because that's the only thing I use -- you're welcome to send me pull requests to make peco more compatible with percol).
 
-peco can be a great tool to filter stuff like logs, process stats, find files, because unlike grep, you can type as you think and look through the current results.
+`peco` can be a great tool to filter stuff like logs, process stats, find files, because unlike grep, you can type as you think and look through the current results.
+
+For basic usage, continue down below. For more cool elaborate usage samples, [please see the wiki](https://github.com/peco/peco/wiki/Sample-Usage), and if you have any other tricks you want to share, please add to it!
 
 ## Demo
 
@@ -75,41 +77,7 @@ brew install peco
 If you want to go the Go way (install in GOPATH/bin) and just want the command:
 
 ```
-go get github.com/lestrrat/peco/cmd/peco
-```
-
-Usage
-=====
-
-If you can read Japanese, [here's one cool usage](http://blog.kentarok.org/entry/2014/06/03/135300) using [ghq](https://github.com/motemen/ghq)
-
-Basically, you can define a simple function to easily move around your source code tree:
-
-```zsh
-function peco-src () {
-    local selected_dir=$(ghq list --full-path | peco --query "$LBUFFER")
-    if [ -n "$selected_dir" ]; then
-        BUFFER="cd ${selected_dir}"
-        zle accept-line
-    fi    
-    zle clear-screen
-}         
-zle -N peco-src
-```
-
-Or to easily navigate godoc for your local stuff:
-
-```zsh
-function peco-godoc() { 
-    local selected_dir=$(ghq list --full-path | peco --query "$LBUFFER")
-    if [ -n "$selected_dir" ]; then
-        BUFFER="godoc ${selected_dir} | less"
-        zle accept-line 
-    fi 
-    zle clear-screen 
-}
-    
-zle -N peco-godoc 
+go get github.com/peco/peco/cmd/peco
 ```
 
 Command Line Options
