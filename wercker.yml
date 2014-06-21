@@ -14,7 +14,7 @@ build:
     - script:
         name: goxc build & archive
         code: |
-          goxc -tasks='xc archive' -bc 'linux,!arm windows,386 darwin' -d $WERCKER_OUTPUT_DIR/ -resources-include='README*'
+          goxc -tasks='xc archive' -bc 'linux,windows,386 darwin,!arm' -d $WERCKER_OUTPUT_DIR/ -resources-include='README*'
     - script:
         name: output release tag
         code: |
