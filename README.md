@@ -6,23 +6,25 @@ Simplistic interactive filtering tool
 Description
 ===========
 
-peco is based on [percol](https://github.com/mooz/percol). The idea is that percol was darn useful, but I wanted a tool that was a single binary. peco is written in Go, and as of this writing only implements the basic filtering feature (mainly because that's the only thing I use -- you're welcome to send me pull requests to make peco more compatible with percol).
+`peco` is based on [percol](https://github.com/mooz/percol). The idea is that percol was darn useful, but I wanted a tool that was a single binary. peco is written in Go, and as of this writing only implements the basic filtering feature (mainly because that's the only thing I use -- you're welcome to send me pull requests to make peco more compatible with percol).
 
-peco can be a great tool to filter stuff like logs, process stats, find files, because unlike grep, you can type as you think and look through the current results.
+`peco` can be a great tool to filter stuff like logs, process stats, find files, because unlike grep, you can type as you think and look through the current results.
+
+For basic usage, continue down below. For more cool elaborate usage samples, [please see the wiki](https://github.com/peco/peco/wiki/Sample-Usage), and if you have any other tricks you want to share, please add to it!
 
 ## Demo
 
 Demos speak more than a thousand words! Here's me looking for a process on my mac. As you can see, you can page through your results, and you can keep changing the query:
 
-![optimized](http://lestrrat.github.io/peco/peco-demo-ps.gif)
+![optimized](http://peco.github.io/images/peco-demo-ps.gif)
 
 Here's me trying to figure out which file to open:
 
-![optimized](http://lestrrat.github.io/peco/peco-demo-filename.gif)
+![optimized](http://peco.github.io/images/peco-demo-filename.gif)
 
 When you combine tools like zsh, peco, and [ghq](https://github.com/motemen/ghq), you can make managing/moving around your huge dev area a piece of cake! (this example doesn't use zsh functions so you can see what I'm doing)
 
-![optimized](http://lestrrat.github.io/peco/peco-demo-ghq.gif)
+![optimized](http://peco.github.io/images/peco-demo-ghq.gif)
 
 
 Features
@@ -35,7 +37,7 @@ line you are looking for
 
 Multiple terms turn the query into an "AND" query:
 
-![optimized](http://lestrrat.github.io/peco/peco-demo-multiple-queries.gif)
+![optimized](http://peco.github.io/images/peco-demo-multiple-queries.gif)
 
 When you find that line that you want, press enter, and the resulting line
 is printed to stdout, which allows you to pipe it to other tools
@@ -44,13 +46,13 @@ is printed to stdout, which allows you to pipe it to other tools
 
 You can select multiple lines! 
 
-![optimized](http://lestrrat.github.io/peco/peco-demo-multiple-selection.gif)
+![optimized](http://peco.github.io/images/peco-demo-multiple-selection.gif)
 
 ## Select Matchers
 
 Different types of matchers are available. Default is case-insensitive matcher, so lines with any case will match. You can toggle between IgnoreCase, CaseSensitive, and RegExp matchers. The RegExp matcher allows you to use any valid regular expression to match lines
 
-![optimized](http://lestrrat.github.io/peco/peco-demo-matcher.gif)
+![optimized](http://peco.github.io/images/peco-demo-matcher.gif)
 
 ## Works on Windows!
 
@@ -68,48 +70,14 @@ brew tap peco/peco
 brew install peco
 ```
 
-![optimized](http://lestrrat.github.io/peco/peco-demo-homebrew.gif)
+![optimized](http://peco.github.io/images/peco-demo-homebrew.gif)
 
 ### go get
 
 If you want to go the Go way (install in GOPATH/bin) and just want the command:
 
 ```
-go get github.com/lestrrat/peco/cmd/peco
-```
-
-Usage
-=====
-
-If you can read Japanese, [here's one cool usage](http://blog.kentarok.org/entry/2014/06/03/135300) using [ghq](https://github.com/motemen/ghq)
-
-Basically, you can define a simple function to easily move around your source code tree:
-
-```zsh
-function peco-src () {
-    local selected_dir=$(ghq list --full-path | peco --query "$LBUFFER")
-    if [ -n "$selected_dir" ]; then
-        BUFFER="cd ${selected_dir}"
-        zle accept-line
-    fi    
-    zle clear-screen
-}         
-zle -N peco-src
-```
-
-Or to easily navigate godoc for your local stuff:
-
-```zsh
-function peco-godoc() { 
-    local selected_dir=$(ghq list --full-path | peco --query "$LBUFFER")
-    if [ -n "$selected_dir" ]; then
-        BUFFER="godoc ${selected_dir} | less"
-        zle accept-line 
-    fi 
-    zle clear-screen 
-}
-    
-zle -N peco-godoc 
+go get github.com/peco/peco/cmd/peco
 ```
 
 Command Line Options
