@@ -4,11 +4,12 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
+	"runtime"
 	"syscall"
 
 	"github.com/jessevdk/go-flags"
-	"github.com/peco/peco"
 	"github.com/nsf/termbox-go"
+	"github.com/peco/peco"
 )
 
 var version = "v0.1.6"
@@ -43,6 +44,12 @@ func main() {
 	var st int
 
 	defer func() { os.Exit(st) }()
+	defer func() { fmt.Fprintf(os.Stdout, "%d\n", runtime.GOMAXPROCS(-1)) }()
+
+	if envvar := os.Getenv("GOMAXPROCS"); envvar == "" {
+		 runtime.GOMAXPROCS(runtime.NumCPU());
+	}
+
 
 	opts := &cmdOptions{}
 	p := flags.NewParser(opts, flags.PrintErrors)
