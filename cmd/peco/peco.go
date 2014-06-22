@@ -12,7 +12,7 @@ import (
 	"github.com/peco/peco"
 )
 
-var version = "v0.1.6"
+var version = "v0.1.7"
 
 func showHelp() {
 	const v = ` 

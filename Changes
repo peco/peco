@@ -1,6 +1,18 @@
 Changes
 =======
 
+v0.1.7
+  Bugs/Fixes:
+  * Moved repository to a Github organization: http://github.com/peco/peco
+  * Because of the above change, a lot of links, imports needed fixing.
+  Features:
+  * Automatically set GOMAXPROCS to NumCPU. If you would like to
+    avoid this behavior, you can explicitly set GOMAXPROC env var to 1
+    (or whatever desired value)
+  Miscellaneous
+  * If you have cool uses for peco, please share them on the wiki:
+    https://github.com/peco/peco/wiki/Sample-Usage
+
 v0.1.6 - 18 Jun 2014
   Bugs/Fixes:
   * (You know you will get a bug report only AFTER you release a
