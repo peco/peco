@@ -63,7 +63,7 @@ Installation
 
 ### Just want the binary?
 
-Go to the [releases page](https://github.com/peco/peco/releases), find the version you want, and download the binary to somewhere you want (on UNIX-y systems, /usr/local/bin or the like). Make sure it has execution bits turned on. Yes, it is a single binary! You can put it anywhere you want :)
+Go to the [releases page](https://github.com/peco/peco/releases), find the version you want, and download the zip file. Unpack the zip file, and put the binary to somewhere you want (on UNIX-y systems, /usr/local/bin or the like). Make sure it has execution bits turned on. Yes, it is a single binary! You can put it anywhere you want :)
 
 ### Mac OS X / Homebrew
 
