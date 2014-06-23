@@ -24,11 +24,38 @@ func TestKeymapStrToKeyValue(t *testing.T) {
 	t.Logf("Checking key name -> actual key value mapping...")
 	for n, v := range expected {
 		t.Logf("    checking %s...", n)
-		e, ok := stringToKey[n]
-		if !ok {
+		e, modifier, err := KeymapStringKey(n).ToKey()
+		if err != nil {
 			t.Errorf("Key name %s not found", n)
 		}
 		if e != v {
+			t.Errorf("Expected '%s' to be '%d', but got '%d'", n, v, stringToKey[n])
+		}
+		if modifier != 0 {
+			t.Errorf("Key name '%s' is not Alt-prefixed", n)
+		}
+	}
+}
+
+func TestKeymapStrToKeyValueWithAlt(t *testing.T) {
+	expected := map[string]termbox.Key{
+		"M-v":     termbox.Key('v'),
+		"M-C-v":   termbox.KeyCtrlV,
+		"M-Space": termbox.KeySpace,
+		"M-MouseLeft": termbox.MouseLeft,
+	}
+
+	t.Logf("Checking Alt prefixed key name mapping...")
+	for n, v := range expected {
+		t.Logf("    checking %s...", n)
+		k, modifier, err := KeymapStringKey(n).ToKey()
+		if err != nil {
+			t.Errorf("Failed ToKey: Key name %s", n)
+		}
+		if modifier != 1 {
+			t.Errorf("Key name %s has Alt prefix", n)
+		}
+		if k != v {
 			t.Errorf("Expected '%s' to be '%d', but got '%d'", n, v, stringToKey[n])
 		}
 	}

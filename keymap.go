@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"strings"
 	"unicode"
 
 	"github.com/nsf/termbox-go"
@@ -17,6 +18,9 @@ type KeymapStringKey string
 // the values defined in termbox-go. Verification against the actual
 // termbox constants are done in the test
 var stringToKey = map[string]termbox.Key{}
+
+// Key is modifier (i.e. Alt). Index 0 is for keymapping w/o modifiers. The modifier index must be > 0
+var modifier2Keymap = []Keymap{{}, {}}
 
 func init() {
 	fidx := 12
@@ -428,8 +432,19 @@ func handleDeleteBackwardWord(i *Input, _ termbox.Event) {
 	i.DrawMatches(nil)
 }
 
-func (ksk KeymapStringKey) ToKey() (k termbox.Key, err error) {
-	k, ok := stringToKey[string(ksk)]
+func (ksk KeymapStringKey) ToKey() (k termbox.Key, modifier int, err error) {
+	key := string(ksk)
+	if strings.HasPrefix(key, "M-") {
+		modifier = 1
+		key = key[2:]
+		if len(key) == 1 {
+			k = termbox.Key(key[0])
+			return
+		}
+	}
+
+	var ok bool
+	k, ok = stringToKey[key]
 	if !ok {
 		err = fmt.Errorf("No such key %s", ksk)
 	}
@@ -487,12 +502,26 @@ func NewKeymap() Keymap {
 }
 
 func (km Keymap) Handler(ev termbox.Event) KeymapHandler {
-	if ev.Ch == 0 {
-		h, ok := km[ev.Key]
+	if (ev.Mod & termbox.ModAlt) != 0 {
+		var key termbox.Key
+		if ev.Ch == 0 {
+			key = ev.Key
+		} else {
+			key = termbox.Key(ev.Ch)
+		}
+		h, ok := modifier2Keymap[1][key]
 		if ok {
 			return h
 		}
+	} else {
+		if ev.Ch == 0 {
+			h, ok := km[ev.Key]
+			if ok {
+				return h
+			}
+		}
 	}
+
 	return handleAcceptChar
 }
 
@@ -503,14 +532,21 @@ func (km Keymap) UnmarshalJSON(buf []byte) error {
 	}
 
 	for ks, vs := range raw {
-		k, err := KeymapStringKey(ks).ToKey()
+		k, modifier, err := KeymapStringKey(ks).ToKey()
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Unknown key %s", ks)
 			continue
 		}
 
+		var keymap Keymap
+		if modifier == 1 {
+			keymap = modifier2Keymap[1]
+		} else {
+			keymap = km
+		}
+
 		if vs == "-" {
-			delete(km, k)
+			delete(keymap, k)
 			continue
 		}
 
@@ -519,8 +555,7 @@ func (km Keymap) UnmarshalJSON(buf []byte) error {
 			fmt.Fprintf(os.Stderr, "Unknown handler %s", vs)
 			continue
 		}
-
-		km[k] = v
+		keymap[k] = v
 	}
 
 	return nil
