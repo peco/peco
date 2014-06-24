@@ -145,7 +145,6 @@ func main() {
 		return
 	}
 	defer termbox.Close()
-	termbox.SetInputMode(termbox.InputAlt)
 
 	view := ctx.NewView()
 	filter := ctx.NewFilter()

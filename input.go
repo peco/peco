@@ -1,6 +1,7 @@
 package peco
 
 import "github.com/nsf/termbox-go"
+import "time"
 
 type Input struct {
 	*Ctx
@@ -25,6 +26,7 @@ func (i *Input) Loop() {
 		}
 	}()
 
+	var mod *time.Timer
 	for {
 		select {
 		case <-i.LoopCh(): // can only fall here if we closed c.loopCh
@@ -36,7 +38,23 @@ func (i *Input) Loop() {
 			case termbox.EventResize:
 				i.DrawMatches(nil)
 			case termbox.EventKey:
-				i.handleKeyEvent(ev)
+				// ModAl is sequenced letters leading \x1b (i.e. it's Esc).
+				// So must wait for a while until key events.
+				// If never keys are typed, it should be Esc.
+				if ev.Ch == 0 && ev.Key == 27 && mod == nil {
+					tmp := ev
+					mod = time.AfterFunc(500 * time.Millisecond, func() {
+						mod = nil
+						i.handleKeyEvent(tmp)
+					})
+				} else {
+					if mod != nil {
+						mod.Stop()
+						mod = nil
+						ev.Mod |= ModAlt
+					}
+					i.handleKeyEvent(ev)
+				}
 			}
 		}
 	}
