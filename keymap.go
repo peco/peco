@@ -4,13 +4,28 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"strings"
 	"unicode"
 
 	"github.com/nsf/termbox-go"
 )
 
+// Possible key modifiers
+const (
+	ModNone = iota
+	ModAlt
+	ModMax
+)
+
 type KeymapHandler func(*Input, termbox.Event)
-type Keymap map[termbox.Key]KeymapHandler
+
+// Keymap contains keys which are modifiers (like Alt+X), and points to
+// RawKeymap
+type Keymap [ModMax]RawKeymap
+
+// RawKeymap contains the actual mapping from termbox.Key to KeymapHandler
+type RawKeymap map[termbox.Key]KeymapHandler
+
 type KeymapStringKey string
 
 // This map is populated using some magic numbers, which must match
@@ -428,8 +443,20 @@ func handleDeleteBackwardWord(i *Input, _ termbox.Event) {
 	i.DrawMatches(nil)
 }
 
-func (ksk KeymapStringKey) ToKey() (k termbox.Key, err error) {
-	k, ok := stringToKey[string(ksk)]
+func (ksk KeymapStringKey) ToKey() (k termbox.Key, modifier int, err error) {
+	modifier = ModNone
+	key := string(ksk)
+	if strings.HasPrefix(key, "M-") {
+		modifier = ModAlt
+		key = key[2:]
+		if len(key) == 1 {
+			k = termbox.Key(key[0])
+			return
+		}
+	}
+
+	var ok bool
+	k, ok = stringToKey[key]
 	if !ok {
 		err = fmt.Errorf("No such key %s", ksk)
 	}
@@ -463,36 +490,63 @@ var handlers = map[string]KeymapHandler{
 
 func NewKeymap() Keymap {
 	return Keymap{
-		termbox.KeyEsc:        handleCancel,
-		termbox.KeyEnter:      handleFinish,
-		termbox.KeyArrowUp:    handleSelectPrevious,
-		termbox.KeyCtrlP:      handleSelectPrevious,
-		termbox.KeyArrowDown:  handleSelectNext,
-		termbox.KeyCtrlN:      handleSelectNext,
-		termbox.KeyArrowLeft:  handleSelectPreviousPage,
-		termbox.KeyArrowRight: handleSelectNextPage,
-		termbox.KeyCtrlD:      handleDeleteForwardChar,
-		termbox.KeyBackspace:  handleDeleteBackwardChar,
-		termbox.KeyBackspace2: handleDeleteBackwardChar,
-		termbox.KeyCtrlW:      handleDeleteBackwardWord,
-		termbox.KeyCtrlA:      handleBeginningOfLine,
-		termbox.KeyCtrlE:      handleEndOfLine,
-		termbox.KeyCtrlF:      handleForwardChar,
-		termbox.KeyCtrlB:      handleBackwardChar,
-		termbox.KeyCtrlK:      handleKillEndOfLine,
-		termbox.KeyCtrlU:      handleKillBeginOfLine,
-		termbox.KeyCtrlR:      handleRotateMatcher,
-		termbox.KeyCtrlSpace:  handleToggleSelectionAndSelectNext,
+		{
+			termbox.KeyEsc:        handleCancel,
+			termbox.KeyEnter:      handleFinish,
+			termbox.KeyArrowUp:    handleSelectPrevious,
+			termbox.KeyCtrlP:      handleSelectPrevious,
+			termbox.KeyArrowDown:  handleSelectNext,
+			termbox.KeyCtrlN:      handleSelectNext,
+			termbox.KeyArrowLeft:  handleSelectPreviousPage,
+			termbox.KeyArrowRight: handleSelectNextPage,
+			termbox.KeyCtrlD:      handleDeleteForwardChar,
+			termbox.KeyBackspace:  handleDeleteBackwardChar,
+			termbox.KeyBackspace2: handleDeleteBackwardChar,
+			termbox.KeyCtrlW:      handleDeleteBackwardWord,
+			termbox.KeyCtrlA:      handleBeginningOfLine,
+			termbox.KeyCtrlE:      handleEndOfLine,
+			termbox.KeyCtrlF:      handleForwardChar,
+			termbox.KeyCtrlB:      handleBackwardChar,
+			termbox.KeyCtrlK:      handleKillEndOfLine,
+			termbox.KeyCtrlU:      handleKillBeginOfLine,
+			termbox.KeyCtrlR:      handleRotateMatcher,
+			termbox.KeyCtrlSpace:  handleToggleSelectionAndSelectNext,
+		},
+		{},
 	}
 }
 
 func (km Keymap) Handler(ev termbox.Event) KeymapHandler {
-	if ev.Ch == 0 {
-		h, ok := km[ev.Key]
-		if ok {
+	modifier := ModNone
+	if (ev.Mod & termbox.ModAlt) != 0 {
+		modifier = ModAlt
+	}
+
+	// RawKeymap that we will be using
+	rkm := km[modifier]
+
+	switch modifier {
+	case ModAlt:
+		var key termbox.Key
+		if ev.Ch == 0 {
+			key = ev.Key
+		} else {
+			key = termbox.Key(ev.Ch)
+		}
+
+		if h, ok := rkm[key]; ok {
 			return h
 		}
+	case ModNone:
+		if ev.Ch == 0 {
+			if h, ok := rkm[ev.Key]; ok {
+				return h
+			}
+		}
+	default:
+		panic("Can't get here")
 	}
+
 	return handleAcceptChar
 }
 
@@ -503,14 +557,15 @@ func (km Keymap) UnmarshalJSON(buf []byte) error {
 	}
 
 	for ks, vs := range raw {
-		k, err := KeymapStringKey(ks).ToKey()
+		k, modifier, err := KeymapStringKey(ks).ToKey()
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Unknown key %s", ks)
 			continue
 		}
 
+		keymap := km[modifier]
 		if vs == "-" {
-			delete(km, k)
+			delete(keymap, k)
 			continue
 		}
 
@@ -519,8 +574,7 @@ func (km Keymap) UnmarshalJSON(buf []byte) error {
 			fmt.Fprintf(os.Stderr, "Unknown handler %s", vs)
 			continue
 		}
-
-		km[k] = v
+		keymap[k] = v
 	}
 
 	return nil
