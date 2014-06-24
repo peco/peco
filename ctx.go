@@ -59,7 +59,7 @@ func (s Selection) Less(i, j int) bool {
 // Ctx contains all the important data. while you can easily access
 // data in this struct from anwyehre, only do so via channels
 type Ctx struct {
-	enableSep bool
+	enableSep      bool
 	statusMessage  string
 	result         []Match
 	loopCh         chan struct{}
@@ -194,7 +194,7 @@ func (c *Ctx) NewFilter() *Filter {
 }
 
 func (c *Ctx) NewInput() *Input {
-	return &Input{c}
+	return &Input{c, &sync.Mutex{}}
 }
 
 func (c *Ctx) Finish() {

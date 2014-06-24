@@ -1,6 +1,7 @@
 package peco
 
 import (
+	"sync"
 	"time"
 
 	"github.com/nsf/termbox-go"
@@ -8,6 +9,7 @@ import (
 
 type Input struct {
 	*Ctx
+	mutex *sync.Mutex // Currently only used for protecting Alt/Esc workaround
 }
 
 func (i *Input) Loop() {
@@ -50,18 +52,24 @@ func (i *Input) Loop() {
 				// of a previous timer
 				if ev.Ch == 0 && ev.Key == 27 && mod == nil {
 					tmp := ev
+					i.mutex.Lock()
 					mod = time.AfterFunc(500*time.Millisecond, func() {
+						i.mutex.Lock()
 						mod = nil
+						i.mutex.Unlock()
 						i.handleKeyEvent(tmp)
 					})
+					i.mutex.Unlock()
 				} else {
 					// it doesn't look like this is Esc or Alt. If we have a previous
 					// timer, stop it because this is probably Alt+ this new key
+					i.mutex.Lock()
 					if mod != nil {
 						mod.Stop()
 						mod = nil
 						ev.Mod |= ModAlt
 					}
+					i.mutex.Unlock()
 					i.handleKeyEvent(ev)
 				}
 			}
