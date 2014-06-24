@@ -53,7 +53,7 @@ func (i *Input) Loop() {
 				if ev.Ch == 0 && ev.Key == 27 && mod == nil {
 					tmp := ev
 					i.mutex.Lock()
-					mod = time.AfterFunc(500*time.Millisecond, func() {
+					mod = time.AfterFunc(200*time.Millisecond, func() {
 						i.mutex.Lock()
 						mod = nil
 						i.mutex.Unlock()
