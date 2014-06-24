@@ -1,7 +1,10 @@
 package peco
 
-import "github.com/nsf/termbox-go"
-import "time"
+import (
+	"time"
+
+	"github.com/nsf/termbox-go"
+)
 
 type Input struct {
 	*Ctx
@@ -38,16 +41,22 @@ func (i *Input) Loop() {
 			case termbox.EventResize:
 				i.DrawMatches(nil)
 			case termbox.EventKey:
-				// ModAl is sequenced letters leading \x1b (i.e. it's Esc).
-				// So must wait for a while until key events.
-				// If never keys are typed, it should be Esc.
+				// ModAlt is a sequence of letters with a leading \x1b (=Esc).
+				// It would be nice if termbox differentiated this for us, but
+				// we workaround it by waiting (juuuuse a few milliseconds) for
+				// extra key events. If no extra events arrive, it should be Esc
+
+				// Smells like Esc or Alt. mod == nil checks for the presense
+				// of a previous timer
 				if ev.Ch == 0 && ev.Key == 27 && mod == nil {
 					tmp := ev
-					mod = time.AfterFunc(500 * time.Millisecond, func() {
+					mod = time.AfterFunc(500*time.Millisecond, func() {
 						mod = nil
 						i.handleKeyEvent(tmp)
 					})
 				} else {
+					// it doesn't look like this is Esc or Alt. If we have a previous
+					// timer, stop it because this is probably Alt+ this new key
 					if mod != nil {
 						mod.Stop()
 						mod = nil
