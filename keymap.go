@@ -10,17 +10,28 @@ import (
 	"github.com/nsf/termbox-go"
 )
 
+// Possible key modifiers
+const (
+	ModNone = iota
+	ModAlt
+	ModMax
+)
+
 type KeymapHandler func(*Input, termbox.Event)
-type Keymap map[termbox.Key]KeymapHandler
+
+// Keymap contains keys which are modifiers (like Alt+X), and points to
+// RawKeymap
+type Keymap [ModMax]RawKeymap
+
+// RawKeymap contains the actual mapping from termbox.Key to KeymapHandler
+type RawKeymap map[termbox.Key]KeymapHandler
+
 type KeymapStringKey string
 
 // This map is populated using some magic numbers, which must match
 // the values defined in termbox-go. Verification against the actual
 // termbox constants are done in the test
 var stringToKey = map[string]termbox.Key{}
-
-// Key is modifier (i.e. Alt). Index 0 is for keymapping w/o modifiers. The modifier index must be > 0
-var modifier2Keymap = []Keymap{{}, {}}
 
 func init() {
 	fidx := 12
@@ -433,9 +444,10 @@ func handleDeleteBackwardWord(i *Input, _ termbox.Event) {
 }
 
 func (ksk KeymapStringKey) ToKey() (k termbox.Key, modifier int, err error) {
+	modifier = ModNone
 	key := string(ksk)
 	if strings.HasPrefix(key, "M-") {
-		modifier = 1
+		modifier = ModAlt
 		key = key[2:]
 		if len(key) == 1 {
 			k = termbox.Key(key[0])
@@ -478,48 +490,61 @@ var handlers = map[string]KeymapHandler{
 
 func NewKeymap() Keymap {
 	return Keymap{
-		termbox.KeyEsc:        handleCancel,
-		termbox.KeyEnter:      handleFinish,
-		termbox.KeyArrowUp:    handleSelectPrevious,
-		termbox.KeyCtrlP:      handleSelectPrevious,
-		termbox.KeyArrowDown:  handleSelectNext,
-		termbox.KeyCtrlN:      handleSelectNext,
-		termbox.KeyArrowLeft:  handleSelectPreviousPage,
-		termbox.KeyArrowRight: handleSelectNextPage,
-		termbox.KeyCtrlD:      handleDeleteForwardChar,
-		termbox.KeyBackspace:  handleDeleteBackwardChar,
-		termbox.KeyBackspace2: handleDeleteBackwardChar,
-		termbox.KeyCtrlW:      handleDeleteBackwardWord,
-		termbox.KeyCtrlA:      handleBeginningOfLine,
-		termbox.KeyCtrlE:      handleEndOfLine,
-		termbox.KeyCtrlF:      handleForwardChar,
-		termbox.KeyCtrlB:      handleBackwardChar,
-		termbox.KeyCtrlK:      handleKillEndOfLine,
-		termbox.KeyCtrlU:      handleKillBeginOfLine,
-		termbox.KeyCtrlR:      handleRotateMatcher,
-		termbox.KeyCtrlSpace:  handleToggleSelectionAndSelectNext,
+		{
+			termbox.KeyEsc:        handleCancel,
+			termbox.KeyEnter:      handleFinish,
+			termbox.KeyArrowUp:    handleSelectPrevious,
+			termbox.KeyCtrlP:      handleSelectPrevious,
+			termbox.KeyArrowDown:  handleSelectNext,
+			termbox.KeyCtrlN:      handleSelectNext,
+			termbox.KeyArrowLeft:  handleSelectPreviousPage,
+			termbox.KeyArrowRight: handleSelectNextPage,
+			termbox.KeyCtrlD:      handleDeleteForwardChar,
+			termbox.KeyBackspace:  handleDeleteBackwardChar,
+			termbox.KeyBackspace2: handleDeleteBackwardChar,
+			termbox.KeyCtrlW:      handleDeleteBackwardWord,
+			termbox.KeyCtrlA:      handleBeginningOfLine,
+			termbox.KeyCtrlE:      handleEndOfLine,
+			termbox.KeyCtrlF:      handleForwardChar,
+			termbox.KeyCtrlB:      handleBackwardChar,
+			termbox.KeyCtrlK:      handleKillEndOfLine,
+			termbox.KeyCtrlU:      handleKillBeginOfLine,
+			termbox.KeyCtrlR:      handleRotateMatcher,
+			termbox.KeyCtrlSpace:  handleToggleSelectionAndSelectNext,
+		},
+		{},
 	}
 }
 
 func (km Keymap) Handler(ev termbox.Event) KeymapHandler {
+	modifier := ModNone
 	if (ev.Mod & termbox.ModAlt) != 0 {
+		modifier = ModAlt
+	}
+
+	// RawKeymap that we will be using
+	rkm := km[modifier]
+
+	switch modifier {
+	case ModAlt:
 		var key termbox.Key
 		if ev.Ch == 0 {
 			key = ev.Key
 		} else {
 			key = termbox.Key(ev.Ch)
 		}
-		h, ok := modifier2Keymap[1][key]
-		if ok {
+
+		if h, ok := rkm[key]; ok {
 			return h
 		}
-	} else {
+	case ModNone:
 		if ev.Ch == 0 {
-			h, ok := km[ev.Key]
-			if ok {
+			if h, ok := rkm[ev.Key]; ok {
 				return h
 			}
 		}
+	default:
+		panic("Can't get here")
 	}
 
 	return handleAcceptChar
@@ -538,13 +563,7 @@ func (km Keymap) UnmarshalJSON(buf []byte) error {
 			continue
 		}
 
-		var keymap Keymap
-		if modifier == 1 {
-			keymap = modifier2Keymap[1]
-		} else {
-			keymap = km
-		}
-
+		keymap := km[modifier]
 		if vs == "-" {
 			delete(keymap, k)
 			continue
