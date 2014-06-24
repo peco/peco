@@ -33,9 +33,6 @@ type KeymapStringKey string
 // termbox constants are done in the test
 var stringToKey = map[string]termbox.Key{}
 
-// Key is modifier (i.e. Alt). Index 0 is for keymapping w/o modifiers. The modifier index must be > 0
-var modifier2Keymap = []Keymap{{}, {}}
-
 func init() {
 	fidx := 12
 	for k := termbox.KeyF1; k > termbox.KeyF12; k-- {
