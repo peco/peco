@@ -48,14 +48,14 @@ func (v *View) printStatus() {
 	msg := v.statusMessage
 	width := runewidth.StringWidth(msg)
 
-	pad := make([]byte, w - width)
-	for i := 0; i < w - width; i++ {
+	pad := make([]byte, w-width)
+	for i := 0; i < w-width; i++ {
 		pad[i] = ' '
 	}
 
-	printTB(0, h - 2, termbox.ColorDefault, termbox.ColorDefault, string(pad))
+	printTB(0, h-2, termbox.ColorDefault, termbox.ColorDefault, string(pad))
 	if width > 0 {
-		printTB(w - width, h - 2, termbox.AttrReverse|termbox.ColorDefault|termbox.AttrBold, termbox.AttrReverse|termbox.ColorDefault, msg)
+		printTB(w-width, h-2, termbox.AttrReverse|termbox.ColorDefault|termbox.AttrBold, termbox.AttrReverse|termbox.ColorDefault, msg)
 	}
 }
 
@@ -111,7 +111,9 @@ func (v *View) drawScreen(targets []Match) {
 	v.mutex.Lock()
 	defer v.mutex.Unlock()
 
-	termbox.Clear(termbox.ColorDefault, termbox.ColorDefault)
+	if err := termbox.Clear(termbox.ColorDefault, termbox.ColorDefault); err != nil {
+		return
+	}
 
 	if targets == nil {
 		if current := v.Ctx.current; current != nil {
@@ -182,7 +184,7 @@ CALCULATE_PAGE:
 		if n+offset == v.currentLine {
 			fgAttr = v.config.Style.Selected.fg
 			bgAttr = v.config.Style.Selected.bg
-		} else if v.selection.Has(n+offset) {
+		} else if v.selection.Has(n + offset) {
 			fgAttr = v.config.Style.SavedSelection.fg
 			bgAttr = v.config.Style.SavedSelection.bg
 		}
@@ -193,7 +195,7 @@ CALCULATE_PAGE:
 		}
 
 		target := targets[targetIdx]
-		line   := target.Line()
+		line := target.Line()
 		matches := target.Indices()
 		if matches == nil {
 			printTB(0, n, fgAttr, bgAttr, line)
@@ -223,7 +225,9 @@ CALCULATE_PAGE:
 	}
 
 	v.printStatus()
-	termbox.Flush()
+	if err := termbox.Flush(); err != nil {
+		return
+	}
 
 	// FIXME
 	v.current = targets
