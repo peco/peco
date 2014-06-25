@@ -146,6 +146,11 @@ func main() {
 	}
 	defer termbox.Close()
 
+	// Windows handle Esc/Alt self
+	if runtime.GOOS == "windows" {
+		termbox.SetInputMode(termbox.InputEsc | termbox.InputAlt)
+	}
+
 	view := ctx.NewView()
 	filter := ctx.NewFilter()
 	input := ctx.NewInput()
