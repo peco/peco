@@ -1,9 +1,15 @@
 package peco
 
-import "github.com/nsf/termbox-go"
+import (
+	"sync"
+	"time"
+
+	"github.com/nsf/termbox-go"
+)
 
 type Input struct {
 	*Ctx
+	mutex *sync.Mutex // Currently only used for protecting Alt/Esc workaround
 }
 
 func (i *Input) Loop() {
@@ -25,6 +31,8 @@ func (i *Input) Loop() {
 		}
 	}()
 
+	hasModifierMaps := i.config.Keymap.hasModifierMaps()
+	var mod *time.Timer
 	for {
 		select {
 		case <-i.LoopCh(): // can only fall here if we closed c.loopCh
@@ -36,7 +44,35 @@ func (i *Input) Loop() {
 			case termbox.EventResize:
 				i.DrawMatches(nil)
 			case termbox.EventKey:
-				i.handleKeyEvent(ev)
+				// ModAlt is a sequence of letters with a leading \x1b (=Esc).
+				// It would be nice if termbox differentiated this for us, but
+				// we workaround it by waiting (juuuuse a few milliseconds) for
+				// extra key events. If no extra events arrive, it should be Esc
+
+				// Smells like Esc or Alt. mod == nil checks for the presense
+				// of a previous timer
+				if hasModifierMaps && ev.Ch == 0 && ev.Key == 27 && mod == nil {
+					tmp := ev
+					i.mutex.Lock()
+					mod = time.AfterFunc(50*time.Millisecond, func() {
+						i.mutex.Lock()
+						mod = nil
+						i.mutex.Unlock()
+						i.handleKeyEvent(tmp)
+					})
+					i.mutex.Unlock()
+				} else {
+					// it doesn't look like this is Esc or Alt. If we have a previous
+					// timer, stop it because this is probably Alt+ this new key
+					i.mutex.Lock()
+					if mod != nil {
+						mod.Stop()
+						mod = nil
+						ev.Mod |= ModAlt
+					}
+					i.mutex.Unlock()
+					i.handleKeyEvent(ev)
+				}
 			}
 		}
 	}
