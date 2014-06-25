@@ -1,7 +1,7 @@
 Changes
 =======
 
-v0.1.8
+v0.1.8 - 25 Jun 2014
   Bugs/Fixes
   * Check for terminal update errors while drawing.
   Features
