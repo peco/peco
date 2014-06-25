@@ -1,6 +1,13 @@
 Changes
 =======
 
+v0.1.10 - 25 Jun 2014
+  Buts/Fixes
+  * A panic that may occur when you send new queries in very fast succession
+    has been fixed
+  * Fixed the problem where Windows binaries were not able to handle Esc/Alt
+    correctly
+
 v0.1.9 - 25 Jun 2014
   Bugs/Fixes
   * Change the base go version to build binary to 1.3
