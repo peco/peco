@@ -6,14 +6,16 @@ build:
         name: go get
         code: |
           go version
-          go get -t ./...
+          godep go get -t ./...
     - script:
         name: go test
         code: |
-          go test ./...
+          godep go test ./...
     - script:
         name: goxc build & archive
         code: |
+          GODEPPATH=`godep path`
+          export GOPATH="$GODEPPATH:$GOPATH"
           goxc -tasks='xc archive' -bc 'linux windows darwin' -d $WERCKER_OUTPUT_DIR/ -resources-include='README*' -resources-include='Changes'
     - script:
         name: output release tag
@@ -48,4 +50,6 @@ deploy:
         file: snapshot/peco_windows_386.zip
     - wercker/github-upload-asset:
         token: $GITHUB_TOKEN
+
+
         file: snapshot/peco_windows_amd64.zip
