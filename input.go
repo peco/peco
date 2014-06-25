@@ -31,6 +31,7 @@ func (i *Input) Loop() {
 		}
 	}()
 
+	hasModifierMaps := i.config.Keymap.hasModifierMaps()
 	var mod *time.Timer
 	for {
 		select {
@@ -50,10 +51,10 @@ func (i *Input) Loop() {
 
 				// Smells like Esc or Alt. mod == nil checks for the presense
 				// of a previous timer
-				if ev.Ch == 0 && ev.Key == 27 && mod == nil {
+				if hasModifierMaps && ev.Ch == 0 && ev.Key == 27 && mod == nil {
 					tmp := ev
 					i.mutex.Lock()
-					mod = time.AfterFunc(200*time.Millisecond, func() {
+					mod = time.AfterFunc(50*time.Millisecond, func() {
 						i.mutex.Lock()
 						mod = nil
 						i.mutex.Unlock()

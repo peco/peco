@@ -579,3 +579,7 @@ func (km Keymap) UnmarshalJSON(buf []byte) error {
 
 	return nil
 }
+
+func (km Keymap) hasModifierMaps() bool {
+	return len(km[ModAlt]) > 0
+}
