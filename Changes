@@ -1,6 +1,10 @@
 Changes
 =======
 
+v0.1.9 - 25 Jun 2014
+  Bugs/Fixes
+  * Change the base go version to build binary to 1.3
+
 v0.1.8 - 25 Jun 2014
   Bugs/Fixes
   * Check for terminal update errors while drawing.
