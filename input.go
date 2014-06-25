@@ -48,30 +48,33 @@ func (i *Input) Loop() {
 				// It would be nice if termbox differentiated this for us, but
 				// we workaround it by waiting (juuuuse a few milliseconds) for
 				// extra key events. If no extra events arrive, it should be Esc
-
-				// Smells like Esc or Alt. mod == nil checks for the presense
-				// of a previous timer
-				if hasModifierMaps && ev.Ch == 0 && ev.Key == 27 && mod == nil {
-					tmp := ev
-					i.mutex.Lock()
-					mod = time.AfterFunc(50*time.Millisecond, func() {
-						i.mutex.Lock()
-						mod = nil
-						i.mutex.Unlock()
-						i.handleKeyEvent(tmp)
-					})
-					i.mutex.Unlock()
-				} else {
-					// it doesn't look like this is Esc or Alt. If we have a previous
-					// timer, stop it because this is probably Alt+ this new key
-					i.mutex.Lock()
-					if mod != nil {
-						mod.Stop()
-						mod = nil
-						ev.Mod |= ModAlt
-					}
-					i.mutex.Unlock()
+				if !hasModifierMaps {
 					i.handleKeyEvent(ev)
+				} else {
+					// Smells like Esc or Alt. mod == nil checks for the presense
+					// of a previous timer
+					if ev.Ch == 0 && ev.Key == 27 && mod == nil {
+						tmp := ev
+						i.mutex.Lock()
+						mod = time.AfterFunc(50*time.Millisecond, func() {
+							i.mutex.Lock()
+							mod = nil
+							i.mutex.Unlock()
+							i.handleKeyEvent(tmp)
+						})
+						i.mutex.Unlock()
+					} else {
+						// it doesn't look like this is Esc or Alt. If we have a previous
+						// timer, stop it because this is probably Alt+ this new key
+						i.mutex.Lock()
+						if mod != nil {
+							mod.Stop()
+							mod = nil
+							ev.Mod |= ModAlt
+						}
+						i.mutex.Unlock()
+						i.handleKeyEvent(ev)
+					}
 				}
 			}
 		}
