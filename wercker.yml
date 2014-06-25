@@ -1,4 +1,4 @@
-box: peco/peco-build
+box: lestrrat/peco-build
 build:
   steps:
     - setup-go-workspace
