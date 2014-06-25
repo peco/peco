@@ -143,6 +143,9 @@ Example:
 
 ### Available keys
 
+Since v0.1.8, in addition to values below, you may put a `M-` prefix on any 
+key item to use Alt/Option key as a mask.
+
 | Name        | Notes |
 |-------------|-------|
 | C-a ... C-z | Control + whatever character |
