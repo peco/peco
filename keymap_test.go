@@ -39,9 +39,9 @@ func TestKeymapStrToKeyValue(t *testing.T) {
 
 func TestKeymapStrToKeyValueWithAlt(t *testing.T) {
 	expected := map[string]termbox.Key{
-		"M-v":     termbox.Key('v'),
-		"M-C-v":   termbox.KeyCtrlV,
-		"M-Space": termbox.KeySpace,
+		"M-v":         termbox.Key('v'),
+		"M-C-v":       termbox.KeyCtrlV,
+		"M-Space":     termbox.KeySpace,
 		"M-MouseLeft": termbox.MouseLeft,
 	}
 

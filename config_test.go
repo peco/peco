@@ -2,11 +2,11 @@ package peco
 
 import (
 	"encoding/json"
-	"path/filepath"
 	"fmt"
 	"io/ioutil"
 	"os"
 	"os/user"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -80,18 +80,18 @@ func TestLocateRcfile(t *testing.T) {
 	}
 
 	expected := []string{
-			filepath.Join(dir, "peco"),
-			filepath.Join(dir, "1", "peco"),
-			filepath.Join(dir, "2", "peco"),
-			filepath.Join(dir, "3", "peco"),
-			filepath.Join(dir, ".peco"),
+		filepath.Join(dir, "peco"),
+		filepath.Join(dir, "1", "peco"),
+		filepath.Join(dir, "2", "peco"),
+		filepath.Join(dir, "3", "peco"),
+		filepath.Join(dir, ".peco"),
 	}
 
 	i := 0
 	_locateRcfileIn = func(dir string) (string, error) {
 		t.Logf("looking for file in %s", dir)
-		if i > len(expected) - 1 {
-			t.Fatalf("Got %d directories, only have %d", i + 1, len(expected))
+		if i > len(expected)-1 {
+			t.Fatalf("Got %d directories, only have %d", i+1, len(expected))
 		}
 
 		if expected[i] != dir {
@@ -116,6 +116,5 @@ func TestLocateRcfile(t *testing.T) {
 	os.Setenv("XDG_CONFIG_HOME", "")
 	i = 0
 	LocateRcfile()
-
 
 }
