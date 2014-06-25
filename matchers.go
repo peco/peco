@@ -265,7 +265,7 @@ MATCH:
 			// so we punt it by letting the close() happen at a separate
 			// goroutine, protected by a defer recover()
 			go func() {
-				defer recover()
+				defer func() { recover() }()
 				close(iter)
 			}()
 			break MATCH
