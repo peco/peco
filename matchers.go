@@ -352,10 +352,10 @@ func (m *CustomMatcher) Match(quit chan struct{}, q string, buffer []Match) []Ma
 	go func() {
 		defer func() { recover() }()
 		defer func() {
-			close(iter)
 			if p := cmd.Process; p != nil {
 				p.Kill()
 			}
+			close(iter)
 		}()
 		b, err := cmd.Output()
 		if err != nil {
