@@ -1,6 +1,6 @@
 {
 	"ImportPath": "github.com/peco/peco",
-	"GoVersion": "go1.2.1",
+	"GoVersion": "go1.3",
 	"Deps": [
 		{
 			"ImportPath": "github.com/jessevdk/go-flags",
@@ -14,7 +14,7 @@
 		},
 		{
 			"ImportPath": "github.com/nsf/termbox-go",
-			"Rev": "9aecf65084a5754f12d27508fa2e6ed56851953b"
+			"Rev": "81b415f8400796494f30d99fc9df17e03acacc71"
 		}
 	]
 }
