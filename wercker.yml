@@ -6,7 +6,7 @@ build:
         name: go get
         code: |
           go version
-          godep go get -t ./...
+          godep restore
     - script:
         name: go test
         code: |
