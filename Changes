@@ -1,7 +1,14 @@
 Changes
 =======
 
-v0.1.7
+v0.1.8
+  Bugs/Fixes
+  * Check for terminal update errors while drawing.
+  Features
+  * Support Alt key prefixes to keybindings (Note: currently does not work
+    on windows)
+
+v0.1.7 - 22 Jun 2014
   Bugs/Fixes:
   * Moved repository to a Github organization: http://github.com/peco/peco
   * Because of the above change, a lot of links, imports needed fixing.
