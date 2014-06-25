@@ -255,8 +255,19 @@ MATCH:
 		case <-quit:
 			// If we recieved a cancel request, we immediately bail out.
 			// It's a little dirty, but we focefully terminate the other
-			// goroutine by closing the channel, and invoking a panic
-			close(iter)
+			// goroutine by closing the channel, and invoking a panic in the
+			// goroutine above
+
+			// There's a possibility that the match fails early and the
+			// cancel happens after iter has been closed. It's totally okay
+			// for us to try to close iter, but trying to detect if the
+			// channel can be closed safely synchronously is really hard
+			// so we punt it by letting the close() happen at a separate
+			// goroutine, protected by a defer recover()
+			go func() {
+				defer func() { recover() }()
+				close(iter)
+			}()
 			break MATCH
 		case match := <-iter:
 			// Receive elements from the goroutine performing the match
