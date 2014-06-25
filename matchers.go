@@ -372,7 +372,10 @@ MATCH:
 	for {
 		select {
 		case <-quit:
-			close(iter)
+			go func() {
+				defer func() { recover() }()
+				close(iter)
+			}()
 			break MATCH
 		case match := <-iter:
 			if match == nil {
