@@ -1,4 +1,4 @@
-box: motemen/golang-goxc
+box: peco/peco-build
 build:
   steps:
     - setup-go-workspace
