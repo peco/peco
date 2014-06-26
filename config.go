@@ -4,14 +4,13 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	"os/user"
 	"path/filepath"
 	"strings"
 
 	"github.com/nsf/termbox-go"
 )
 
-var currentUser = user.Current
+var homedirFunc = homedir
 
 type Config struct {
 	Keymap        Keymap   `json:"Keymap"`
@@ -150,7 +149,7 @@ func LocateRcfile() (string, error) {
 	//    $XDG_CONFIG_DIR/peco/config.json (where XDG_CONFIG_DIR is listed in $XDG_CONFIG_DIRS)
 	//	  ~/.peco/config.json
 
-	user, uErr := currentUser()
+	home, uErr := homedirFunc()
 
 	// Try dir supplied via env var
 	if dir := os.Getenv("XDG_CONFIG_HOME"); dir != "" {
@@ -158,9 +157,9 @@ func LocateRcfile() (string, error) {
 		if err == nil {
 			return file, nil
 		}
-	} else if uErr == nil { // silently ignore failure for user.Current()
+	} else if uErr == nil { // silently ignore failure for homedir()
 		// Try "default" XDG location, is user is available
-		file, err := _locateRcfileIn(filepath.Join(user.HomeDir, ".config", "peco"))
+		file, err := _locateRcfileIn(filepath.Join(home, ".config", "peco"))
 		if err == nil {
 			return file, nil
 		}
@@ -178,8 +177,8 @@ func LocateRcfile() (string, error) {
 		}
 	}
 
-	if uErr == nil { // silently ignore failure for user.Current()
-		file, err := _locateRcfileIn(filepath.Join(user.HomeDir, ".peco"))
+	if uErr == nil { // silently ignore failure for homedir()
+		file, err := _locateRcfileIn(filepath.Join(home, ".peco"))
 		if err == nil {
 			return file, nil
 		}

@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
-	"os/user"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -73,10 +72,8 @@ func TestLocateRcfile(t *testing.T) {
 		t.Fatalf("Failed to create temporary directory: %s", err)
 	}
 
-	currentUser = func() (*user.User, error) {
-		return &user.User{
-			HomeDir: dir,
-		}, nil
+	homedirFunc = func() (string, error) {
+		return dir, nil
 	}
 
 	expected := []string{
