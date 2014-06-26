@@ -5,5 +5,5 @@ package peco
 import "os/user"
 
 func homedir() (string, error) {
-	return user.Current()
+	return user.Current().HomeDir, error
 }
