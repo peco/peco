@@ -1,4 +1,4 @@
-// +windows
+// +build windows
 
 package peco
 
