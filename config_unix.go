@@ -1,4 +1,5 @@
 // +build darwin freebsd linux netbsd openbsd
+
 package peco
 
 import (
