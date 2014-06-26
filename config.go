@@ -4,14 +4,13 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	"os/user"
 	"path/filepath"
 	"strings"
 
 	"github.com/nsf/termbox-go"
 )
 
-var currentUser = user.Current
+var homedirFunc = homedir
 
 type Config struct {
 	Keymap        Keymap   `json:"Keymap"`
@@ -150,7 +149,7 @@ func LocateRcfile() (string, error) {
 	//    $XDG_CONFIG_DIR/peco/config.json (where XDG_CONFIG_DIR is listed in $XDG_CONFIG_DIRS)
 	//	  ~/.peco/config.json
 
-	home, uErr := homedir()
+	home, uErr := homedirFunc()
 
 	// Try dir supplied via env var
 	if dir := os.Getenv("XDG_CONFIG_HOME"); dir != "" {
