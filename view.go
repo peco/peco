@@ -34,6 +34,8 @@ func (v *View) Loop() {
 		select {
 		case <-v.LoopCh():
 			return
+		case m := <-v.StatusMsgCh():
+			v.printStatus(m)
 		case r := <-v.PagingCh():
 			v.movePage(r)
 		case lines := <-v.DrawCh():
@@ -42,10 +44,9 @@ func (v *View) Loop() {
 	}
 }
 
-func (v *View) printStatus() {
+func (v *View) printStatus(msg string) {
 	w, h := termbox.Size()
 
-	msg := v.statusMessage
 	width := runewidth.StringWidth(msg)
 
 	pad := make([]byte, w-width)
@@ -57,6 +58,7 @@ func (v *View) printStatus() {
 	if width > 0 {
 		printTB(w-width, h-2, termbox.AttrReverse|termbox.ColorDefault|termbox.AttrBold, termbox.AttrReverse|termbox.ColorDefault, msg)
 	}
+	termbox.Flush()
 }
 
 func printTB(x, y int, fg, bg termbox.Attribute, msg string) {
@@ -224,7 +226,6 @@ CALCULATE_PAGE:
 		}
 	}
 
-	v.printStatus()
 	if err := termbox.Flush(); err != nil {
 		return
 	}

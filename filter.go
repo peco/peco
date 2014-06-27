@@ -11,7 +11,7 @@ func (f *Filter) Work(cancel chan struct{}, q string) {
 		return
 	}
 	results := f.Matcher().Match(cancel, q, f.Buffer())
-	f.statusMessage = ""
+	f.StatusMsgCh() <- ""
 	f.selection.Clear()
 	f.DrawMatches(results)
 }
@@ -34,8 +34,7 @@ func (f *Filter) Loop() {
 			}
 			previous = make(chan struct{}, 1)
 
-			f.statusMessage = "Running query..."
-			f.DrawMatches(nil)
+			f.StatusMsgCh() <- "Running query..."
 			go f.Work(previous, q)
 		}
 	}

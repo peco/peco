@@ -60,11 +60,11 @@ func (s Selection) Less(i, j int) bool {
 // data in this struct from anwyehre, only do so via channels
 type Ctx struct {
 	enableSep      bool
-	statusMessage  string
 	result         []Match
 	loopCh         chan struct{}
 	queryCh        chan string
 	drawCh         chan []Match
+	statusMsgCh    chan string
 	pagingCh       chan PagingRequest
 	mutex          sync.Mutex
 	query          []rune
@@ -84,11 +84,11 @@ type Ctx struct {
 func NewCtx(enableSep bool) *Ctx {
 	return &Ctx{
 		enableSep,
-		"",
 		[]Match{},
 		make(chan struct{}),         // loopCh. You never send messages to this. no point in buffering
 		make(chan string, 5),        // queryCh.
 		make(chan []Match, 5),       // drawCh.
+		make(chan string, 5),				 // statusMsgCh
 		make(chan PagingRequest, 5), // pagingCh
 		sync.Mutex{},
 		[]rune{},
@@ -144,6 +144,10 @@ func (c *Ctx) QueryCh() chan string {
 
 func (c *Ctx) DrawCh() chan []Match {
 	return c.drawCh
+}
+
+func (c *Ctx) StatusMsgCh() chan string {
+	return c.statusMsgCh
 }
 
 func (c *Ctx) PagingCh() chan PagingRequest {
