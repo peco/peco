@@ -198,6 +198,8 @@ key item to use Alt/Option key as a mask.
 
 ### Default Keymap
 
+Note: If in case below keymap seems wrong, check the source code in [keymap.go](https://github.com/peco/peco/blob/master/keymap.go) (look for NewKeymap).
+
 |Key|Action|
 |---|------|
 |ESC|handleCancel|
