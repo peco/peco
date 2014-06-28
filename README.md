@@ -135,8 +135,8 @@ Example:
 ```json
 {
     "Keymap": {
-        "C-p": "peco.SelectPrevious",
-        "C-n": "peco.SelectNext"
+        "M-v": "peco.SelectPreviousPage",
+        "C-v": "peco.SelectNextPage"
     }
 }
 ```
