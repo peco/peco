@@ -135,8 +135,8 @@ Example:
 ```json
 {
     "Keymap": {
-        "C-p": "peco.SelectPrevious",
-        "C-n": "peco.SelectNext"
+        "M-v": "peco.SelectPreviousPage",
+        "C-v": "peco.SelectNextPage"
     }
 }
 ```
@@ -195,6 +195,30 @@ key item to use Alt/Option key as a mask.
 | peco.RotateMatcher      | Rotate between matchers (by default, ignore-case/no-ignore-case)|
 | peco.Finish             | Exits from peco, with success status |
 | peco.Cancel             | Exits from peco, with failure status |
+
+### Default Keymap
+
+|Key|Action|
+|---|------|
+|ESC|handleCancel|
+|Enter|handleFinish|
+|Ctrl-n|handleSelectNext|
+|Ctrl-p|handleSelectPrevious|
+|Ctrl-f|handleForwardChar|
+|Ctrl-b|handleBackwardChar|
+|Ctrl-a|handleBeginningOfLine|
+|Ctrl-e|handleEndOfLine|
+|Ctrl-d|handleDeleteBackwardWord|
+|Ctrl-w|handleKillEndOfLine|
+|Ctrl-u|handleKillBeginOfLine|
+|Ctrl-k|handleKillEndOfLine|
+|Ctrl-space|handleToggleSelectionAndSelectNext|
+|ArrorUp|handleSelectPrevious|
+|ArrowDown|handleSelectNext|
+|ArrowLeft|handleSelectPreviousPage|
+|ArrowRight|handleSelectNextPage|
+|Backspace|handleDeleteBackwardChar|
+|Ctrl-r|handleRotateMatcher|
 
 ## Styles
 
