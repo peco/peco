@@ -491,6 +491,7 @@ var handlers = map[string]KeymapHandler{
 func NewKeymap() Keymap {
 	return Keymap{
 		{
+			termbox.KeyEsc:        handleCancel,
 			termbox.KeyCtrlC:      handleCancel,
 			termbox.KeyEnter:      handleFinish,
 			termbox.KeyArrowUp:    handleSelectPrevious,
