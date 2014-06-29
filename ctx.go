@@ -201,7 +201,7 @@ func (c *Ctx) NewInput() *Input {
 	return &Input{c, &sync.Mutex{}}
 }
 
-func (c *Ctx) Finish() {
+func (c *Ctx) Stop() {
 	close(c.LoopCh())
 }
 
@@ -235,6 +235,11 @@ func (c *Ctx) LoadCustomMatcher() bool {
 	return false
 }
 
+func (c *Ctx) ExitWith(i int) {
+	c.ExitStatus = i
+	c.Stop()
+}
+
 func (c *Ctx) SignalHandlerLoop(sigCh chan os.Signal) {
 	defer c.ReleaseWaitGroup()
 
@@ -249,7 +254,7 @@ func (c *Ctx) SignalHandlerLoop(sigCh chan os.Signal) {
 			//
 			// So if we called termbox.Close() here, and then in main()
 			// defer termbox.Close() blocks. Not cool.
-			c.Finish()
+			c.ExitWith(1)
 			return
 		}
 	}
