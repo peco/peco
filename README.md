@@ -203,6 +203,7 @@ Note: If in case below keymap seems wrong, check the source code in [keymap.go](
 |Key|Action|
 |---|------|
 |Esc|handleCancel|
+|Ctrl-c|handleCancel|
 |Enter|handleFinish|
 |Ctrl-n|handleSelectNext|
 |Ctrl-p|handleSelectPrevious|
