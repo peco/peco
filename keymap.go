@@ -150,7 +150,7 @@ func handleFinish(i *Input, _ termbox.Event) {
 			i.result = append(i.result, i.current[lineno-1])
 		}
 	}
-	i.Finish()
+	i.ExitWith(0)
 }
 
 func handleToggleSelection(i *Input, _ termbox.Event) {
@@ -168,8 +168,7 @@ func handleToggleSelectionAndSelectNext(i *Input, ev termbox.Event) {
 
 // peco.Cancel -> end program, exit with failure
 func handleCancel(i *Input, ev termbox.Event) {
-	i.ExitStatus = 1
-	i.Finish()
+	i.ExitWith(1)
 }
 
 func handleSelectPrevious(i *Input, ev termbox.Event) {
