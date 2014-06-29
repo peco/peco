@@ -249,6 +249,7 @@ func (c *Ctx) SignalHandlerLoop(sigCh chan os.Signal) {
 			//
 			// So if we called termbox.Close() here, and then in main()
 			// defer termbox.Close() blocks. Not cool.
+			c.ExitStatus = 1
 			c.Finish()
 			return
 		}
