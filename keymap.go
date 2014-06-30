@@ -203,6 +203,15 @@ func handleRotateMatcher(i *Input, ev termbox.Event) {
 	i.DrawMatches(nil)
 }
 
+func handleRefresh(i *Input, ev termbox.Event) {
+	if len(i.query) > 0 {
+		i.ExecQuery(string(i.query))
+		return
+	}
+	i.current = nil
+	i.DrawMatches(nil)
+}
+
 func handleForwardWord(i *Input, _ termbox.Event) {
 	if i.caretPos >= len(i.query) {
 		return
@@ -510,6 +519,7 @@ func NewKeymap() Keymap {
 			termbox.KeyCtrlK:      handleKillEndOfLine,
 			termbox.KeyCtrlU:      handleKillBeginOfLine,
 			termbox.KeyCtrlR:      handleRotateMatcher,
+			termbox.KeyCtrlL:      handleRefresh,
 			termbox.KeyCtrlSpace:  handleToggleSelectionAndSelectNext,
 		},
 		{},
