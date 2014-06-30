@@ -102,6 +102,10 @@ type Matcher interface {
 	// The third is the buffer in which to match the query against.
 	Match(chan struct{}, string, []Match) []Match
 	String() string
+
+	// This is fugly. We just added a method only for CustomMatcner.
+	// Must think about this again
+	Verify() error 
 }
 
 const (
@@ -151,8 +155,19 @@ func NewRegexpMatcher(enableSep bool) *RegexpMatcher {
 	}
 }
 
+func (m *RegexpMatcher) Verify() error {
+	return nil
+}
+
 func NewCustomMatcher(enableSep bool, name string, args []string) *CustomMatcher {
 	return &CustomMatcher{enableSep, name, args}
+}
+
+func (m *CustomMatcher) Verify() error {
+	if _, err := exec.LookPath(m.args[0]); err != nil {
+		return err
+	}
+	return nil
 }
 
 func regexpFor(q string, flags []string, quotemeta bool) (*regexp.Regexp, error) {

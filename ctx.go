@@ -110,12 +110,16 @@ func NewCtx(enableSep bool) *Ctx {
 }
 
 func (c *Ctx) ReadConfig(file string) error {
-	err := c.config.ReadFilename(file)
-	if err == nil {
-		c.LoadCustomMatcher()
-		c.SetCurrentMatcher(c.config.Matcher)
+	if err := c.config.ReadFilename(file); err != nil {
+		return err
 	}
-	return err
+
+	if err := c.LoadCustomMatcher(); err != nil {
+		return err
+	}
+	c.SetCurrentMatcher(c.config.Matcher)
+
+	return nil
 }
 
 func (c *Ctx) Result() []Match {
@@ -214,8 +218,12 @@ func (c *Ctx) Matcher() Matcher {
 	return c.Matchers[c.CurrentMatcher]
 }
 
-func (c *Ctx) AddMatcher(m Matcher) {
+func (c *Ctx) AddMatcher(m Matcher) error {
+	if err := m.Verify(); err != nil {
+		return fmt.Errorf("Verification for custom matcher failed: %s", err)
+	}
 	c.Matchers = append(c.Matchers, m)
+	return nil
 }
 
 func (c *Ctx) SetCurrentMatcher(n string) bool {
@@ -228,11 +236,17 @@ func (c *Ctx) SetCurrentMatcher(n string) bool {
 	return false
 }
 
-func (c *Ctx) LoadCustomMatcher() bool {
-	for name, args := range c.config.CustomMatcher {
-		c.AddMatcher(NewCustomMatcher(c.enableSep, name, args))
+func (c *Ctx) LoadCustomMatcher() error {
+	if len(c.config.CustomMatcher) == 0 {
+		return nil
 	}
-	return false
+
+	for name, args := range c.config.CustomMatcher {
+		if err := c.AddMatcher(NewCustomMatcher(c.enableSep, name, args)); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func (c *Ctx) ExitWith(i int) {
