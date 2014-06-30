@@ -76,6 +76,7 @@ func main() {
 		in, err = os.Open(args[0])
 		if err != nil {
 			st = 1
+			fmt.Fprintln(os.Stderr, err)
 			return
 		}
 	} else if !peco.IsTty() {
