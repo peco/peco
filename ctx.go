@@ -181,16 +181,22 @@ func (c *Ctx) Buffer() []Match {
 }
 
 func (c *Ctx) ReadBuffer(input io.Reader) error {
-	scanner := bufio.NewScanner(input)
-	for scanner.Scan() {
-		line := scanner.Text()
-		c.lines = append(c.lines, NewNoMatch(line, c.enableSep))
-	}
+	go func(scanner *bufio.Scanner) {
+		loop: for {
+			select {
+			case <-c.LoopCh():
+				return
+			default:
+				if !scanner.Scan() {
+					break loop
+				}
+				line := scanner.Text()
+				c.lines = append(c.lines, NewNoMatch(line, c.enableSep))
+			}
+		}
+	}(bufio.NewScanner(input))
 
-	if len(c.lines) > 0 {
-		return nil
-	}
-	return fmt.Errorf("No buffer to work with was available")
+	return nil
 }
 
 func (c *Ctx) NewView() *View {
