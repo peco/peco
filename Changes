@@ -1,6 +1,21 @@
 Changes
 =======
 
+v0.1.11
+  Bugs/Fixes
+  * CustoMatchers are now verified, i.e., exec.LookPath() is applied to
+    the first argument to check if the command is actually executable
+  * Exit code upon receiving signals are now non-zero, as it should have
+    been to start with
+  * Cross-compilation introduced problems with binary builds for darwin.
+    This has now been fixed, but if you do get your hands on peco binaries
+    before v0.1.11, don't expect it to read your config file.
+  * A panic that may occur when you send new queries in very fast succession
+    has been fixed for custom matchers.
+  Features
+  * C-c has been added to the default key binding. It causes peco to cancel
+    the operation (exits with a non-zero status code)
+
 v0.1.10 - 25 Jun 2014
   Bugs/Fixes
   * A panic that may occur when you send new queries in very fast succession
