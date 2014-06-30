@@ -1,7 +1,7 @@
 Changes
 =======
 
-v0.1.11
+v0.1.11 - 30 Jun 2014
   Bugs/Fixes
   * CustoMatchers are now verified, i.e., exec.LookPath() is applied to
     the first argument to check if the command is actually executable
