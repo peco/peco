@@ -135,7 +135,7 @@ func handleAcceptChar(i *Input, ev termbox.Event) {
 			i.query = buf
 		}
 		i.caretPos++
-		i.ExecQuery(string(i.query))
+		i.ExecQuery()
 	}
 }
 
@@ -196,8 +196,7 @@ func handleRotateMatcher(i *Input, ev termbox.Event) {
 	if i.Ctx.CurrentMatcher >= len(i.Ctx.Matchers) {
 		i.Ctx.CurrentMatcher = 0
 	}
-	if len(i.query) > 0 {
-		i.ExecQuery(string(i.query))
+	if i.ExecQuery() {
 		return
 	}
 	i.DrawMatches(nil)
@@ -310,8 +309,7 @@ func handleEndOfFile(i *Input, ev termbox.Event) {
 func handleKillBeginOfLine(i *Input, _ termbox.Event) {
 	i.query = i.query[i.caretPos:]
 	i.caretPos = 0
-	if len(i.query) > 0 {
-		i.ExecQuery(string(i.query))
+	if i.ExecQuery() {
 		return
 	}
 	i.current = nil
@@ -324,8 +322,7 @@ func handleKillEndOfLine(i *Input, _ termbox.Event) {
 	}
 
 	i.query = i.query[0:i.caretPos]
-	if len(i.query) > 0 {
-		i.ExecQuery(string(i.query))
+	if i.ExecQuery() {
 		return
 	}
 	i.current = nil
@@ -347,8 +344,8 @@ func handleDeleteForwardChar(i *Input, _ termbox.Event) {
 	copy(buf, i.query[:i.caretPos])
 	copy(buf[i.caretPos:], i.query[i.caretPos+1:])
 	i.query = buf
-	if len(i.query) > 0 {
-		i.ExecQuery(string(i.query))
+
+	if i.ExecQuery() {
 		return
 	}
 
@@ -374,8 +371,8 @@ func handleDeleteBackwardChar(i *Input, ev termbox.Event) {
 		i.query = buf
 	}
 	i.caretPos--
-	if len(i.query) > 0 {
-		i.ExecQuery(string(i.query))
+
+	if i.ExecQuery() {
 		return
 	}
 
@@ -403,8 +400,7 @@ func handleDeleteForwardWord(i *Input, _ termbox.Event) {
 		}
 	}
 
-	if len(i.query) > 0 {
-		i.ExecQuery(string(i.query))
+	if i.ExecQuery() {
 		return
 	}
 
@@ -433,8 +429,7 @@ func handleDeleteBackwardWord(i *Input, _ termbox.Event) {
 		}
 	}
 
-	if len(i.query) > 0 {
-		i.ExecQuery(string(i.query))
+	if i.ExecQuery() {
 		return
 	}
 

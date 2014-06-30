@@ -168,7 +168,7 @@ func main() {
 
 	if len(opts.Query) > 0 {
 		ctx.SetQuery([]rune(opts.Query))
-		ctx.ExecQuery(opts.Query)
+		ctx.ExecQuery()
 	} else {
 		view.Refresh()
 	}

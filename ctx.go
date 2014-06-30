@@ -162,8 +162,12 @@ func (c *Ctx) Terminate() {
 	close(c.loopCh)
 }
 
-func (c *Ctx) ExecQuery(v string) {
-	c.queryCh <- v
+func (c *Ctx) ExecQuery() bool {
+	if len(c.query) > 0 {
+		c.queryCh <- string(c.query)
+		return true
+	}
+	return false
 }
 
 func (c *Ctx) DrawMatches(m []Match) {
