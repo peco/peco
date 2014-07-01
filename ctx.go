@@ -74,6 +74,7 @@ type Ctx struct {
 	selection      Selection
 	lines          []Match
 	current        []Match
+	bufferSize     int
 	config         *Config
 	Matchers       []Matcher
 	CurrentMatcher int
@@ -82,7 +83,7 @@ type Ctx struct {
 	wait *sync.WaitGroup
 }
 
-func NewCtx(enableSep bool) *Ctx {
+func NewCtx(enableSep bool, bufferSize int) *Ctx {
 	return &Ctx{
 		enableSep,
 		[]Match{},
@@ -98,6 +99,7 @@ func NewCtx(enableSep bool) *Ctx {
 		Selection([]int{}),
 		[]Match{},
 		nil,
+		bufferSize,
 		NewConfig(),
 		[]Matcher{
 			NewIgnoreCaseMatcher(enableSep),
@@ -121,6 +123,14 @@ func (c *Ctx) ReadConfig(file string) error {
 	c.SetCurrentMatcher(c.config.Matcher)
 
 	return nil
+}
+
+func (c *Ctx) IsBufferOverflowing() bool {
+	if c.bufferSize <= 0 {
+		return false
+	}
+
+	return len(c.lines) > c.bufferSize
 }
 
 func (c *Ctx) Result() []Match {
