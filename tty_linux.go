@@ -3,7 +3,6 @@
 package peco
 
 import (
-	"os"
 	"syscall"
 	"unsafe"
 )
