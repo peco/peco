@@ -48,11 +48,8 @@ func (v *View) printStatus(msg string) {
 	w, h := termbox.Size()
 
 	width := runewidth.StringWidth(msg)
-	for width > w {
-		// Strip runes off the end
-		_, size := utf8.DecodeLastRuneInString(msg)
-		msg = msg[:len(msg)-size]
-		width = runewidth.StringWidth(msg)
+	if width > w {
+		msg = runewidth.Truncate(msg, width - w, "")
 	}
 
 	pad := make([]byte, w-width)
