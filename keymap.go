@@ -161,6 +161,11 @@ func handleToggleSelection(i *Input, _ termbox.Event) {
 	i.selection.Add(i.currentLine)
 }
 
+func handleSelectNone(i *Input, _ termbox.Event) {
+	i.selection.Clear()
+	i.DrawMatches(nil)
+}
+
 func handleToggleSelectionAndSelectNext(i *Input, ev termbox.Event) {
 	handleToggleSelection(i, ev)
 	handleSelectNext(i, ev)
@@ -477,6 +482,7 @@ var handlers = map[string]KeymapHandler{
 	"peco.SelectNext":                   handleSelectNext,
 	"peco.ToggleSelection":              handleToggleSelection,
 	"peco.ToggleSelectionAndSelectNext": handleToggleSelectionAndSelectNext,
+	"peco.SelectNone":                   handleSelectNone,
 	"peco.RotateMatcher":                handleRotateMatcher,
 	"peco.Finish":                       handleFinish,
 	"peco.Cancel":                       handleCancel,
@@ -506,6 +512,7 @@ func NewKeymap() Keymap {
 			termbox.KeyCtrlU:      handleKillBeginOfLine,
 			termbox.KeyCtrlR:      handleRotateMatcher,
 			termbox.KeyCtrlSpace:  handleToggleSelectionAndSelectNext,
+			termbox.KeyCtrlG:      handleSelectNone,
 		},
 		{},
 	}
