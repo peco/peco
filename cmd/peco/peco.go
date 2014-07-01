@@ -46,9 +46,8 @@ func main() {
 	defer func() { os.Exit(st) }()
 
 	if envvar := os.Getenv("GOMAXPROCS"); envvar == "" {
-		 runtime.GOMAXPROCS(runtime.NumCPU());
+		runtime.GOMAXPROCS(runtime.NumCPU())
 	}
-
 
 	opts := &cmdOptions{}
 	p := flags.NewParser(opts, flags.PrintErrors)
@@ -72,15 +71,20 @@ func main() {
 	var in *os.File
 
 	// receive in from either a file or Stdin
-	if len(args) > 0 {
+	switch {
+	case len(args) > 0:
 		in, err = os.Open(args[0])
 		if err != nil {
 			st = 1
 			fmt.Fprintln(os.Stderr, err)
 			return
 		}
-	} else if !peco.IsTty() {
+	case !peco.IsTty(os.Stdin.Fd()):
 		in = os.Stdin
+	default:
+		fmt.Fprintln(os.Stderr, "You must supply something to work with via filename or stdin")
+		st = 1
+		return
 	}
 
 	ctx := peco.NewCtx(opts.ContextSep)
@@ -124,13 +128,6 @@ func main() {
 		ctx.SetCurrentMatcher(peco.CaseSensitiveMatch)
 	}
 
-	if err = ctx.ReadBuffer(in); err != nil {
-		// Nothing to process, bail out
-		fmt.Fprintln(os.Stderr, "You must supply something to work with via filename or stdin")
-		st = 1
-		return
-	}
-
 	err = peco.TtyReady()
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
@@ -155,12 +152,14 @@ func main() {
 	view := ctx.NewView()
 	filter := ctx.NewFilter()
 	input := ctx.NewInput()
+	reader := ctx.NewBufferReader(in)
 
 	// AddWaitGroup must be called in this main thread
 	sigCh := make(chan os.Signal, 1)
 	signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)
 
-	ctx.AddWaitGroup(4)
+	ctx.AddWaitGroup(5)
+	go reader.Loop()
 	go view.Loop()
 	go filter.Loop()
 	go input.Loop()
@@ -168,7 +167,7 @@ func main() {
 
 	if len(opts.Query) > 0 {
 		ctx.SetQuery([]rune(opts.Query))
-		ctx.ExecQuery(opts.Query)
+		ctx.ExecQuery()
 	} else {
 		view.Refresh()
 	}

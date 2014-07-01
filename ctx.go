@@ -1,7 +1,6 @@
 package peco
 
 import (
-	"bufio"
 	"fmt"
 	"io"
 	"os"
@@ -88,7 +87,7 @@ func NewCtx(enableSep bool) *Ctx {
 		make(chan struct{}),         // loopCh. You never send messages to this. no point in buffering
 		make(chan string, 5),        // queryCh.
 		make(chan []Match, 5),       // drawCh.
-		make(chan string, 5),				 // statusMsgCh
+		make(chan string, 5),        // statusMsgCh
 		make(chan PagingRequest, 5), // pagingCh
 		sync.Mutex{},
 		[]rune{},
@@ -162,8 +161,12 @@ func (c *Ctx) Terminate() {
 	close(c.loopCh)
 }
 
-func (c *Ctx) ExecQuery(v string) {
-	c.queryCh <- v
+func (c *Ctx) ExecQuery() bool {
+	if len(c.query) > 0 {
+		c.queryCh <- string(c.query)
+		return true
+	}
+	return false
 }
 
 func (c *Ctx) DrawMatches(m []Match) {
@@ -180,17 +183,8 @@ func (c *Ctx) Buffer() []Match {
 	return lcopy
 }
 
-func (c *Ctx) ReadBuffer(input io.Reader) error {
-	scanner := bufio.NewScanner(input)
-	for scanner.Scan() {
-		line := scanner.Text()
-		c.lines = append(c.lines, NewNoMatch(line, c.enableSep))
-	}
-
-	if len(c.lines) > 0 {
-		return nil
-	}
-	return fmt.Errorf("No buffer to work with was available")
+func (c *Ctx) NewBufferReader(r io.ReadCloser) *BufferReader {
+	return &BufferReader{c, r}
 }
 
 func (c *Ctx) NewView() *View {

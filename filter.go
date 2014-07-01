@@ -10,10 +10,10 @@ func (f *Filter) Work(cancel chan struct{}, q string) {
 		f.DrawMatches(nil)
 		return
 	}
-	results := f.Matcher().Match(cancel, q, f.Buffer())
+	f.current = f.Matcher().Match(cancel, q, f.Buffer())
 	f.StatusMsgCh() <- ""
 	f.selection.Clear()
-	f.DrawMatches(results)
+	f.DrawMatches(nil)
 }
 
 func (f *Filter) Loop() {
