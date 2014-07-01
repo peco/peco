@@ -28,10 +28,10 @@ func setStdHandle(stdhandle int32, handle syscall.Handle) error {
 	return nil
 }
 
-func IsTty() bool {
+func IsTty(fd uintptr) bool {
 	f := syscall.MustLoadDLL("kernel32.dll").MustFindProc("GetConsoleMode")
 	var st uint32
-	r1, _, err := f.Call(uintptr(os.Stdin.Fd()), uintptr(unsafe.Pointer(&st)))
+	r1, _, err := f.Call(fd, uintptr(unsafe.Pointer(&st)))
 	return r1 != 0 && err != nil
 }
 

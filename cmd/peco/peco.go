@@ -79,7 +79,7 @@ func main() {
 			fmt.Fprintln(os.Stderr, err)
 			return
 		}
-	case !peco.IsTty():
+	case !peco.IsTty(os.Stdin.Fd()):
 		in = os.Stdin
 	default:
 		fmt.Fprintln(os.Stderr, "You must supply something to work with via filename or stdin")

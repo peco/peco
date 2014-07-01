@@ -8,9 +8,9 @@ import (
 	"unsafe"
 )
 
-func IsTty() bool {
+func IsTty(fd uintptr) bool {
 	var termios syscall.Termios
-	_, _, err := syscall.Syscall6(syscall.SYS_IOCTL, os.Stdin.Fd(), uintptr(syscall.TCGETS), uintptr(unsafe.Pointer(&termios)), 0, 0, 0)
+	_, _, err := syscall.Syscall6(syscall.SYS_IOCTL, fd, uintptr(syscall.TCGETS), uintptr(unsafe.Pointer(&termios)), 0, 0, 0)
 	return err == 0
 }
 
