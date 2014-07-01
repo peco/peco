@@ -87,7 +87,7 @@ go get github.com/peco/peco/cmd/peco
 Command Line Options
 ====================
 
-### --help
+### -h, --help
 
 Display a help message
 
@@ -103,7 +103,7 @@ Specifies the default query to be used upon startup. This is useful for scripts 
 
 Pass peco a configuration file, which currently must be a JSON file. If unspecified it will try a series of files by default. See `Configuration File` for the actual locationes searched.
 
-### --buffer-size <num>
+### -b, --buffer-size <num>
 
 Limits the buffer size to `num`. This is an important feature when you are using peco against a possibbly infinite stream, as it limits the number of lines that peco holds at any given time, preventing it from exhausting all the memory. By default the buffer size is unlimited.
 
