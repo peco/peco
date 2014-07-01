@@ -1,6 +1,15 @@
 Changes
 =======
 
+v0.1.12 - 01 Jul 2014
+  Bugs/Fixes
+  * Properly report an error if specified file does not exist
+  Features
+  * Previously peco only read from fixed size input, but now it can
+    read from streaming input such as the result of tail -f <file>.
+    Do note that this buffer does take up memory, so you do not want
+    to be running it for large data.
+
 v0.1.11 - 30 Jun 2014
   Bugs/Fixes
   * CustoMatchers are now verified, i.e., exec.LookPath() is applied to
