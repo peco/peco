@@ -22,6 +22,7 @@ Options:
   --rcfile=RCFILE       path to the settings file
   --query=QUERY         pre-input query
   --no-ignore-case      start in case-sensitive mode
+  -b, --buffer-size     number of lines to keep in search buffer
   --null                expect NUL (\0) as separator for target/output (EXPERIMENTAL)
 `
 	os.Stderr.Write([]byte(v))
@@ -34,6 +35,7 @@ type cmdOptions struct {
 	Rcfile       string `long:"rcfile" descriotion:"path to the settings file"`
 	NoIgnoreCase bool   `long:"no-ignore-case" description:"start in case-sensitive-mode" default:"false"`
 	Version      bool   `long:"version" description:"print the version and exit"`
+	BufferSize   int    `long:"buffer-size" short:"b" description:"number of lines to keep in search buffer"`
 	ContextSep   bool   `long:"null" description:"expect NUL (\\0) as separator for target/output"`
 }
 
@@ -85,7 +87,7 @@ func main() {
 		return
 	}
 
-	ctx := peco.NewCtx(opts.ContextSep)
+	ctx := peco.NewCtx(opts.ContextSep, opts.BufferSize)
 	defer func() {
 		if err := recover(); err != nil {
 			st = 1

@@ -46,7 +46,12 @@ func (b *BufferReader) Loop() {
 			}
 
 			if line != "" {
+				m.Lock()
 				b.lines = append(b.lines, NewNoMatch(line, b.enableSep))
+				if b.IsBufferOverflowing() {
+					b.lines = b.lines[1:]
+				}
+				m.Unlock()
 			}
 
 			m.Lock()
