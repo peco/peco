@@ -4,8 +4,10 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"os/signal"
 	"sort"
 	"sync"
+	"syscall"
 )
 
 type Selection []int
@@ -248,21 +250,32 @@ func (c *Ctx) ExitWith(i int) {
 	c.Stop()
 }
 
-func (c *Ctx) SignalHandlerLoop(sigCh chan os.Signal) {
-	defer c.ReleaseWaitGroup()
+type SignalHandler struct {
+	*Ctx
+	sigCh chan os.Signal
+}
+
+func (c *Ctx) NewSignalHandler() *SignalHandler {
+	sigCh := make(chan os.Signal, 1)
+	signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)
+	return &SignalHandler{c, sigCh}
+}
+
+func (s *SignalHandler) Loop() {
+	defer s.ReleaseWaitGroup()
 
 	for {
 		select {
-		case <-c.LoopCh():
+		case <-s.LoopCh():
 			return
-		case <-sigCh:
+		case <-s.sigCh:
 			// XXX For future reference: DO NOT, and I mean DO NOT call
 			// termbox.Close() here. Calling termbox.Close() twice in our
 			// context actually BLOCKS. Can you believe it? IT BLOCKS.
 			//
 			// So if we called termbox.Close() here, and then in main()
 			// defer termbox.Close() blocks. Not cool.
-			c.ExitWith(1)
+			s.ExitWith(1)
 			return
 		}
 	}

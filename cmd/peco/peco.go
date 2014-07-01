@@ -3,9 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
-	"os/signal"
 	"runtime"
-	"syscall"
 
 	"github.com/jessevdk/go-flags"
 	"github.com/nsf/termbox-go"
@@ -153,17 +151,19 @@ func main() {
 	filter := ctx.NewFilter()
 	input := ctx.NewInput()
 	reader := ctx.NewBufferReader(in)
+	sig := ctx.NewSignalHandler()
 
-	// AddWaitGroup must be called in this main thread
-	sigCh := make(chan os.Signal, 1)
-	signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)
-
-	ctx.AddWaitGroup(5)
-	go reader.Loop()
-	go view.Loop()
-	go filter.Loop()
-	go input.Loop()
-	go ctx.SignalHandlerLoop(sigCh)
+	loopers := []interface{ Loop() }{
+		reader,
+		view,
+		filter,
+		input,
+		sig,
+	}
+	for _, looper := range loopers {
+		ctx.AddWaitGroup(1)
+		go looper.Loop()
+	}
 
 	if len(opts.Query) > 0 {
 		ctx.SetQuery([]rune(opts.Query))
