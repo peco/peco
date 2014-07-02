@@ -10,6 +10,11 @@ import (
 	"syscall"
 )
 
+type CtxOptions interface {
+	EnableNullSep() bool
+	BufferSize() int
+}
+
 type Selection []int
 
 func (s Selection) Has(v int) bool {
@@ -83,9 +88,9 @@ type Ctx struct {
 	wait *sync.WaitGroup
 }
 
-func NewCtx(enableSep bool, bufferSize int) *Ctx {
+func NewCtx(o CtxOptions) *Ctx {
 	return &Ctx{
-		enableSep,
+		o.EnableNullSep(),
 		[]Match{},
 		make(chan struct{}),         // loopCh. You never send messages to this. no point in buffering
 		make(chan string, 5),        // queryCh.
@@ -99,12 +104,12 @@ func NewCtx(enableSep bool, bufferSize int) *Ctx {
 		Selection([]int{}),
 		[]Match{},
 		nil,
-		bufferSize,
+		o.BufferSize(),
 		NewConfig(),
 		[]Matcher{
-			NewIgnoreCaseMatcher(enableSep),
-			NewCaseSensitiveMatcher(enableSep),
-			NewRegexpMatcher(enableSep),
+			NewIgnoreCaseMatcher(o.EnableNullSep()),
+			NewCaseSensitiveMatcher(o.EnableNullSep()),
+			NewRegexpMatcher(o.EnableNullSep()),
 		},
 		0,
 		0,
