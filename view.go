@@ -112,6 +112,7 @@ func (v *View) movePage(p PagingRequest) {
 	} else if v.current != nil && v.currentLine > len(v.current) {
 		v.currentLine = 1
 	}
+	v.ApplySelectionRange()
 	v.drawScreen(nil)
 }
 

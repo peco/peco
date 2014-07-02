@@ -98,6 +98,7 @@ func init() {
 	)
 	ActionFunc(doSelectAll).Register("SelectAll")
 	ActionFunc(doSelectVisible).Register("SelectVisible")
+	ActionFunc(doToggleSelectMode).Register("ToggleSelectMode")
 }
 
 func doRotateMatcher(i *Input, ev termbox.Event) {
@@ -117,6 +118,16 @@ func doToggleSelection(i *Input, _ termbox.Event) {
 		return
 	}
 	i.selection.Add(i.currentLine)
+}
+
+func doToggleSelectMode(i *Input, _ termbox.Event) {
+	if i.IsSelectMode() {
+		i.selectionRangeStart = NoSelectionRange
+		i.selection = Selection{}
+	} else {
+		i.selectionRangeStart = i.currentLine
+	}
+	i.DrawMatches(nil)
 }
 
 func doSelectNone(i *Input, _ termbox.Event) {
