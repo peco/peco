@@ -29,14 +29,24 @@ Options:
 }
 
 type cmdOptions struct {
-	Help         bool   `short:"h" long:"help" description:"show this help message and exit"`
-	TTY          string `long:"tty" description:"path to the TTY (usually, the value of $TTY)"`
-	Query        string `long:"query"`
-	Rcfile       string `long:"rcfile" descriotion:"path to the settings file"`
-	NoIgnoreCase bool   `long:"no-ignore-case" description:"start in case-sensitive-mode" default:"false"`
-	Version      bool   `long:"version" description:"print the version and exit"`
-	BufferSize   int    `long:"buffer-size" short:"b" description:"number of lines to keep in search buffer"`
-	ContextSep   bool   `long:"null" description:"expect NUL (\\0) as separator for target/output"`
+	OptHelp          bool   `short:"h" long:"help" description:"show this help message and exit"`
+	OptTTY           string `long:"tty" description:"path to the TTY (usually, the value of $TTY)"`
+	OptQuery         string `long:"query"`
+	OptRcfile        string `long:"rcfile" descriotion:"path to the settings file"`
+	OptNoIgnoreCase  bool   `long:"no-ignore-case" description:"start in case-sensitive-mode" default:"false"`
+	OptVersion       bool   `long:"version" description:"print the version and exit"`
+	OptBufferSize    int    `long:"buffer-size" short:"b" description:"number of lines to keep in search buffer"`
+	OptEnableNullSep bool   `long:"null" description:"expect NUL (\\0) as separator for target/output"`
+}
+
+// BufferSize returns the specified buffer size. Fulfills peco.CtxOptions
+func (o cmdOptions) BufferSize() int {
+	return o.OptBufferSize
+}
+
+// EnableNullSep returns tru if --null was specified. Fulfills peco.CtxOptions
+func (o cmdOptions) EnableNullSep() bool {
+	return o.OptEnableNullSep
 }
 
 func main() {
@@ -58,12 +68,12 @@ func main() {
 		return
 	}
 
-	if opts.Help {
+	if opts.OptHelp {
 		showHelp()
 		return
 	}
 
-	if opts.Version {
+	if opts.OptVersion {
 		fmt.Fprintf(os.Stderr, "peco: %s\n", version)
 		return
 	}
@@ -87,7 +97,7 @@ func main() {
 		return
 	}
 
-	ctx := peco.NewCtx(opts.ContextSep, opts.BufferSize)
+	ctx := peco.NewCtx(opts)
 	defer func() {
 		if err := recover(); err != nil {
 			st = 1
@@ -105,18 +115,18 @@ func main() {
 		}
 	}()
 
-	if opts.Rcfile == "" {
+	if opts.OptRcfile == "" {
 		file, err := peco.LocateRcfile()
 		if err == nil {
-			opts.Rcfile = file
+			opts.OptRcfile = file
 		}
 	}
 
 	// Default matcher is IgnoreCase
 	ctx.SetCurrentMatcher(peco.IgnoreCaseMatch)
 
-	if opts.Rcfile != "" {
-		err = ctx.ReadConfig(opts.Rcfile)
+	if opts.OptRcfile != "" {
+		err = ctx.ReadConfig(opts.OptRcfile)
 		if err != nil {
 			fmt.Fprintln(os.Stderr, err)
 			st = 1
@@ -124,7 +134,7 @@ func main() {
 		}
 	}
 
-	if opts.NoIgnoreCase {
+	if opts.OptNoIgnoreCase {
 		ctx.SetCurrentMatcher(peco.CaseSensitiveMatch)
 	}
 
@@ -155,7 +165,9 @@ func main() {
 	reader := ctx.NewBufferReader(in)
 	sig := ctx.NewSignalHandler()
 
-	loopers := []interface{ Loop() }{
+	loopers := []interface {
+		Loop()
+	}{
 		reader,
 		view,
 		filter,
@@ -167,8 +179,8 @@ func main() {
 		go looper.Loop()
 	}
 
-	if len(opts.Query) > 0 {
-		ctx.SetQuery([]rune(opts.Query))
+	if len(opts.OptQuery) > 0 {
+		ctx.SetQuery([]rune(opts.OptQuery))
 		ctx.ExecQuery()
 	} else {
 		view.Refresh()
