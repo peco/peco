@@ -6,76 +6,89 @@ import (
 	"github.com/nsf/termbox-go"
 )
 
-var handlers map[string]Action
-var defaultKeyBinding map[termbox.Key]Action
-
-
+// Action describes an action that can be executed upon receiving user
+// input. It's an interface so you can create any kind of Action you need,
+// but the most everything is implemented in terms of ActionFunc, which is
+// callback based Action
 type Action interface {
+	Register(string, ...termbox.Key)
 	Execute(*Input, termbox.Event)
 }
 
+// ActionFunc is a type of Action that is basically just a callback.
 type ActionFunc func(*Input, termbox.Event)
 
+// This is the global map of canonical action name to actions
+var nameToActions map[string]Action
+
+// This is the default keybinding used by NewKeymap()
+var defaultKeyBinding map[termbox.Key]Action
+
+// Execute fulfills the Action interface for AfterFunc
 func (a ActionFunc) Execute(i *Input, e termbox.Event) {
 	a(i, e)
 }
 
-func (a ActionFunc) register(name string, defaultKeys ...termbox.Key) {
-	handlers["peco."+name] = a
+// Register fulfills the Actin interface for AfterFunc. Registers `a`
+// into the global action registry by the name `name`, and maps to
+// default keys via `defaultKeys`
+func (a ActionFunc) Register(name string, defaultKeys ...termbox.Key) {
+	nameToActions["peco."+name] = a
 	for _, k := range defaultKeys {
 		defaultKeyBinding[k] = a
 	}
 }
 
 func init() {
-	handlers = map[string]Action{}
+	// Build the global maps
+	nameToActions = map[string]Action{}
 	defaultKeyBinding = map[termbox.Key]Action{}
 
-	ActionFunc(doBeginningOfLine).register("BeginningOfLine", termbox.KeyCtrlA)
-	ActionFunc(doBackwardChar).register("BackwardChar", termbox.KeyCtrlB)
-	ActionFunc(doBackwardWord).register("BackwardWord")
-	ActionFunc(doCancel).register("Cancel", termbox.KeyCtrlC, termbox.KeyEsc)
-	ActionFunc(doDeleteAll).register("DeleteAll")
-	ActionFunc(doDeleteBackwardChar).register(
+	ActionFunc(doBeginningOfLine).Register("BeginningOfLine", termbox.KeyCtrlA)
+	ActionFunc(doBackwardChar).Register("BackwardChar", termbox.KeyCtrlB)
+	ActionFunc(doBackwardWord).Register("BackwardWord")
+	ActionFunc(doCancel).Register("Cancel", termbox.KeyCtrlC, termbox.KeyEsc)
+	ActionFunc(doDeleteAll).Register("DeleteAll")
+	ActionFunc(doDeleteBackwardChar).Register(
 		"DeleteBackwardChar",
 		termbox.KeyBackspace,
 		termbox.KeyBackspace2,
 	)
-	ActionFunc(doDeleteBackwardWord).register(
+	ActionFunc(doDeleteBackwardWord).Register(
 		"DeleteBackwardWord",
 		termbox.KeyCtrlW,
 	)
-	ActionFunc(doDeleteForwardChar).register("DeletedForwardChar", termbox.KeyCtrlD)
-	ActionFunc(doDeleteForwardWord).register("DeleteForwardWord")
-	ActionFunc(doEndOfFile).register("EndOfFile")
-	ActionFunc(doEndOfLine).register("EndOfLine", termbox.KeyCtrlE)
-	ActionFunc(doFinish).register("Finish", termbox.KeyEnter)
-	ActionFunc(doForwardChar).register("ForwardChar", termbox.KeyCtrlF)
-	ActionFunc(doForwardWord).register("ForwardWord")
-	ActionFunc(doKillEndOfLine).register("KillEndOfLine", termbox.KeyCtrlK)
-	ActionFunc(doKillBeginningOfLine).register("KillBeginningOfLine", termbox.KeyCtrlU)
-	ActionFunc(doRotateMatcher).register("RotateMatcher", termbox.KeyCtrlR)
-	ActionFunc(doSelectNext).register(
+	ActionFunc(doDeleteForwardChar).Register("DeletedForwardChar", termbox.KeyCtrlD)
+	ActionFunc(doDeleteForwardWord).Register("DeleteForwardWord")
+	ActionFunc(doEndOfFile).Register("EndOfFile")
+	ActionFunc(doEndOfLine).Register("EndOfLine", termbox.KeyCtrlE)
+	ActionFunc(doFinish).Register("Finish", termbox.KeyEnter)
+	ActionFunc(doForwardChar).Register("ForwardChar", termbox.KeyCtrlF)
+	ActionFunc(doForwardWord).Register("ForwardWord")
+	ActionFunc(doKillEndOfLine).Register("KillEndOfLine", termbox.KeyCtrlK)
+	ActionFunc(doKillBeginningOfLine).Register("KillBeginningOfLine", termbox.KeyCtrlU)
+	ActionFunc(doRotateMatcher).Register("RotateMatcher", termbox.KeyCtrlR)
+	ActionFunc(doSelectNext).Register(
 		"SelectNext",
 		termbox.KeyArrowDown,
 		termbox.KeyCtrlN,
 	)
-	ActionFunc(doSelectNextPage).register(
+	ActionFunc(doSelectNextPage).Register(
 		"SelectNextPage",
 		termbox.KeyArrowRight,
 	)
-	ActionFunc(doSelectPrevious).register(
+	ActionFunc(doSelectPrevious).Register(
 		"SelectPrevious",
 		termbox.KeyArrowUp,
 		termbox.KeyCtrlP,
 	)
-	ActionFunc(doSelectPreviousPage).register(
+	ActionFunc(doSelectPreviousPage).Register(
 		"SelectPreviousPage",
 		termbox.KeyArrowLeft,
 	)
 
-	ActionFunc(doToggleSelection).register("ToggleSelection")
-	ActionFunc(doToggleSelectionAndSelectNext).register(
+	ActionFunc(doToggleSelection).Register("ToggleSelection")
+	ActionFunc(doToggleSelectionAndSelectNext).Register(
 		"ToggleSelectionAndSelectNext",
 		termbox.KeyCtrlSpace,
 	)

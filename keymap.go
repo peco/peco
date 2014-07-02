@@ -220,7 +220,7 @@ func (km Keymap) UnmarshalJSON(buf []byte) error {
 			continue
 		}
 
-		v, ok := handlers[vs]
+		v, ok := nameToActions[vs]
 		if !ok {
 			fmt.Fprintf(os.Stderr, "Unknown handler %s", vs)
 			continue
