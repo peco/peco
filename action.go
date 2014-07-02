@@ -83,6 +83,7 @@ func init() {
 		"SelectNone",
 		termbox.KeyCtrlG,
 	)
+	ActionFunc(doSelectAll).register("SelectAll")
 	ActionFunc(doSelectVisible).register("SelectVisible")
 }
 
@@ -107,6 +108,13 @@ func doToggleSelection(i *Input, _ termbox.Event) {
 
 func doSelectNone(i *Input, _ termbox.Event) {
 	i.selection.Clear()
+	i.DrawMatches(nil)
+}
+
+func doSelectAll(i *Input, _ termbox.Event) {
+	for lineno:=1; lineno <= len(i.current); lineno++ {
+		i.selection.Add(lineno)
+	}
 	i.DrawMatches(nil)
 }
 
