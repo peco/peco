@@ -127,6 +127,9 @@ func (v *View) drawScreen(targets []Match) {
 			targets = v.Ctx.lines
 		}
 	}
+	if v.Ctx.currentLine > len(targets) && len(targets) > 0 {
+		v.Ctx.currentLine = len(targets)
+	}
 
 	width, height := termbox.Size()
 	perPage := height - 4

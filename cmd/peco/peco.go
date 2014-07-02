@@ -24,6 +24,7 @@ Options:
   --no-ignore-case      start in case-sensitive mode
   -b, --buffer-size     number of lines to keep in search buffer
   --null                expect NUL (\0) as separator for target/output (EXPERIMENTAL)
+  --initial-index       position of the initial index of the selection
 `
 	os.Stderr.Write([]byte(v))
 }
@@ -37,6 +38,7 @@ type cmdOptions struct {
 	OptVersion       bool   `long:"version" description:"print the version and exit"`
 	OptBufferSize    int    `long:"buffer-size" short:"b" description:"number of lines to keep in search buffer"`
 	OptEnableNullSep bool   `long:"null" description:"expect NUL (\\0) as separator for target/output"`
+	OptInitialIndex  int    `long:"initial-index" description:"position of the initial index of the selection"`
 }
 
 // BufferSize returns the specified buffer size. Fulfills peco.CtxOptions
@@ -47,6 +49,14 @@ func (o cmdOptions) BufferSize() int {
 // EnableNullSep returns tru if --null was specified. Fulfills peco.CtxOptions
 func (o cmdOptions) EnableNullSep() bool {
 	return o.OptEnableNullSep
+}
+
+func (o cmdOptions) InitialIndex() int {
+	if o.OptInitialIndex > 0 {
+		return o.OptInitialIndex
+	} else {
+		return 1
+	}
 }
 
 func main() {
