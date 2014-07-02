@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"os"
 	"strings"
-	"unicode"
 
 	"github.com/nsf/termbox-go"
 )
@@ -17,14 +16,12 @@ const (
 	ModMax
 )
 
-type KeymapHandler func(*Input, termbox.Event)
-
 // Keymap contains keys which are modifiers (like Alt+X), and points to
 // RawKeymap
 type Keymap [ModMax]RawKeymap
 
-// RawKeymap contains the actual mapping from termbox.Key to KeymapHandler
-type RawKeymap map[termbox.Key]KeymapHandler
+// RawKeymap contains the actual mapping from termbox.Key to Action
+type RawKeymap map[termbox.Key]Action
 
 type KeymapStringKey string
 
@@ -139,304 +136,6 @@ func handleAcceptChar(i *Input, ev termbox.Event) {
 	}
 }
 
-// peco.Finish -> end program, exit with success
-func handleFinish(i *Input, _ termbox.Event) {
-	// Must end with all the selected lines.
-	i.selection.Add(i.currentLine)
-
-	i.result = []Match{}
-	for _, lineno := range i.selection {
-		if lineno <= len(i.current) {
-			i.result = append(i.result, i.current[lineno-1])
-		}
-	}
-	i.ExitWith(0)
-}
-
-func handleToggleSelection(i *Input, _ termbox.Event) {
-	if i.selection.Has(i.currentLine) {
-		i.selection.Remove(i.currentLine)
-		return
-	}
-	i.selection.Add(i.currentLine)
-}
-
-func handleToggleSelectionAndSelectNext(i *Input, ev termbox.Event) {
-	handleToggleSelection(i, ev)
-	handleSelectNext(i, ev)
-}
-
-// peco.Cancel -> end program, exit with failure
-func handleCancel(i *Input, ev termbox.Event) {
-	i.ExitWith(1)
-}
-
-func handleSelectPrevious(i *Input, ev termbox.Event) {
-	i.PagingCh() <- ToPrevLine
-	i.DrawMatches(nil)
-}
-
-func handleSelectNext(i *Input, ev termbox.Event) {
-	i.PagingCh() <- ToNextLine
-	i.DrawMatches(nil)
-}
-
-func handleSelectPreviousPage(i *Input, ev termbox.Event) {
-	i.PagingCh() <- ToPrevPage
-	i.DrawMatches(nil)
-}
-
-func handleSelectNextPage(i *Input, ev termbox.Event) {
-	i.PagingCh() <- ToNextPage
-	i.DrawMatches(nil)
-}
-
-func handleRotateMatcher(i *Input, ev termbox.Event) {
-	i.Ctx.CurrentMatcher++
-	if i.Ctx.CurrentMatcher >= len(i.Ctx.Matchers) {
-		i.Ctx.CurrentMatcher = 0
-	}
-	if i.ExecQuery() {
-		return
-	}
-	i.DrawMatches(nil)
-}
-
-func handleForwardWord(i *Input, _ termbox.Event) {
-	if i.caretPos >= len(i.query) {
-		return
-	}
-
-	foundSpace := false
-	for pos := i.caretPos; pos < len(i.query); pos++ {
-		r := i.query[pos]
-		if foundSpace {
-			if !unicode.IsSpace(r) {
-				i.caretPos = pos
-				i.DrawMatches(nil)
-				return
-			}
-		} else {
-			if unicode.IsSpace(r) {
-				foundSpace = true
-			}
-		}
-	}
-
-	// not found. just move to the end of the buffer
-	i.caretPos = len(i.query)
-	i.DrawMatches(nil)
-
-}
-
-func handleBackwardWord(i *Input, _ termbox.Event) {
-	if i.caretPos == 0 {
-		return
-	}
-
-	if i.caretPos >= len(i.query) {
-		i.caretPos--
-	}
-
-	// if we start from a whitespace-ish position, we should
-	// rewind to the end of the previous word, and then do the
-	// search all over again
-SEARCH_PREV_WORD:
-	if unicode.IsSpace(i.query[i.caretPos]) {
-		for pos := i.caretPos; pos > 0; pos-- {
-			if !unicode.IsSpace(i.query[pos]) {
-				i.caretPos = pos
-				break
-			}
-		}
-	}
-
-	// if we start from the first character of a word, we
-	// should attempt to move back and search for the previous word
-	if i.caretPos > 0 && unicode.IsSpace(i.query[i.caretPos-1]) {
-		i.caretPos--
-		goto SEARCH_PREV_WORD
-	}
-
-	// Now look for a space
-	for pos := i.caretPos; pos > 0; pos-- {
-		if unicode.IsSpace(i.query[pos]) {
-			i.caretPos = pos + 1
-			i.DrawMatches(nil)
-			return
-		}
-	}
-
-	// not found. just move to the beginning of the buffer
-	i.caretPos = 0
-	i.DrawMatches(nil)
-}
-
-func handleForwardChar(i *Input, _ termbox.Event) {
-	if i.caretPos >= len(i.query) {
-		return
-	}
-	i.caretPos++
-	i.DrawMatches(nil)
-}
-
-func handleBackwardChar(i *Input, _ termbox.Event) {
-	if i.caretPos <= 0 {
-		return
-	}
-	i.caretPos--
-	i.DrawMatches(nil)
-}
-
-func handleBeginningOfLine(i *Input, _ termbox.Event) {
-	i.caretPos = 0
-	i.DrawMatches(nil)
-}
-
-func handleEndOfLine(i *Input, _ termbox.Event) {
-	i.caretPos = len(i.query)
-	i.DrawMatches(nil)
-}
-
-func handleEndOfFile(i *Input, ev termbox.Event) {
-	if len(i.query) > 0 {
-		handleDeleteForwardChar(i, ev)
-	} else {
-		handleCancel(i, ev)
-	}
-}
-
-func handleKillBeginOfLine(i *Input, _ termbox.Event) {
-	i.query = i.query[i.caretPos:]
-	i.caretPos = 0
-	if i.ExecQuery() {
-		return
-	}
-	i.current = nil
-	i.DrawMatches(nil)
-}
-
-func handleKillEndOfLine(i *Input, _ termbox.Event) {
-	if len(i.query) <= i.caretPos {
-		return
-	}
-
-	i.query = i.query[0:i.caretPos]
-	if i.ExecQuery() {
-		return
-	}
-	i.current = nil
-	i.DrawMatches(nil)
-}
-
-func handleDeleteAll(i *Input, _ termbox.Event) {
-	i.query = make([]rune, 0)
-	i.current = nil
-	i.DrawMatches(nil)
-}
-
-func handleDeleteForwardChar(i *Input, _ termbox.Event) {
-	if len(i.query) <= i.caretPos {
-		return
-	}
-
-	buf := make([]rune, len(i.query)-1)
-	copy(buf, i.query[:i.caretPos])
-	copy(buf[i.caretPos:], i.query[i.caretPos+1:])
-	i.query = buf
-
-	if i.ExecQuery() {
-		return
-	}
-
-	i.current = nil
-	i.DrawMatches(nil)
-}
-
-func handleDeleteBackwardChar(i *Input, ev termbox.Event) {
-	if len(i.query) <= 0 {
-		return
-	}
-
-	switch i.caretPos {
-	case 0:
-		// No op
-		return
-	case len(i.query):
-		i.query = i.query[:len(i.query)-1]
-	default:
-		buf := make([]rune, len(i.query)-1)
-		copy(buf, i.query[:i.caretPos])
-		copy(buf[i.caretPos-1:], i.query[i.caretPos:])
-		i.query = buf
-	}
-	i.caretPos--
-
-	if i.ExecQuery() {
-		return
-	}
-
-	i.current = nil
-	i.DrawMatches(nil)
-}
-
-func handleDeleteForwardWord(i *Input, _ termbox.Event) {
-	if len(i.query) <= i.caretPos {
-		return
-	}
-
-	for pos := i.caretPos; pos < len(i.query); pos++ {
-		if pos == len(i.query)-1 {
-			i.query = i.query[:i.caretPos]
-			break
-		}
-
-		if unicode.IsSpace(i.query[pos]) {
-			buf := make([]rune, len(i.query)-(pos-i.caretPos))
-			copy(buf, i.query[:i.caretPos])
-			copy(buf[i.caretPos:], i.query[pos:])
-			i.query = buf
-			break
-		}
-	}
-
-	if i.ExecQuery() {
-		return
-	}
-
-	i.current = nil
-	i.DrawMatches(nil)
-}
-
-func handleDeleteBackwardWord(i *Input, _ termbox.Event) {
-	if i.caretPos == 0 {
-		return
-	}
-
-	for pos := i.caretPos - 1; pos >= 0; pos-- {
-		if pos == 0 {
-			i.query = i.query[i.caretPos:]
-			break
-		}
-
-		if unicode.IsSpace(i.query[pos]) {
-			buf := make([]rune, len(i.query)-(i.caretPos-pos))
-			copy(buf, i.query[:pos])
-			copy(buf[pos:], i.query[i.caretPos:])
-			i.query = buf
-			i.caretPos = pos
-			break
-		}
-	}
-
-	if i.ExecQuery() {
-		return
-	}
-
-	i.current = nil
-	i.DrawMatches(nil)
-}
-
 func (ksk KeymapStringKey) ToKey() (k termbox.Key, modifier int, err error) {
 	modifier = ModNone
 	key := string(ksk)
@@ -457,61 +156,18 @@ func (ksk KeymapStringKey) ToKey() (k termbox.Key, modifier int, err error) {
 	return
 }
 
-var handlers = map[string]KeymapHandler{
-	"peco.KillEndOfLine":                handleKillEndOfLine,
-	"peco.DeleteAll":                    handleDeleteAll,
-	"peco.BeginningOfLine":              handleBeginningOfLine,
-	"peco.EndOfLine":                    handleEndOfLine,
-	"peco.EndOfFile":                    handleEndOfFile,
-	"peco.ForwardChar":                  handleForwardChar,
-	"peco.BackwardChar":                 handleBackwardChar,
-	"peco.ForwardWord":                  handleForwardWord,
-	"peco.BackwardWord":                 handleBackwardWord,
-	"peco.DeleteForwardChar":            handleDeleteForwardChar,
-	"peco.DeleteBackwardChar":           handleDeleteBackwardChar,
-	"peco.DeleteForwardWord":            handleDeleteForwardWord,
-	"peco.DeleteBackwardWord":           handleDeleteBackwardWord,
-	"peco.SelectPreviousPage":           handleSelectPreviousPage,
-	"peco.SelectNextPage":               handleSelectNextPage,
-	"peco.SelectPrevious":               handleSelectPrevious,
-	"peco.SelectNext":                   handleSelectNext,
-	"peco.ToggleSelection":              handleToggleSelection,
-	"peco.ToggleSelectionAndSelectNext": handleToggleSelectionAndSelectNext,
-	"peco.RotateMatcher":                handleRotateMatcher,
-	"peco.Finish":                       handleFinish,
-	"peco.Cancel":                       handleCancel,
-}
-
 func NewKeymap() Keymap {
+	def := RawKeymap{}
+	for k, v := range defaultKeyBinding {
+		def[k] = v
+	}
 	return Keymap{
-		{
-			termbox.KeyEsc:        handleCancel,
-			termbox.KeyCtrlC:      handleCancel,
-			termbox.KeyEnter:      handleFinish,
-			termbox.KeyArrowUp:    handleSelectPrevious,
-			termbox.KeyCtrlP:      handleSelectPrevious,
-			termbox.KeyArrowDown:  handleSelectNext,
-			termbox.KeyCtrlN:      handleSelectNext,
-			termbox.KeyArrowLeft:  handleSelectPreviousPage,
-			termbox.KeyArrowRight: handleSelectNextPage,
-			termbox.KeyCtrlD:      handleDeleteForwardChar,
-			termbox.KeyBackspace:  handleDeleteBackwardChar,
-			termbox.KeyBackspace2: handleDeleteBackwardChar,
-			termbox.KeyCtrlW:      handleDeleteBackwardWord,
-			termbox.KeyCtrlA:      handleBeginningOfLine,
-			termbox.KeyCtrlE:      handleEndOfLine,
-			termbox.KeyCtrlF:      handleForwardChar,
-			termbox.KeyCtrlB:      handleBackwardChar,
-			termbox.KeyCtrlK:      handleKillEndOfLine,
-			termbox.KeyCtrlU:      handleKillBeginOfLine,
-			termbox.KeyCtrlR:      handleRotateMatcher,
-			termbox.KeyCtrlSpace:  handleToggleSelectionAndSelectNext,
-		},
+		def,
 		{},
 	}
 }
 
-func (km Keymap) Handler(ev termbox.Event) KeymapHandler {
+func (km Keymap) Handler(ev termbox.Event) Action {
 	modifier := ModNone
 	if (ev.Mod & termbox.ModAlt) != 0 {
 		modifier = ModAlt
@@ -542,7 +198,7 @@ func (km Keymap) Handler(ev termbox.Event) KeymapHandler {
 		panic("Can't get here")
 	}
 
-	return handleAcceptChar
+	return ActionFunc(handleAcceptChar)
 }
 
 func (km Keymap) UnmarshalJSON(buf []byte) error {
@@ -564,7 +220,7 @@ func (km Keymap) UnmarshalJSON(buf []byte) error {
 			continue
 		}
 
-		v, ok := handlers[vs]
+		v, ok := nameToActions[vs]
 		if !ok {
 			fmt.Fprintf(os.Stderr, "Unknown handler %s", vs)
 			continue
