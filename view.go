@@ -132,11 +132,13 @@ func (v *View) drawScreen(targets []Match) {
 	perPage := height - 4
 
 CALCULATE_PAGE:
-	currentPage := ((v.Ctx.currentLine - 1) / perPage) + 1
-	if currentPage <= 0 {
-		currentPage = 1
+	currentPage := &v.Ctx.currentPage
+	currentPage.index = ((v.Ctx.currentLine - 1) / perPage) + 1
+	if currentPage.index <= 0 {
+		currentPage.index = 1
 	}
-	offset := (currentPage - 1) * perPage
+	currentPage.offset = (currentPage.index - 1) * perPage
+	currentPage.perPage = perPage
 	var maxPage int
 	if len(targets) == 0 {
 		maxPage = 1
@@ -144,8 +146,8 @@ CALCULATE_PAGE:
 		maxPage = ((len(targets) + perPage - 1) / perPage)
 	}
 
-	if maxPage < currentPage {
-		v.Ctx.currentLine = offset
+	if maxPage < currentPage.index {
+		v.Ctx.currentLine = currentPage.offset
 		goto CALCULATE_PAGE
 	}
 
@@ -186,15 +188,15 @@ CALCULATE_PAGE:
 	for n := 1; n <= perPage; n++ {
 		fgAttr := v.config.Style.Basic.fg
 		bgAttr := v.config.Style.Basic.bg
-		if n+offset == v.currentLine {
+		if n+currentPage.offset == v.currentLine {
 			fgAttr = v.config.Style.Selected.fg
 			bgAttr = v.config.Style.Selected.bg
-		} else if v.selection.Has(n + offset) {
+		} else if v.selection.Has(n + currentPage.offset) {
 			fgAttr = v.config.Style.SavedSelection.fg
 			bgAttr = v.config.Style.SavedSelection.bg
 		}
 
-		targetIdx := offset + n - 1
+		targetIdx := currentPage.offset + n - 1
 		if targetIdx >= len(targets) {
 			break
 		}

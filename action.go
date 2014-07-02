@@ -83,6 +83,7 @@ func init() {
 		"SelectNone",
 		termbox.KeyCtrlG,
 	)
+	ActionFunc(doSelectVisible).register("SelectVisible")
 }
 
 func doRotateMatcher(i *Input, ev termbox.Event) {
@@ -106,6 +107,15 @@ func doToggleSelection(i *Input, _ termbox.Event) {
 
 func doSelectNone(i *Input, _ termbox.Event) {
 	i.selection.Clear()
+	i.DrawMatches(nil)
+}
+
+func doSelectVisible(i *Input, _ termbox.Event) {
+	pageStart := i.currentPage.offset
+	pageEnd := pageStart + i.currentPage.perPage
+	for lineno:=pageStart; lineno <= pageEnd; lineno++ {
+		i.selection.Add(lineno)
+	}
 	i.DrawMatches(nil)
 }
 
