@@ -77,6 +77,7 @@ type Ctx struct {
 	query          []rune
 	caretPos       int
 	currentLine    int
+	currentPage    struct { index, offset, perPage int }
 	selection      Selection
 	lines          []Match
 	current        []Match
@@ -102,6 +103,7 @@ func NewCtx(o CtxOptions) *Ctx {
 		[]rune{},
 		0,
 		o.InitialIndex(),
+		struct { index, offset, perPage int } { 0, 1, 0 },
 		Selection([]int{}),
 		[]Match{},
 		nil,
