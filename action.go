@@ -8,7 +8,7 @@ import (
 
 // Action describes an action that can be executed upon receiving user
 // input. It's an interface so you can create any kind of Action you need,
-// but the most everything is implemented in terms of ActionFunc, which is
+// but most everything is implemented in terms of ActionFunc, which is
 // callback based Action
 type Action interface {
 	Register(string, ...termbox.Key)
