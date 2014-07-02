@@ -92,6 +92,12 @@ func init() {
 		"ToggleSelectionAndSelectNext",
 		termbox.KeyCtrlSpace,
 	)
+	ActionFunc(doSelectNone).Register(
+		"SelectNone",
+		termbox.KeyCtrlG,
+	)
+	ActionFunc(doSelectAll).Register("SelectAll")
+	ActionFunc(doSelectVisible).Register("SelectVisible")
 }
 
 func doRotateMatcher(i *Input, ev termbox.Event) {
@@ -111,6 +117,27 @@ func doToggleSelection(i *Input, _ termbox.Event) {
 		return
 	}
 	i.selection.Add(i.currentLine)
+}
+
+func doSelectNone(i *Input, _ termbox.Event) {
+	i.selection.Clear()
+	i.DrawMatches(nil)
+}
+
+func doSelectAll(i *Input, _ termbox.Event) {
+	for lineno:=1; lineno <= len(i.current); lineno++ {
+		i.selection.Add(lineno)
+	}
+	i.DrawMatches(nil)
+}
+
+func doSelectVisible(i *Input, _ termbox.Event) {
+	pageStart := i.currentPage.offset
+	pageEnd := pageStart + i.currentPage.perPage
+	for lineno:=pageStart; lineno <= pageEnd; lineno++ {
+		i.selection.Add(lineno)
+	}
+	i.DrawMatches(nil)
 }
 
 func doFinish(i *Input, _ termbox.Event) {
