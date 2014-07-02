@@ -13,6 +13,7 @@ import (
 type CtxOptions interface {
 	EnableNullSep() bool
 	BufferSize() int
+	InitialIndex() int
 }
 
 type Selection []int
@@ -100,7 +101,7 @@ func NewCtx(o CtxOptions) *Ctx {
 		sync.Mutex{},
 		[]rune{},
 		0,
-		1,
+		o.InitialIndex(),
 		Selection([]int{}),
 		[]Match{},
 		nil,
