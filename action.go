@@ -92,12 +92,12 @@ func init() {
 		"ToggleSelectionAndSelectNext",
 		termbox.KeyCtrlSpace,
 	)
-	ActionFunc(doSelectNone).register(
+	ActionFunc(doSelectNone).Register(
 		"SelectNone",
 		termbox.KeyCtrlG,
 	)
-	ActionFunc(doSelectAll).register("SelectAll")
-	ActionFunc(doSelectVisible).register("SelectVisible")
+	ActionFunc(doSelectAll).Register("SelectAll")
+	ActionFunc(doSelectVisible).Register("SelectVisible")
 }
 
 func doRotateMatcher(i *Input, ev termbox.Event) {
