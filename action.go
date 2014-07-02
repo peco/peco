@@ -79,6 +79,10 @@ func init() {
 		"ToggleSelectionAndSelectNext",
 		termbox.KeyCtrlSpace,
 	)
+	ActionFunc(doSelectNone).register(
+		"SelectNone",
+		termbox.KeyCtrlG,
+	)
 }
 
 func doRotateMatcher(i *Input, ev termbox.Event) {
@@ -98,6 +102,11 @@ func doToggleSelection(i *Input, _ termbox.Event) {
 		return
 	}
 	i.selection.Add(i.currentLine)
+}
+
+func doSelectNone(i *Input, _ termbox.Event) {
+	i.selection.Clear()
+	i.DrawMatches(nil)
 }
 
 func doFinish(i *Input, _ termbox.Event) {
