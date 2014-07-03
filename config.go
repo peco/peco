@@ -77,6 +77,7 @@ type StyleSet struct {
 	SavedSelection Style `json:"SavedSelection"`
 	Selected       Style `json:"Selected"`
 	Query          Style `json:"Query"`
+	Matched        Style `json:"Matched"`
 }
 
 func NewStyleSet() StyleSet {
@@ -84,7 +85,8 @@ func NewStyleSet() StyleSet {
 		Basic:          Style{fg: termbox.ColorDefault, bg: termbox.ColorDefault},
 		SavedSelection: Style{fg: termbox.ColorBlack | termbox.AttrBold, bg: termbox.ColorCyan},
 		Selected:       Style{fg: termbox.ColorDefault | termbox.AttrUnderline, bg: termbox.ColorMagenta},
-		Query:          Style{fg: termbox.ColorCyan, bg: termbox.ColorDefault},
+		Query:          Style{fg: termbox.ColorDefault, bg: termbox.ColorDefault},
+		Matched:        Style{fg: termbox.ColorCyan, bg: termbox.ColorDefault},
 	}
 }
 
