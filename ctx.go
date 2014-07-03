@@ -216,7 +216,7 @@ func (c *Ctx) NewFilter() *Filter {
 }
 
 func (c *Ctx) NewInput() *Input {
-	return &Input{c, &sync.Mutex{}}
+	return &Input{c, &sync.Mutex{}, nil}
 }
 
 func (c *Ctx) Stop() {
