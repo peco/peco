@@ -331,13 +331,19 @@ AUTHORS
 =======
 
 * Daisuke Maki (lestrrat)
+* HIROSE Masaaki
+* Joel Segerlind
+* Lukas Lueg
+* Mitsuoka Mimura
 * Ryota Arai
 * Shinya Ohyanagi
 * syohex
 * Takashi Kokubun
 * cho45
 * cubicdaiya
+* kei\_q
 * mattn
+* negipo
 * sugyan
 * swdyh
 
