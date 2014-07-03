@@ -24,7 +24,8 @@ func TestReadRC(t *testing.T) {
 	"Style": {
 		"Basic": ["on_default", "default"],
 		"Selected": ["underline", "on_cyan", "black"],
-		"Query": ["yellow", "bold"]
+		"Query": ["yellow", "bold"],
+		"Matched": ["cyan", "bold", "on_red"]
 	}
 }
 `

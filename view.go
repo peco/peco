@@ -233,7 +233,7 @@ CALCULATE_PAGE:
 					index += len(c)
 				}
 				c := line[m[0]:m[1]]
-				printTB(prev, n, v.config.Style.Query.fg, bgAttr|v.config.Style.Query.bg, c)
+				printTB(prev, n, v.config.Style.Matched.fg, bgAttr|v.config.Style.Matched.bg, c)
 				prev += runewidth.StringWidth(c)
 				index += len(c)
 			}
