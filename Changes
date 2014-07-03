@@ -1,6 +1,16 @@
 Changes
 =======
 
+v0.2.0
+  Bugs/Fixes
+  * Keymaps have gone through an overhaul. Hopefully it's easier for
+    people who want to modify it to hack on it than before.
+  Features
+  * --initial-index option has been added
+  * --buffer-size option has been added
+  * Background color can now be changed
+  * SelectAll/SelectNone/SelectVisible has bee added
+
 v0.1.12 - 01 Jul 2014
   Bugs/Fixes
   * Properly report an error if specified file does not exist
