@@ -233,17 +233,23 @@ Note: If in case below keymap seems wrong, check the source code in [keymap.go](
 
 ## Styles
 
-For now, styles of following 3 items can be customized in `config.json`.
+For now, styles of following 4 items can be customized in `config.json`.
 
 ```json
 {
     "Style": {
         "Basic": ["on_default", "default"],
         "Selected": ["underline", "on_cyan", "black"],
-        "Query": ["yellow", "bold"]
+        "Query": ["yellow", "bold"],
+        "Matched": ["red", "on_blue"]
     }
 }
 ```
+
+- `Basic` for not selected lines
+- `Selected` for selected lines
+- `Query` for a query line
+- `Matched` for a query matched word
 
 ### Foreground Colors
 
