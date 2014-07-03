@@ -136,6 +136,11 @@ func handleAcceptChar(i *Input, ev termbox.Event) {
 	}
 }
 
+func handleResetKeySequence(i *Input, ev termbox.Event) {
+	i.currentKeymap = i.config.Keymap
+	i.chained = false
+}
+
 func (ksk KeymapStringKey) ToKey() (k termbox.Key, modifier int, err error) {
 	modifier = ModNone
 	key := string(ksk)
@@ -167,7 +172,7 @@ func NewKeymap() Keymap {
 	}
 }
 
-func (km Keymap) Handler(ev termbox.Event) Action {
+func (km Keymap) Handler(ev termbox.Event, chained bool) Action {
 	modifier := ModNone
 	if (ev.Mod & termbox.ModAlt) != 0 {
 		modifier = ModAlt
@@ -198,16 +203,25 @@ func (km Keymap) Handler(ev termbox.Event) Action {
 		panic("Can't get here")
 	}
 
-	return ActionFunc(handleAcceptChar)
+	if chained {
+		return ActionFunc(handleResetKeySequence)
+	} else {
+		return ActionFunc(handleAcceptChar)
+	}
 }
 
 func (km Keymap) UnmarshalJSON(buf []byte) error {
-	raw := map[string]string{}
+	raw := map[string]interface{}{}
 	if err := json.Unmarshal(buf, &raw); err != nil {
 		return err
 	}
 
-	for ks, vs := range raw {
+	km.assignKeyHandlers(raw)
+	return nil
+}
+
+func (km Keymap) assignKeyHandlers(raw map[string]interface{}) {
+	for ks, vi := range raw {
 		k, modifier, err := KeymapStringKey(ks).ToKey()
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Unknown key %s", ks)
@@ -215,20 +229,35 @@ func (km Keymap) UnmarshalJSON(buf []byte) error {
 		}
 
 		keymap := km[modifier]
-		if vs == "-" {
-			delete(keymap, k)
-			continue
-		}
+		switch vi.(type) {
+		case string:
+			vs := vi.(string)
+			if vs == "-" {
+				delete(keymap, k)
+				continue
+			}
 
-		v, ok := nameToActions[vs]
-		if !ok {
-			fmt.Fprintf(os.Stderr, "Unknown handler %s", vs)
-			continue
+			v, ok := nameToActions[vs]
+			if !ok {
+				fmt.Fprintf(os.Stderr, "Unknown handler %s", vs)
+				continue
+			}
+			keymap[k] = ActionFunc(func(i *Input, ev termbox.Event) {
+				v.Execute(i, ev)
+
+				// Reset key sequence when not-chained key was pressed
+				handleResetKeySequence(i, ev)
+			})
+		case map[string]interface{}:
+			ckm := Keymap{{}, {}}
+			ckm.assignKeyHandlers(vi.(map[string]interface{}))
+			keymap[k] = ActionFunc(func(i *Input, _ termbox.Event) {
+				// Switch Keymap for chained state
+				i.currentKeymap = ckm
+				i.chained = true
+			})
 		}
-		keymap[k] = v
 	}
-
-	return nil
 }
 
 func (km Keymap) hasModifierMaps() bool {

@@ -144,10 +144,15 @@ Example:
 {
     "Keymap": {
         "M-v": "peco.SelectPreviousPage",
-        "C-v": "peco.SelectNextPage"
+        "C-v": "peco.SelectNextPage",
+        "C-x": {
+            "C-c": "peco.Cancel"
+        }
     }
 }
 ```
+
+You can use nested keymap to invoke action by key sequence.
 
 ### Available keys
 
