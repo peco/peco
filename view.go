@@ -57,9 +57,12 @@ func (v *View) printStatus(msg string) {
 		pad[i] = ' '
 	}
 
-	printTB(0, h-2, termbox.ColorDefault, termbox.ColorDefault, string(pad))
+	fgAttr := v.config.Style.Basic.fg
+	bgAttr := v.config.Style.Basic.bg
+
+	printTB(0, h-2, fgAttr, bgAttr, string(pad))
 	if width > 0 {
-		printTB(w-width, h-2, termbox.AttrReverse|termbox.ColorDefault|termbox.AttrBold, termbox.AttrReverse|termbox.ColorDefault, msg)
+		printTB(w-width, h-2, fgAttr|termbox.AttrReverse|termbox.AttrBold, bgAttr|termbox.AttrReverse, msg)
 	}
 	termbox.Flush()
 }
@@ -174,7 +177,7 @@ CALCULATE_PAGE:
 	if v.caretPos == len(v.query) {
 		// the entire string + the caret after the string
 		printTB(promptLen+1, 0, fgAttr, bgAttr, string(v.query))
-		termbox.SetCell(promptLen+1+runewidth.StringWidth(string(v.query)), 0, ' ', termbox.ColorDefault|termbox.AttrReverse, termbox.ColorDefault|termbox.AttrReverse)
+		termbox.SetCell(promptLen+1+runewidth.StringWidth(string(v.query)), 0, ' ', fgAttr|termbox.AttrReverse, bgAttr|termbox.AttrReverse)
 	} else {
 		// the caret is in the middle of the string
 		prev := 0
