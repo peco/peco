@@ -150,6 +150,10 @@ CALCULATE_PAGE:
 	}
 
 	if maxPage < currentPage.index {
+		if len(targets) == 0 && len(v.Ctx.query) == 0 {
+			// wait for targets
+			return
+		}
 		v.Ctx.currentLine = currentPage.offset
 		goto CALCULATE_PAGE
 	}
