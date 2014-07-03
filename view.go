@@ -57,9 +57,12 @@ func (v *View) printStatus(msg string) {
 		pad[i] = ' '
 	}
 
-	printTB(0, h-2, termbox.ColorDefault, termbox.ColorDefault, string(pad))
+	fgAttr := v.config.Style.Basic.fg
+	bgAttr := v.config.Style.Basic.bg
+
+	printTB(0, h-2, fgAttr, bgAttr, string(pad))
 	if width > 0 {
-		printTB(w-width, h-2, termbox.AttrReverse|termbox.ColorDefault|termbox.AttrBold, termbox.AttrReverse|termbox.ColorDefault, msg)
+		printTB(w-width, h-2, fgAttr|termbox.AttrReverse|termbox.AttrBold, bgAttr|termbox.AttrReverse, msg)
 	}
 	termbox.Flush()
 }
@@ -116,7 +119,10 @@ func (v *View) drawScreen(targets []Match) {
 	v.mutex.Lock()
 	defer v.mutex.Unlock()
 
-	if err := termbox.Clear(termbox.ColorDefault, termbox.ColorDefault); err != nil {
+	fgAttr := v.config.Style.Basic.fg
+	bgAttr := v.config.Style.Basic.bg
+
+	if err := termbox.Clear(fgAttr, bgAttr); err != nil {
 		return
 	}
 
@@ -158,9 +164,12 @@ CALCULATE_PAGE:
 		goto CALCULATE_PAGE
 	}
 
+	fgAttr = v.config.Style.Query.fg
+	bgAttr = v.config.Style.Query.bg
+
 	prompt := "QUERY>"
 	promptLen := runewidth.StringWidth(prompt)
-	printTB(0, 0, termbox.ColorDefault, termbox.ColorDefault, prompt)
+	printTB(0, 0, fgAttr, bgAttr, prompt)
 
 	if v.caretPos <= 0 {
 		v.caretPos = 0 // sanity
@@ -171,8 +180,8 @@ CALCULATE_PAGE:
 
 	if v.caretPos == len(v.query) {
 		// the entire string + the caret after the string
-		printTB(promptLen+1, 0, termbox.ColorDefault, termbox.ColorDefault, string(v.query))
-		termbox.SetCell(promptLen+1+runewidth.StringWidth(string(v.query)), 0, ' ', termbox.ColorDefault|termbox.AttrReverse, termbox.ColorDefault|termbox.AttrReverse)
+		printTB(promptLen+1, 0, fgAttr, bgAttr, string(v.query))
+		termbox.SetCell(promptLen+1+runewidth.StringWidth(string(v.query)), 0, ' ', fgAttr|termbox.AttrReverse, bgAttr|termbox.AttrReverse)
 	} else {
 		// the caret is in the middle of the string
 		prev := 0
@@ -190,11 +199,11 @@ CALCULATE_PAGE:
 
 	pmsg := fmt.Sprintf("%s [%d/%d]", v.Ctx.Matcher().String(), currentPage.index, maxPage)
 
-	printTB(width-runewidth.StringWidth(pmsg), 0, termbox.ColorDefault, termbox.ColorDefault, pmsg)
+	printTB(width-runewidth.StringWidth(pmsg), 0, fgAttr, bgAttr, pmsg)
 
 	for n := 1; n <= perPage; n++ {
-		fgAttr := v.config.Style.Basic.fg
-		bgAttr := v.config.Style.Basic.bg
+		fgAttr = v.config.Style.Basic.fg
+		bgAttr = v.config.Style.Basic.bg
 		if n+currentPage.offset == v.currentLine {
 			fgAttr = v.config.Style.Selected.fg
 			bgAttr = v.config.Style.Selected.bg
