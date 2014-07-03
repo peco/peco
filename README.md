@@ -119,6 +119,10 @@ Changes how peco interprets incoming data. When this flag is set, you may insert
 
 By default peco starts in case insensitive mode. When this option is specified, peco will start in case sensitive mode. This can be toggled while peco is still in session.
 
+### --initial-index
+
+Specifies the initial line position upon start up. E.g. If you want to start out with the second line selected, set it to "1" (because the index is 0 based)
+
 Configuration File
 ==================
 
