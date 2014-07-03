@@ -186,8 +186,8 @@ CALCULATE_PAGE:
 		// the caret is in the middle of the string
 		prev := 0
 		for i, r := range v.query {
-			fg := termbox.ColorDefault
-			bg := termbox.ColorDefault
+			fg := v.config.Style.Query.fg
+			bg := v.config.Style.Query.bg
 			if i == v.caretPos {
 				fg |= termbox.AttrReverse
 				bg |= termbox.AttrReverse
