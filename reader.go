@@ -9,11 +9,18 @@ import (
 	"time"
 )
 
+// BufferReader reads lines from the input, either Stdin or a file.
+// If the incoming data is endless, it keeps reading and adding to
+// the search buffer, as long as it can.
+//
+// If you would like to limit the number of lines to keep in the
+// buffer, you should set --buffer-size to a number > 0
 type BufferReader struct {
 	*Ctx
 	input io.ReadCloser
 }
 
+// Loop keeps reading from the input
 func (b *BufferReader) Loop() {
 	defer b.ReleaseWaitGroup()
 	defer func() { recover() }() // ignore errors
