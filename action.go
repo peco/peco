@@ -58,7 +58,7 @@ func init() {
 		"DeleteBackwardWord",
 		termbox.KeyCtrlW,
 	)
-	ActionFunc(doDeleteForwardChar).Register("DeletedForwardChar", termbox.KeyCtrlD)
+	ActionFunc(doDeleteForwardChar).Register("DeleteForwardChar", termbox.KeyCtrlD)
 	ActionFunc(doDeleteForwardWord).Register("DeleteForwardWord")
 	ActionFunc(doEndOfFile).Register("EndOfFile")
 	ActionFunc(doEndOfLine).Register("EndOfLine", termbox.KeyCtrlE)
