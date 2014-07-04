@@ -66,26 +66,27 @@ func (s Selection) Less(i, j int) bool {
 // Ctx contains all the important data. while you can easily access
 // data in this struct from anwyehre, only do so via channels
 type Ctx struct {
-	enableSep      bool
-	result         []Match
-	loopCh         chan struct{}
-	queryCh        chan string
-	drawCh         chan []Match
-	statusMsgCh    chan string
-	pagingCh       chan PagingRequest
-	mutex          sync.Mutex
-	query          []rune
-	caretPos       int
-	currentLine    int
-	currentPage    struct { index, offset, perPage int }
-	selection      Selection
-	lines          []Match
-	current        []Match
-	bufferSize     int
-	config         *Config
-	Matchers       []Matcher
-	CurrentMatcher int
-	ExitStatus     int
+	enableSep           bool
+	result              []Match
+	loopCh              chan struct{}
+	queryCh             chan string
+	drawCh              chan []Match
+	statusMsgCh         chan string
+	pagingCh            chan PagingRequest
+	mutex               sync.Mutex
+	query               []rune
+	caretPos            int
+	currentLine         int
+	currentPage         struct { index, offset, perPage int }
+	selection           Selection
+	lines               []Match
+	current             []Match
+	bufferSize          int
+	config              *Config
+	Matchers            []Matcher
+	CurrentMatcher      int
+	ExitStatus          int
+	selectionRangeStart int
 
 	wait *sync.WaitGroup
 }
@@ -116,9 +117,12 @@ func NewCtx(o CtxOptions) *Ctx {
 		},
 		0,
 		0,
+		NoSelectionRange,
 		&sync.WaitGroup{},
 	}
 }
+
+const NoSelectionRange = -1
 
 func (c *Ctx) ReadConfig(file string) error {
 	if err := c.config.ReadFilename(file); err != nil {
@@ -139,6 +143,28 @@ func (c *Ctx) IsBufferOverflowing() bool {
 	}
 
 	return len(c.lines) > c.bufferSize
+}
+
+func (c *Ctx) IsSelectMode() bool {
+	return c.selectionRangeStart != NoSelectionRange
+}
+
+func (c *Ctx) RangeSelection() Selection {
+	if !c.IsSelectMode() {
+		return Selection{}
+	}
+
+	selectedLines := []int{}
+	if c.selectionRangeStart < c.currentLine {
+		for i := c.selectionRangeStart; i < c.currentLine; i++ {
+			selectedLines = append(selectedLines, i)
+		}
+	} else {
+		for i := c.selectionRangeStart; i > c.currentLine; i-- {
+			selectedLines = append(selectedLines, i)
+		}
+	}
+	return Selection(selectedLines)
 }
 
 func (c *Ctx) Result() []Match {

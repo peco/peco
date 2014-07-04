@@ -98,6 +98,8 @@ func init() {
 	)
 	ActionFunc(doSelectAll).Register("SelectAll")
 	ActionFunc(doSelectVisible).Register("SelectVisible")
+	ActionFunc(doToggleSelectMode).Register("ToggleSelectMode")
+	ActionFunc(doCancelSelectMode).Register("CancelSelectMode")
 }
 
 func doRotateMatcher(i *Input, ev termbox.Event) {
@@ -117,6 +119,25 @@ func doToggleSelection(i *Input, _ termbox.Event) {
 		return
 	}
 	i.selection.Add(i.currentLine)
+}
+
+func doToggleSelectMode(i *Input, _ termbox.Event) {
+	if i.IsSelectMode() {
+		for _, line := range i.RangeSelection() {
+			i.selection.Add(line)
+		}
+		i.selection.Add(i.currentLine)
+
+		i.selectionRangeStart = NoSelectionRange
+	} else {
+		i.selectionRangeStart = i.currentLine
+	}
+	i.DrawMatches(nil)
+}
+
+func doCancelSelectMode(i *Input, _ termbox.Event) {
+	i.selectionRangeStart = NoSelectionRange
+	i.DrawMatches(nil)
 }
 
 func doSelectNone(i *Input, _ termbox.Event) {
@@ -145,7 +166,7 @@ func doFinish(i *Input, _ termbox.Event) {
 	i.selection.Add(i.currentLine)
 
 	i.result = []Match{}
-	for _, lineno := range i.selection {
+	for _, lineno := range append(i.selection, i.RangeSelection()...) {
 		if lineno <= len(i.current) {
 			i.result = append(i.result, i.current[lineno-1])
 		}
@@ -154,6 +175,11 @@ func doFinish(i *Input, _ termbox.Event) {
 }
 
 func doCancel(i *Input, ev termbox.Event) {
+	if i.IsSelectMode() {
+		doCancelSelectMode(i, ev)
+		return
+	}
+
 	// peco.Cancel -> end program, exit with failure
 	i.ExitWith(1)
 }
