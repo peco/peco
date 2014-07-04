@@ -149,22 +149,22 @@ func (c *Ctx) IsSelectMode() bool {
 	return c.selectionRangeStart != NoSelectionRange
 }
 
-func (c *Ctx) ApplySelectionRange() {
+func (c *Ctx) RangeSelection() Selection {
 	if !c.IsSelectMode() {
-		return
+		return Selection{}
 	}
 
 	selectedLines := []int{}
 	if c.selectionRangeStart < c.currentLine {
-		for i := c.selectionRangeStart; i <= c.currentLine; i++ {
+		for i := c.selectionRangeStart; i < c.currentLine; i++ {
 			selectedLines = append(selectedLines, i)
 		}
 	} else {
-		for i := c.selectionRangeStart; i >= c.currentLine; i-- {
+		for i := c.selectionRangeStart; i > c.currentLine; i-- {
 			selectedLines = append(selectedLines, i)
 		}
 	}
-	c.selection = Selection(selectedLines)
+	return Selection(selectedLines)
 }
 
 func (c *Ctx) Result() []Match {

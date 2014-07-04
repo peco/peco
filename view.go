@@ -112,7 +112,6 @@ func (v *View) movePage(p PagingRequest) {
 	} else if v.current != nil && v.currentLine > len(v.current) {
 		v.currentLine = 1
 	}
-	v.ApplySelectionRange()
 	v.drawScreen(nil)
 }
 
@@ -208,7 +207,7 @@ CALCULATE_PAGE:
 		if n+currentPage.offset == v.currentLine {
 			fgAttr = v.config.Style.Selected.fg
 			bgAttr = v.config.Style.Selected.bg
-		} else if v.selection.Has(n + currentPage.offset) {
+		} else if v.selection.Has(n + currentPage.offset) || v.RangeSelection().Has(n + currentPage.offset) {
 			fgAttr = v.config.Style.SavedSelection.fg
 			bgAttr = v.config.Style.SavedSelection.bg
 		}
