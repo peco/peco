@@ -1,7 +1,6 @@
 package peco
 
 import (
-	"encoding/json"
 	"fmt"
 	"os"
 	"strings"
@@ -128,7 +127,7 @@ func (ksk KeymapStringKey) ToKeyList() (keyseq.KeyList, error) {
 			return list, err
 		}
 
-		list = append(list, keyseq.Key{m,k,ch})
+		list = append(list, keyseq.Key{m, k, ch})
 	}
 	return list, nil
 }
@@ -170,7 +169,7 @@ func (km Keymap) Handler(ev termbox.Event, chained bool) Action {
 		modifier = ModAlt
 	}
 
-	key := keyseq.Key{modifier,ev.Key,ev.Ch}
+	key := keyseq.Key{modifier, ev.Key, ev.Ch}
 	action, err := Keyseq.AcceptKey(key)
 
 	switch err {
@@ -186,13 +185,8 @@ func (km Keymap) Handler(ev termbox.Event, chained bool) Action {
 	}
 }
 
-func (km Keymap) UnmarshalJSON(buf []byte) error {
-	raw := map[string]string{}
-	if err := json.Unmarshal(buf, &raw); err != nil {
-		return err
-	}
-
-	for ks, vs := range raw {
+func (km Keymap) ApplyConfig(c map[string]string) {
+	for ks, vs := range c {
 		list, err := KeymapStringKey(ks).ToKeyList()
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Unknown key %s", ks)
@@ -212,8 +206,6 @@ func (km Keymap) UnmarshalJSON(buf []byte) error {
 
 		Keyseq.Add(list, v)
 	}
-
-	return nil
 }
 
 // TODO: this needs to be fixed.

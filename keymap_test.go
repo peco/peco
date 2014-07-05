@@ -24,7 +24,8 @@ func TestKeymapStrToKeyValue(t *testing.T) {
 	t.Logf("Checking key name -> actual key value mapping...")
 	for n, v := range expected {
 		t.Logf("    checking %s...", n)
-		e, modifier, err := KeymapStringKey(n).ToKey()
+		// TODO ch isn't being checked
+		e, modifier, _, err := KeymapStringKey(n).ToKey()
 		if err != nil {
 			t.Errorf("Key name %s not found", n)
 		}
@@ -48,7 +49,8 @@ func TestKeymapStrToKeyValueWithAlt(t *testing.T) {
 	t.Logf("Checking Alt prefixed key name mapping...")
 	for n, v := range expected {
 		t.Logf("    checking %s...", n)
-		k, modifier, err := KeymapStringKey(n).ToKey()
+		// TODO ch isn't being checked
+		k, modifier, _, err := KeymapStringKey(n).ToKey()
 		if err != nil {
 			t.Errorf("Failed ToKey: Key name %s", n)
 		}
