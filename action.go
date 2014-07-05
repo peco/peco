@@ -1,6 +1,7 @@
 package peco
 
 import (
+	"encoding/json"
 	"unicode"
 
 	"github.com/nsf/termbox-go"
@@ -24,7 +25,7 @@ type ActionFunc func(*Input, termbox.Event)
 var nameToActions map[string]Action
 
 // This is the default keybinding used by NewKeymap()
-var defaultKeyBinding map[termbox.Key]Action
+var defaultKeyBinding map[string]Action
 
 // Execute fulfills the Action interface for AfterFunc
 func (a ActionFunc) Execute(i *Input, e termbox.Event) {
@@ -37,18 +38,22 @@ func (a ActionFunc) Execute(i *Input, e termbox.Event) {
 func (a ActionFunc) Register(name string, defaultKeys ...termbox.Key) {
 	nameToActions["peco."+name] = a
 	for _, k := range defaultKeys {
-		Keyseq.Add(keyseq.KeyList{keyseq.NewKeyFromKey(k)}, a)
+		a.RegisterKeySequence(keyseq.KeyList{keyseq.NewKeyFromKey(k)})
 	}
 }
 
 func (a ActionFunc) RegisterKeySequence(k keyseq.KeyList) {
-	Keyseq.Add(k, a)
+	b, err := json.Marshal(k)
+	if err != nil {
+		panic(err)
+	}
+	defaultKeyBinding[string(b)] = a
 }
 
 func init() {
 	// Build the global maps
 	nameToActions = map[string]Action{}
-	defaultKeyBinding = map[termbox.Key]Action{}
+	defaultKeyBinding = map[string]Action{}
 
 	ActionFunc(doBeginningOfLine).Register("BeginningOfLine", termbox.KeyCtrlA)
 	ActionFunc(doBackwardChar).Register("BackwardChar", termbox.KeyCtrlB)
@@ -109,21 +114,19 @@ func init() {
 
 	ActionFunc(doKonamiCommand).RegisterKeySequence(
 		keyseq.KeyList{
-			keyseq.Key{0,termbox.KeyCtrlX,0},
-			keyseq.Key{0,termbox.KeyArrowUp,0},
-			keyseq.Key{0,termbox.KeyArrowUp,0},
-			keyseq.Key{0,termbox.KeyArrowDown,0},
-			keyseq.Key{0,termbox.KeyArrowDown,0},
-			keyseq.Key{0,termbox.KeyArrowLeft,0},
-			keyseq.Key{0,termbox.KeyArrowRight,0},
-			keyseq.Key{0,termbox.KeyArrowLeft,0},
-			keyseq.Key{0,termbox.KeyArrowRight,0},
-			keyseq.Key{0,0,'b'},
-			keyseq.Key{0,0,'a'},
+			keyseq.Key{0, termbox.KeyCtrlX, 0},
+			keyseq.Key{0, termbox.KeyArrowUp, 0},
+			keyseq.Key{0, termbox.KeyArrowUp, 0},
+			keyseq.Key{0, termbox.KeyArrowDown, 0},
+			keyseq.Key{0, termbox.KeyArrowDown, 0},
+			keyseq.Key{0, termbox.KeyArrowLeft, 0},
+			keyseq.Key{0, termbox.KeyArrowRight, 0},
+			keyseq.Key{0, termbox.KeyArrowLeft, 0},
+			keyseq.Key{0, termbox.KeyArrowRight, 0},
+			keyseq.Key{0, 0, 'b'},
+			keyseq.Key{0, 0, 'a'},
 		},
 	)
-
-	Keyseq.Compile()
 }
 
 // This is a noop action
@@ -224,8 +227,8 @@ func doFinish(i *Input, _ termbox.Event) {
 }
 
 func doCancel(i *Input, ev termbox.Event) {
-	if Keyseq.InMiddleOfChain() {
-		Keyseq.CancelChain()
+	if i.currentKeymap.Keyseq.InMiddleOfChain() {
+		i.currentKeymap.Keyseq.CancelChain()
 		return
 	}
 

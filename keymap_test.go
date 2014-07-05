@@ -39,26 +39,31 @@ func TestKeymapStrToKeyValue(t *testing.T) {
 }
 
 func TestKeymapStrToKeyValueWithAlt(t *testing.T) {
-	expected := map[string]termbox.Key{
-		"M-v":         termbox.Key('v'),
-		"M-C-v":       termbox.KeyCtrlV,
-		"M-Space":     termbox.KeySpace,
-		"M-MouseLeft": termbox.MouseLeft,
+	expected := map[string]struct{
+		key termbox.Key
+		ch rune
+	} {
+		"M-v":         {0, 'v'},
+		"M-C-v":       {termbox.KeyCtrlV,rune(0)},
+		"M-Space":     {termbox.KeySpace, rune(0)},
+		"M-MouseLeft": {termbox.MouseLeft, rune(0)},
 	}
 
 	t.Logf("Checking Alt prefixed key name mapping...")
 	for n, v := range expected {
 		t.Logf("    checking %s...", n)
-		// TODO ch isn't being checked
-		k, modifier, _, err := KeymapStringKey(n).ToKey()
+		k, modifier, ch, err := KeymapStringKey(n).ToKey()
 		if err != nil {
 			t.Errorf("Failed ToKey: Key name %s", n)
 		}
 		if modifier != 1 {
 			t.Errorf("Key name %s has Alt prefix", n)
 		}
-		if k != v {
-			t.Errorf("Expected '%s' to be '%d', but got '%d'", n, v, stringToKey[n])
+		if k != v.key {
+			t.Errorf("Expected '%s' to be '%d', but got '%d'", n, v.key, k)
+		}
+		if ch != v.ch {
+			t.Errorf("Expected '%s' to be '%c', but got '%c'", n, v.ch, ch)
 		}
 	}
 }

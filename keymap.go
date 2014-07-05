@@ -1,6 +1,7 @@
 package peco
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"strings"
@@ -16,13 +17,9 @@ const (
 	ModMax
 )
 
-// Keyseq does successive matches against key events.
-var Keyseq = keyseq.New()
-
-type Keymap [ModMax]RawKeymap
-
-// RawKeymap contains the actual mapping from termbox.Key to Action
-type RawKeymap map[termbox.Key]Action
+type Keymap struct {
+	Keyseq *keyseq.Keyseq
+}
 
 type KeymapStringKey string
 
@@ -153,24 +150,26 @@ func (ksk KeymapStringKey) ToKey() (k termbox.Key, modifier int, ch rune, err er
 }
 
 func NewKeymap() Keymap {
-	def := RawKeymap{}
-	for k, v := range defaultKeyBinding {
-		def[k] = v
+	k := keyseq.New()
+	for s, a := range defaultKeyBinding {
+		kl := keyseq.KeyList{}
+		if err := json.Unmarshal([]byte(s), &kl); err != nil {
+			panic(err)
+		}
+		k.Add(kl, a)
 	}
-	return Keymap{
-		def,
-		{},
-	}
+	k.Compile()
+	return Keymap{k}
 }
 
-func (km Keymap) Handler(ev termbox.Event, chained bool) Action {
+func (km Keymap) Handler(ev termbox.Event) Action {
 	modifier := ModNone
 	if (ev.Mod & termbox.ModAlt) != 0 {
 		modifier = ModAlt
 	}
 
 	key := keyseq.Key{modifier, ev.Key, ev.Ch}
-	action, err := Keyseq.AcceptKey(key)
+	action, err := km.Keyseq.AcceptKey(key)
 
 	switch err {
 	case nil:
@@ -204,11 +203,11 @@ func (km Keymap) ApplyConfig(c map[string]string) {
 			continue
 		}
 
-		Keyseq.Add(list, v)
+		km.Keyseq.Add(list, v)
 	}
 }
 
 // TODO: this needs to be fixed.
 func (km Keymap) hasModifierMaps() bool {
-	return len(km[ModAlt]) > 0
+	return false
 }

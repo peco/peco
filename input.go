@@ -12,7 +12,6 @@ type Input struct {
 	mutex *sync.Mutex // Currently only used for protecting Alt/Esc workaround
 	mod *time.Timer
 	currentKeymap Keymap
-	chained bool
 }
 
 func (i *Input) Loop() {
@@ -84,7 +83,7 @@ func (i *Input) handleInputEvent(ev termbox.Event) {
 }
 
 func (i *Input) handleKeyEvent(ev termbox.Event) {
-	if h := i.currentKeymap.Handler(ev, i.chained); h != nil {
+	if h := i.currentKeymap.Handler(ev); h != nil {
 		h.Execute(i, ev)
 		return
 	}

@@ -245,7 +245,7 @@ func (c *Ctx) NewInput() *Input {
 	// Create a new keymap object
 	k := NewKeymap()
 	k.ApplyConfig(c.config.Keymap)
-	return &Input{c, &sync.Mutex{}, nil, k, false}
+	return &Input{c, &sync.Mutex{}, nil, k}
 }
 
 func (c *Ctx) Stop() {
