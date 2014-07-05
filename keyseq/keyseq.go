@@ -2,6 +2,7 @@ package keyseq
 
 import (
 	"sync"
+	"time"
 
 	"github.com/nsf/termbox-go"
 )
@@ -62,25 +63,20 @@ type keyseqMatcher interface {
 
 type Keyseq struct {
 	*Matcher
-	current keyseqMatcher
-	mutex   *sync.Mutex
+	current       keyseqMatcher
+	mutex         *sync.Mutex
+	prevInputTime time.Time
 }
 
 func New() *Keyseq {
-	return &Keyseq{NewMatcher(), nil, &sync.Mutex{}}
+	return &Keyseq{NewMatcher(), nil, &sync.Mutex{}, time.Time{}}
 }
 
 func (k *Keyseq) SetCurrent(m keyseqMatcher) {
-	k.mutex.Lock()
-	defer k.mutex.Unlock()
-
 	k.current = m
 }
 
 func (k *Keyseq) Current() keyseqMatcher {
-	k.mutex.Lock()
-	defer k.mutex.Unlock()
-
 	if k.current == nil {
 		k.current = k.Matcher
 	}
@@ -88,19 +84,45 @@ func (k *Keyseq) Current() keyseqMatcher {
 }
 
 func (k *Keyseq) AcceptKey(key Key) interface{} {
+	k.mutex.Lock()
+	defer k.mutex.Unlock()
+	defer func() { k.prevInputTime = time.Now() }()
 	c := k.Current()
 	n := c.Get(key)
 
-	if n != nil && n.HasChildren() { // chained
-		k.SetCurrent(n)
+	// nothing matched
+	if n == nil {
+		k.SetCurrent(k.Matcher)
 		return nil
 	}
 
-	k.SetCurrent(k.Matcher)
+	// Matched node has children. It MAY BE a part of a key sequence
+	if n.HasChildren() {
+		// Did we get this input in succession, i.e. withing 200 msecs?
+		// if yes, we may need to check for key sequence
+		if time.Since(k.prevInputTime) <= time.Second {
+			k.SetCurrent(n)
+			// if this is in the middle of a sequence, nodeData contains
+			// nothing. in that case we should just return what the default
+			// (top-level) key action would have been
+			x := n.Value().(*nodeData).Value()
+			if x != nil {
+				return x
+			}
+		}
+		n = k.Matcher.Get(key)
+		if n == nil {
+			// Nothing matched, but we may be in the middle of a sequence,
+			// so don't reset the current node
+			return nil
+		}
 
-	if n != nil {
+		// Something matched, return it
 		return n.Value().(*nodeData).Value()
 	}
 
-	return nil
+	// If it got here, we should just rest the matcher, and return
+	// whatever we matched
+	k.SetCurrent(k.Matcher)
+	return n.Value().(*nodeData).Value()
 }
