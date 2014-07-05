@@ -315,6 +315,16 @@ You may specify as many matchers as you like.
 * [An example of a simple perl regexp matcher](https://gist.github.com/mattn/24712964da6e3112251c)
 * [C/Migemo](https://github.com/mattn/peco-cmigemo/)
 
+## Prompt
+
+You can change the query line's prompt, which is `QUERY>` by default.
+
+```json
+{
+    "Prompt": "[peco]"
+}
+```
+
 Hacking
 =======
 

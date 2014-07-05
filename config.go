@@ -17,6 +17,7 @@ type Config struct {
 	Matcher       string   `json:"Matcher"`
 	Style         StyleSet `json:"Style"`
 	CustomMatcher map[string][]string
+	Prompt        string   `json:"Prompt"`
 }
 
 func NewConfig() *Config {
@@ -24,6 +25,7 @@ func NewConfig() *Config {
 		Keymap:  NewKeymap(),
 		Matcher: IgnoreCaseMatch,
 		Style:   NewStyleSet(),
+		Prompt:  "QUERY>",
 	}
 }
 
