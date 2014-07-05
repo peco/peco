@@ -1,11 +1,15 @@
 package keyseq
 
 import (
+	"fmt"
 	"sync"
 	"time"
 
 	"github.com/nsf/termbox-go"
 )
+
+var ErrInSequence = fmt.Errorf("Currently expecting a key sequence")
+var ErrNoMatch = fmt.Errorf("Could not match key to any action")
 
 // Key is data in one trie node in the KeySequence
 type Key struct {
@@ -72,7 +76,18 @@ func New() *Keyseq {
 	return &Keyseq{NewMatcher(), nil, &sync.Mutex{}, time.Time{}}
 }
 
-func (k *Keyseq) SetCurrent(m keyseqMatcher) {
+func (k *Keyseq) InMiddleOfChain() bool {
+	return k.current != nil && k.current != k.Matcher
+}
+
+func (k *Keyseq) CancelChain() {
+	k.mutex.Lock()
+	defer k.mutex.Unlock()
+
+	k.setCurrent(k.Matcher)
+}
+
+func (k *Keyseq) setCurrent(m keyseqMatcher) {
 	k.current = m
 }
 
@@ -83,7 +98,8 @@ func (k *Keyseq) Current() keyseqMatcher {
 	return k.current
 }
 
-func (k *Keyseq) AcceptKey(key Key) interface{} {
+func (k *Keyseq) AcceptKey(key Key) (interface{}, error) {
+	// XXX should we return Action instead of interface{}?
 	k.mutex.Lock()
 	defer k.mutex.Unlock()
 	defer func() { k.prevInputTime = time.Now() }()
@@ -92,39 +108,30 @@ func (k *Keyseq) AcceptKey(key Key) interface{} {
 
 	// nothing matched
 	if n == nil {
-		k.SetCurrent(k.Matcher)
-		return nil
+		k.setCurrent(k.Matcher)
+		return nil, ErrNoMatch
 	}
 
-	// Matched node has children. It MAY BE a part of a key sequence
+	// Matched node has children. It MAY BE a part of a key sequence,
+	// but the longest one ALWAYS wins. So for example, if you had
+	// "C-x,C-n" and "C-x" mapped to something, "C-x" alone will never
+	// fire any action
 	if n.HasChildren() {
-		// Did we get this input in succession, i.e. withing 200 msecs?
-		// if yes, we may need to check for key sequence
-		if time.Since(k.prevInputTime) <= time.Second {
-			k.SetCurrent(n)
-			// if this is in the middle of a sequence, nodeData contains
-			// nothing. in that case we should just return what the default
-			// (top-level) key action would have been
-			if v := n.Value(); v != nil {
-				x := v.(*nodeData).Value()
-				if x != nil {
-					return x
-				}
-			}
-		}
-		n = k.Matcher.Get(key)
-		if n == nil || n.Value() == nil {
-			// Nothing matched, but we may be in the middle of a sequence,
-			// so don't reset the current node
-			return nil
-		}
-
-		// Something matched, return it
-		return n.Value().(*nodeData).Value()
+		// Set the current matcher to the matched node, so the next
+		// AcceptKey matches AFTER the current node
+		k.setCurrent(n)
+		return nil, ErrInSequence
 	}
 
 	// If it got here, we should just rest the matcher, and return
 	// whatever we matched
-	k.SetCurrent(k.Matcher)
-	return n.Value().(*nodeData).Value()
+	k.setCurrent(k.Matcher)
+
+	// This case should never be true, but we make sure to check
+	// for it in order to avoid the possibility of a crash
+	data := n.Value()
+	if data == nil {
+		return nil, ErrNoMatch
+	}
+	return data.(*nodeData).Value(), nil
 }

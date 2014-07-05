@@ -20,8 +20,6 @@ const (
 // Keyseq does successive matches against key events.
 var Keyseq = keyseq.New()
 
-// Keymap contains keys which are modifiers (like Alt+X), and points to
-// RawKeymap
 type Keymap [ModMax]RawKeymap
 
 // RawKeymap contains the actual mapping from termbox.Key to Action
@@ -198,11 +196,19 @@ func (km Keymap) Handler(ev termbox.Event, chained bool) Action {
 	}
 
 	key := keyseq.Key{modifier,ev.Key,ev.Ch}
-	action := Keyseq.AcceptKey(key)
-	if action != nil {
+	action, err := Keyseq.AcceptKey(key)
+
+	switch err {
+	case nil:
+		// Found an action!
 		return action.(Action)
+	case keyseq.ErrInSequence:
+		// TODO We're in some sort of key sequence. Remember what we have
+		// received so far
+		return ActionFunc(func(_ *Input, _ termbox.Event){})
+	default:
+		return ActionFunc(handleAcceptChar)
 	}
-	return ActionFunc(handleAcceptChar)
 /*
 
 	// RawKeymap that we will be using

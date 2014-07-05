@@ -109,6 +109,7 @@ func init() {
 
 	ActionFunc(doKonamiCommand).RegisterKeySequence(
 		keyseq.KeyList{
+			keyseq.Key{0,termbox.KeyCtrlX,0},
 			keyseq.Key{0,termbox.KeyArrowUp,0},
 			keyseq.Key{0,termbox.KeyArrowUp,0},
 			keyseq.Key{0,termbox.KeyArrowDown,0},
@@ -198,6 +199,11 @@ func doFinish(i *Input, _ termbox.Event) {
 }
 
 func doCancel(i *Input, ev termbox.Event) {
+	if Keyseq.InMiddleOfChain() {
+		Keyseq.CancelChain()
+		return
+	}
+
 	if i.IsSelectMode() {
 		doCancelSelectMode(i, ev)
 		return
