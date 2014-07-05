@@ -167,7 +167,7 @@ CALCULATE_PAGE:
 	fgAttr = v.config.Style.Query.fg
 	bgAttr = v.config.Style.Query.bg
 
-	prompt := "QUERY>"
+	prompt := v.config.Prompt
 	promptLen := runewidth.StringWidth(prompt)
 	printTB(0, 0, fgAttr, bgAttr, prompt)
 

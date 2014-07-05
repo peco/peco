@@ -26,7 +26,8 @@ func TestReadRC(t *testing.T) {
 		"Selected": ["underline", "on_cyan", "black"],
 		"Query": ["yellow", "bold"],
 		"Matched": ["cyan", "bold", "on_red"]
-	}
+	},
+	"Prompt": "[peco]"
 }
 `
 	cfg := NewConfig()
