@@ -118,54 +118,29 @@ func init() {
 	//	panic(fmt.Sprintf("%#q", stringToKey))
 }
 
-func handleAcceptChar(i *Input, ev termbox.Event) {
-	if ev.Key == termbox.KeySpace {
-		ev.Ch = ' '
-	}
-
-	if ev.Ch > 0 {
-		if len(i.query) == i.caretPos {
-			i.query = append(i.query, ev.Ch)
-		} else {
-			buf := make([]rune, len(i.query)+1)
-			copy(buf, i.query[:i.caretPos])
-			buf[i.caretPos] = ev.Ch
-			copy(buf[i.caretPos+1:], i.query[i.caretPos:])
-			i.query = buf
-		}
-		i.caretPos++
-		i.ExecQuery()
-	}
-}
-
-func handleResetKeySequence(i *Input, ev termbox.Event) {
-	i.currentKeymap = i.config.Keymap
-	i.chained = false
-}
-
 func (ksk KeymapStringKey) ToKeyList() (keyseq.KeyList, error) {
 	list := keyseq.KeyList{}
 	for _, term := range strings.Split(string(ksk), ",") {
-		term = strings.Trim(term, " ")
+		term = strings.TrimSpace(term)
 
-		k, m, err := KeymapStringKey(term).ToKey()
+		k, m, ch, err := KeymapStringKey(term).ToKey()
 		if err != nil {
 			return list, err
 		}
 
-		list = append(list, keyseq.Key{m,k,rune(0)})
+		list = append(list, keyseq.Key{m,k,ch})
 	}
 	return list, nil
 }
 
-func (ksk KeymapStringKey) ToKey() (k termbox.Key, modifier int, err error) {
+func (ksk KeymapStringKey) ToKey() (k termbox.Key, modifier int, ch rune, err error) {
 	modifier = ModNone
 	key := string(ksk)
 	if strings.HasPrefix(key, "M-") {
 		modifier = ModAlt
 		key = key[2:]
 		if len(key) == 1 {
-			k = termbox.Key(key[0])
+			ch = rune(key[0])
 			return
 		}
 	}
@@ -205,37 +180,10 @@ func (km Keymap) Handler(ev termbox.Event, chained bool) Action {
 	case keyseq.ErrInSequence:
 		// TODO We're in some sort of key sequence. Remember what we have
 		// received so far
-		return ActionFunc(func(_ *Input, _ termbox.Event){})
+		return ActionFunc(doNothing)
 	default:
-		return ActionFunc(handleAcceptChar)
+		return ActionFunc(doAcceptChar)
 	}
-/*
-
-	// RawKeymap that we will be using
-	rkm := km[modifier]
-
-	switch modifier {
-	case ModAlt:
-
-		if h, ok := rkm[key]; ok {
-			return h
-		}
-	case ModNone:
-		if ev.Ch == 0 {
-			if h, ok := rkm[ev.Key]; ok {
-				return h
-			}
-		}
-	default:
-		panic("Can't get here")
-	}
-
-	if chained {
-		return ActionFunc(handleResetKeySequence)
-	} else {
-		return ActionFunc(handleAcceptChar)
-	}
-*/
 }
 
 func (km Keymap) UnmarshalJSON(buf []byte) error {
@@ -244,17 +192,13 @@ func (km Keymap) UnmarshalJSON(buf []byte) error {
 		return err
 	}
 
-	km.assignKeyHandlers(raw)
-	return nil
-}
-
-func (km Keymap) assignKeyHandlers(raw map[string]string) {
 	for ks, vs := range raw {
 		list, err := KeymapStringKey(ks).ToKeyList()
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Unknown key %s", ks)
 			continue
 		}
+
 		if vs == "-" {
 			// XXX TODO: how do we delete from a trie?
 			continue
@@ -267,37 +211,12 @@ func (km Keymap) assignKeyHandlers(raw map[string]string) {
 		}
 
 		Keyseq.Add(list, v)
-
-		/*
-
-		keymap := km[modifier]
-		switch vi.(type) {
-		case string:
-			vs := vi.(string)
-			if vs == "-" {
-				delete(keymap, k)
-				continue
-			}
-
-			keymap[k] = ActionFunc(func(i *Input, ev termbox.Event) {
-				v.Execute(i, ev)
-
-				// Reset key sequence when not-chained key was pressed
-				handleResetKeySequence(i, ev)
-			})
-		case map[string]interface{}:
-			ckm := Keymap{{}, {}}
-			ckm.assignKeyHandlers(vi.(map[string]interface{}))
-			keymap[k] = ActionFunc(func(i *Input, _ termbox.Event) {
-				// Switch Keymap for chained state
-				i.currentKeymap = ckm
-				i.chained = true
-			})
-		}
-*/
 	}
+
+	return nil
 }
 
+// TODO: this needs to be fixed.
 func (km Keymap) hasModifierMaps() bool {
 	return len(km[ModAlt]) > 0
 }

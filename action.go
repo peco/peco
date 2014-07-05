@@ -126,6 +126,31 @@ func init() {
 	Keyseq.Compile()
 }
 
+// This is a noop action
+func doNothing(_ *Input, _ termbox.Event) {}
+
+// This is an exception to the rule. This does not get registered
+// anywhere. You just call it directly
+func doAcceptChar(i *Input, ev termbox.Event) {
+	if ev.Key == termbox.KeySpace {
+		ev.Ch = ' '
+	}
+
+	if ev.Ch > 0 {
+		if len(i.query) == i.caretPos {
+			i.query = append(i.query, ev.Ch)
+		} else {
+			buf := make([]rune, len(i.query)+1)
+			copy(buf, i.query[:i.caretPos])
+			buf[i.caretPos] = ev.Ch
+			copy(buf[i.caretPos+1:], i.query[i.caretPos:])
+			i.query = buf
+		}
+		i.caretPos++
+		i.ExecQuery()
+	}
+}
+
 func doRotateMatcher(i *Input, ev termbox.Event) {
 	i.Ctx.CurrentMatcher++
 	if i.Ctx.CurrentMatcher >= len(i.Ctx.Matchers) {

@@ -45,7 +45,6 @@ func (i *Input) Loop() {
 }
 
 func (i *Input) handleInputEvent(ev termbox.Event) {
-	hasModifierMaps := i.config.Keymap.hasModifierMaps()
 	switch ev.Type {
 	case termbox.EventError:
 		//update = false
@@ -56,10 +55,6 @@ func (i *Input) handleInputEvent(ev termbox.Event) {
 		// It would be nice if termbox differentiated this for us, but
 		// we workaround it by waiting (juuuuse a few milliseconds) for
 		// extra key events. If no extra events arrive, it should be Esc
-		if !hasModifierMaps {
-			i.handleKeyEvent(ev)
-			return
-		}
 
 		// Smells like Esc or Alt. mod == nil checks for the presense
 		// of a previous timer
