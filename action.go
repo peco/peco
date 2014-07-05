@@ -13,6 +13,7 @@ import (
 // callback based Action
 type Action interface {
 	Register(string, ...termbox.Key)
+	RegisterKeySequence(keyseq.KeyList)
 	Execute(*Input, termbox.Event)
 }
 
@@ -38,6 +39,10 @@ func (a ActionFunc) Register(name string, defaultKeys ...termbox.Key) {
 	for _, k := range defaultKeys {
 		Keyseq.Add(keyseq.KeyList{keyseq.NewKeyFromKey(k)}, a)
 	}
+}
+
+func (a ActionFunc) RegisterKeySequence(k keyseq.KeyList) {
+	Keyseq.Add(k, a)
 }
 
 func init() {
@@ -101,6 +106,21 @@ func init() {
 	ActionFunc(doSelectVisible).Register("SelectVisible")
 	ActionFunc(doToggleSelectMode).Register("ToggleSelectMode")
 	ActionFunc(doCancelSelectMode).Register("CancelSelectMode")
+
+	ActionFunc(doKonamiCommand).RegisterKeySequence(
+		keyseq.KeyList{
+			keyseq.Key{0,termbox.KeyArrowUp,0},
+			keyseq.Key{0,termbox.KeyArrowUp,0},
+			keyseq.Key{0,termbox.KeyArrowDown,0},
+			keyseq.Key{0,termbox.KeyArrowDown,0},
+			keyseq.Key{0,termbox.KeyArrowLeft,0},
+			keyseq.Key{0,termbox.KeyArrowRight,0},
+			keyseq.Key{0,termbox.KeyArrowLeft,0},
+			keyseq.Key{0,termbox.KeyArrowRight,0},
+			keyseq.Key{0,0,'b'},
+			keyseq.Key{0,0,'a'},
+		},
+	)
 
 	Keyseq.Compile()
 }
@@ -445,4 +465,8 @@ func doDeleteBackwardChar(i *Input, ev termbox.Event) {
 
 	i.current = nil
 	i.DrawMatches(nil)
+}
+
+func doKonamiCommand(i *Input, ev termbox.Event) {
+	i.StatusMsgCh() <- "All your filters are blongs to us"
 }
