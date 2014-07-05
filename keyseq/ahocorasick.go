@@ -16,7 +16,11 @@ type nodeData struct {
 	failure *TernaryNode
 }
 
-func New() *Matcher {
+func (n *nodeData) Value() interface{} {
+	return n.value
+}
+
+func NewMatcher() *Matcher {
 	return &Matcher{
 		NewTernaryTrie(),
 	}

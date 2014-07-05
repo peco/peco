@@ -6,7 +6,8 @@ import (
 
 type Trie interface {
 	Root() Node
-	Get(KeyList) Node
+	GetList(KeyList) Node
+	Get(Key) Node
 	Put(KeyList, interface{}) Node
 	Size() int
 }
@@ -76,6 +77,7 @@ func EachWidth(t Trie, proc func(Node) bool) {
 
 type Node interface {
 	Get(k Key) Node
+	GetList(k KeyList) Node
 	Dig(k Key) (Node, bool)
 	HasChildren() bool
 	Size() int

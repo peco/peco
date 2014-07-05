@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/nsf/termbox-go"
+	"github.com/peco/peco/keyseq"
 )
 
 // Possible key modifiers
@@ -15,6 +16,9 @@ const (
 	ModAlt
 	ModMax
 )
+
+// Keyseq does successive matches against key events.
+var Keyseq = keyseq.New()
 
 // Keymap contains keys which are modifiers (like Alt+X), and points to
 // RawKeymap
@@ -141,6 +145,21 @@ func handleResetKeySequence(i *Input, ev termbox.Event) {
 	i.chained = false
 }
 
+func (ksk KeymapStringKey) ToKeyList() (keyseq.KeyList, error) {
+	list := keyseq.KeyList{}
+	for _, term := range strings.Split(string(ksk), ",") {
+		term = strings.Trim(term, " ")
+
+		k, m, err := KeymapStringKey(term).ToKey()
+		if err != nil {
+			return list, err
+		}
+
+		list = append(list, keyseq.Key{m,k,rune(0)})
+	}
+	return list, nil
+}
+
 func (ksk KeymapStringKey) ToKey() (k termbox.Key, modifier int, err error) {
 	modifier = ModNone
 	key := string(ksk)
@@ -178,17 +197,19 @@ func (km Keymap) Handler(ev termbox.Event, chained bool) Action {
 		modifier = ModAlt
 	}
 
+	key := keyseq.Key{modifier,ev.Key,ev.Ch}
+	action := Keyseq.AcceptKey(key)
+	if action != nil {
+		return action.(Action)
+	}
+	return ActionFunc(handleAcceptChar)
+/*
+
 	// RawKeymap that we will be using
 	rkm := km[modifier]
 
 	switch modifier {
 	case ModAlt:
-		var key termbox.Key
-		if ev.Ch == 0 {
-			key = ev.Key
-		} else {
-			key = termbox.Key(ev.Ch)
-		}
 
 		if h, ok := rkm[key]; ok {
 			return h
@@ -208,10 +229,11 @@ func (km Keymap) Handler(ev termbox.Event, chained bool) Action {
 	} else {
 		return ActionFunc(handleAcceptChar)
 	}
+*/
 }
 
 func (km Keymap) UnmarshalJSON(buf []byte) error {
-	raw := map[string]interface{}{}
+	raw := map[string]string{}
 	if err := json.Unmarshal(buf, &raw); err != nil {
 		return err
 	}
@@ -220,13 +242,27 @@ func (km Keymap) UnmarshalJSON(buf []byte) error {
 	return nil
 }
 
-func (km Keymap) assignKeyHandlers(raw map[string]interface{}) {
-	for ks, vi := range raw {
-		k, modifier, err := KeymapStringKey(ks).ToKey()
+func (km Keymap) assignKeyHandlers(raw map[string]string) {
+	for ks, vs := range raw {
+		list, err := KeymapStringKey(ks).ToKeyList()
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Unknown key %s", ks)
 			continue
 		}
+		if vs == "-" {
+			// XXX TODO: how do we delete from a trie?
+			continue
+		}
+
+		v, ok := nameToActions[vs]
+		if !ok {
+			fmt.Fprintf(os.Stderr, "Unknown handler '%s'\n", vs)
+			continue
+		}
+
+		Keyseq.Add(list, v)
+
+		/*
 
 		keymap := km[modifier]
 		switch vi.(type) {
@@ -237,11 +273,6 @@ func (km Keymap) assignKeyHandlers(raw map[string]interface{}) {
 				continue
 			}
 
-			v, ok := nameToActions[vs]
-			if !ok {
-				fmt.Fprintf(os.Stderr, "Unknown handler %s", vs)
-				continue
-			}
 			keymap[k] = ActionFunc(func(i *Input, ev termbox.Event) {
 				v.Execute(i, ev)
 
@@ -257,6 +288,7 @@ func (km Keymap) assignKeyHandlers(raw map[string]interface{}) {
 				i.chained = true
 			})
 		}
+*/
 	}
 }
 

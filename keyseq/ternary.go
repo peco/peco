@@ -12,8 +12,12 @@ func (t *TernaryTrie) Root() Node {
 	return &t.root
 }
 
-func (t *TernaryTrie) Get(k KeyList) Node {
+func (t *TernaryTrie) GetList(k KeyList) Node {
 	return Get(t, k)
+}
+
+func (t *TernaryTrie) Get(k Key) Node {
+	return Get(t, KeyList{k})
 }
 
 func (t *TernaryTrie) Put(k KeyList, v interface{}) Node {
@@ -46,6 +50,10 @@ type TernaryNode struct {
 
 func NewTernaryNode(l Key) *TernaryNode {
 	return &TernaryNode{label: l}
+}
+
+func (n *TernaryNode) GetList(k KeyList) Node {
+	return n.Get(k[0])
 }
 
 func (n *TernaryNode) Get(k Key) Node {

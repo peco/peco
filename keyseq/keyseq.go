@@ -1,6 +1,10 @@
 package keyseq
 
-import "github.com/nsf/termbox-go"
+import (
+	"sync"
+
+	"github.com/nsf/termbox-go"
+)
 
 // Key is data in one trie node in the KeySequence
 type Key struct {
@@ -10,7 +14,7 @@ type Key struct {
 }
 
 func NewKeyFromKey(k termbox.Key) Key {
-	return Key{0,k,rune(0)}
+	return Key{0, k, rune(0)}
 }
 
 // KeyList is just the list of keys
@@ -49,4 +53,54 @@ func (k KeyList) Equals(x KeyList) bool {
 		}
 	}
 	return true
+}
+
+type keyseqMatcher interface {
+	Get(Key) Node
+	GetList(KeyList) Node
+}
+
+type Keyseq struct {
+	*Matcher
+	current keyseqMatcher
+	mutex   *sync.Mutex
+}
+
+func New() *Keyseq {
+	return &Keyseq{NewMatcher(), nil, &sync.Mutex{}}
+}
+
+func (k *Keyseq) SetCurrent(m keyseqMatcher) {
+	k.mutex.Lock()
+	defer k.mutex.Unlock()
+
+	k.current = m
+}
+
+func (k *Keyseq) Current() keyseqMatcher {
+	k.mutex.Lock()
+	defer k.mutex.Unlock()
+
+	if k.current == nil {
+		k.current = k.Matcher
+	}
+	return k.current
+}
+
+func (k *Keyseq) AcceptKey(key Key) interface{} {
+	c := k.Current()
+	n := c.Get(key)
+
+	if n != nil && n.HasChildren() { // chained
+		k.SetCurrent(n)
+		return nil
+	}
+
+	k.SetCurrent(k.Matcher)
+
+	if n != nil {
+		return n.Value().(*nodeData).Value()
+	}
+
+	return nil
 }

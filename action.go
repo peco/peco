@@ -4,6 +4,7 @@ import (
 	"unicode"
 
 	"github.com/nsf/termbox-go"
+	"github.com/peco/peco/keyseq"
 )
 
 // Action describes an action that can be executed upon receiving user
@@ -35,7 +36,7 @@ func (a ActionFunc) Execute(i *Input, e termbox.Event) {
 func (a ActionFunc) Register(name string, defaultKeys ...termbox.Key) {
 	nameToActions["peco."+name] = a
 	for _, k := range defaultKeys {
-		defaultKeyBinding[k] = a
+		Keyseq.Add(keyseq.KeyList{keyseq.NewKeyFromKey(k)}, a)
 	}
 }
 
@@ -100,6 +101,8 @@ func init() {
 	ActionFunc(doSelectVisible).Register("SelectVisible")
 	ActionFunc(doToggleSelectMode).Register("ToggleSelectMode")
 	ActionFunc(doCancelSelectMode).Register("CancelSelectMode")
+
+	Keyseq.Compile()
 }
 
 func doRotateMatcher(i *Input, ev termbox.Event) {
@@ -146,7 +149,7 @@ func doSelectNone(i *Input, _ termbox.Event) {
 }
 
 func doSelectAll(i *Input, _ termbox.Event) {
-	for lineno:=1; lineno <= len(i.current); lineno++ {
+	for lineno := 1; lineno <= len(i.current); lineno++ {
 		i.selection.Add(lineno)
 	}
 	i.DrawMatches(nil)
@@ -155,7 +158,7 @@ func doSelectAll(i *Input, _ termbox.Event) {
 func doSelectVisible(i *Input, _ termbox.Event) {
 	pageStart := i.currentPage.offset
 	pageEnd := pageStart + i.currentPage.perPage
-	for lineno:=pageStart; lineno <= pageEnd; lineno++ {
+	for lineno := pageStart; lineno <= pageEnd; lineno++ {
 		i.selection.Add(lineno)
 	}
 	i.DrawMatches(nil)
@@ -203,7 +206,6 @@ func doSelectNextPage(i *Input, ev termbox.Event) {
 	i.PagingCh() <- ToNextPage
 	i.DrawMatches(nil)
 }
-
 
 func doToggleSelectionAndSelectNext(i *Input, ev termbox.Event) {
 	doToggleSelection(i, ev)
@@ -444,5 +446,3 @@ func doDeleteBackwardChar(i *Input, ev termbox.Event) {
 	i.current = nil
 	i.DrawMatches(nil)
 }
-
-
