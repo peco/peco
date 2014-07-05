@@ -136,11 +136,6 @@ func handleAcceptChar(i *Input, ev termbox.Event) {
 	}
 }
 
-func handleResetKeySequence(i *Input, ev termbox.Event) {
-	i.currentKeymap = i.config.Keymap
-	i.chained = false
-}
-
 func (ksk KeymapStringKey) ToKey() (k termbox.Key, modifier int, err error) {
 	modifier = ModNone
 	key := string(ksk)
@@ -204,7 +199,7 @@ func (km Keymap) Handler(ev termbox.Event, chained bool) Action {
 	}
 
 	if chained {
-		return ActionFunc(handleResetKeySequence)
+		return ActionFunc(doResetKeySequence)
 	} else {
 		return ActionFunc(handleAcceptChar)
 	}
@@ -246,7 +241,7 @@ func (km Keymap) assignKeyHandlers(raw map[string]interface{}) {
 				v.Execute(i, ev)
 
 				// Reset key sequence when not-chained key was pressed
-				handleResetKeySequence(i, ev)
+				doResetKeySequence(i, ev)
 			})
 		case map[string]interface{}:
 			ckm := Keymap{{}, {}}

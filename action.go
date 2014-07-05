@@ -100,6 +100,7 @@ func init() {
 	ActionFunc(doSelectVisible).Register("SelectVisible")
 	ActionFunc(doToggleSelectMode).Register("ToggleSelectMode")
 	ActionFunc(doCancelSelectMode).Register("CancelSelectMode")
+	ActionFunc(doResetKeySequence).Register("ResetKeySequence")
 }
 
 func doRotateMatcher(i *Input, ev termbox.Event) {
@@ -445,4 +446,11 @@ func doDeleteBackwardChar(i *Input, ev termbox.Event) {
 	i.DrawMatches(nil)
 }
 
+func doResetKeySequence(i *Input, ev termbox.Event) {
+	if !i.chained {
+		return
+	}
 
+	i.currentKeymap = i.config.Keymap
+	i.chained = false
+}
