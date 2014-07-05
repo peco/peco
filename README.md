@@ -208,6 +208,7 @@ key item to use Alt/Option key as a mask.
 | peco.ToggleSelectMode   | Start selecting by range, or append selecting range to selections |
 | peco.CancelSelectMode   | Finish selecting by range and cancel range selection |
 | peco.RotateMatcher      | Rotate between matchers (by default, ignore-case/no-ignore-case)|
+| peco.ResetKeySequence   | Cancel key sequence input |
 | peco.Finish             | Exits from peco with success status |
 | peco.Cancel             | Exits from peco with failure status, or cancel select mode |
 
