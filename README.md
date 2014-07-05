@@ -125,7 +125,7 @@ Specifies the initial line position upon start up. E.g. If you want to start out
 
 ### --prompt
 
-Specifies the query line's prompt. It's `QUERY>` by default. And it's prior to configuration file's `Prompt`.
+Specifies the query line's prompt string. When specified, takes precedence over the configuration file's `Prompt` section. The default value is `QUERY>`
 
 Configuration File
 ==================
