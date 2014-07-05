@@ -25,6 +25,7 @@ const (
 	ToPrevLine
 	// ToPrevPage moves the selection to the previous page
 	ToPrevPage
+	QueryHeight = 1
 )
 
 // Loop receives requests to update the screen
@@ -87,7 +88,7 @@ func printTB(x, y int, fg, bg termbox.Attribute, msg string) {
 
 func (v *View) movePage(p PagingRequest) {
 	_, height := termbox.Size()
-	perPage := height - 4
+	perPage := height - QueryHeight
 
 	switch p {
 	case ToPrevLine:
@@ -138,7 +139,7 @@ func (v *View) drawScreen(targets []Match) {
 	}
 
 	width, height := termbox.Size()
-	perPage := height - 4
+	perPage := height - QueryHeight
 
 CALCULATE_PAGE:
 	currentPage := &v.Ctx.currentPage
