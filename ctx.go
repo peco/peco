@@ -75,6 +75,7 @@ type Ctx struct {
 	pagingCh            chan PagingRequest
 	mutex               sync.Mutex
 	query               []rune
+	prompt              []rune
 	caretPos            int
 	currentLine         int
 	currentPage         struct { index, offset, perPage int }
@@ -101,6 +102,7 @@ func NewCtx(o CtxOptions) *Ctx {
 		make(chan string, 5),        // statusMsgCh
 		make(chan PagingRequest, 5), // pagingCh
 		sync.Mutex{},
+		[]rune{},
 		[]rune{},
 		0,
 		o.InitialIndex(),
@@ -323,4 +325,8 @@ func (s *SignalHandler) Loop() {
 			return
 		}
 	}
+}
+
+func (c *Ctx) SetPrompt(p []rune) {
+	c.prompt = p
 }

@@ -167,7 +167,12 @@ CALCULATE_PAGE:
 	fgAttr = v.config.Style.Query.fg
 	bgAttr = v.config.Style.Query.bg
 
-	prompt := v.config.Prompt
+	var prompt string
+	if len(v.Ctx.prompt) > 0 {
+		prompt = string(v.Ctx.prompt)
+	} else {
+		prompt = v.config.Prompt
+	}
 	promptLen := runewidth.StringWidth(prompt)
 	printTB(0, 0, fgAttr, bgAttr, prompt)
 

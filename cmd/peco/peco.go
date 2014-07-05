@@ -25,6 +25,7 @@ Options:
   -b, --buffer-size     number of lines to keep in search buffer
   --null                expect NUL (\0) as separator for target/output (EXPERIMENTAL)
   --initial-index       position of the initial index of the selection (0 base)
+  --prompt              specify prompt
 `
 	os.Stderr.Write([]byte(v))
 }
@@ -39,6 +40,7 @@ type cmdOptions struct {
 	OptBufferSize    int    `long:"buffer-size" short:"b" description:"number of lines to keep in search buffer"`
 	OptEnableNullSep bool   `long:"null" description:"expect NUL (\\0) as separator for target/output"`
 	OptInitialIndex  int    `long:"initial-index" description:"position of the initial index of the selection (0 base)"`
+	OptPrompt        string `long:"prompt"`
 }
 
 // BufferSize returns the specified buffer size. Fulfills peco.CtxOptions
@@ -194,6 +196,10 @@ func main() {
 		ctx.ExecQuery()
 	} else {
 		view.Refresh()
+	}
+
+	if len(opts.OptPrompt) > 0 {
+		ctx.SetPrompt([]rune(opts.OptPrompt))
 	}
 
 	ctx.WaitDone()
