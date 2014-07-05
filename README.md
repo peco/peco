@@ -123,6 +123,10 @@ By default peco starts in case insensitive mode. When this option is specified, 
 
 Specifies the initial line position upon start up. E.g. If you want to start out with the second line selected, set it to "1" (because the index is 0 based)
 
+### --prompt
+
+Specifies the query line's prompt string. When specified, takes precedence over the configuration file's `Prompt` section. The default value is `QUERY>`
+
 Configuration File
 ==================
 
