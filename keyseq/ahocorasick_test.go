@@ -46,7 +46,7 @@ func validData(pattern KeyList, value interface{}, failure Node) nodeData {
 }
 
 func newTestMatcher() *Matcher {
-	m := New()
+	m := NewMatcher()
 	m.Add(KeyList{Key{0, termbox.KeyCtrlA, rune(0)}, Key{0, termbox.KeyCtrlB, rune(0)}}, 2)
 	m.Add(KeyList{Key{0, termbox.KeyCtrlB, rune(0)}, Key{0, termbox.KeyCtrlC, rune(0)}}, 4)
 	m.Add(KeyList{Key{0, termbox.KeyCtrlB, rune(0)}, Key{0, termbox.KeyCtrlA, rune(0)}, Key{0, termbox.KeyCtrlB, rune(0)}}, 6)

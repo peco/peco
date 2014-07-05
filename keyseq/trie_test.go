@@ -34,7 +34,7 @@ func TestTrie(t *testing.T) {
 
 func TestNotFound(t *testing.T) {
 	trie := NewTrie()
-	if trie.Get(KeyList{Key{999,999,'a'}}) != nil {
+	if trie.Get(Key{999,999,'a'}) != nil {
 		t.Errorf("found 'not_exist' in empty trie")
 	}
 }
