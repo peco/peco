@@ -111,7 +111,7 @@ func (k *Keyseq) AcceptKey(key Key) interface{} {
 			}
 		}
 		n = k.Matcher.Get(key)
-		if n == nil {
+		if n == nil || n.Value() == nil {
 			// Nothing matched, but we may be in the middle of a sequence,
 			// so don't reset the current node
 			return nil
