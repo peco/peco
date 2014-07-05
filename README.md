@@ -145,9 +145,7 @@ Example:
     "Keymap": {
         "M-v": "peco.SelectPreviousPage",
         "C-v": "peco.SelectNextPage",
-        "C-x": {
-            "C-c": "peco.Cancel"
-        }
+        "C-x,C-c": "peco.Cancel"
     }
 }
 ```
