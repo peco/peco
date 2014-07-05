@@ -105,9 +105,11 @@ func (k *Keyseq) AcceptKey(key Key) interface{} {
 			// if this is in the middle of a sequence, nodeData contains
 			// nothing. in that case we should just return what the default
 			// (top-level) key action would have been
-			x := n.Value().(*nodeData).Value()
-			if x != nil {
-				return x
+			if v := n.Value(); v != nil {
+				x := v.(*nodeData).Value()
+				if x != nil {
+					return x
+				}
 			}
 		}
 		n = k.Matcher.Get(key)
