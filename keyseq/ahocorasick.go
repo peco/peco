@@ -26,6 +26,10 @@ func NewMatcher() *Matcher {
 	}
 }
 
+func (m *Matcher) Clear() {
+	m.Root().RemoveAll()
+}
+
 func (m *Matcher) Add(pattern KeyList, v interface{}) {
 	m.Put(pattern, &nodeData{
 		pattern: &pattern,

@@ -1,171 +1,27 @@
 package peco
 
 import (
-	"encoding/json"
 	"fmt"
 	"os"
-	"strings"
 
 	"github.com/nsf/termbox-go"
 	"github.com/peco/peco/keyseq"
 )
 
-// Possible key modifiers
-const (
-	ModNone = iota
-	ModAlt
-	ModMax
-)
-
 type Keymap struct {
+	Config map[string]string
 	Keyseq *keyseq.Keyseq
 }
 
-type KeymapStringKey string
+func NewKeymap(config map[string]string) Keymap {
+	return Keymap{config, keyseq.New()}
 
-// This map is populated using some magic numbers, which must match
-// the values defined in termbox-go. Verification against the actual
-// termbox constants are done in the test
-var stringToKey = map[string]termbox.Key{}
-
-func init() {
-	fidx := 12
-	for k := termbox.KeyF1; k > termbox.KeyF12; k-- {
-		sk := fmt.Sprintf("F%d", fidx)
-		stringToKey[sk] = k
-		fidx--
-	}
-
-	names := []string{
-		"Insert",
-		"Delete",
-		"Home",
-		"End",
-		"Pgup",
-		"Pgdn",
-		"ArrowUp",
-		"ArrowDown",
-		"ArrowLeft",
-		"ArrowRight",
-	}
-	for i, n := range names {
-		stringToKey[n] = termbox.Key(int(termbox.KeyF12) - (i + 1))
-	}
-
-	names = []string{
-		"Left",
-		"Middle",
-		"Right",
-	}
-	for i, n := range names {
-		sk := fmt.Sprintf("Mouse%s", n)
-		stringToKey[sk] = termbox.Key(int(termbox.KeyArrowRight) - (i + 2))
-	}
-
-	whacky := [][]string{
-		{"~", "2", "Space"},
-		{"a"},
-		{"b"},
-		{"c"},
-		{"d"},
-		{"e"},
-		{"f"},
-		{"g"},
-		{"h"},
-		{"i"},
-		{"j"},
-		{"k"},
-		{"l"},
-		{"m"},
-		{"n"},
-		{"o"},
-		{"p"},
-		{"q"},
-		{"r"},
-		{"s"},
-		{"t"},
-		{"u"},
-		{"v"},
-		{"w"},
-		{"x"},
-		{"y"},
-		{"z"},
-		{"[", "3"},
-		{"4", "\\"},
-		{"5", "]"},
-		{"6"},
-		{"7", "/", "_"},
-	}
-	for i, list := range whacky {
-		for _, n := range list {
-			sk := fmt.Sprintf("C-%s", n)
-			stringToKey[sk] = termbox.Key(int(termbox.KeyCtrlTilde) + i)
-		}
-	}
-
-	stringToKey["BS"] = termbox.KeyBackspace
-	stringToKey["Tab"] = termbox.KeyTab
-	stringToKey["Enter"] = termbox.KeyEnter
-	stringToKey["Esc"] = termbox.KeyEsc
-	stringToKey["Space"] = termbox.KeySpace
-	stringToKey["BS2"] = termbox.KeyBackspace2
-	stringToKey["C-8"] = termbox.KeyCtrl8
-
-	//	panic(fmt.Sprintf("%#q", stringToKey))
-}
-
-func (ksk KeymapStringKey) ToKeyList() (keyseq.KeyList, error) {
-	list := keyseq.KeyList{}
-	for _, term := range strings.Split(string(ksk), ",") {
-		term = strings.TrimSpace(term)
-
-		k, m, ch, err := KeymapStringKey(term).ToKey()
-		if err != nil {
-			return list, err
-		}
-
-		list = append(list, keyseq.Key{m, k, ch})
-	}
-	return list, nil
-}
-
-func (ksk KeymapStringKey) ToKey() (k termbox.Key, modifier int, ch rune, err error) {
-	modifier = ModNone
-	key := string(ksk)
-	if strings.HasPrefix(key, "M-") {
-		modifier = ModAlt
-		key = key[2:]
-		if len(key) == 1 {
-			ch = rune(key[0])
-			return
-		}
-	}
-
-	var ok bool
-	k, ok = stringToKey[key]
-	if !ok {
-		err = fmt.Errorf("No such key %s", ksk)
-	}
-	return
-}
-
-func NewKeymap() Keymap {
-	k := keyseq.New()
-	for s, a := range defaultKeyBinding {
-		kl := keyseq.KeyList{}
-		if err := json.Unmarshal([]byte(s), &kl); err != nil {
-			panic(err)
-		}
-		k.Add(kl, a)
-	}
-	k.Compile()
-	return Keymap{k}
 }
 
 func (km Keymap) Handler(ev termbox.Event) Action {
-	modifier := ModNone
+	modifier := keyseq.ModNone
 	if (ev.Mod & termbox.ModAlt) != 0 {
-		modifier = ModAlt
+		modifier = keyseq.ModAlt
 	}
 
 	key := keyseq.Key{modifier, ev.Key, ev.Ch}
@@ -184,27 +40,43 @@ func (km Keymap) Handler(ev termbox.Event) Action {
 	}
 }
 
-func (km Keymap) ApplyConfig(c map[string]string) {
-	for ks, vs := range c {
-		list, err := KeymapStringKey(ks).ToKeyList()
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "Unknown key %s", ks)
-			continue
-		}
+func (km Keymap) ApplyKeybinding() {
+	k := km.Keyseq
+	k.Clear()
 
-		if vs == "-" {
-			// XXX TODO: how do we delete from a trie?
-			continue
-		}
-
-		v, ok := nameToActions[vs]
-		if !ok {
-			fmt.Fprintf(os.Stderr, "Unknown handler '%s'\n", vs)
-			continue
-		}
-
-		km.Keyseq.Add(list, v)
+	// Copy the map
+	kb := map[string]Action{}
+	for s, a := range defaultKeyBinding {
+		kb[s] = a
 	}
+
+	// munge the map using config
+	for s, as := range km.Config {
+		if as == "-" {
+			delete(kb, s)
+			continue
+		}
+
+		v, ok := nameToActions[as]
+		if !ok {
+			fmt.Fprintf(os.Stderr, "Unknown handler '%s'\n", as)
+			continue
+		}
+		kb[s] = v
+	}
+
+	// now compile using kb
+	for s, a := range kb {
+		list, err := keyseq.ToKeyList(s)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Unknown key %s: %s", s, err)
+			continue
+		}
+
+		k.Add(list, a)
+	}
+
+	k.Compile()
 }
 
 // TODO: this needs to be fixed.

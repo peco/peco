@@ -2,6 +2,7 @@ package keyseq
 
 import (
 	"fmt"
+	"strings"
 	"sync"
 	"time"
 
@@ -11,11 +12,51 @@ import (
 var ErrInSequence = fmt.Errorf("Currently expecting a key sequence")
 var ErrNoMatch = fmt.Errorf("Could not match key to any action")
 
+type ModifierKey int
+
+const (
+	ModNone ModifierKey = iota
+	ModAlt
+	ModMax
+)
+
 // Key is data in one trie node in the KeySequence
 type Key struct {
-	Modifier int // Alt, etc
+	Modifier ModifierKey // Alt, etc
 	Key      termbox.Key
 	Ch       rune
+}
+
+func (kl KeyList) String() string {
+	list := make([]string, len(kl))
+	for i := 0; i < len(kl); i++ {
+		list[i] = kl[i].String()
+	}
+	return strings.Join(list, ",")
+}
+
+func (m ModifierKey) String() string {
+	switch m {
+	case ModAlt:
+		return "M"
+	default:
+		return ""
+	}
+}
+
+func (k Key) String() string {
+	var s string
+	if m := k.Modifier.String(); m != "" {
+		s += m + "-"
+	}
+
+	if k.Key == 0 {
+		s += string([]rune{k.Ch})
+	} else {
+		s += keyToString[k.Key]
+	}
+
+	return s
 }
 
 func NewKeyFromKey(k termbox.Key) Key {

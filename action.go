@@ -1,7 +1,6 @@
 package peco
 
 import (
-	"encoding/json"
 	"unicode"
 
 	"github.com/nsf/termbox-go"
@@ -43,11 +42,7 @@ func (a ActionFunc) Register(name string, defaultKeys ...termbox.Key) {
 }
 
 func (a ActionFunc) RegisterKeySequence(k keyseq.KeyList) {
-	b, err := json.Marshal(k)
-	if err != nil {
-		panic(err)
-	}
-	defaultKeyBinding[string(b)] = a
+	defaultKeyBinding[k.String()] = a
 }
 
 func init() {
@@ -227,8 +222,8 @@ func doFinish(i *Input, _ termbox.Event) {
 }
 
 func doCancel(i *Input, ev termbox.Event) {
-	if i.currentKeymap.Keyseq.InMiddleOfChain() {
-		i.currentKeymap.Keyseq.CancelChain()
+	if i.keymap.Keyseq.InMiddleOfChain() {
+		i.keymap.Keyseq.CancelChain()
 		return
 	}
 
