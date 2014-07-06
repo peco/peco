@@ -150,7 +150,7 @@ Example:
 }
 ```
 
-You can use nested keymap to invoke action by key sequence.
+You can use list multiple keys (separated by comma) to register an action that is associated with a key sequence. Please note that if there is a conflict in the key map, *the longest sequence always wins*. So In the above example, if you add another sequence, say, `C-x,C-c,C-c`, then the above `peco.Cancel` will never be invoked.
 
 ### Available keys
 
