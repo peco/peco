@@ -13,7 +13,10 @@ import (
 var homedirFunc = homedir
 
 type Config struct {
-	Keymap        Keymap   `json:"Keymap"`
+	// Keymap used to be directly responsible for dispatching
+	// events against user input, but since then this has changed
+	// into something that just records the user's config input
+	Keymap        map[string]string `json:"Keymap"`
 	Matcher       string   `json:"Matcher"`
 	Style         StyleSet `json:"Style"`
 	CustomMatcher map[string][]string
@@ -22,7 +25,7 @@ type Config struct {
 
 func NewConfig() *Config {
 	return &Config{
-		Keymap:  NewKeymap(),
+		Keymap:  make(map[string]string),
 		Matcher: IgnoreCaseMatch,
 		Style:   NewStyleSet(),
 		Prompt:  "QUERY>",

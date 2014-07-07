@@ -244,7 +244,10 @@ func (c *Ctx) NewFilter() *Filter {
 }
 
 func (c *Ctx) NewInput() *Input {
-	return &Input{c, &sync.Mutex{}, nil, c.config.Keymap, false}
+	// Create a new keymap object
+	k := NewKeymap(c.config.Keymap)
+	k.ApplyKeybinding()
+	return &Input{c, &sync.Mutex{}, nil, k}
 }
 
 func (c *Ctx) Stop() {

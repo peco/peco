@@ -4,6 +4,7 @@ import (
 	"unicode"
 
 	"github.com/nsf/termbox-go"
+	"github.com/peco/peco/keyseq"
 )
 
 // Action describes an action that can be executed upon receiving user
@@ -12,6 +13,7 @@ import (
 // callback based Action
 type Action interface {
 	Register(string, ...termbox.Key)
+	RegisterKeySequence(keyseq.KeyList)
 	Execute(*Input, termbox.Event)
 }
 
@@ -22,7 +24,7 @@ type ActionFunc func(*Input, termbox.Event)
 var nameToActions map[string]Action
 
 // This is the default keybinding used by NewKeymap()
-var defaultKeyBinding map[termbox.Key]Action
+var defaultKeyBinding map[string]Action
 
 // Execute fulfills the Action interface for AfterFunc
 func (a ActionFunc) Execute(i *Input, e termbox.Event) {
@@ -35,14 +37,18 @@ func (a ActionFunc) Execute(i *Input, e termbox.Event) {
 func (a ActionFunc) Register(name string, defaultKeys ...termbox.Key) {
 	nameToActions["peco."+name] = a
 	for _, k := range defaultKeys {
-		defaultKeyBinding[k] = a
+		a.RegisterKeySequence(keyseq.KeyList{keyseq.NewKeyFromKey(k)})
 	}
+}
+
+func (a ActionFunc) RegisterKeySequence(k keyseq.KeyList) {
+	defaultKeyBinding[k.String()] = a
 }
 
 func init() {
 	// Build the global maps
 	nameToActions = map[string]Action{}
-	defaultKeyBinding = map[termbox.Key]Action{}
+	defaultKeyBinding = map[string]Action{}
 
 	ActionFunc(doBeginningOfLine).Register("BeginningOfLine", termbox.KeyCtrlA)
 	ActionFunc(doBackwardChar).Register("BackwardChar", termbox.KeyCtrlB)
@@ -100,6 +106,47 @@ func init() {
 	ActionFunc(doSelectVisible).Register("SelectVisible")
 	ActionFunc(doToggleSelectMode).Register("ToggleSelectMode")
 	ActionFunc(doCancelSelectMode).Register("CancelSelectMode")
+
+	ActionFunc(doKonamiCommand).RegisterKeySequence(
+		keyseq.KeyList{
+			keyseq.Key{0, termbox.KeyCtrlX, 0},
+			keyseq.Key{0, termbox.KeyArrowUp, 0},
+			keyseq.Key{0, termbox.KeyArrowUp, 0},
+			keyseq.Key{0, termbox.KeyArrowDown, 0},
+			keyseq.Key{0, termbox.KeyArrowDown, 0},
+			keyseq.Key{0, termbox.KeyArrowLeft, 0},
+			keyseq.Key{0, termbox.KeyArrowRight, 0},
+			keyseq.Key{0, termbox.KeyArrowLeft, 0},
+			keyseq.Key{0, termbox.KeyArrowRight, 0},
+			keyseq.Key{0, 0, 'b'},
+			keyseq.Key{0, 0, 'a'},
+		},
+	)
+}
+
+// This is a noop action
+func doNothing(_ *Input, _ termbox.Event) {}
+
+// This is an exception to the rule. This does not get registered
+// anywhere. You just call it directly
+func doAcceptChar(i *Input, ev termbox.Event) {
+	if ev.Key == termbox.KeySpace {
+		ev.Ch = ' '
+	}
+
+	if ev.Ch > 0 {
+		if len(i.query) == i.caretPos {
+			i.query = append(i.query, ev.Ch)
+		} else {
+			buf := make([]rune, len(i.query)+1)
+			copy(buf, i.query[:i.caretPos])
+			buf[i.caretPos] = ev.Ch
+			copy(buf[i.caretPos+1:], i.query[i.caretPos:])
+			i.query = buf
+		}
+		i.caretPos++
+		i.ExecQuery()
+	}
 }
 
 func doRotateMatcher(i *Input, ev termbox.Event) {
@@ -146,7 +193,7 @@ func doSelectNone(i *Input, _ termbox.Event) {
 }
 
 func doSelectAll(i *Input, _ termbox.Event) {
-	for lineno:=1; lineno <= len(i.current); lineno++ {
+	for lineno := 1; lineno <= len(i.current); lineno++ {
 		i.selection.Add(lineno)
 	}
 	i.DrawMatches(nil)
@@ -155,7 +202,7 @@ func doSelectAll(i *Input, _ termbox.Event) {
 func doSelectVisible(i *Input, _ termbox.Event) {
 	pageStart := i.currentPage.offset
 	pageEnd := pageStart + i.currentPage.perPage
-	for lineno:=pageStart; lineno <= pageEnd; lineno++ {
+	for lineno := pageStart; lineno <= pageEnd; lineno++ {
 		i.selection.Add(lineno)
 	}
 	i.DrawMatches(nil)
@@ -175,6 +222,11 @@ func doFinish(i *Input, _ termbox.Event) {
 }
 
 func doCancel(i *Input, ev termbox.Event) {
+	if i.keymap.Keyseq.InMiddleOfChain() {
+		i.keymap.Keyseq.CancelChain()
+		return
+	}
+
 	if i.IsSelectMode() {
 		doCancelSelectMode(i, ev)
 		return
@@ -203,7 +255,6 @@ func doSelectNextPage(i *Input, ev termbox.Event) {
 	i.PagingCh() <- ToNextPage
 	i.DrawMatches(nil)
 }
-
 
 func doToggleSelectionAndSelectNext(i *Input, ev termbox.Event) {
 	doToggleSelection(i, ev)
@@ -445,4 +496,6 @@ func doDeleteBackwardChar(i *Input, ev termbox.Event) {
 	i.DrawMatches(nil)
 }
 
-
+func doKonamiCommand(i *Input, ev termbox.Event) {
+	i.StatusMsgCh() <- "All your filters are blongs to us"
+}
