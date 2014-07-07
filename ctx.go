@@ -147,12 +147,12 @@ func (c *Ctx) IsBufferOverflowing() bool {
 	return len(c.lines) > c.bufferSize
 }
 
-func (c *Ctx) IsSelectMode() bool {
+func (c *Ctx) IsRangeMode() bool {
 	return c.selectionRangeStart != NoSelectionRange
 }
 
-func (c *Ctx) RangeSelection() Selection {
-	if !c.IsSelectMode() {
+func (c *Ctx) SelectedRange() Selection {
+	if !c.IsRangeMode() {
 		return Selection{}
 	}
 
