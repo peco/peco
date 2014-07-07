@@ -210,7 +210,9 @@ func doSelectVisible(i *Input, _ termbox.Event) {
 
 func doFinish(i *Input, _ termbox.Event) {
 	// Must end with all the selected lines.
-	i.selection.Add(i.currentLine)
+	if i.selection.Len() == 0 {
+		i.selection.Add(i.currentLine)
+	}
 
 	i.result = []Match{}
 	for _, lineno := range append(i.selection, i.RangeSelection()...) {
