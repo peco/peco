@@ -48,6 +48,12 @@ You can select multiple lines!
 
 ![optimized](http://peco.github.io/images/peco-demo-multiple-selection.gif)
 
+## Select Range Of Lines
+
+Not only can you select multiple lines one by one, you can select a range of lines
+
+![optimized](http://peco.github.io/images/peco-demo-range-mode.gif)
+
 ## Select Matchers
 
 Different types of matchers are available. Default is case-insensitive matcher, so lines with any case will match. You can toggle between IgnoreCase, CaseSensitive, and RegExp matchers. The RegExp matcher allows you to use any valid regular expression to match lines
