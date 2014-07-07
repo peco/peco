@@ -378,6 +378,7 @@ AUTHORS
 * negipo
 * sugyan
 * swdyh
+* MURAOKA Taro (kaoriya/koron) for ahocorasick search
 
 Notes
 =====
