@@ -207,8 +207,8 @@ key item to use Alt/Option key as a mask.
 | peco.SelectNext         | Selects next line |
 | peco.ToggleSelection    | Selects the current line, and saves it |
 | peco.ToggleSelectionAndSelectNext | Selects the current line, saves it, and proceeds to the next line |
-| peco.ToggleSelectMode   | Start selecting by range, or append selecting range to selections |
-| peco.CancelSelectMode   | Finish selecting by range and cancel range selection |
+| peco.ToggleRangeMode   | Start selecting by range, or append selecting range to selections |
+| peco.CancelRangeMode   | Finish selecting by range and cancel range selection |
 | peco.RotateMatcher      | Rotate between matchers (by default, ignore-case/no-ignore-case)|
 | peco.Finish             | Exits from peco with success status |
 | peco.Cancel             | Exits from peco with failure status, or cancel select mode |
