@@ -150,6 +150,15 @@ func main() {
 		ctx.SetCurrentMatcher(peco.CaseSensitiveMatch)
 	}
 
+	// Try waiting for something available in the source stream
+	// before doing any terminal initialization (also done by termbox)
+	reader := ctx.NewBufferReader(in)
+	ctx.AddWaitGroup(1)
+	go reader.Loop()
+
+	// This channel blocks until we receive something from `in`
+	<-reader.InputReadyCh()
+
 	err = peco.TtyReady()
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
@@ -174,13 +183,11 @@ func main() {
 	view := ctx.NewView()
 	filter := ctx.NewFilter()
 	input := ctx.NewInput()
-	reader := ctx.NewBufferReader(in)
 	sig := ctx.NewSignalHandler()
 
 	loopers := []interface {
 		Loop()
 	}{
-		reader,
 		view,
 		filter,
 		input,

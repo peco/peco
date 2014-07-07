@@ -232,7 +232,7 @@ func (c *Ctx) Buffer() []Match {
 }
 
 func (c *Ctx) NewBufferReader(r io.ReadCloser) *BufferReader {
-	return &BufferReader{c, r}
+	return &BufferReader{c, r, make(chan struct{})}
 }
 
 func (c *Ctx) NewView() *View {

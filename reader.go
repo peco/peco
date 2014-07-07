@@ -17,13 +17,19 @@ import (
 // buffer, you should set --buffer-size to a number > 0
 type BufferReader struct {
 	*Ctx
-	input io.ReadCloser
+	input        io.ReadCloser
+	inputReadyCh chan struct{}
+}
+
+func (b *BufferReader) InputReadyCh() <-chan struct{} {
+	return b.inputReadyCh
 }
 
 // Loop keeps reading from the input
 func (b *BufferReader) Loop() {
 	defer b.ReleaseWaitGroup()
-	defer func() { recover() }() // ignore errors
+	defer func() { recover() }()             // ignore errors
+	defer func() { close(b.inputReadyCh) }() // Make sure to close notifier
 
 	ch := make(chan string, 10)
 
@@ -39,6 +45,7 @@ func (b *BufferReader) Loop() {
 	}()
 
 	m := &sync.Mutex{}
+	once := &sync.Once{}
 	var refresh *time.Timer
 
 	loop := true
@@ -53,6 +60,7 @@ func (b *BufferReader) Loop() {
 			}
 
 			if line != "" {
+				once.Do(func() { b.inputReadyCh <- struct{}{} })
 				m.Lock()
 				b.lines = append(b.lines, NewNoMatch(line, b.enableSep))
 				if b.IsBufferOverflowing() {
