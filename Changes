@@ -1,7 +1,7 @@
 Changes
 =======
 
-v0.2.0
+v0.2.0 - 07 Jul 2014
   Bugs/Fixes
   * Keymaps have gone through an overhaul. Hopefully it's easier for
     people who want to modify it to hack on it than before.
@@ -20,7 +20,8 @@ v0.2.0
     be mapped to "peco.Cancel" for Emacs-like behavior
   * Selection by range is implemented. Now you can start a selection,
     move the cursor around, and select everything between the starting
-    line and the last line the cursor was on.
+    line and the last line the cursor was on. No default keys are available
+    at this point, so assign peco.ToggleRangeMode to your favorite key
 
 v0.1.12 - 01 Jul 2014
   Bugs/Fixes
