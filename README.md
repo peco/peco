@@ -368,6 +368,7 @@ AUTHORS
 * Shinya Ohyanagi
 * syohex
 * Takashi Kokubun
+* Yuya Takeyama
 * cho45
 * cubicdaiya
 * kei\_q
