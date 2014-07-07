@@ -104,8 +104,16 @@ func init() {
 	)
 	ActionFunc(doSelectAll).Register("SelectAll")
 	ActionFunc(doSelectVisible).Register("SelectVisible")
-	ActionFunc(doToggleSelectMode).Register("ToggleSelectMode")
-	ActionFunc(doCancelSelectMode).Register("CancelSelectMode")
+	ActionFunc(func(i *Input, ev termbox.Event) {
+		i.StatusMsgCh() <- "ToggleSelectMode is deprecated. Use ToggleRangeMode"
+		doToggleRangeMode(i, ev)
+	}).Register("ToggleSelectMode")
+	ActionFunc(func(i *Input, ev termbox.Event) {
+		i.StatusMsgCh() <- "CancelSelectMode is deprecated. Use CancelRangeMode"
+		doCancelRangeMode(i, ev)
+	}).Register("CancelSelectMode")
+	ActionFunc(doToggleRangeMode).Register("ToggleRangeMode")
+	ActionFunc(doCancelRangeMode).Register("CancelRangeMode")
 
 	ActionFunc(doKonamiCommand).RegisterKeySequence(
 		keyseq.KeyList{
@@ -168,9 +176,9 @@ func doToggleSelection(i *Input, _ termbox.Event) {
 	i.selection.Add(i.currentLine)
 }
 
-func doToggleSelectMode(i *Input, _ termbox.Event) {
-	if i.IsSelectMode() {
-		for _, line := range i.RangeSelection() {
+func doToggleRangeMode(i *Input, _ termbox.Event) {
+	if i.IsRangeMode() {
+		for _, line := range i.SelectedRange() {
 			i.selection.Add(line)
 		}
 		i.selection.Add(i.currentLine)
@@ -182,7 +190,7 @@ func doToggleSelectMode(i *Input, _ termbox.Event) {
 	i.DrawMatches(nil)
 }
 
-func doCancelSelectMode(i *Input, _ termbox.Event) {
+func doCancelRangeMode(i *Input, _ termbox.Event) {
 	i.selectionRangeStart = NoSelectionRange
 	i.DrawMatches(nil)
 }
@@ -215,7 +223,7 @@ func doFinish(i *Input, _ termbox.Event) {
 	}
 
 	i.result = []Match{}
-	for _, lineno := range append(i.selection, i.RangeSelection()...) {
+	for _, lineno := range append(i.selection, i.SelectedRange()...) {
 		if lineno <= len(i.current) {
 			i.result = append(i.result, i.current[lineno-1])
 		}
@@ -229,8 +237,8 @@ func doCancel(i *Input, ev termbox.Event) {
 		return
 	}
 
-	if i.IsSelectMode() {
-		doCancelSelectMode(i, ev)
+	if i.IsRangeMode() {
+		doCancelRangeMode(i, ev)
 		return
 	}
 
