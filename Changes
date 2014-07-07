@@ -5,11 +5,22 @@ v0.2.0
   Bugs/Fixes
   * Keymaps have gone through an overhaul. Hopefully it's easier for
     people who want to modify it to hack on it than before.
+  * Piping multiple commands that use stdin now works properly
+    (v0.1.12 was affected)
+  * After multiple lines are selected, typing Enter (or "peco.Finish")
+    prints out only the selected lines, and no longer adds the line where
+    the cursor currently is placed on
   Features
   * --initial-index option has been added
   * --buffer-size option has been added
+  * --prompt option has been added
   * Background color can now be changed
   * SelectAll/SelectNone/SelectVisible has bee added
+  * Keymaps can now handle key sequences. For example, "C-x,C-c" can now
+    be mapped to "peco.Cancel" for Emacs-like behavior
+  * Selection by range is implemented. Now you can start a selection,
+    move the cursor around, and select everything between the starting
+    line and the last line the cursor was on.
 
 v0.1.12 - 01 Jul 2014
   Bugs/Fixes

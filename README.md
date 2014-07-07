@@ -65,7 +65,7 @@ Installation
 
 Go to the [releases page](https://github.com/peco/peco/releases), find the version you want, and download the zip file. Unpack the zip file, and put the binary to somewhere you want (on UNIX-y systems, /usr/local/bin or the like). Make sure it has execution bits turned on. Yes, it is a single binary! You can put it anywhere you want :)
 
-_THIS IS THE RECOMMENDED WAY_ (excepto for OS X homebrew users)
+_THIS IS THE RECOMMENDED WAY_ (except for OS X homebrew users)
 
 ### Mac OS X / Homebrew
 
