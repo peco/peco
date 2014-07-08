@@ -60,9 +60,14 @@ func (v *View) printStatus(msg string) {
 	fgAttr := v.config.Style.Basic.fg
 	bgAttr := v.config.Style.Basic.bg
 
-	printTB(0, h-2, fgAttr, bgAttr, string(pad))
+	statusY := h - 2
+	if v.Ctx.promptBottom {
+		statusY -= 1
+	}
+
+	printTB(0, statusY, fgAttr, bgAttr, string(pad))
 	if width > 0 {
-		printTB(w-width, h-2, fgAttr|termbox.AttrReverse|termbox.AttrBold, bgAttr|termbox.AttrReverse, msg)
+		printTB(w-width, statusY, fgAttr|termbox.AttrReverse|termbox.AttrBold, bgAttr|termbox.AttrReverse, msg)
 	}
 	termbox.Flush()
 }
@@ -167,6 +172,11 @@ CALCULATE_PAGE:
 	fgAttr = v.config.Style.Query.fg
 	bgAttr = v.config.Style.Query.bg
 
+	promptY := 0
+	if v.Ctx.promptBottom {
+		promptY = height - 1
+	}
+
 	var prompt string
 	if len(v.Ctx.prompt) > 0 {
 		prompt = string(v.Ctx.prompt)
@@ -174,7 +184,7 @@ CALCULATE_PAGE:
 		prompt = v.config.Prompt
 	}
 	promptLen := runewidth.StringWidth(prompt)
-	printTB(0, 0, fgAttr, bgAttr, prompt)
+	printTB(0, promptY, fgAttr, bgAttr, prompt)
 
 	if v.caretPos <= 0 {
 		v.caretPos = 0 // sanity
@@ -185,8 +195,8 @@ CALCULATE_PAGE:
 
 	if v.caretPos == len(v.query) {
 		// the entire string + the caret after the string
-		printTB(promptLen+1, 0, fgAttr, bgAttr, string(v.query))
-		termbox.SetCell(promptLen+1+runewidth.StringWidth(string(v.query)), 0, ' ', fgAttr|termbox.AttrReverse, bgAttr|termbox.AttrReverse)
+		printTB(promptLen+1, promptY, fgAttr, bgAttr, string(v.query))
+		termbox.SetCell(promptLen+1+runewidth.StringWidth(string(v.query)), promptY, ' ', fgAttr|termbox.AttrReverse, bgAttr|termbox.AttrReverse)
 	} else {
 		// the caret is in the middle of the string
 		prev := 0
@@ -197,14 +207,14 @@ CALCULATE_PAGE:
 				fg |= termbox.AttrReverse
 				bg |= termbox.AttrReverse
 			}
-			termbox.SetCell(promptLen+1+prev, 0, r, fg, bg)
+			termbox.SetCell(promptLen+1+prev, promptY, r, fg, bg)
 			prev += runewidth.RuneWidth(r)
 		}
 	}
 
 	pmsg := fmt.Sprintf("%s [%d/%d]", v.Ctx.Matcher().String(), currentPage.index, maxPage)
 
-	printTB(width-runewidth.StringWidth(pmsg), 0, fgAttr, bgAttr, pmsg)
+	printTB(width-runewidth.StringWidth(pmsg), promptY, fgAttr, bgAttr, pmsg)
 
 	for n := 1; n <= perPage; n++ {
 		fgAttr = v.config.Style.Basic.fg
@@ -222,32 +232,37 @@ CALCULATE_PAGE:
 			break
 		}
 
+		targetY := n
+		if v.Ctx.promptBottom {
+			targetY -= 1
+		}
+
 		target := targets[targetIdx]
 		line := target.Line()
 		matches := target.Indices()
 		if matches == nil {
-			printTB(0, n, fgAttr, bgAttr, line)
+			printTB(0, targetY, fgAttr, bgAttr, line)
 		} else {
 			prev := 0
 			index := 0
 			for _, m := range matches {
 				if m[0] > index {
 					c := line[index:m[0]]
-					printTB(prev, n, fgAttr, bgAttr, c)
+					printTB(prev, targetY, fgAttr, bgAttr, c)
 					prev += runewidth.StringWidth(c)
 					index += len(c)
 				}
 				c := line[m[0]:m[1]]
-				printTB(prev, n, v.config.Style.Matched.fg, bgAttr|v.config.Style.Matched.bg, c)
+				printTB(prev, targetY, v.config.Style.Matched.fg, bgAttr|v.config.Style.Matched.bg, c)
 				prev += runewidth.StringWidth(c)
 				index += len(c)
 			}
 
 			m := matches[len(matches)-1]
 			if m[0] > index {
-				printTB(prev, n, v.config.Style.Query.fg, bgAttr|v.config.Style.Query.bg, line[m[0]:m[1]])
+				printTB(prev, targetY, v.config.Style.Query.fg, bgAttr|v.config.Style.Query.bg, line[m[0]:m[1]])
 			} else if len(line) > m[1] {
-				printTB(prev, n, fgAttr, bgAttr, line[m[1]:len(line)])
+				printTB(prev, targetY, fgAttr, bgAttr, line[m[1]:len(line)])
 			}
 		}
 	}

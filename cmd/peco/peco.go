@@ -26,6 +26,7 @@ Options:
   --null                expect NUL (\0) as separator for target/output (EXPERIMENTAL)
   --initial-index       position of the initial index of the selection (0 base)
   --prompt              specify prompt
+  --prompt-bottom       display prompt bottom of the screen
 `
 	os.Stderr.Write([]byte(v))
 }
@@ -41,6 +42,7 @@ type cmdOptions struct {
 	OptEnableNullSep bool   `long:"null" description:"expect NUL (\\0) as separator for target/output"`
 	OptInitialIndex  int    `long:"initial-index" description:"position of the initial index of the selection (0 base)"`
 	OptPrompt        string `long:"prompt"`
+	OptPromptBottom  bool   `long:"prompt-bottom" description:"display prompt bottom of the screen"`
 }
 
 // BufferSize returns the specified buffer size. Fulfills peco.CtxOptions
@@ -51,6 +53,10 @@ func (o cmdOptions) BufferSize() int {
 // EnableNullSep returns tru if --null was specified. Fulfills peco.CtxOptions
 func (o cmdOptions) EnableNullSep() bool {
 	return o.OptEnableNullSep
+}
+
+func (o cmdOptions) PromptBottom() bool {
+	return o.OptPromptBottom
 }
 
 func (o cmdOptions) InitialIndex() int {
