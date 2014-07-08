@@ -27,6 +27,7 @@ Options:
   --initial-index       position of the initial index of the selection (0 base)
   --prompt              specify prompt
   --prompt-bottom       display prompt bottom of the screen
+  --result-bottom-up    display results bottom up instead of top down
 `
 	os.Stderr.Write([]byte(v))
 }
@@ -43,6 +44,7 @@ type cmdOptions struct {
 	OptInitialIndex  int    `long:"initial-index" description:"position of the initial index of the selection (0 base)"`
 	OptPrompt        string `long:"prompt"`
 	OptPromptBottom  bool   `long:"prompt-bottom" description:"display prompt bottom of the screen"`
+	OptResultBottomUp bool   `long:"result-bottom-up" description:"display results bottom up instead of top down"`
 }
 
 // BufferSize returns the specified buffer size. Fulfills peco.CtxOptions
@@ -57,6 +59,10 @@ func (o cmdOptions) EnableNullSep() bool {
 
 func (o cmdOptions) PromptBottom() bool {
 	return o.OptPromptBottom
+}
+
+func (o cmdOptions) ResultBottomUp() bool {
+	return o.OptResultBottomUp
 }
 
 func (o cmdOptions) InitialIndex() int {

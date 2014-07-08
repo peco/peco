@@ -61,6 +61,9 @@ func (v *View) printStatus(msg string) {
 	bgAttr := v.config.Style.Basic.bg
 
 	statusY := h - 2
+	if v.Ctx.resultBottomUp {
+		statusY = 2
+	}
 	if v.Ctx.promptBottom {
 		statusY -= 1
 	}
@@ -95,10 +98,12 @@ func (v *View) movePage(p PagingRequest) {
 	perPage := height - 4
 
 	switch p {
-	case ToPrevLine:
-		v.currentLine--
-	case ToNextLine:
-		v.currentLine++
+	case ToPrevLine, ToNextLine:
+		if (p == ToPrevLine) == v.Ctx.resultBottomUp {
+			v.currentLine++
+		} else {
+			v.currentLine--
+		}
 	case ToPrevPage, ToNextPage:
 		if p == ToPrevPage {
 			v.currentLine -= perPage
@@ -233,6 +238,9 @@ CALCULATE_PAGE:
 		}
 
 		targetY := n
+		if v.Ctx.resultBottomUp {
+			targetY = height - n
+		}
 		if v.Ctx.promptBottom {
 			targetY -= 1
 		}

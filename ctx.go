@@ -15,6 +15,7 @@ type CtxOptions interface {
 	BufferSize() int
 	InitialIndex() int
 	PromptBottom() bool
+	ResultBottomUp() bool
 }
 
 type Selection []int
@@ -90,6 +91,7 @@ type Ctx struct {
 	ExitStatus          int
 	selectionRangeStart int
 	promptBottom        bool
+	resultBottomUp      bool
 
 	wait *sync.WaitGroup
 }
@@ -123,6 +125,7 @@ func NewCtx(o CtxOptions) *Ctx {
 		0,
 		NoSelectionRange,
 		o.PromptBottom(),
+		o.ResultBottomUp(),
 
 		&sync.WaitGroup{},
 	}
