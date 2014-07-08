@@ -33,17 +33,17 @@ Options:
 }
 
 type cmdOptions struct {
-	OptHelp          bool   `short:"h" long:"help" description:"show this help message and exit"`
-	OptTTY           string `long:"tty" description:"path to the TTY (usually, the value of $TTY)"`
-	OptQuery         string `long:"query"`
-	OptRcfile        string `long:"rcfile" descriotion:"path to the settings file"`
-	OptNoIgnoreCase  bool   `long:"no-ignore-case" description:"start in case-sensitive-mode" default:"false"`
-	OptVersion       bool   `long:"version" description:"print the version and exit"`
-	OptBufferSize    int    `long:"buffer-size" short:"b" description:"number of lines to keep in search buffer"`
-	OptEnableNullSep bool   `long:"null" description:"expect NUL (\\0) as separator for target/output"`
-	OptInitialIndex  int    `long:"initial-index" description:"position of the initial index of the selection (0 base)"`
-	OptPrompt        string `long:"prompt"`
-	OptPromptBottom  bool   `long:"prompt-bottom" description:"display prompt bottom of the screen"`
+	OptHelp           bool   `short:"h" long:"help" description:"show this help message and exit"`
+	OptTTY            string `long:"tty" description:"path to the TTY (usually, the value of $TTY)"`
+	OptQuery          string `long:"query"`
+	OptRcfile         string `long:"rcfile" descriotion:"path to the settings file"`
+	OptNoIgnoreCase   bool   `long:"no-ignore-case" description:"start in case-sensitive-mode" default:"false"`
+	OptVersion        bool   `long:"version" description:"print the version and exit"`
+	OptBufferSize     int    `long:"buffer-size" short:"b" description:"number of lines to keep in search buffer"`
+	OptEnableNullSep  bool   `long:"null" description:"expect NUL (\\0) as separator for target/output"`
+	OptInitialIndex   int    `long:"initial-index" description:"position of the initial index of the selection (0 base)"`
+	OptPrompt         string `long:"prompt"`
+	OptPromptBottom   bool   `long:"prompt-bottom" description:"display prompt bottom of the screen"`
 	OptResultBottomUp bool   `long:"result-bottom-up" description:"display results bottom up instead of top down"`
 }
 
