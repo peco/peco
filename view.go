@@ -21,6 +21,8 @@ const (
 	ToNextLine PagingRequest = iota
 	// ToNextPage moves the selection to the next page
 	ToNextPage
+	// ToNextTarget moves the selection to the next target
+	ToNextTarget
 	// ToPrevLine moves the selection to the previous line
 	ToPrevLine
 	// ToPrevPage moves the selection to the previous page
@@ -104,6 +106,8 @@ func (v *View) movePage(p PagingRequest) {
 		} else {
 			v.currentLine--
 		}
+	case ToNextTarget:
+		v.currentLine++
 	case ToPrevPage, ToNextPage:
 		if p == ToPrevPage {
 			v.currentLine -= perPage

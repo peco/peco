@@ -213,6 +213,7 @@ key item to use Alt/Option key as a mask.
 | peco.SelectNextPage     | Jumps to next page|
 | peco.SelectPrevious     | Selects previous line |
 | peco.SelectNext         | Selects next line |
+| peco.SelectNextTarget   | Selects next target |
 | peco.ToggleSelection    | Selects the current line, and saves it |
 | peco.ToggleSelectionAndSelectNext | Selects the current line, saves it, and proceeds to the next line |
 | peco.ToggleRangeMode   | Start selecting by range, or append selecting range to selections |

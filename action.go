@@ -92,6 +92,7 @@ func init() {
 		"SelectPreviousPage",
 		termbox.KeyArrowLeft,
 	)
+	ActionFunc(doSelectNextTarget).Register("SelectNextTarget")
 
 	ActionFunc(doToggleSelection).Register("ToggleSelection")
 	ActionFunc(doToggleSelectionAndSelectNext).Register(
@@ -266,9 +267,14 @@ func doSelectNextPage(i *Input, ev termbox.Event) {
 	i.DrawMatches(nil)
 }
 
+func doSelectNextTarget(i *Input, ev termbox.Event) {
+	i.PagingCh() <- ToNextTarget
+	i.DrawMatches(nil)
+}
+
 func doToggleSelectionAndSelectNext(i *Input, ev termbox.Event) {
 	doToggleSelection(i, ev)
-	doSelectNext(i, ev)
+	doSelectNextTarget(i, ev)
 }
 
 func doDeleteBackwardWord(i *Input, _ termbox.Event) {
