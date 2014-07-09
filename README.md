@@ -135,6 +135,24 @@ Specifies the initial line position upon start up. E.g. If you want to start out
 
 Specifies the query line's prompt string. When specified, takes precedence over the configuration file's `Prompt` section. The default value is `QUERY>`
 
+### --prompt-location <location>
+
+Specifies prompt location. You can specify "top" or "bottom".
+
+- top (default)
+  - display prompt top of the screen
+- bottom
+  - display prompt bottom of the screen
+
+### --result-align <alignment>
+
+Specifies result alignment. You can specify "top" or "bottom".
+
+- top (default)
+  - display results top down
+- bottom
+  - display results bottom up
+
 Configuration File
 ==================
 
