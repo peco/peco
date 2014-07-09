@@ -17,17 +17,17 @@ func showHelp() {
 Usage: peco [options] [FILE]
 
 Options:
-  -h, --help            show this help message and exit
-  --version             print the version and exit
-  --rcfile=RCFILE       path to the settings file
-  --query=QUERY         pre-input query
-  --no-ignore-case      start in case-sensitive mode
-  -b, --buffer-size     number of lines to keep in search buffer
-  --null                expect NUL (\0) as separator for target/output (EXPERIMENTAL)
-  --initial-index       position of the initial index of the selection (0 base)
-  --prompt              specify prompt
-  --prompt-location={top|bottom}     set prompt location (default:top)
-  --result-align={top|bottom}        set result alignment (default:top)
+  -h, --help                     show this help message and exit
+  --version                      print the version and exit
+  --rcfile=RCFILE                path to the settings file
+  --query=QUERY                  pre-input query
+  --no-ignore-case               start in case-sensitive mode
+  -b, --buffer-size              number of lines to keep in search buffer
+  --null                         expect NUL (\0) as separator for target/output (EXPERIMENTAL)
+  --initial-index                position of the initial index of the selection (0 base)
+  --prompt                       specify prompt
+  --prompt-location={top|bottom} set prompt location (default:top)
+  --result-align={top|bottom}    set result alignment (default:top)
 `
 	os.Stderr.Write([]byte(v))
 }
