@@ -17,30 +17,34 @@ func showHelp() {
 Usage: peco [options] [FILE]
 
 Options:
-  -h, --help            show this help message and exit
-  --version             print the version and exit
-  --rcfile=RCFILE       path to the settings file
-  --query=QUERY         pre-input query
-  --no-ignore-case      start in case-sensitive mode
-  -b, --buffer-size     number of lines to keep in search buffer
-  --null                expect NUL (\0) as separator for target/output (EXPERIMENTAL)
-  --initial-index       position of the initial index of the selection (0 base)
-  --prompt              specify prompt
+  -h, --help                     show this help message and exit
+  --version                      print the version and exit
+  --rcfile=RCFILE                path to the settings file
+  --query=QUERY                  pre-input query
+  --no-ignore-case               start in case-sensitive mode
+  -b, --buffer-size              number of lines to keep in search buffer
+  --null                         expect NUL (\0) as separator for target/output (EXPERIMENTAL)
+  --initial-index                position of the initial index of the selection (0 base)
+  --prompt                       specify prompt
+  --prompt-location={top|bottom} set prompt location (default:top)
+  --result-align={top|bottom}    set result alignment (default:top)
 `
 	os.Stderr.Write([]byte(v))
 }
 
 type cmdOptions struct {
-	OptHelp          bool   `short:"h" long:"help" description:"show this help message and exit"`
-	OptTTY           string `long:"tty" description:"path to the TTY (usually, the value of $TTY)"`
-	OptQuery         string `long:"query"`
-	OptRcfile        string `long:"rcfile" descriotion:"path to the settings file"`
-	OptNoIgnoreCase  bool   `long:"no-ignore-case" description:"start in case-sensitive-mode" default:"false"`
-	OptVersion       bool   `long:"version" description:"print the version and exit"`
-	OptBufferSize    int    `long:"buffer-size" short:"b" description:"number of lines to keep in search buffer"`
-	OptEnableNullSep bool   `long:"null" description:"expect NUL (\\0) as separator for target/output"`
-	OptInitialIndex  int    `long:"initial-index" description:"position of the initial index of the selection (0 base)"`
-	OptPrompt        string `long:"prompt"`
+	OptHelp           bool   `short:"h" long:"help" description:"show this help message and exit"`
+	OptTTY            string `long:"tty" description:"path to the TTY (usually, the value of $TTY)"`
+	OptQuery          string `long:"query"`
+	OptRcfile         string `long:"rcfile" descriotion:"path to the settings file"`
+	OptNoIgnoreCase   bool   `long:"no-ignore-case" description:"start in case-sensitive-mode" default:"false"`
+	OptVersion        bool   `long:"version" description:"print the version and exit"`
+	OptBufferSize     int    `long:"buffer-size" short:"b" description:"number of lines to keep in search buffer"`
+	OptEnableNullSep  bool   `long:"null" description:"expect NUL (\\0) as separator for target/output"`
+	OptInitialIndex   int    `long:"initial-index" description:"position of the initial index of the selection (0 base)"`
+	OptPrompt         string `long:"prompt"`
+	OptPromptLocation string `long:"prompt-location" description:"set prompt location" default:"top"`
+	OptResultAlign    string `long:"result-align" description:"set reuslt alignment" default:"top"`
 }
 
 // BufferSize returns the specified buffer size. Fulfills peco.CtxOptions
@@ -51,6 +55,14 @@ func (o cmdOptions) BufferSize() int {
 // EnableNullSep returns tru if --null was specified. Fulfills peco.CtxOptions
 func (o cmdOptions) EnableNullSep() bool {
 	return o.OptEnableNullSep
+}
+
+func (o cmdOptions) PromptBottom() bool {
+	return o.OptPromptLocation == "bottom"
+}
+
+func (o cmdOptions) ResultBottomUp() bool {
+	return o.OptResultAlign == "bottom"
 }
 
 func (o cmdOptions) InitialIndex() int {
