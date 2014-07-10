@@ -10,11 +10,12 @@ import (
 
 type Keymap struct {
 	Config map[string]string
+	Action map[string][]string // custom actions
 	Keyseq *keyseq.Keyseq
 }
 
-func NewKeymap(config map[string]string) Keymap {
-	return Keymap{config, keyseq.New()}
+func NewKeymap(config map[string]string, actions map[string][]string) Keymap {
+	return Keymap{config, actions, keyseq.New()}
 
 }
 
@@ -40,6 +41,37 @@ func (km Keymap) Handler(ev termbox.Event) Action {
 	}
 }
 
+const maxResolveActionDepth = 100
+func (km Keymap) resolveActionName(name string, depth int) (Action, error) {
+	if depth >= maxResolveActionDepth {
+		return nil, fmt.Errorf("Could not resolve %s: deep recursion", name)
+	}
+
+	// Can it be resolved via regular nameToActions ?
+	v, ok := nameToActions[name]
+	if ok {
+		return v, nil
+	}
+
+	// Can it be resolved via combined actions?
+	l, ok := km.Action[name]
+	if ok {
+		actions := []Action{}
+		for _, actionName := range l {
+			child, err := km.resolveActionName(actionName, depth + 1)
+			if err != nil {
+				return nil, err
+			}
+			actions = append(actions, child)
+		}
+		v = makeCombinedAction(actions...)
+		nameToActions[name] = v
+		return v, nil
+	}
+
+	return nil, fmt.Errorf("Could not resolve %s: no such action", name)
+}
+
 func (km Keymap) ApplyKeybinding() {
 	k := km.Keyseq
 	k.Clear()
@@ -57,9 +89,9 @@ func (km Keymap) ApplyKeybinding() {
 			continue
 		}
 
-		v, ok := nameToActions[as]
-		if !ok {
-			fmt.Fprintf(os.Stderr, "Unknown handler '%s'\n", as)
+		v, err := km.resolveActionName(as, 0)
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
 			continue
 		}
 		kb[s] = v

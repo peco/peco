@@ -13,6 +13,7 @@ import (
 var homedirFunc = homedir
 
 type Config struct {
+	Action        map[string][]string `json:"Action"`
 	// Keymap used to be directly responsible for dispatching
 	// events against user input, but since then this has changed
 	// into something that just records the user's config input

@@ -245,7 +245,7 @@ func (c *Ctx) NewFilter() *Filter {
 
 func (c *Ctx) NewInput() *Input {
 	// Create a new keymap object
-	k := NewKeymap(c.config.Keymap)
+	k := NewKeymap(c.config.Keymap, c.config.Action)
 	k.ApplyKeybinding()
 	return &Input{c, &sync.Mutex{}, nil, k}
 }

@@ -509,3 +509,11 @@ func doDeleteBackwardChar(i *Input, ev termbox.Event) {
 func doKonamiCommand(i *Input, ev termbox.Event) {
 	i.StatusMsgCh() <- "All your filters are blongs to us"
 }
+
+func makeCombinedAction(actions ...Action) ActionFunc {
+	return func(i *Input, ev termbox.Event) {
+		for _, a := range actions {
+			a.Execute(i, ev)
+		}
+	}
+}
