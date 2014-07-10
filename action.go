@@ -69,8 +69,6 @@ func init() {
 	ActionFunc(doEndOfFile).Register("EndOfFile")
 	ActionFunc(doEndOfLine).Register("EndOfLine", termbox.KeyCtrlE)
 	ActionFunc(doFinish).Register("Finish", termbox.KeyEnter)
-	ActionFunc(doFinishWith101).Register("FinishWith101")
-	ActionFunc(doFinishWith102).Register("FinishWith102")
 	ActionFunc(doForwardChar).Register("ForwardChar", termbox.KeyCtrlF)
 	ActionFunc(doForwardWord).Register("ForwardWord")
 	ActionFunc(doKillEndOfLine).Register("KillEndOfLine", termbox.KeyCtrlK)
@@ -218,7 +216,7 @@ func doSelectVisible(i *Input, _ termbox.Event) {
 	i.DrawMatches(nil)
 }
 
-func doFinish(i *Input, _ termbox.Event) {
+func _finishAction(i *Input, ev termbox.Event) {
 	// Must end with all the selected lines.
 	if i.selection.Len() == 0 {
 		i.selection.Add(i.currentLine)
@@ -230,38 +228,16 @@ func doFinish(i *Input, _ termbox.Event) {
 			i.result = append(i.result, i.current[lineno-1])
 		}
 	}
-	i.ExitWith(0)
 }
 
-func doFinishWith101(i *Input, _ termbox.Event) {
-	// Must end with all the selected lines.
-	if i.selection.Len() == 0 {
-		i.selection.Add(i.currentLine)
+func makeFinishAction(st int) ActionFunc {
+	return func(i *Input, ev termbox.Event) {
+		_finishAction(i, ev)
+		i.ExitWith(st)
 	}
-
-	i.result = []Match{}
-	for _, lineno := range i.selection {
-		if lineno <= len(i.current) {
-			i.result = append(i.result, i.current[lineno-1])
-		}
-	}
-	i.ExitWith(101)
 }
 
-func doFinishWith102(i *Input, _ termbox.Event) {
-	// Must end with all the selected lines.
-	if i.selection.Len() == 0 {
-		i.selection.Add(i.currentLine)
-	}
-
-	i.result = []Match{}
-	for _, lineno := range i.selection {
-		if lineno <= len(i.current) {
-			i.result = append(i.result, i.current[lineno-1])
-		}
-	}
-	i.ExitWith(102)
-}
+var doFinish = makeFinishAction(0)
 
 func doCancel(i *Input, ev termbox.Event) {
 	if i.keymap.Keyseq.InMiddleOfChain() {
