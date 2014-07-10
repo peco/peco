@@ -3,6 +3,8 @@ package peco
 import (
 	"fmt"
 	"os"
+	"strconv"
+	"strings"
 
 	"github.com/nsf/termbox-go"
 	"github.com/peco/peco/keyseq"
@@ -40,6 +42,29 @@ func (km Keymap) Handler(ev termbox.Event) Action {
 	}
 }
 
+func (km Keymap) resolveActionName(name string) (Action, error) {
+	// try direct lookup
+	action, ok := nameToActions[name]
+	if ok && action != nil {
+		return action, nil
+	}
+
+	// If all else fails...
+	// Finish is a special case. We can dynamically create  a finish
+	// function that exits with an arbitrary exit status
+	if strings.HasPrefix(name, "peco.Finish") {
+		v, err := strconv.ParseInt(name[11:], 10, 64)
+		if err == nil {
+			action = makeFinishAction(int(v))
+			nameToActions[name] = action
+			return action, nil
+		}
+	}
+
+	// Nothing found, exit
+	return nil, fmt.Errorf("No action found for %s", name)
+}
+
 func (km Keymap) ApplyKeybinding() {
 	k := km.Keyseq
 	k.Clear()
@@ -57,9 +82,9 @@ func (km Keymap) ApplyKeybinding() {
 			continue
 		}
 
-		v, ok := nameToActions[as]
-		if !ok {
-			fmt.Fprintf(os.Stderr, "Unknown handler '%s'\n", as)
+		v, err := km.resolveActionName(as)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Failed to resolve action '%s': %s", as, err)
 			continue
 		}
 		kb[s] = v
