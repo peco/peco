@@ -24,13 +24,9 @@ type PageInfo struct {
 // Ctx contains all the important data. while you can easily access
 // data in this struct from anwyehre, only do so via channels
 type Ctx struct {
+	*Hub
 	enableSep           bool
 	result              []Match
-	loopCh              chan struct{}
-	queryCh             chan string
-	drawCh              chan []Match
-	statusMsgCh         chan string
-	pagingCh            chan PagingRequest
 	mutex               sync.Mutex
 	query               []rune
 	prompt              []rune
@@ -52,13 +48,9 @@ type Ctx struct {
 
 func NewCtx(o CtxOptions) *Ctx {
 	return &Ctx{
+		NewHub(),
 		o.EnableNullSep(),
 		[]Match{},
-		make(chan struct{}),         // loopCh. You never send messages to this. no point in buffering
-		make(chan string, 5),        // queryCh.
-		make(chan []Match, 5),       // drawCh.
-		make(chan string, 5),        // statusMsgCh
-		make(chan PagingRequest, 5), // pagingCh
 		sync.Mutex{},
 		[]rune{},
 		[]rune{},
@@ -143,40 +135,16 @@ func (c *Ctx) WaitDone() {
 	c.wait.Wait()
 }
 
-func (c *Ctx) LoopCh() chan struct{} {
-	return c.loopCh
-}
-
-func (c *Ctx) QueryCh() chan string {
-	return c.queryCh
-}
-
-func (c *Ctx) DrawCh() chan []Match {
-	return c.drawCh
-}
-
-func (c *Ctx) StatusMsgCh() chan string {
-	return c.statusMsgCh
-}
-
-func (c *Ctx) PagingCh() chan PagingRequest {
-	return c.pagingCh
-}
-
-func (c *Ctx) Terminate() {
-	close(c.loopCh)
-}
-
 func (c *Ctx) ExecQuery() bool {
 	if len(c.query) > 0 {
-		c.queryCh <- string(c.query)
+		c.QueryCh() <- string(c.query)
 		return true
 	}
 	return false
 }
 
 func (c *Ctx) DrawMatches(m []Match) {
-	c.drawCh <- m
+	c.DrawCh() <- m
 }
 func (c *Ctx) Refresh() {
 	c.DrawMatches(nil)
@@ -206,10 +174,6 @@ func (c *Ctx) NewInput() *Input {
 	k := NewKeymap(c.config.Keymap, c.config.Action)
 	k.ApplyKeybinding()
 	return &Input{c, &sync.Mutex{}, nil, k}
-}
-
-func (c *Ctx) Stop() {
-	close(c.LoopCh())
 }
 
 func (c *Ctx) SetQuery(q []rune) {
