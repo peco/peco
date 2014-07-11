@@ -5,7 +5,6 @@ import (
 	"io"
 	"os"
 	"os/signal"
-	"sort"
 	"sync"
 	"syscall"
 )
@@ -14,53 +13,6 @@ type CtxOptions interface {
 	EnableNullSep() bool
 	BufferSize() int
 	InitialIndex() int
-}
-
-type Selection []int
-
-func (s Selection) Has(v int) bool {
-	for _, i := range []int(s) {
-		if i == v {
-			return true
-		}
-	}
-	return false
-}
-
-func (s *Selection) Add(v int) {
-	if s.Has(v) {
-		return
-	}
-	*s = Selection(append([]int(*s), v))
-	sort.Sort(s)
-}
-
-func (s *Selection) Remove(v int) {
-	a := []int(*s)
-	for k, i := range a {
-		if i == v {
-			tmp := a[:k]
-			tmp = append(tmp, a[k+1:]...)
-			*s = Selection(tmp)
-			return
-		}
-	}
-}
-
-func (s *Selection) Clear() {
-	*s = Selection([]int{})
-}
-
-func (s Selection) Len() int {
-	return len(s)
-}
-
-func (s Selection) Swap(i, j int) {
-	s[i], s[j] = s[j], s[i]
-}
-
-func (s Selection) Less(i, j int) bool {
-	return s[i] < s[j]
 }
 
 // Ctx contains all the important data. while you can easily access
@@ -78,7 +30,7 @@ type Ctx struct {
 	prompt              []rune
 	caretPos            int
 	currentLine         int
-	currentPage         struct { index, offset, perPage int }
+	currentPage         struct{ index, offset, perPage int }
 	selection           Selection
 	lines               []Match
 	current             []Match
@@ -106,7 +58,7 @@ func NewCtx(o CtxOptions) *Ctx {
 		[]rune{},
 		0,
 		o.InitialIndex(),
-		struct { index, offset, perPage int } { 0, 1, 0 },
+		struct{ index, offset, perPage int }{0, 1, 0},
 		Selection([]int{}),
 		[]Match{},
 		nil,
