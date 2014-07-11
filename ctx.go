@@ -137,14 +137,14 @@ func (c *Ctx) WaitDone() {
 
 func (c *Ctx) ExecQuery() bool {
 	if len(c.query) > 0 {
-		c.QueryCh() <- string(c.query)
+		c.SendQuery(string(c.query))
 		return true
 	}
 	return false
 }
 
 func (c *Ctx) DrawMatches(m []Match) {
-	c.DrawCh() <- m
+	c.SendDraw(m)
 }
 func (c *Ctx) Refresh() {
 	c.DrawMatches(nil)

@@ -105,11 +105,11 @@ func init() {
 	ActionFunc(doSelectAll).Register("SelectAll")
 	ActionFunc(doSelectVisible).Register("SelectVisible")
 	ActionFunc(func(i *Input, ev termbox.Event) {
-		i.StatusMsgCh() <- "ToggleSelectMode is deprecated. Use ToggleRangeMode"
+		i.SendStatusMsg("ToggleSelectMode is deprecated. Use ToggleRangeMode")
 		doToggleRangeMode(i, ev)
 	}).Register("ToggleSelectMode")
 	ActionFunc(func(i *Input, ev termbox.Event) {
-		i.StatusMsgCh() <- "CancelSelectMode is deprecated. Use CancelRangeMode"
+		i.SendStatusMsg("CancelSelectMode is deprecated. Use CancelRangeMode")
 		doCancelRangeMode(i, ev)
 	}).Register("CancelSelectMode")
 	ActionFunc(doToggleRangeMode).Register("ToggleRangeMode")
@@ -507,7 +507,7 @@ func doDeleteBackwardChar(i *Input, ev termbox.Event) {
 }
 
 func doKonamiCommand(i *Input, ev termbox.Event) {
-	i.StatusMsgCh() <- "All your filters are blongs to us"
+	i.SendStatusMsg("All your filters are blongs to us")
 }
 
 func makeCombinedAction(actions ...Action) ActionFunc {
