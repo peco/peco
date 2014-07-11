@@ -5,13 +5,15 @@ type Filter struct {
 	jobs chan string
 }
 
-func (f *Filter) Work(cancel chan struct{}, q string) {
-	if q == "" {
+func (f *Filter) Work(cancel chan struct{}, q HubReq) {
+	defer q.Done()
+	query := q.DataString()
+	if query == "" {
 		f.DrawMatches(nil)
 		return
 	}
-	f.current = f.Matcher().Match(cancel, q, f.Buffer())
-	f.StatusMsgCh() <- ""
+	f.current = f.Matcher().Match(cancel, query, f.Buffer())
+	f.SendStatusMsg("")
 	f.selection.Clear()
 	f.DrawMatches(nil)
 }
@@ -34,7 +36,7 @@ func (f *Filter) Loop() {
 			}
 			previous = make(chan struct{}, 1)
 
-			f.StatusMsgCh() <- "Running query..."
+			f.SendStatusMsg("Running query...")
 			go f.Work(previous, q)
 		}
 	}

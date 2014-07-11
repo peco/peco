@@ -162,7 +162,32 @@ Example:
 }
 ```
 
-You can use list multiple keys (separated by comma) to register an action that is associated with a key sequence. Please note that if there is a conflict in the key map, *the longest sequence always wins*. So In the above example, if you add another sequence, say, `C-x,C-c,C-c`, then the above `peco.Cancel` will never be invoked.
+### Key sequences
+
+As of v0.2.0, you can use list multiple keys (separated by comma) to register an action that is associated with a key sequence. Please note that if there is a conflict in the key map, *the longest sequence always wins*. So In the above example, if you add another sequence, say, `C-x,C-c,C-c`, then the above `peco.Cancel` will never be invoked.
+
+### Combined actions
+
+As of v0.2.1, you can create custom combined actions. For example, if you find yourself repeatedly needing to select 4 lines out of the list, you may want to define your own action like this:
+
+```json
+{
+    "Action": {
+        "foo.SelectFour": [
+            "peco.ToggleRangeMode",
+            "peco.SelectNext",
+            "peco.SelectNext",
+            "peco.SelectNext",
+            "peco.ToggleRangeMode"
+        ]
+    },
+    "Keymap": {
+        "M-f": "foo.SelectFour"
+    }
+}
+```
+
+This creates a new combined action `foo.SelectFour` (the format of the name is totally arbitrary, I just like to put namespaces), and assigns that action to `M-f`. When it's fired, it toggles the range selection mode and highlights 4 lines, and then goes back to waiting for your input.
 
 ### Available keys
 

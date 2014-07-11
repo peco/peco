@@ -5,7 +5,6 @@ import (
 	"io"
 	"os"
 	"os/signal"
-	"sort"
 	"sync"
 	"syscall"
 )
@@ -16,69 +15,24 @@ type CtxOptions interface {
 	InitialIndex() int
 }
 
-type Selection []int
-
-func (s Selection) Has(v int) bool {
-	for _, i := range []int(s) {
-		if i == v {
-			return true
-		}
-	}
-	return false
-}
-
-func (s *Selection) Add(v int) {
-	if s.Has(v) {
-		return
-	}
-	*s = Selection(append([]int(*s), v))
-	sort.Sort(s)
-}
-
-func (s *Selection) Remove(v int) {
-	a := []int(*s)
-	for k, i := range a {
-		if i == v {
-			tmp := a[:k]
-			tmp = append(tmp, a[k+1:]...)
-			*s = Selection(tmp)
-			return
-		}
-	}
-}
-
-func (s *Selection) Clear() {
-	*s = Selection([]int{})
-}
-
-func (s Selection) Len() int {
-	return len(s)
-}
-
-func (s Selection) Swap(i, j int) {
-	s[i], s[j] = s[j], s[i]
-}
-
-func (s Selection) Less(i, j int) bool {
-	return s[i] < s[j]
+type PageInfo struct {
+	index int
+	offset int
+	perPage int
 }
 
 // Ctx contains all the important data. while you can easily access
 // data in this struct from anwyehre, only do so via channels
 type Ctx struct {
+	*Hub
 	enableSep           bool
 	result              []Match
-	loopCh              chan struct{}
-	queryCh             chan string
-	drawCh              chan []Match
-	statusMsgCh         chan string
-	pagingCh            chan PagingRequest
 	mutex               sync.Mutex
 	query               []rune
 	prompt              []rune
 	caretPos            int
 	currentLine         int
-	currentPage         struct { index, offset, perPage int }
+	currentPage         PageInfo
 	selection           Selection
 	lines               []Match
 	current             []Match
@@ -94,19 +48,15 @@ type Ctx struct {
 
 func NewCtx(o CtxOptions) *Ctx {
 	return &Ctx{
+		NewHub(),
 		o.EnableNullSep(),
 		[]Match{},
-		make(chan struct{}),         // loopCh. You never send messages to this. no point in buffering
-		make(chan string, 5),        // queryCh.
-		make(chan []Match, 5),       // drawCh.
-		make(chan string, 5),        // statusMsgCh
-		make(chan PagingRequest, 5), // pagingCh
 		sync.Mutex{},
 		[]rune{},
 		[]rune{},
 		0,
 		o.InitialIndex(),
-		struct { index, offset, perPage int } { 0, 1, 0 },
+		struct{ index, offset, perPage int }{0, 1, 0},
 		Selection([]int{}),
 		[]Match{},
 		nil,
@@ -185,40 +135,16 @@ func (c *Ctx) WaitDone() {
 	c.wait.Wait()
 }
 
-func (c *Ctx) LoopCh() chan struct{} {
-	return c.loopCh
-}
-
-func (c *Ctx) QueryCh() chan string {
-	return c.queryCh
-}
-
-func (c *Ctx) DrawCh() chan []Match {
-	return c.drawCh
-}
-
-func (c *Ctx) StatusMsgCh() chan string {
-	return c.statusMsgCh
-}
-
-func (c *Ctx) PagingCh() chan PagingRequest {
-	return c.pagingCh
-}
-
-func (c *Ctx) Terminate() {
-	close(c.loopCh)
-}
-
 func (c *Ctx) ExecQuery() bool {
 	if len(c.query) > 0 {
-		c.queryCh <- string(c.query)
+		c.SendQuery(string(c.query))
 		return true
 	}
 	return false
 }
 
 func (c *Ctx) DrawMatches(m []Match) {
-	c.drawCh <- m
+	c.SendDraw(m)
 }
 func (c *Ctx) Refresh() {
 	c.DrawMatches(nil)
@@ -245,13 +171,9 @@ func (c *Ctx) NewFilter() *Filter {
 
 func (c *Ctx) NewInput() *Input {
 	// Create a new keymap object
-	k := NewKeymap(c.config.Keymap)
+	k := NewKeymap(c.config.Keymap, c.config.Action)
 	k.ApplyKeybinding()
 	return &Input{c, &sync.Mutex{}, nil, k}
-}
-
-func (c *Ctx) Stop() {
-	close(c.LoopCh())
 }
 
 func (c *Ctx) SetQuery(q []rune) {

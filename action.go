@@ -105,11 +105,11 @@ func init() {
 	ActionFunc(doSelectAll).Register("SelectAll")
 	ActionFunc(doSelectVisible).Register("SelectVisible")
 	ActionFunc(func(i *Input, ev termbox.Event) {
-		i.StatusMsgCh() <- "ToggleSelectMode is deprecated. Use ToggleRangeMode"
+		i.SendStatusMsg("ToggleSelectMode is deprecated. Use ToggleRangeMode")
 		doToggleRangeMode(i, ev)
 	}).Register("ToggleSelectMode")
 	ActionFunc(func(i *Input, ev termbox.Event) {
-		i.StatusMsgCh() <- "CancelSelectMode is deprecated. Use CancelRangeMode"
+		i.SendStatusMsg("CancelSelectMode is deprecated. Use CancelRangeMode")
 		doCancelRangeMode(i, ev)
 	}).Register("CancelSelectMode")
 	ActionFunc(doToggleRangeMode).Register("ToggleRangeMode")
@@ -247,22 +247,22 @@ func doCancel(i *Input, ev termbox.Event) {
 }
 
 func doSelectPrevious(i *Input, ev termbox.Event) {
-	i.PagingCh() <- ToPrevLine
+	i.SendPaging(ToPrevLine)
 	i.DrawMatches(nil)
 }
 
 func doSelectNext(i *Input, ev termbox.Event) {
-	i.PagingCh() <- ToNextLine
+	i.SendPaging(ToNextLine)
 	i.DrawMatches(nil)
 }
 
 func doSelectPreviousPage(i *Input, ev termbox.Event) {
-	i.PagingCh() <- ToPrevPage
+	i.SendPaging(ToPrevPage)
 	i.DrawMatches(nil)
 }
 
 func doSelectNextPage(i *Input, ev termbox.Event) {
-	i.PagingCh() <- ToNextPage
+	i.SendPaging(ToNextPage)
 	i.DrawMatches(nil)
 }
 
@@ -507,5 +507,15 @@ func doDeleteBackwardChar(i *Input, ev termbox.Event) {
 }
 
 func doKonamiCommand(i *Input, ev termbox.Event) {
-	i.StatusMsgCh() <- "All your filters are blongs to us"
+	i.SendStatusMsg("All your filters are blongs to us")
+}
+
+func makeCombinedAction(actions ...Action) ActionFunc {
+	return func(i *Input, ev termbox.Event) {
+		i.Batch(func() {
+			for _, a := range actions {
+				a.Execute(i, ev)
+			}
+		})
+	}
 }

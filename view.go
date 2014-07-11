@@ -35,11 +35,14 @@ func (v *View) Loop() {
 		case <-v.LoopCh():
 			return
 		case m := <-v.StatusMsgCh():
-			v.printStatus(m)
+			v.printStatus(m.DataString())
+			m.Done()
 		case r := <-v.PagingCh():
-			v.movePage(r)
+			v.movePage(r.DataInterface().(PagingRequest))
+			r.Done()
 		case lines := <-v.DrawCh():
-			v.drawScreen(lines)
+			v.drawScreen(lines.DataInterface().([]Match))
+			lines.Done()
 		}
 	}
 }
