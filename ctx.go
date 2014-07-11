@@ -15,6 +15,12 @@ type CtxOptions interface {
 	InitialIndex() int
 }
 
+type PageInfo struct {
+	index int
+	offset int
+	perPage int
+}
+
 // Ctx contains all the important data. while you can easily access
 // data in this struct from anwyehre, only do so via channels
 type Ctx struct {
@@ -30,7 +36,7 @@ type Ctx struct {
 	prompt              []rune
 	caretPos            int
 	currentLine         int
-	currentPage         struct{ index, offset, perPage int }
+	currentPage         PageInfo
 	selection           Selection
 	lines               []Match
 	current             []Match
