@@ -9,7 +9,7 @@ type Hub struct {
 	queryCh     chan HubReq
 	drawCh      chan HubReq
 	statusMsgCh chan HubReq
-	pagingCh    chan PagingRequest
+	pagingCh    chan HubReq
 }
 
 type HubReq struct {
@@ -27,7 +27,7 @@ func (hr HubReq) DataString() string {
 
 func (hr HubReq) Done() {
 	if hr.replyCh != nil {
-		hr.replyCh<-struct{}{}
+		hr.replyCh <- struct{}{}
 	}
 }
 
@@ -35,11 +35,11 @@ func NewHub() *Hub {
 	return &Hub{
 		false,
 		&sync.Mutex{},
-		make(chan struct{}),         // loopCh. You never send messages to this. no point in buffering
-		make(chan HubReq, 5),        // queryCh.
-		make(chan HubReq, 5),        // drawCh.
-		make(chan HubReq, 5),        // statusMsgCh
-		make(chan PagingRequest, 5), // pagingCh
+		make(chan struct{}),  // loopCh. You never send messages to this. no point in buffering
+		make(chan HubReq, 5), // queryCh.
+		make(chan HubReq, 5), // drawCh.
+		make(chan HubReq, 5), // statusMsgCh
+		make(chan HubReq, 5), // pagingCh
 	}
 }
 
@@ -99,8 +99,12 @@ func (h *Hub) SendStatusMsg(q string) {
 	send(h.StatusMsgCh(), HubReq{q, nil}, h.isSync)
 }
 
-func (h *Hub) PagingCh() chan PagingRequest {
+func (h *Hub) PagingCh() chan HubReq {
 	return h.pagingCh
+}
+
+func (h *Hub) SendPaging(x PagingRequest) {
+	send(h.PagingCh(), HubReq{x, nil}, h.isSync)
 }
 
 func (h *Hub) Stop() {
