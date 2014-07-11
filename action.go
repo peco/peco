@@ -512,8 +512,10 @@ func doKonamiCommand(i *Input, ev termbox.Event) {
 
 func makeCombinedAction(actions ...Action) ActionFunc {
 	return func(i *Input, ev termbox.Event) {
-		for _, a := range actions {
-			a.Execute(i, ev)
-		}
+		i.Batch(func() {
+			for _, a := range actions {
+				a.Execute(i, ev)
+			}
+		})
 	}
 }
