@@ -164,7 +164,7 @@ Example:
 
 ### Key sequences
 
-As of v0.2.0, you can use list multiple keys (separated by comma) to register an action that is associated with a key sequence. Please note that if there is a conflict in the key map, *the longest sequence always wins*. So In the above example, if you add another sequence, say, `C-x,C-c,C-c`, then the above `peco.Cancel` will never be invoked.
+As of v0.2.0, you can use a list of keys (separated by comma) to register an action that is associated with a key sequence (instead of a single key). Please note that if there is a conflict in the key map, *the longest sequence always wins*. So In the above example, if you add another sequence, say, `C-x,C-c,C-c`, then the above `peco.Cancel` will never be invoked.
 
 ### Combined actions
 
