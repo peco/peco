@@ -28,6 +28,7 @@ func setStdHandle(stdhandle int32, handle syscall.Handle) error {
 	return nil
 }
 
+// IsTty checks if the given fd is a tty
 func IsTty(fd uintptr) bool {
 	f := syscall.MustLoadDLL("kernel32.dll").MustFindProc("GetConsoleMode")
 	var st uint32
@@ -38,6 +39,7 @@ func IsTty(fd uintptr) bool {
 var stdout = os.Stdout
 var stdin = os.Stdin
 
+// TtyReady checks if the tty is ready to go
 func TtyReady() error {
 	var err error
 	_stdin, err := os.Open("CONIN$")
@@ -69,6 +71,7 @@ func TtyReady() error {
 	return nil
 }
 
+// TtyTerm restores any state, if necessary
 func TtyTerm() {
 	os.Stdin = stdin
 	syscall.Stdin = syscall.Handle(os.Stdin.Fd())
