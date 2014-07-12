@@ -71,6 +71,8 @@ func init() {
 	ActionFunc(doEndOfFile).Register("EndOfFile")
 	ActionFunc(doEndOfLine).Register("EndOfLine", termbox.KeyCtrlE)
 	ActionFunc(doFinish).Register("Finish", termbox.KeyEnter)
+	ActionFunc(doFinishWith101).Register("FinishWith101")
+	ActionFunc(doFinishWith102).Register("FinishWith102")
 	ActionFunc(doForwardChar).Register("ForwardChar", termbox.KeyCtrlF)
 	ActionFunc(doForwardWord).Register("ForwardWord")
 	ActionFunc(doKillEndOfLine).Register("KillEndOfLine", termbox.KeyCtrlK)
@@ -231,6 +233,36 @@ func doFinish(i *Input, _ termbox.Event) {
 		}
 	}
 	i.ExitWith(0)
+}
+
+func doFinishWith101(i *Input, _ termbox.Event) {
+	// Must end with all the selected lines.
+	if i.selection.Len() == 0 {
+		i.selection.Add(i.currentLine)
+	}
+
+	i.result = []Match{}
+	for _, lineno := range i.selection {
+		if lineno <= len(i.current) {
+			i.result = append(i.result, i.current[lineno-1])
+		}
+	}
+	i.ExitWith(101)
+}
+
+func doFinishWith102(i *Input, _ termbox.Event) {
+	// Must end with all the selected lines.
+	if i.selection.Len() == 0 {
+		i.selection.Add(i.currentLine)
+	}
+
+	i.result = []Match{}
+	for _, lineno := range i.selection {
+		if lineno <= len(i.current) {
+			i.result = append(i.result, i.current[lineno-1])
+		}
+	}
+	i.ExitWith(102)
 }
 
 func doCancel(i *Input, ev termbox.Event) {
