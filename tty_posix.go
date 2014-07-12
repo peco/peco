@@ -1,4 +1,4 @@
-// +build linux
+// +build !darwin,!windows
 
 package peco
 
