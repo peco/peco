@@ -348,7 +348,7 @@ You may specify as many matchers as you like.
 ## Examples
 
 * [An example of a simple perl regexp matcher](https://gist.github.com/mattn/24712964da6e3112251c)
-* [C/Migemo](https://github.com/mattn/peco-cmigemo/)
+* [An example using migemogrep Japanese grep using latin-1 chars](https://github.com/peco/peco/wiki/CustomMatcher)
 
 ## Prompt
 
