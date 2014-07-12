@@ -66,10 +66,12 @@ type NoMatch struct {
 	*matchString
 }
 
+// NewNoMatch creates a NoMatch struct
 func NewNoMatch(v string, enableSep bool) *NoMatch {
 	return &NoMatch{newMatchString(v, enableSep)}
 }
 
+// Indices always returns nil
 func (m NoMatch) Indices() [][]int {
 	return nil
 }
@@ -81,10 +83,12 @@ type DidMatch struct {
 	matches [][]int
 }
 
+// NewDidMatch creates a new DidMatch struct
 func NewDidMatch(v string, enableSep bool, m [][]int) *DidMatch {
 	return &DidMatch{newMatchString(v, enableSep), m}
 }
 
+// Indices returns the indices in the buffer that matched
 func (d DidMatch) Indices() [][]int {
 	return d.matches
 }
@@ -108,38 +112,49 @@ type Matcher interface {
 	Verify() error 
 }
 
+// These are used as keys in the config file
 const (
 	IgnoreCaseMatch    = "IgnoreCase"
 	CaseSensitiveMatch = "CaseSensitive"
 	RegexpMatch        = "Regexp"
 )
 
+// RegexpMatcher is the most basic matcher
 type RegexpMatcher struct {
 	enableSep bool
 	flags     []string
 	quotemeta bool
 }
 
+// CaseSensitiveMatcher extends the RegxpMatcher, but always
+// turns off the ignore-case flag in the regexp
 type CaseSensitiveMatcher struct {
 	*RegexpMatcher
 }
 
+// IgnoreCaseMatcher extends the RegexpMatcher, and always
+// turns ON the ignore-case flag in the regexp
 type IgnoreCaseMatcher struct {
 	*RegexpMatcher
 }
 
+// CustomMatcher spawns a new process to filter the buffer
+// in peco, and uses the output in its Stdout to figure
+// out what to display
 type CustomMatcher struct {
 	enableSep bool
 	name      string
 	args      []string
 }
 
+// NewCaseSensitiveMatcher creates a new CaseSensitiveMatcher
 func NewCaseSensitiveMatcher(enableSep bool) *CaseSensitiveMatcher {
 	m := &CaseSensitiveMatcher{NewRegexpMatcher(enableSep)}
 	m.quotemeta = true
 	return m
 }
 
+// NewIgnoreCaseMatcher creates a new IgnoreCaseMatcher
 func NewIgnoreCaseMatcher(enableSep bool) *IgnoreCaseMatcher {
 	m := &IgnoreCaseMatcher{NewRegexpMatcher(enableSep)}
 	m.flags = []string{"i"}
@@ -147,6 +162,7 @@ func NewIgnoreCaseMatcher(enableSep bool) *IgnoreCaseMatcher {
 	return m
 }
 
+// NewRegexpMatcher creates a new RegexpMatcher
 func NewRegexpMatcher(enableSep bool) *RegexpMatcher {
 	return &RegexpMatcher{
 		enableSep,
@@ -155,14 +171,18 @@ func NewRegexpMatcher(enableSep bool) *RegexpMatcher {
 	}
 }
 
+// Verify always returns nil
 func (m *RegexpMatcher) Verify() error {
 	return nil
 }
 
+// NewCustomMatcher creates a new CustomMatcher
 func NewCustomMatcher(enableSep bool, name string, args []string) *CustomMatcher {
 	return &CustomMatcher{enableSep, name, args}
 }
 
+// Verify checks to see that the executable given to CustomMatcher
+// is actual found and is executable via exec.LookPath
 func (m *CustomMatcher) Verify() error {
 	if _, err := exec.LookPath(m.args[0]); err != nil {
 		return err
@@ -187,7 +207,7 @@ func regexpFor(q string, flags []string, quotemeta bool) (*regexp.Regexp, error)
 	return re, nil
 }
 
-func (m *RegexpMatcher) QueryToRegexps(query string) ([]*regexp.Regexp, error) {
+func (m *RegexpMatcher) queryToRegexps(query string) ([]*regexp.Regexp, error) {
 	queries := strings.Split(strings.TrimSpace(query), " ")
 	regexps := make([]*regexp.Regexp, 0)
 
@@ -233,9 +253,13 @@ func (m byStart) Less(i, j int) bool {
 	return m[i][0] < m[j][0]
 }
 
+// Match does the heavy lifting, and matches `q` against `buffer`.
+// While it is doing the match, it also listens for messages
+// via `quit`. If anything is received via `quit`, the match
+// is halted.
 func (m *RegexpMatcher) Match(quit chan struct{}, q string, buffer []Match) []Match {
 	results := []Match{}
-	regexps, err := m.QueryToRegexps(q)
+	regexps, err := m.queryToRegexps(q)
 	if err != nil {
 		return results
 	}
@@ -296,6 +320,7 @@ MATCH:
 	return results
 }
 
+// MatchAllRegexps matches all the regexps in `regexps` against line
 func (m *RegexpMatcher) MatchAllRegexps(regexps []*regexp.Regexp, line string) [][]int {
 	matches := make([][]int, 0)
 
@@ -332,6 +357,7 @@ Match:
 	return matches
 }
 
+// Match matches `q` aginst `buffer`
 func (m *CustomMatcher) Match(quit chan struct{}, q string, buffer []Match) []Match {
 	if len(m.args) < 1 {
 		return []Match{}
