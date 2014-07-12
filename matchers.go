@@ -17,13 +17,13 @@ type Match interface {
 	Indices() [][]int
 }
 
-type MatchString struct {
+type matchString struct {
 	buf    string
 	sepLoc int
 }
 
-func NewMatchString(v string, enableSep bool) *MatchString {
-	m := &MatchString{
+func NewmatchString(v string, enableSep bool) *matchString {
+	m := &matchString{
 		v,
 		-1,
 	}
@@ -42,18 +42,18 @@ func NewMatchString(v string, enableSep bool) *MatchString {
 	return m
 }
 
-func (m MatchString) Buffer() string {
+func (m matchString) Buffer() string {
 	return m.buf
 }
 
-func (m MatchString) Line() string {
+func (m matchString) Line() string {
 	if i := m.sepLoc; i > -1 {
 		return m.buf[:i]
 	}
 	return m.buf
 }
 
-func (m MatchString) Output() string {
+func (m matchString) Output() string {
 	if i := m.sepLoc; i > -1 {
 		return m.buf[i+1:]
 	}
@@ -63,11 +63,11 @@ func (m MatchString) Output() string {
 // NoMatch is actually an alias to a regular string. It implements the
 // Match interface, but just returns the underlying string with no matches
 type NoMatch struct {
-	*MatchString
+	*matchString
 }
 
 func NewNoMatch(v string, enableSep bool) *NoMatch {
-	return &NoMatch{NewMatchString(v, enableSep)}
+	return &NoMatch{NewmatchString(v, enableSep)}
 }
 
 func (m NoMatch) Indices() [][]int {
@@ -77,12 +77,12 @@ func (m NoMatch) Indices() [][]int {
 // DidMatch contains the actual match, and the indices to the matches
 // in the line
 type DidMatch struct {
-	*MatchString
+	*matchString
 	matches [][]int
 }
 
 func NewDidMatch(v string, enableSep bool, m [][]int) *DidMatch {
-	return &DidMatch{NewMatchString(v, enableSep), m}
+	return &DidMatch{NewmatchString(v, enableSep), m}
 }
 
 func (d DidMatch) Indices() [][]int {
