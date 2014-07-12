@@ -22,7 +22,7 @@ type matchString struct {
 	sepLoc int
 }
 
-func NewmatchString(v string, enableSep bool) *matchString {
+func newMatchString(v string, enableSep bool) *matchString {
 	m := &matchString{
 		v,
 		-1,
@@ -67,7 +67,7 @@ type NoMatch struct {
 }
 
 func NewNoMatch(v string, enableSep bool) *NoMatch {
-	return &NoMatch{NewmatchString(v, enableSep)}
+	return &NoMatch{newMatchString(v, enableSep)}
 }
 
 func (m NoMatch) Indices() [][]int {
@@ -82,7 +82,7 @@ type DidMatch struct {
 }
 
 func NewDidMatch(v string, enableSep bool, m [][]int) *DidMatch {
-	return &DidMatch{NewmatchString(v, enableSep), m}
+	return &DidMatch{newMatchString(v, enableSep), m}
 }
 
 func (d DidMatch) Indices() [][]int {
