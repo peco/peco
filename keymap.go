@@ -8,17 +8,20 @@ import (
 	"github.com/peco/peco/keyseq"
 )
 
+// Keymap holds all the key sequence to action map
 type Keymap struct {
 	Config map[string]string
 	Action map[string][]string // custom actions
 	Keyseq *keyseq.Keyseq
 }
 
+// NewKeymap creates a new Keymap struct
 func NewKeymap(config map[string]string, actions map[string][]string) Keymap {
 	return Keymap{config, actions, keyseq.New()}
 
 }
 
+// Handler returns the appropriate action for the given termbox event
 func (km Keymap) Handler(ev termbox.Event) Action {
 	modifier := keyseq.ModNone
 	if (ev.Mod & termbox.ModAlt) != 0 {
@@ -44,7 +47,7 @@ func (km Keymap) Handler(ev termbox.Event) Action {
 const maxResolveActionDepth = 100
 func (km Keymap) resolveActionName(name string, depth int) (Action, error) {
 	if depth >= maxResolveActionDepth {
-		return nil, fmt.Errorf("Could not resolve %s: deep recursion", name)
+		return nil, fmt.Errorf("error: Could not resolve %s: deep recursion", name)
 	}
 
 	// Can it be resolved via regular nameToActions ?
@@ -69,9 +72,11 @@ func (km Keymap) resolveActionName(name string, depth int) (Action, error) {
 		return v, nil
 	}
 
-	return nil, fmt.Errorf("Could not resolve %s: no such action", name)
+	return nil, fmt.Errorf("error: Could not resolve %s: no such action", name)
 }
 
+// ApplyKeybinding applies all of the custom key bindings on top of
+// the default key bindings
 func (km Keymap) ApplyKeybinding() {
 	k := km.Keyseq
 	k.Clear()

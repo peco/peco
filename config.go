@@ -12,6 +12,8 @@ import (
 
 var homedirFunc = homedir
 
+// Config holds all the data that can be configured in the
+// external configuran file
 type Config struct {
 	Action        map[string][]string `json:"Action"`
 	// Keymap used to be directly responsible for dispatching
@@ -24,6 +26,7 @@ type Config struct {
 	Prompt        string   `json:"Prompt"`
 }
 
+// NewConfig creates a new Config
 func NewConfig() *Config {
 	return &Config{
 		Keymap:  make(map[string]string),
@@ -33,6 +36,8 @@ func NewConfig() *Config {
 	}
 }
 
+// ReadFilename reads the config from the given file, and
+// does the appropriate processing, if any
 func (c *Config) ReadFilename(filename string) error {
 	f, err := os.Open(filename)
 	if err != nil {
@@ -78,6 +83,7 @@ var (
 	}
 )
 
+// StyleSet holds styles for various sections
 type StyleSet struct {
 	Basic          Style `json:"Basic"`
 	SavedSelection Style `json:"SavedSelection"`
@@ -86,6 +92,7 @@ type StyleSet struct {
 	Matched        Style `json:"Matched"`
 }
 
+// NewStyleSet creates a new StyleSet struct
 func NewStyleSet() StyleSet {
 	return StyleSet{
 		Basic:          Style{fg: termbox.ColorDefault, bg: termbox.ColorDefault},
@@ -96,11 +103,13 @@ func NewStyleSet() StyleSet {
 	}
 }
 
+// Style describes termbox styles
 type Style struct {
 	fg termbox.Attribute
 	bg termbox.Attribute
 }
 
+// UnmarshalJSON satisfies json.RawMessage.
 func (s *Style) UnmarshalJSON(buf []byte) error {
 	raw := []string{}
 	if err := json.Unmarshal(buf, &raw); err != nil {
@@ -149,6 +158,7 @@ func locateRcfileIn(dir string) (string, error) {
 	return file, nil
 }
 
+// LocateRcfile attempts to find the config file in various locations
 func LocateRcfile() (string, error) {
 	// http://standards.freedesktop.org/basedir-spec/basedir-spec-latest.html
 	//
@@ -192,5 +202,5 @@ func LocateRcfile() (string, error) {
 		}
 	}
 
-	return "", fmt.Errorf("Config file not found")
+	return "", fmt.Errorf("error: Config file not found")
 }

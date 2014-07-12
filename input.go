@@ -7,6 +7,7 @@ import (
 	"github.com/nsf/termbox-go"
 )
 
+// Input handles input events from termbox.
 type Input struct {
 	*Ctx
 	mutex  *sync.Mutex // Currently only used for protecting Alt/Esc workaround
@@ -14,6 +15,8 @@ type Input struct {
 	keymap Keymap
 }
 
+// Loop watches for incoming events from termbox, and pass them
+// to the appropriate handler when something arrives.
 func (i *Input) Loop() {
 	defer i.ReleaseWaitGroup()
 

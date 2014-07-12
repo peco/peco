@@ -41,6 +41,8 @@ func (a ActionFunc) Register(name string, defaultKeys ...termbox.Key) {
 	}
 }
 
+// RegisterKeySequence satisfies the Action interface for AfterFun.
+// Registers the action to be mapped against a key sequence
 func (a ActionFunc) RegisterKeySequence(k keyseq.KeyList) {
 	defaultKeyBinding[k.String()] = a
 }

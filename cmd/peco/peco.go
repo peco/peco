@@ -56,9 +56,8 @@ func (o cmdOptions) EnableNullSep() bool {
 func (o cmdOptions) InitialIndex() int {
 	if o.OptInitialIndex >= 0 {
 		return o.OptInitialIndex + 1
-	} else {
-		return 1
 	}
+	return 1
 }
 
 func main() {

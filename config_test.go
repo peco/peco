@@ -98,7 +98,7 @@ func TestLocateRcfile(t *testing.T) {
 			t.Errorf("Expected %s, got %s", expected[i], dir)
 		}
 		i++
-		return "", fmt.Errorf("Not found")
+		return "", fmt.Errorf("error: Not found")
 	}
 
 	os.Setenv("XDG_CONFIG_HOME", dir)

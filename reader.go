@@ -21,6 +21,8 @@ type BufferReader struct {
 	inputReadyCh chan struct{}
 }
 
+// InputReadyCh returns a channel which, when the input starts coming
+// in, sends a struct{}{}
 func (b *BufferReader) InputReadyCh() <-chan struct{} {
 	return b.inputReadyCh
 }
