@@ -1,10 +1,9 @@
 package peco
 
 import (
-	"unicode"
-
 	"github.com/nsf/termbox-go"
 	"github.com/peco/peco/keyseq"
+	"unicode"
 )
 
 // Action describes an action that can be executed upon receiving user
@@ -132,10 +131,36 @@ func init() {
 			keyseq.Key{0, 0, 'a'},
 		},
 	)
+
+	ActionFunc(doKillProccess).Register("KillSelectedProcesses", termbox.KeyCtrlBackslash)
 }
 
 // This is a noop action
 func doNothing(_ *Input, _ termbox.Event) {}
+
+/*
+	If the input is ps output, it will try to kill the selected process(es)
+*/
+func doKillProccess(i *Input, _ termbox.Event) {
+
+	if len(i.lines) == 0 {
+		return
+	}
+
+	pidIndex, ok := findPIDIndex(i.lines[0].Line())
+	if !ok {
+		return
+	}
+
+	for _, idx := range append([]int(i.selection), i.currentLine) {
+		line := i.current[idx-1].Line()
+		if killPID(line, pidIndex) {
+			i.selection.Remove(idx)
+			i.current = append(i.current[:idx-1], i.current[idx:]...)
+			i.Refresh()
+		}
+	}
+}
 
 // This is an exception to the rule. This does not get registered
 // anywhere. You just call it directly
