@@ -217,6 +217,15 @@ key item to use Alt/Option key as a mask.
 | ArrowLeft   ||
 | ArrowRight  ||
 
+### Key workarounds
+
+Some keys just... don't map correctly / too easily for various reasons. Here, we'll list possible workarounds for key sequences that are often asked for:
+
+
+| You want this | Use this instead | Notes            |
+|---------------|------------------|------------------|
+| Shift+Tab     | M-\[,Z           | Verified on OS X |
+
 ### Available actions
 
 | Name | Notes |
