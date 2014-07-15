@@ -6,7 +6,7 @@ Simplistic interactive filtering tool
 Description
 ===========
 
-`peco` is based on [percol](https://github.com/mooz/percol). The idea is that percol was darn useful, but I wanted a tool that was a single binary. peco is written in Go, and therefore you can just grab the binary [releases](https://github.com/peco/peco/releases) and drop it in your $PATH.
+`peco` is based on [percol](https://github.com/mooz/percol). The idea is that percol was darn useful, but I wanted a tool that was a single binary. peco is written in Go, and therefore you can just grab [the binary releases](https://github.com/peco/peco/releases) and drop it in your $PATH.
 
 As of this writing only implements the basic filtering feature (mainly because that's the only thing I use) -- you're welcome to send me pull requests to make peco more compatible with percol).
 
