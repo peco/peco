@@ -9,12 +9,12 @@
 		},
 		{
 			"ImportPath": "github.com/mattn/go-runewidth",
-			"Comment": "travisish-12-g39104c7",
-			"Rev": "39104c78546f11be4bbc161e39858258aac6d9b8"
+			"Comment": "travisish-23-g36f63b8",
+			"Rev": "36f63b8223e701c16f36010094fb6e84ffbaf8e0"
 		},
 		{
 			"ImportPath": "github.com/nsf/termbox-go",
-			"Rev": "81b415f8400796494f30d99fc9df17e03acacc71"
+			"Rev": "e9227d640138066e099db60f3010bd8d55c8da72"
 		}
 	]
 }
