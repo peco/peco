@@ -3,6 +3,8 @@ package peco
 import (
 	"fmt"
 	"os"
+	"strings"
+	"time"
 
 	"github.com/nsf/termbox-go"
 	"github.com/peco/peco/keyseq"
@@ -34,17 +36,44 @@ func (km Keymap) Handler(ev termbox.Event) Action {
 	switch err {
 	case nil:
 		// Found an action!
-		return action.(Action)
+		return wrapClearSequence(action.(Action))
 	case keyseq.ErrInSequence:
-		// TODO We're in some sort of key sequence. Remember what we have
-		// received so far
-		return ActionFunc(doNothing)
+		return wrapRememberSequence(ActionFunc(doNothing))
 	default:
-		return ActionFunc(doAcceptChar)
+		return wrapClearSequence(ActionFunc(doAcceptChar))
 	}
 }
 
+func wrapRememberSequence(a Action) Action {
+	return ActionFunc(func(i *Input, ev termbox.Event) {
+		s, err := keyseq.EventToString(ev)
+		if err == nil {
+			i.currentKeySeq = append(i.currentKeySeq, s)
+			i.SendStatusMsg(strings.Join(i.currentKeySeq, " "))
+		}
+		a.Execute(i, ev)
+	})
+}
+
+func wrapClearSequence(a Action) Action {
+	return ActionFunc(func(i *Input, ev termbox.Event) {
+		s, err := keyseq.EventToString(ev)
+		if err == nil {
+			i.currentKeySeq = append(i.currentKeySeq, s)
+		}
+
+		if len(i.currentKeySeq) > 0 {
+			i.SendStatusMsg(strings.Join(i.currentKeySeq, " "))
+			i.currentKeySeq = []string{}
+		}
+
+		i.SendClearStatus(500 * time.Millisecond)
+		a.Execute(i, ev)
+	})
+}
+
 const maxResolveActionDepth = 100
+
 func (km Keymap) resolveActionName(name string, depth int) (Action, error) {
 	if depth >= maxResolveActionDepth {
 		return nil, fmt.Errorf("error: Could not resolve %s: deep recursion", name)
@@ -61,7 +90,7 @@ func (km Keymap) resolveActionName(name string, depth int) (Action, error) {
 	if ok {
 		actions := []Action{}
 		for _, actionName := range l {
-			child, err := km.resolveActionName(actionName, depth + 1)
+			child, err := km.resolveActionName(actionName, depth+1)
 			if err != nil {
 				return nil, err
 			}

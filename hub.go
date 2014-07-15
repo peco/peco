@@ -1,18 +1,22 @@
 package peco
 
-import "sync"
+import (
+	"sync"
+	"time"
+)
 
 // Hub acts as the messaging hub between components -- that is,
 // it controls how the communication that goes through channels
 // are handled.
 type Hub struct {
-	isSync      bool
-	mutex       *sync.Mutex
-	loopCh      chan struct{}
-	queryCh     chan HubReq
-	drawCh      chan HubReq
-	statusMsgCh chan HubReq
-	pagingCh    chan HubReq
+	isSync        bool
+	mutex         *sync.Mutex
+	loopCh        chan struct{}
+	queryCh       chan HubReq
+	drawCh        chan HubReq
+	statusMsgCh   chan HubReq
+	clearStatusCh chan HubReq
+	pagingCh      chan HubReq
 }
 
 // HubReq is a wrapper around the actual requst value that needs
@@ -55,6 +59,7 @@ func NewHub() *Hub {
 		make(chan HubReq, 5), // queryCh.
 		make(chan HubReq, 5), // drawCh.
 		make(chan HubReq, 5), // statusMsgCh
+		make(chan HubReq, 5), // clearStatusCh
 		make(chan HubReq, 5), // pagingCh
 	}
 }
@@ -123,6 +128,17 @@ func (h *Hub) StatusMsgCh() chan HubReq {
 // SendStatusMsg sends a string to be displayed in the status message
 func (h *Hub) SendStatusMsg(q string) {
 	send(h.StatusMsgCh(), HubReq{q, nil}, h.isSync)
+}
+
+func (h *Hub) ClearStatusCh() chan HubReq {
+	return h.clearStatusCh
+}
+
+// SendClearStatus sends a request to clear the status message in
+// `d` duration. If a new status message is sent before the clear
+// request is executed, the clear instruction will be canceled
+func (h *Hub) SendClearStatus(d time.Duration) {
+	send(h.ClearStatusCh(), HubReq{d, nil}, h.isSync)
 }
 
 // PagingCh returns the channel to page through the results
