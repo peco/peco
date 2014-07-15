@@ -2,6 +2,7 @@ package peco
 
 import (
 	"fmt"
+	"time"
 	"unicode/utf8"
 
 	"github.com/mattn/go-runewidth"
@@ -11,6 +12,7 @@ import (
 // View handles the drawing/updating the screen
 type View struct {
 	*Ctx
+	clearTimer *time.Timer
 }
 
 // PagingRequest can be sent to move the selection cursor
@@ -37,6 +39,9 @@ func (v *View) Loop() {
 		case m := <-v.StatusMsgCh():
 			v.printStatus(m.DataString())
 			m.Done()
+		case m := <-v.ClearStatusCh():
+			v.clearStatus(m.DataInterface().(time.Duration))
+			m.Done()
 		case r := <-v.PagingCh():
 			v.movePage(r.DataInterface().(PagingRequest))
 			r.Done()
@@ -47,23 +52,43 @@ func (v *View) Loop() {
 	}
 }
 
+func (v *View) clearStatus(d time.Duration) {
+	if t := v.clearTimer; t != nil {
+		t.Stop()
+	}
+
+	v.clearTimer = time.AfterFunc(d, func() {
+		v.printStatus("")
+	})
+}
+
 func (v *View) printStatus(msg string) {
+	if t := v.clearTimer; t != nil {
+		t.Stop()
+	}
+
 	w, h := termbox.Size()
 
 	width := runewidth.StringWidth(msg)
 	if width > w {
-		msg = runewidth.Truncate(msg, width - w, "")
+		msg = runewidth.Truncate(msg, width-(width-w), "")
 	}
 
-	pad := make([]byte, w-width)
-	for i := 0; i < w-width; i++ {
-		pad[i] = ' '
+	var pad []byte
+	if w > width {
+		pad = make([]byte, w-width)
+		for i := 0; i < w-width; i++ {
+			pad[i] = ' '
+		}
 	}
 
 	fgAttr := v.config.Style.Basic.fg
 	bgAttr := v.config.Style.Basic.bg
 
-	printTB(0, h-2, fgAttr, bgAttr, string(pad))
+	if w > width {
+		printTB(0, h-2, fgAttr, bgAttr, string(pad))
+	}
+
 	if width > 0 {
 		printTB(w-width, h-2, fgAttr|termbox.AttrReverse|termbox.AttrBold, bgAttr|termbox.AttrReverse, msg)
 	}
@@ -215,7 +240,7 @@ CALCULATE_PAGE:
 		if n+currentPage.offset == v.currentLine {
 			fgAttr = v.config.Style.Selected.fg
 			bgAttr = v.config.Style.Selected.bg
-		} else if v.selection.Has(n + currentPage.offset) || v.SelectedRange().Has(n + currentPage.offset) {
+		} else if v.selection.Has(n+currentPage.offset) || v.SelectedRange().Has(n+currentPage.offset) {
 			fgAttr = v.config.Style.SavedSelection.fg
 			bgAttr = v.config.Style.SavedSelection.bg
 		}

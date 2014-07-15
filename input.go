@@ -13,6 +13,7 @@ type Input struct {
 	mutex  *sync.Mutex // Currently only used for protecting Alt/Esc workaround
 	mod    *time.Timer
 	keymap Keymap
+	currentKeySeq []string
 }
 
 // Loop watches for incoming events from termbox, and pass them
