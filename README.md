@@ -6,9 +6,7 @@ Simplistic interactive filtering tool
 Description
 ===========
 
-`peco` is based on [percol](https://github.com/mooz/percol). The idea is that percol was darn useful, but I wanted a tool that was a single binary. peco is written in Go, and therefore you can just grab [the binary releases](https://github.com/peco/peco/releases) and drop it in your $PATH.
-
-As of this writing only implements the basic filtering feature (mainly because that's the only thing I use) -- you're welcome to send me pull requests to make peco more compatible with percol).
+`peco` (pronounced *peh-koh*) is based on a python tool, [percol](https://github.com/mooz/percol). `percol` was darn useful, but I wanted a tool that was a single binary, and forget about python. `peco` is written in Go, and therefore you can just grab [the binary releases](https://github.com/peco/peco/releases) and drop it in your $PATH.
 
 `peco` can be a great tool to filter stuff like logs, process stats, find files, because unlike grep, you can type as you think and look through the current results.
 
