@@ -420,7 +420,8 @@ AUTHORS
 * negipo
 * sugyan
 * swdyh
-* MURAOKA Taro (kaoriya/koron) for ahocorasick search
+* MURAOKA Taro (kaoriya/koron), for aho-corasick search
+* taichi, for the gif working on Windows
 
 Notes
 =====
