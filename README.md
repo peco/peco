@@ -62,7 +62,9 @@ Different types of matchers are available. Default is case-insensitive matcher, 
 
 ## Works on Windows!
 
-I have been told that peco even works on windows :)
+I have been told that peco even works on windows :) Look ma! I'm not lying!
+
+![optimized](https://gist.githubusercontent.com/taichi/26814518d8b00352693b/raw/b7745987de32dbf068e81a8308c0c5ed38138649/peco.gif)
 
 Installation
 ============
