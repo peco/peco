@@ -4,10 +4,10 @@ import "testing"
 
 func assertNilBoth(t *testing.T, n *TernaryNode) {
 	if n.low != nil {
-		t.Errorf("low node has value", &n.low)
+		t.Errorf("low node has value: %v", &n.low)
 	}
 	if n.high != nil {
-		t.Errorf("high node has value", &n.high)
+		t.Errorf("high node has value: %v", &n.high)
 	}
 }
 

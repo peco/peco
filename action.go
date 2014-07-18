@@ -119,17 +119,17 @@ func init() {
 
 	ActionFunc(doKonamiCommand).RegisterKeySequence(
 		keyseq.KeyList{
-			keyseq.Key{0, termbox.KeyCtrlX, 0},
-			keyseq.Key{0, termbox.KeyArrowUp, 0},
-			keyseq.Key{0, termbox.KeyArrowUp, 0},
-			keyseq.Key{0, termbox.KeyArrowDown, 0},
-			keyseq.Key{0, termbox.KeyArrowDown, 0},
-			keyseq.Key{0, termbox.KeyArrowLeft, 0},
-			keyseq.Key{0, termbox.KeyArrowRight, 0},
-			keyseq.Key{0, termbox.KeyArrowLeft, 0},
-			keyseq.Key{0, termbox.KeyArrowRight, 0},
-			keyseq.Key{0, 0, 'b'},
-			keyseq.Key{0, 0, 'a'},
+			keyseq.Key{Modifier: 0, Key: termbox.KeyCtrlX, Ch: 0},
+			keyseq.Key{Modifier: 0, Key: termbox.KeyArrowUp, Ch: 0},
+			keyseq.Key{Modifier: 0, Key: termbox.KeyArrowUp, Ch: 0},
+			keyseq.Key{Modifier: 0, Key: termbox.KeyArrowDown, Ch: 0},
+			keyseq.Key{Modifier: 0, Key: termbox.KeyArrowDown, Ch: 0},
+			keyseq.Key{Modifier: 0, Key: termbox.KeyArrowLeft, Ch: 0},
+			keyseq.Key{Modifier: 0, Key: termbox.KeyArrowRight, Ch: 0},
+			keyseq.Key{Modifier: 0, Key: termbox.KeyArrowLeft, Ch: 0},
+			keyseq.Key{Modifier: 0, Key: termbox.KeyArrowRight, Ch: 0},
+			keyseq.Key{Modifier: 0, Key: 0, Ch: 'b'},
+			keyseq.Key{Modifier: 0, Key: 0, Ch: 'a'},
 		},
 	)
 }
