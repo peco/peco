@@ -76,10 +76,13 @@ var (
 		"on_cyan":    termbox.ColorCyan,
 		"on_white":   termbox.ColorWhite,
 	}
-	stringToAttr = map[string]termbox.Attribute{
+	stringToFgAttr = map[string]termbox.Attribute{
 		"bold":      termbox.AttrBold,
 		"underline": termbox.AttrUnderline,
-		"blink":     termbox.AttrReverse,
+		"reverse":   termbox.AttrReverse,
+	}
+	stringToBgAttr = map[string]termbox.Attribute{
+		"on_bold": termbox.AttrBold,
 	}
 )
 
@@ -138,9 +141,14 @@ func stringsToStyle(raw []string) *Style {
 	}
 
 	for _, s := range raw {
-		attr, ok := stringToAttr[s]
+		fg_attr, ok := stringToFgAttr[s]
 		if ok {
-			style.fg |= attr
+			style.fg |= fg_attr
+		}
+
+		bg_attr, ok := stringToBgAttr[s]
+		if ok {
+			style.bg |= bg_attr
 		}
 	}
 
