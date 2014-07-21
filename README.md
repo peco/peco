@@ -330,9 +330,10 @@ For now, styles of following 5 items can be customized in `config.json`.
 
 ### Attributes
 
-- `"bold"` for `termbox.AttrBold`
-- `"underline"` for `termbox.AttrUnderline`
-- `"blink"` for `termbox.AttrReverse`
+- `"bold"` for fg: `termbox.AttrBold`
+- `"underline"` for fg: `termbox.AttrUnderline`
+- `"reverse"` for fg: `termbox.AttrReverse`
+- `"on_bold"` for bg: `termbox.AttrBold` (this attribute actually makes the background blink on some platforms/environments, e.g. linux console, xterm...)
 
 ## CustomMatcher
 
