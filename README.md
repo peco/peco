@@ -86,6 +86,14 @@ brew install peco
 
 ![optimized](http://peco.github.io/images/peco-demo-homebrew.gif)
 
+### Windows (Chocolatey NuGet Users)
+
+There's a third-party [peco package available](https://chocolatey.org/packages/peco) for Chocolatey NuGet.
+
+```
+C:\> choco install peco
+```
+
 ### go get
 
 If you want to go the Go way (install in GOPATH/bin) and just want the command:
