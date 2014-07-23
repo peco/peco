@@ -51,4 +51,4 @@ deploy:
     - wercker/github-upload-asset:
         token: $GITHUB_TOKEN
         file: snapshot/peco_windows_amd64.zip
-    - lestrrat/wercker-step-update-homebrew
+    - lestrrat/peco-update-homebrew
