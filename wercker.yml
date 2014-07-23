@@ -50,6 +50,5 @@ deploy:
         file: snapshot/peco_windows_386.zip
     - wercker/github-upload-asset:
         token: $GITHUB_TOKEN
-
-
         file: snapshot/peco_windows_amd64.zip
+    - lestrrat/peco-update-homebrew:
