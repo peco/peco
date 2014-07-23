@@ -423,6 +423,7 @@ AUTHORS
 * swdyh
 * MURAOKA Taro (kaoriya/koron), for aho-corasick search
 * taichi, for the gif working on Windows
+* uobikiemukot
 
 Notes
 =====

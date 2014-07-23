@@ -1,6 +1,12 @@
 Changes
 =======
 
+v0.2.2
+  Bugs/Fixes
+  * Fixed display of characters with ambigous width
+  Features
+  * on_bold style attribute has been added.
+
 v0.2.1 - 15 Jul 2014
   Features
   * Added the ability to setup custom combined keymap. You can now
