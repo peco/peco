@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"regexp"
 	"sync"
 	"time"
 )
@@ -62,6 +63,7 @@ func (b *BufferReader) Loop() {
 			}
 
 			if line != "" {
+				line = regexp.MustCompile("\x1B\\[(?:[0-9]{1,2}(?:;[0-9]{1,2})?)?[m|K]").ReplaceAllString(line, "")
 				once.Do(func() { b.inputReadyCh <- struct{}{} })
 				m.Lock()
 				b.lines = append(b.lines, NewNoMatch(line, b.enableSep))
