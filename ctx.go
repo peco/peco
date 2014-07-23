@@ -9,9 +9,20 @@ import (
 	"syscall"
 )
 
+// CtxOptions is the interface that defines that options can be
+// passed in from the command line
 type CtxOptions interface {
+	// EnableNullSep should return if the null separator is
+	// enabled (--null)
 	EnableNullSep() bool
+
+	// BufferSize should return the buffer size. By default (i.e.
+	// when it returns 0), the buffer size is unlimited.
+	// (--buffer-size)
 	BufferSize() int
+
+	// InitialIndex is the line number to put the cursor on
+	// when peco starts
 	InitialIndex() int
 }
 
@@ -69,12 +80,12 @@ func NewCtx(o CtxOptions) *Ctx {
 		},
 		0,
 		0,
-		NoSelectionRange,
+		invalidSelectionRange,
 		&sync.WaitGroup{},
 	}
 }
 
-const NoSelectionRange = -1
+const invalidSelectionRange = -1
 
 func (c *Ctx) ReadConfig(file string) error {
 	if err := c.config.ReadFilename(file); err != nil {
@@ -98,7 +109,7 @@ func (c *Ctx) IsBufferOverflowing() bool {
 }
 
 func (c *Ctx) IsRangeMode() bool {
-	return c.selectionRangeStart != NoSelectionRange
+	return c.selectionRangeStart != invalidSelectionRange
 }
 
 func (c *Ctx) SelectedRange() Selection {
@@ -187,7 +198,7 @@ func (c *Ctx) Matcher() Matcher {
 
 func (c *Ctx) AddMatcher(m Matcher) error {
 	if err := m.Verify(); err != nil {
-		return fmt.Errorf("Verification for custom matcher failed: %s", err)
+		return fmt.Errorf("verification for custom matcher failed: %s", err)
 	}
 	c.Matchers = append(c.Matchers, m)
 	return nil
@@ -221,18 +232,18 @@ func (c *Ctx) ExitWith(i int) {
 	c.Stop()
 }
 
-type SignalHandler struct {
+type signalHandler struct {
 	*Ctx
 	sigCh chan os.Signal
 }
 
-func (c *Ctx) NewSignalHandler() *SignalHandler {
+func (c *Ctx) NewSignalHandler() *signalHandler {
 	sigCh := make(chan os.Signal, 1)
 	signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)
-	return &SignalHandler{c, sigCh}
+	return &signalHandler{c, sigCh}
 }
 
-func (s *SignalHandler) Loop() {
+func (s *signalHandler) Loop() {
 	defer s.ReleaseWaitGroup()
 
 	for {

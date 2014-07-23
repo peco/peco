@@ -109,7 +109,7 @@ type Matcher interface {
 
 	// This is fugly. We just added a method only for CustomMatcner.
 	// Must think about this again
-	Verify() error 
+	Verify() error
 }
 
 // These are used as keys in the config file

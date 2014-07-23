@@ -10,9 +10,9 @@ import (
 // Input handles input events from termbox.
 type Input struct {
 	*Ctx
-	mutex  *sync.Mutex // Currently only used for protecting Alt/Esc workaround
-	mod    *time.Timer
-	keymap Keymap
+	mutex         *sync.Mutex // Currently only used for protecting Alt/Esc workaround
+	mod           *time.Timer
+	keymap        Keymap
 	currentKeySeq []string
 }
 

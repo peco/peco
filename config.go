@@ -15,15 +15,15 @@ var homedirFunc = homedir
 // Config holds all the data that can be configured in the
 // external configuran file
 type Config struct {
-	Action        map[string][]string `json:"Action"`
+	Action map[string][]string `json:"Action"`
 	// Keymap used to be directly responsible for dispatching
 	// events against user input, but since then this has changed
 	// into something that just records the user's config input
 	Keymap        map[string]string `json:"Keymap"`
-	Matcher       string   `json:"Matcher"`
-	Style         StyleSet `json:"Style"`
+	Matcher       string            `json:"Matcher"`
+	Style         StyleSet          `json:"Style"`
 	CustomMatcher map[string][]string
-	Prompt        string   `json:"Prompt"`
+	Prompt        string `json:"Prompt"`
 }
 
 // NewConfig creates a new Config

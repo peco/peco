@@ -185,7 +185,7 @@ func doToggleRangeMode(i *Input, _ termbox.Event) {
 		}
 		i.selection.Add(i.currentLine)
 
-		i.selectionRangeStart = NoSelectionRange
+		i.selectionRangeStart = invalidSelectionRange
 	} else {
 		i.selectionRangeStart = i.currentLine
 	}
@@ -193,7 +193,7 @@ func doToggleRangeMode(i *Input, _ termbox.Event) {
 }
 
 func doCancelRangeMode(i *Input, _ termbox.Event) {
-	i.selectionRangeStart = NoSelectionRange
+	i.selectionRangeStart = invalidSelectionRange
 	i.DrawMatches(nil)
 }
 
