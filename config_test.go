@@ -55,8 +55,12 @@ func TestStringsToStyle(t *testing.T) {
 			style:   &Style{fg: termbox.ColorBlack | termbox.AttrUnderline, bg: termbox.ColorCyan},
 		},
 		stringsToStyleTest{
-			strings: []string{"blink", "on_red", "white"},
+			strings: []string{"reverse", "on_red", "white"},
 			style:   &Style{fg: termbox.ColorWhite | termbox.AttrReverse, bg: termbox.ColorRed},
+		},
+		stringsToStyleTest{
+			strings: []string{"on_bold", "on_magenta", "green"},
+			style:   &Style{fg: termbox.ColorGreen, bg: termbox.ColorMagenta | termbox.AttrBold},
 		},
 	}
 
