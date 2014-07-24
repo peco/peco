@@ -8,6 +8,14 @@ import (
 	"strings"
 )
 
+// Global var used to strips ansi sequences
+var ansiStrips = regexp.MustCompile("\x1B\\[(?:[0-9]{1,2}(?:;[0-9]{1,2})?)?[m|K]")
+
+// Function who strips ansi sequences
+func stripANSISequence(s string) string {
+	return ansiStrips.ReplaceAllString(s, "")
+}
+
 // Match defines the interface for matches. Note that to make drawing easier,
 // we have a DidMatch and NoMatch types instead of using []Match and []string.
 type Match interface {
@@ -18,14 +26,16 @@ type Match interface {
 }
 
 type matchString struct {
-	buf    string
-	sepLoc int
+	buf         string
+	sepLoc      int
+	displayLine string
 }
 
 func newMatchString(v string, enableSep bool) *matchString {
 	m := &matchString{
 		v,
 		-1,
+		"",
 	}
 	if !enableSep {
 		return m
@@ -47,10 +57,16 @@ func (m matchString) Buffer() string {
 }
 
 func (m matchString) Line() string {
-	if i := m.sepLoc; i > -1 {
-		return m.buf[:i]
+	if m.displayLine != "" {
+		return m.displayLine
 	}
-	return m.buf
+
+	if i := m.sepLoc; i > -1 {
+		m.displayLine = stripANSISequence(m.buf[:i])
+	} else {
+		m.displayLine = stripANSISequence(m.buf)
+	}
+	return m.displayLine
 }
 
 func (m matchString) Output() string {

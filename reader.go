@@ -5,13 +5,9 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"regexp"
 	"sync"
 	"time"
 )
-
-// Global var used to strips ansi sequences
-var ansiStrips = regexp.MustCompile("\x1B\\[(?:[0-9]{1,2}(?:;[0-9]{1,2})?)?[m|K]")
 
 // BufferReader reads lines from the input, either Stdin or a file.
 // If the incoming data is endless, it keeps reading and adding to
@@ -66,7 +62,6 @@ func (b *BufferReader) Loop() {
 			}
 
 			if line != "" {
-				line = StripsAnsiSequences(line)
 				once.Do(func() { b.inputReadyCh <- struct{}{} })
 				m.Lock()
 				b.lines = append(b.lines, NewNoMatch(line, b.enableSep))
@@ -99,9 +94,4 @@ func (b *BufferReader) Loop() {
 		b.ExitWith(1)
 		fmt.Fprintf(os.Stderr, "No buffer to work with was available")
 	}
-}
-
-// Function who strips ansi sequences
-func StripsAnsiSequences(s string) string {
-	return ansiStrips.ReplaceAllString(s, "")
 }
