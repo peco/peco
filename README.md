@@ -432,6 +432,7 @@ AUTHORS
 * MURAOKA Taro (kaoriya/koron), for aho-corasick search
 * taichi, for the gif working on Windows
 * uobikiemukot
+* Samuel Lemaitre
 
 Notes
 =====
