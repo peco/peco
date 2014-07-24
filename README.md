@@ -390,7 +390,7 @@ First, fork this repo, and get your clone locally.
 3. Run `go get github.com/mattn/go-runewidth`
 4. Run `go get github.com/nsf/termbox-go`
 
-Note that we have a Godeps file in source tree, for now it's just there for a peace of mind. If you already know about [godep](https://github.com/tools/godep), when you may use that instead of steps 2~4
+Note that we have a Godeps file in source tree, for now it's just there for a peace of mind. If you already know about [godep](https://github.com/tools/godep), then you may use that instead of steps 2~4
 
 In this repository, `master` branch is always the stable branch. `master` will *only* be merged from `devel` branch after the `devel` branch has been deemed stable enough to be merged to master
 
