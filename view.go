@@ -268,14 +268,14 @@ CALCULATE_PAGE:
 					index += len(c)
 				}
 				c := line[m[0]:m[1]]
-				printTB(prev, n, v.config.Style.Matched.fg, bgAttr|v.config.Style.Matched.bg, c)
+				printTB(prev, n, v.config.Style.Matched.fg, mergeAttribute(bgAttr, v.config.Style.Matched.bg), c)
 				prev += runewidth.StringWidth(c)
 				index += len(c)
 			}
 
 			m := matches[len(matches)-1]
 			if m[0] > index {
-				printTB(prev, n, v.config.Style.Query.fg, bgAttr|v.config.Style.Query.bg, line[m[0]:m[1]])
+				printTB(prev, n, v.config.Style.Query.fg, mergeAttribute(bgAttr, v.config.Style.Query.bg), line[m[0]:m[1]])
 			} else if len(line) > m[1] {
 				printTB(prev, n, fgAttr, bgAttr, line[m[1]:len(line)])
 			}
@@ -288,4 +288,12 @@ CALCULATE_PAGE:
 
 	// FIXME
 	v.current = targets
+}
+
+func mergeAttribute(a, b termbox.Attribute) termbox.Attribute {
+	if a&0x0F == 0 || b&0x0F == 0 {
+		return a | b
+	} else {
+		return ((a - 1) | (b - 1)) + 1
+	}
 }
