@@ -9,7 +9,7 @@ import (
 )
 
 // Global var used to strips ansi sequences
-var ansiStrips = regexp.MustCompile("\x1B\\[(?:[0-9]{1,2}(?:;[0-9]{1,2})?)?[m|K]")
+var ansiStrips = regexp.MustCompile("\x1B\\[(?:[0-9]{1,2}(?:;[0-9]{1,2})?)*[a-zA-Z]")
 
 // Function who strips ansi sequences
 func stripANSISequence(s string) string {
