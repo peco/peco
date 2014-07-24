@@ -5,10 +5,12 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"regexp"
+    "regexp"
 	"sync"
 	"time"
 )
+
+var ansiEscape = regexp.MustCompile("\x1B\\[(?:[0-9]{1,2}(?:;[0-9]{1,2})?)?[m|K]");
 
 // BufferReader reads lines from the input, either Stdin or a file.
 // If the incoming data is endless, it keeps reading and adding to
@@ -63,7 +65,7 @@ func (b *BufferReader) Loop() {
 			}
 
 			if line != "" {
-				line = regexp.MustCompile("\x1B\\[(?:[0-9]{1,2}(?:;[0-9]{1,2})?)?[m|K]").ReplaceAllString(line, "")
+                line = EscapeAnsiChar(line)
 				once.Do(func() { b.inputReadyCh <- struct{}{} })
 				m.Lock()
 				b.lines = append(b.lines, NewNoMatch(line, b.enableSep))
@@ -96,4 +98,8 @@ func (b *BufferReader) Loop() {
 		b.ExitWith(1)
 		fmt.Fprintf(os.Stderr, "No buffer to work with was available")
 	}
+}
+
+func EscapeAnsiChar(s string) string {
+    return ansiEscape.ReplaceAllString(s, "")
 }
