@@ -413,19 +413,23 @@ AUTHORS
 =======
 
 * Daisuke Maki (lestrrat)
+* mattn
+* syohex
+
+CONTRIBUTORS
+============
+
 * HIROSE Masaaki
 * Joel Segerlind
 * Lukas Lueg
 * Mitsuoka Mimura
 * Ryota Arai
 * Shinya Ohyanagi
-* syohex
 * Takashi Kokubun
 * Yuya Takeyama
 * cho45
 * cubicdaiya
 * kei\_q
-* mattn
 * negipo
 * sugyan
 * swdyh
