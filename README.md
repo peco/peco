@@ -435,6 +435,7 @@ CONTRIBUTORS
 * taichi, for the gif working on Windows
 * uobikiemukot
 * Samuel Lemaitre
+* Yousuke Ushiki
 
 Notes
 =====

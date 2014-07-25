@@ -6,6 +6,8 @@ v0.2.3
   * Escape sequences are now stripped from input, so for example,
     colored output can now be fed into peco. Filtering is done against
     this stripped down buffer, but the original line is used for output.
+  * Some color specification combinations caused weird color variations
+    and in some worst cases caused crashes on Windows.
 
 v0.2.2 - 23 Jul 2014
   Bugs/Fixes
