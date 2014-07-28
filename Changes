@@ -1,7 +1,7 @@
 Changes
 =======
 
-v0.2.3
+v0.2.3 - 28 Jul 2014
   Bugs/Fixes
   * Escape sequences are now stripped from input, so for example,
     colored output can now be fed into peco. Filtering is done against
