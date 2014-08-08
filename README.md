@@ -133,7 +133,7 @@ Changes how peco interprets incoming data. When this flag is set, you may insert
 
 [Here's a simple example of how to use this feature](https://gist.github.com/mattn/3c7a14c1677ecb193acd)
 
-### --no-ignore-case
+### --no-ignore-case *Deprecated*
 
 By default peco starts in case insensitive mode. When this option is specified, peco will start in case sensitive mode. This can be toggled while peco is still in session.
 

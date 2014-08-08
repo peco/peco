@@ -25,22 +25,24 @@ Options:
   -b, --buffer-size     number of lines to keep in search buffer
   --null                expect NUL (\0) as separator for target/output (EXPERIMENTAL)
   --initial-index       position of the initial index of the selection (0 base)
+  --initial-matcher     specify default matcher
   --prompt              specify prompt
 `
 	os.Stderr.Write([]byte(v))
 }
 
 type cmdOptions struct {
-	OptHelp          bool   `short:"h" long:"help" description:"show this help message and exit"`
-	OptTTY           string `long:"tty" description:"path to the TTY (usually, the value of $TTY)"`
-	OptQuery         string `long:"query"`
-	OptRcfile        string `long:"rcfile" descriotion:"path to the settings file"`
-	OptNoIgnoreCase  bool   `long:"no-ignore-case" description:"start in case-sensitive-mode" default:"false"`
-	OptVersion       bool   `long:"version" description:"print the version and exit"`
-	OptBufferSize    int    `long:"buffer-size" short:"b" description:"number of lines to keep in search buffer"`
-	OptEnableNullSep bool   `long:"null" description:"expect NUL (\\0) as separator for target/output"`
-	OptInitialIndex  int    `long:"initial-index" description:"position of the initial index of the selection (0 base)"`
-	OptPrompt        string `long:"prompt"`
+	OptHelp           bool   `short:"h" long:"help" description:"show this help message and exit"`
+	OptTTY            string `long:"tty" description:"path to the TTY (usually, the value of $TTY)"`
+	OptQuery          string `long:"query"`
+	OptRcfile         string `long:"rcfile" descriotion:"path to the settings file"`
+	OptNoIgnoreCase   bool   `long:"no-ignore-case" description:"start in case-sensitive-mode" default:"false"`
+	OptVersion        bool   `long:"version" description:"print the version and exit"`
+	OptBufferSize     int    `long:"buffer-size" short:"b" description:"number of lines to keep in search buffer"`
+	OptEnableNullSep  bool   `long:"null" description:"expect NUL (\\0) as separator for target/output"`
+	OptInitialIndex   int    `long:"initial-index" description:"position of the initial index of the selection (0 base)"`
+	OptInitialMatcher string `long:"initial-matcher" description:"matcher"`
+	OptPrompt         string `long:"prompt"`
 }
 
 // BufferSize returns the specified buffer size. Fulfills peco.CtxOptions
@@ -145,8 +147,13 @@ func main() {
 		}
 	}
 
+	// Deprecated. --no-ignore-case options will be removed in later.
 	if opts.OptNoIgnoreCase {
 		ctx.SetCurrentMatcher(peco.CaseSensitiveMatch)
+	}
+
+	if len(opts.OptInitialMatcher) > 0 {
+		ctx.SetCurrentMatcher(opts.OptInitialMatcher)
 	}
 
 	// Try waiting for something available in the source stream
