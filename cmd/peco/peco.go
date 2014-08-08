@@ -147,6 +147,7 @@ func main() {
 		}
 	}
 
+	// Deprecated. --no-ignore-case options will be removed in later.
 	if opts.OptNoIgnoreCase {
 		ctx.SetCurrentMatcher(peco.CaseSensitiveMatch)
 	}
