@@ -133,13 +133,19 @@ Changes how peco interprets incoming data. When this flag is set, you may insert
 
 [Here's a simple example of how to use this feature](https://gist.github.com/mattn/3c7a14c1677ecb193acd)
 
-### --no-ignore-case *Deprecated*
+### --no-ignore-case
 
-By default peco starts in case insensitive mode. When this option is specified, peco will start in case sensitive mode. This can be toggled while peco is still in session.
+This option has been *DEPRECATED*. Use `--initial-matcher` instead.
+
+By default peco starts in case insensitive mode. When this option is specified, peco will start in case sensitive mode. This can be toggled while peco is still in session. 
 
 ### --initial-index
 
 Specifies the initial line position upon start up. E.g. If you want to start out with the second line selected, set it to "1" (because the index is 0 based)
+
+### --initial-matcher `IgnoreCase|CaseSensitve|Regexp`
+
+Specifies the initial matcher to use upon start up. You should specify the name of the macher like `IgnoreCase`, `CaseSensitive`, and `Regexp`.
 
 ### --prompt
 
@@ -157,6 +163,12 @@ peco by default consults a few locations for the config files.
 5. If all else fails, $HOME/.peco/config.json
 
 Below are configuration sections that you may specify in your config file:
+
+* [Keymaps](#keymaps)
+* [Styles](#styles)
+* [CustomMatcher](#custommatcher)
+* [Prompt](#prompt)
+* [InitialMatcher](#initialmatcher)
 
 ## Keymaps
 
@@ -365,7 +377,7 @@ Elements in the `CustomMatcher` section are string keys to array of program argu
 
 You may specify as many matchers as you like. 
 
-## Examples
+### Examples
 
 * [An example of a simple perl regexp matcher](https://gist.github.com/mattn/24712964da6e3112251c)
 * [An example using migemogrep Japanese grep using latin-1 chars](https://github.com/peco/peco/wiki/CustomMatcher)
@@ -379,6 +391,12 @@ You can change the query line's prompt, which is `QUERY>` by default.
     "Prompt": "[peco]"
 }
 ```
+
+## InitialMatcher
+
+Specifies the matcher name to start peco with. You should specify the name of the matcher, such as `IgnoreCase`, `CaseSensitive`, and `Regexp`
+
+Note: `Matcher` key has been deprecated in favor of `InitialMatcher`. `Matcher` will be unavailable in peco 0.3.0
 
 Hacking
 =======
