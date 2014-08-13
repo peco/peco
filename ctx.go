@@ -95,7 +95,13 @@ func (c *Ctx) ReadConfig(file string) error {
 	if err := c.LoadCustomMatcher(); err != nil {
 		return err
 	}
-	c.SetCurrentMatcher(c.config.Matcher)
+
+	if c.config.Matcher != "" {
+		fmt.Fprintln(os.Stderr, "'Matcher' option in config file is deprecated. Use InitialMatcher instead")
+		c.config.InitialMatcher = c.config.Matcher
+	}
+
+	c.SetCurrentMatcher(c.config.InitialMatcher)
 
 	return nil
 }

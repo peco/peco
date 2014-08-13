@@ -19,20 +19,21 @@ type Config struct {
 	// Keymap used to be directly responsible for dispatching
 	// events against user input, but since then this has changed
 	// into something that just records the user's config input
-	Keymap        map[string]string `json:"Keymap"`
-	Matcher       string            `json:"Matcher"`
-	Style         StyleSet          `json:"Style"`
-	CustomMatcher map[string][]string
-	Prompt        string `json:"Prompt"`
+	Keymap         map[string]string `json:"Keymap"`
+	Matcher        string            `json:"Matcher"` // Deprecated.
+	InitialMatcher string            `json:"InitialMatcher"` // Use this instead of Matcher
+	Style          StyleSet          `json:"Style"`
+	Prompt         string            `json:"Prompt"`
+	CustomMatcher  map[string][]string
 }
 
 // NewConfig creates a new Config
 func NewConfig() *Config {
 	return &Config{
-		Keymap:  make(map[string]string),
-		Matcher: IgnoreCaseMatch,
-		Style:   NewStyleSet(),
-		Prompt:  "QUERY>",
+		Keymap:         make(map[string]string),
+		InitialMatcher: IgnoreCaseMatch,
+		Style:          NewStyleSet(),
+		Prompt:         "QUERY>",
 	}
 }
 
