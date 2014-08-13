@@ -1,6 +1,15 @@
 Changes
 =======
 
+v0.2.4 - 13 Aug 2014
+  Features
+  * Add --initial-matcher command line option to specify which
+    matcher type to use upon start up. --no-ignore-case is deprecated
+  * Add InitialMatcher option to the config file. Matcher option is
+    deprecated.
+  Miscellaneous
+  * Binaries are now built using go1.3.1
+
 v0.2.3 - 28 Jul 2014
   Bugs/Fixes
   * Escape sequences are now stripped from input, so for example,
