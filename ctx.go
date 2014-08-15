@@ -44,6 +44,7 @@ type Ctx struct {
 	caretPos            int
 	currentLine         int
 	currentPage         PageInfo
+	maxPage             int
 	selection           Selection
 	lines               []Match
 	current             []Match
@@ -68,6 +69,7 @@ func NewCtx(o CtxOptions) *Ctx {
 		0,
 		o.InitialIndex(),
 		struct{ index, offset, perPage int }{0, 1, 0},
+		0,
 		Selection([]int{}),
 		[]Match{},
 		nil,
@@ -179,7 +181,7 @@ func (c *Ctx) NewBufferReader(r io.ReadCloser) *BufferReader {
 }
 
 func (c *Ctx) NewView() *View {
-	return &View{c, nil}
+	return &View{c, NewDefaultLayout(c)}
 }
 
 func (c *Ctx) NewFilter() *Filter {
