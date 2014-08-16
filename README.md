@@ -151,6 +151,10 @@ Specifies the initial matcher to use upon start up. You should specify the name 
 
 Specifies the query line's prompt string. When specified, takes precedence over the configuration file's `Prompt` section. The default value is `QUERY>`
 
+### --layout `top-down|bottom-up`
+
+Specifies the display layout. Default is `top-down`, where query prompt is at the top, followed by the list, then the system status message line. `bottom-up` changes this to the list first (displayed in reverse order), the query prompt, and then the system status message line.
+
 Configuration File
 ==================
 
@@ -267,8 +271,10 @@ Some keys just... don't map correctly / too easily for various reasons. Here, we
 | peco.DeleteAll          | Delete all entered characters |
 | peco.SelectPreviousPage | Jumps to previous page |
 | peco.SelectNextPage     | Jumps to next page|
-| peco.SelectPrevious     | Selects previous line |
-| peco.SelectNext         | Selects next line |
+| peco.SelectUp           | Moves the selected line cursor to one line above |
+| peco.SelectDown         | Moves the selected line cursor to one line below |
+| peco.SelectPrevious     | (DEPRECATED) Alias to SelectUp |
+| peco.SelectNext         | (DEPRECATED) Alias to SelectDown |
 | peco.ToggleSelection    | Selects the current line, and saves it |
 | peco.ToggleSelectionAndSelectNext | Selects the current line, saves it, and proceeds to the next line |
 | peco.ToggleRangeMode   | Start selecting by range, or append selecting range to selections |
@@ -397,6 +403,10 @@ You can change the query line's prompt, which is `QUERY>` by default.
 Specifies the matcher name to start peco with. You should specify the name of the matcher, such as `IgnoreCase`, `CaseSensitive`, and `Regexp`
 
 Note: `Matcher` key has been deprecated in favor of `InitialMatcher`. `Matcher` will be unavailable in peco 0.3.0
+
+## Layout
+
+See --layout.
 
 Hacking
 =======
