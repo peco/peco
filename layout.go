@@ -54,13 +54,34 @@ func printScreen(x, y int, fg, bg termbox.Attribute, msg string, fill bool) {
 	}
 }
 
+type AnchorSettings struct {
+	anchor       VerticalAnchor // AnchorTop or AnchorBottom
+	anchorOffset int            // offset this many lines from the anchor
+}
+
+// AnchorPosition returns the starting y-offset, based on the
+// anchor type and offset
+func (as AnchorSettings) AnchorPosition() int {
+	var pos int
+	switch as.anchor {
+	case AnchorTop:
+		pos = as.anchorOffset
+	case AnchorBottom:
+		_, h := termbox.Size()
+		pos = h - as.anchorOffset - 1 // -1 is required because y is 0 base, but h is 1 base
+	default:
+		panic("Unknown anchor type!")
+	}
+
+	return pos
+}
+
 // UserPrompt draws the prompt line
 type UserPrompt struct {
 	*Ctx
-	anchor       VerticalAnchor // AnchorTop or AnchorBottom
-	anchorOffset int            // offset this many lines from the anchor
-	prefix       string
-	prefixLen    int
+	*AnchorSettings
+	prefix    string
+	prefixLen int
 }
 
 func NewUserPrompt(ctx *Ctx, anchor VerticalAnchor, anchorOffset int) *UserPrompt {
@@ -71,29 +92,17 @@ func NewUserPrompt(ctx *Ctx, anchor VerticalAnchor, anchorOffset int) *UserPromp
 	prefixLen := runewidth.StringWidth(prefix)
 
 	return &UserPrompt{
-		Ctx:          ctx,
-		anchor:       anchor,
-		anchorOffset: anchorOffset,
-		prefix:       prefix,
-		prefixLen:    prefixLen,
+		Ctx:            ctx,
+		AnchorSettings: &AnchorSettings{anchor, anchorOffset},
+		prefix:         prefix,
+		prefixLen:      prefixLen,
 	}
 }
 
 func (u UserPrompt) Draw() {
+	location := u.AnchorPosition()
+
 	// print "QUERY>"
-
-	_, h := termbox.Size()
-
-	var location int
-	switch u.anchor {
-	case AnchorTop:
-		location = u.anchorOffset
-	case AnchorBottom:
-		location = h - u.anchorOffset - 1 // -1 is required because y is 0 base, but h is 1 base
-	default:
-		panic("Unknown anchor type!")
-	}
-
 	printScreen(0, location, u.config.Style.BasicFG(), u.config.Style.BasicBG(), u.prefix, false)
 
 	if u.caretPos <= 0 {
@@ -137,12 +146,14 @@ func (u UserPrompt) Draw() {
 // StatusBar draws the status message bar
 type StatusBar struct {
 	*Ctx
+	*AnchorSettings
 	clearTimer *time.Timer
 }
 
-func NewStatusBar(ctx *Ctx) *StatusBar {
+func NewStatusBar(ctx *Ctx, anchor VerticalAnchor, anchorOffset int) *StatusBar {
 	return &StatusBar{
 		ctx,
+		&AnchorSettings{ anchor, anchorOffset },
 		nil,
 	}
 }
@@ -163,8 +174,9 @@ func (s *StatusBar) ClearStatus(d time.Duration) {
 func (s *StatusBar) PrintStatus(msg string) {
 	s.stopTimer()
 
-	w, h := termbox.Size()
+	location := s.AnchorPosition()
 
+	w, _ := termbox.Size()
 	width := runewidth.StringWidth(msg)
 	for width > w {
 		_, rw := utf8.DecodeRuneInString(msg)
@@ -184,45 +196,39 @@ func (s *StatusBar) PrintStatus(msg string) {
 	bgAttr := s.config.Style.BasicBG()
 
 	if w > width {
-		printScreen(0, h-1, fgAttr, bgAttr, string(pad), false)
+		printScreen(0, location, fgAttr, bgAttr, string(pad), false)
 	}
 
 	if width > 0 {
-		printScreen(w-width, h-1, fgAttr|termbox.AttrReverse|termbox.AttrBold, bgAttr|termbox.AttrReverse, msg, false)
+		printScreen(w-width, location, fgAttr|termbox.AttrReverse|termbox.AttrBold, bgAttr|termbox.AttrReverse, msg, false)
 	}
 	termbox.Flush()
 }
 
 type ListArea struct {
 	*Ctx
-	sortTopDown bool
-	start       int
+	*AnchorSettings
+	sortTopDown  bool
 }
 
-func NewListArea(ctx *Ctx) *ListArea {
+func NewListArea(ctx *Ctx, anchor VerticalAnchor, anchorOffset int, sortTopDown bool) *ListArea {
 	return &ListArea{
 		ctx,
-		true,
-		1,
+		&AnchorSettings{ anchor, anchorOffset },
+		sortTopDown,
 	}
-}
-
-// given the n-th element to display, calculate which y offset that line should
-// be displayed at
-func (l *ListArea) calcYLocation(n int) int {
-	if l.sortTopDown {
-		return n + l.start
-	}
-	return l.start - n
 }
 
 func (l *ListArea) Draw(targets []Match, perPage int) {
 	currentPage := l.currentPage
 
+	start := l.AnchorPosition()
+
+	var y int
 	var fgAttr, bgAttr termbox.Attribute
 	for n := 0; n < perPage; n++ {
 		switch {
-		case n+currentPage.offset == l.currentLine-l.start:
+		case n+currentPage.offset == l.currentLine-start:
 			fgAttr = l.config.Style.SelectedFG()
 			bgAttr = l.config.Style.SelectedBG()
 		case l.selection.Has(n+currentPage.offset) || l.SelectedRange().Has(n+currentPage.offset):
@@ -238,7 +244,11 @@ func (l *ListArea) Draw(targets []Match, perPage int) {
 			break
 		}
 
-		y := l.calcYLocation(n)
+		if l.sortTopDown {
+			y = n + start
+		} else {
+			y = start - n
+		}
 
 		target := targets[targetIdx]
 		line := target.Line()
@@ -271,33 +281,42 @@ func (l *ListArea) Draw(targets []Match, perPage int) {
 	}
 }
 
-type basicLayout struct {
+// BasicLayout is... the basic layout :) At this point this is the
+// only struct for layouts, which means that while the position
+// of components may be configurable, the actual types of components
+// that are used are set and static
+type BasicLayout struct {
 	*Ctx
 	*StatusBar
 	prompt *UserPrompt
 	list   *ListArea
 }
 
-// DefaultLayout implements the top-down layout
-type DefaultLayout struct {
-	*basicLayout
-}
-type BottomUpLayout struct {
-	*basicLayout
-}
-
-func NewDefaultLayout(ctx *Ctx) *DefaultLayout {
-	return &DefaultLayout{
-		&basicLayout{
-			Ctx:       ctx,
-			StatusBar: NewStatusBar(ctx),
-			prompt:    NewUserPrompt(ctx, AnchorTop, 0),
-			list:      NewListArea(ctx),
-		},
+func NewDefaultLayout(ctx *Ctx) *BasicLayout {
+	return &BasicLayout{
+		Ctx:       ctx,
+		StatusBar: NewStatusBar(ctx, AnchorBottom, 0),
+		// The prompt is at the top
+		prompt: NewUserPrompt(ctx, AnchorTop, 0),
+		// The list area is at the top, after the prompt
+		// It's also displayed top-to-bottom order
+		list: NewListArea(ctx, AnchorTop, 1, true),
 	}
 }
 
-func (l *DefaultLayout) CalculatePage(targets []Match, perPage int) error {
+func NewBottomUpLayout(ctx *Ctx) *BasicLayout {
+	return &BasicLayout{
+		Ctx:       ctx,
+		StatusBar: NewStatusBar(ctx, AnchorBottom, 0),
+		// The prompt is at the bottom, above the status bar
+		prompt: NewUserPrompt(ctx, AnchorBottom, 1),
+		// The list area is at the bottom, above the prompt
+		// IT's displayed in bottom-to-top order
+		list: NewListArea(ctx, AnchorBottom, 2, false),
+	}
+}
+
+func (l *BasicLayout) CalculatePage(targets []Match, perPage int) error {
 CALCULATE_PAGE:
 	currentPage := l.currentPage
 	currentPage.index = ((l.currentLine - 1) / perPage) + 1
@@ -324,11 +343,8 @@ CALCULATE_PAGE:
 	return nil
 }
 
-func (l *DefaultLayout) DrawScreen(targets []Match) {
-	fgAttr := l.config.Style.BasicFG()
-	bgAttr := l.config.Style.BasicBG()
-
-	if err := termbox.Clear(fgAttr, bgAttr); err != nil {
+func (l *BasicLayout) DrawScreen(targets []Match) {
+	if err := termbox.Clear(l.config.Style.BasicFG(), l.config.Style.BasicBG()); err != nil {
 		return
 	}
 
@@ -337,7 +353,7 @@ func (l *DefaultLayout) DrawScreen(targets []Match) {
 	}
 
 	_, height := termbox.Size()
-	perPage := height - 4
+	perPage := height - 2 // list area is always the display area - 2 lines for prompt and status
 
 	if err := l.CalculatePage(targets, perPage); err != nil {
 		return
@@ -345,6 +361,7 @@ func (l *DefaultLayout) DrawScreen(targets []Match) {
 
 	l.prompt.Draw()
 	l.list.Draw(targets, perPage)
+
 	if err := termbox.Flush(); err != nil {
 		return
 	}
