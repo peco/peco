@@ -228,7 +228,7 @@ func (l *ListArea) Draw(targets []Match, perPage int) {
 	var fgAttr, bgAttr termbox.Attribute
 	for n := 0; n < perPage; n++ {
 		switch {
-		case n+currentPage.offset == l.currentLine-start:
+		case n+currentPage.offset == l.currentLine-1:
 			fgAttr = l.config.Style.SelectedFG()
 			bgAttr = l.config.Style.SelectedBG()
 		case l.selection.Has(n+currentPage.offset) || l.SelectedRange().Has(n+currentPage.offset):
