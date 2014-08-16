@@ -174,22 +174,33 @@ func (s *StatusBar) PrintStatus(msg string) {
 type ListArea struct {
 	*Ctx
 	sortTopDown bool
+	start int
 }
 
 func NewListArea(ctx *Ctx) *ListArea {
 	return &ListArea{
 		ctx,
 		true,
+		1,
 	}
+}
+
+// given the n-th element to display, calculate which y offset that line should
+// be displayed at
+func (l *ListArea) calcYLocation(n int) int {
+	if l.sortTopDown {
+		return n + l.start
+	}
+	return l.start - n
 }
 
 func (l *ListArea) Draw(targets []Match, perPage int) {
 	currentPage := l.currentPage
 
 	var fgAttr, bgAttr termbox.Attribute
-	for n := 1; n <= perPage; n++ {
+	for n := 0; n < perPage; n++ {
 		switch {
-		case n+currentPage.offset == l.currentLine:
+		case n+currentPage.offset == l.currentLine - l.start:
 			fgAttr = l.config.Style.SelectedFG()
 			bgAttr = l.config.Style.SelectedBG()
 		case l.selection.Has(n+currentPage.offset) || l.SelectedRange().Has(n+currentPage.offset):
@@ -200,37 +211,39 @@ func (l *ListArea) Draw(targets []Match, perPage int) {
 			bgAttr = l.config.Style.BasicBG()
 		}
 
-		targetIdx := currentPage.offset + n - 1
+		targetIdx := currentPage.offset + n
 		if targetIdx >= len(targets) {
 			break
 		}
+
+		y := l.calcYLocation(n)
 
 		target := targets[targetIdx]
 		line := target.Line()
 		matches := target.Indices()
 		if matches == nil {
-			printScreen(0, n, fgAttr, bgAttr, line, true)
+			printScreen(0, y, fgAttr, bgAttr, line, true)
 		} else {
 			prev := 0
 			index := 0
 			for _, m := range matches {
 				if m[0] > index {
 					c := line[index:m[0]]
-					printScreen(prev, n, fgAttr, bgAttr, c, false)
+					printScreen(prev, y, fgAttr, bgAttr, c, false)
 					prev += runewidth.StringWidth(c)
 					index += len(c)
 				}
 				c := line[m[0]:m[1]]
-				printScreen(prev, n, l.config.Style.MatchedFG(), mergeAttribute(bgAttr, l.config.Style.MatchedBG()), c, true)
+				printScreen(prev, y, l.config.Style.MatchedFG(), mergeAttribute(bgAttr, l.config.Style.MatchedBG()), c, true)
 				prev += runewidth.StringWidth(c)
 				index += len(c)
 			}
 
 			m := matches[len(matches)-1]
 			if m[0] > index {
-				printScreen(prev, n, l.config.Style.QueryFG(), mergeAttribute(bgAttr, l.config.Style.QueryBG()), line[m[0]:m[1]], true)
+				printScreen(prev, y, l.config.Style.QueryFG(), mergeAttribute(bgAttr, l.config.Style.QueryBG()), line[m[0]:m[1]], true)
 			} else if len(line) > m[1] {
-				printScreen(prev, n, fgAttr, bgAttr, line[m[1]:len(line)], true)
+				printScreen(prev, y, fgAttr, bgAttr, line[m[1]:len(line)], true)
 			}
 		}
 	}
