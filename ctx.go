@@ -43,7 +43,7 @@ type Ctx struct {
 	prompt              []rune
 	caretPos            int
 	currentLine         int
-	currentPage         PageInfo
+	currentPage         *PageInfo
 	maxPage             int
 	selection           Selection
 	lines               []Match
@@ -68,7 +68,7 @@ func NewCtx(o CtxOptions) *Ctx {
 		[]rune{},
 		0,
 		o.InitialIndex(),
-		struct{ index, offset, perPage int }{0, 1, 0},
+		&PageInfo{0, 1, 0},
 		0,
 		Selection([]int{}),
 		[]Match{},
