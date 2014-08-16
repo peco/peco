@@ -193,21 +193,7 @@ func NewDefaultLayout(ctx *Ctx) *DefaultLayout {
 	}
 }
 
-func (l *DefaultLayout) DrawScreen(targets []Match) {
-	fgAttr := l.config.Style.BasicFG()
-	bgAttr := l.config.Style.BasicBG()
-
-	if err := termbox.Clear(fgAttr, bgAttr); err != nil {
-		return
-	}
-
-	if l.currentLine > len(targets) && len(targets) > 0 {
-		l.currentLine = len(targets)
-	}
-
-	_, height := termbox.Size()
-	perPage := height - 4
-
+func (l *DefaultLayout) CalculatePage(targets []Match, perPage int) error {
 CALCULATE_PAGE:
 	currentPage := l.currentPage
 	currentPage.index = ((l.currentLine - 1) / perPage) + 1
@@ -225,13 +211,36 @@ CALCULATE_PAGE:
 	if l.maxPage < currentPage.index {
 		if len(targets) == 0 && len(l.query) == 0 {
 			// wait for targets
-			return
+			return fmt.Errorf("no targets or query. nothing to do")
 		}
 		l.currentLine = currentPage.offset
 		goto CALCULATE_PAGE
 	}
 
+	return nil
+}
+
+func (l *DefaultLayout) DrawScreen(targets []Match) {
+	fgAttr := l.config.Style.BasicFG()
+	bgAttr := l.config.Style.BasicBG()
+
+	if err := termbox.Clear(fgAttr, bgAttr); err != nil {
+		return
+	}
+
+	if l.currentLine > len(targets) && len(targets) > 0 {
+		l.currentLine = len(targets)
+	}
+
+	_, height := termbox.Size()
+	perPage := height - 4
+
+	if err := l.CalculatePage(targets, perPage); err != nil {
+		return
+	}
+
 	l.UserPrompt.Draw()
+	currentPage := l.currentPage
 
 	for n := 1; n <= perPage; n++ {
 		switch {
