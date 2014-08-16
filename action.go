@@ -76,20 +76,24 @@ func init() {
 	ActionFunc(doKillEndOfLine).Register("KillEndOfLine", termbox.KeyCtrlK)
 	ActionFunc(doKillBeginningOfLine).Register("KillBeginningOfLine", termbox.KeyCtrlU)
 	ActionFunc(doRotateMatcher).Register("RotateMatcher", termbox.KeyCtrlR)
-	ActionFunc(doSelectNext).Register(
-		"SelectNext",
-		termbox.KeyArrowDown,
-		termbox.KeyCtrlN,
-	)
+
+	ActionFunc(doSelectUp).Register("SelectUp", termbox.KeyArrowUp, termbox.KeyCtrlP)
+	ActionFunc(func(i *Input, ev termbox.Event) {
+		i.SendStatusMsg("SelectNext is deprecated. Use SelectUp/SelectDown")
+		doSelectUp(i, ev)
+	}).Register("SelectNext")
+
 	ActionFunc(doSelectNextPage).Register(
 		"SelectNextPage",
 		termbox.KeyArrowRight,
 	)
-	ActionFunc(doSelectPrevious).Register(
-		"SelectPrevious",
-		termbox.KeyArrowUp,
-		termbox.KeyCtrlP,
-	)
+
+	ActionFunc(doSelectDown).Register("SelectDown", termbox.KeyArrowDown, termbox.KeyCtrlN)
+	ActionFunc(func(i *Input, ev termbox.Event) {
+		i.SendStatusMsg("SelectPrevious is deprecated. Use SelectUp/SelectDown")
+		doSelectDown(i, ev)
+	}).Register( "SelectPrevious")
+
 	ActionFunc(doSelectPreviousPage).Register(
 		"SelectPreviousPage",
 		termbox.KeyArrowLeft,
@@ -248,13 +252,13 @@ func doCancel(i *Input, ev termbox.Event) {
 	i.ExitWith(1)
 }
 
-func doSelectPrevious(i *Input, ev termbox.Event) {
-	i.SendPaging(ToPrevLine)
+func doSelectDown(i *Input, ev termbox.Event) {
+	i.SendPaging(ToLineBelow)
 	i.DrawMatches(nil)
 }
 
-func doSelectNext(i *Input, ev termbox.Event) {
-	i.SendPaging(ToNextLine)
+func doSelectUp(i *Input, ev termbox.Event) {
+	i.SendPaging(ToLineAbove)
 	i.DrawMatches(nil)
 }
 
@@ -270,7 +274,12 @@ func doSelectNextPage(i *Input, ev termbox.Event) {
 
 func doToggleSelectionAndSelectNext(i *Input, ev termbox.Event) {
 	doToggleSelection(i, ev)
-	doSelectNext(i, ev)
+	// XXX This is sucky. Fix later
+	if i.layoutType == "top-down" {
+		doSelectDown(i, ev)
+	} else {
+		doSelectUp(i, ev)
+	}
 }
 
 func doDeleteBackwardWord(i *Input, _ termbox.Event) {

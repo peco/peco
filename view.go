@@ -1,10 +1,6 @@
 package peco
 
-import (
-	"time"
-
-	"github.com/nsf/termbox-go"
-)
+import "time"
 
 // View handles the drawing/updating the screen
 type View struct {
@@ -16,12 +12,12 @@ type View struct {
 type PagingRequest int
 
 const (
-	// ToNextLine moves the selection to the next line
-	ToNextLine PagingRequest = iota
+	// ToLineAbove moves the selection to the line above
+	ToLineAbove PagingRequest = iota
 	// ToNextPage moves the selection to the next page
 	ToNextPage
-	// ToPrevLine moves the selection to the previous line
-	ToPrevLine
+	// ToLineBelow moves the selection to the line below
+	ToLineBelow
 	// ToPrevPage moves the selection to the previous page
 	ToPrevPage
 )
@@ -57,10 +53,7 @@ func (v *View) clearStatus(d time.Duration) {
 	v.layout.ClearStatus(d)
 }
 
-func (v *View) drawScreen(targets []Match) {
-	v.mutex.Lock()
-	defer v.mutex.Unlock()
-
+func (v *View) drawScreenNoLock(targets []Match) {
 	if targets == nil {
 		if current := v.current; current != nil {
 			targets = v.current
@@ -74,32 +67,16 @@ func (v *View) drawScreen(targets []Match) {
 	v.current = targets
 }
 
+func (v *View) drawScreen(targets []Match) {
+	v.mutex.Lock()
+	defer v.mutex.Unlock()
+	v.drawScreenNoLock(targets)
+}
+
 func (v *View) movePage(p PagingRequest) {
-	_, height := termbox.Size()
-	perPage := height - 4
+	v.mutex.Lock()
+	defer v.mutex.Unlock()
 
-	switch p {
-	case ToPrevLine:
-		v.currentLine--
-	case ToNextLine:
-		v.currentLine++
-	case ToPrevPage, ToNextPage:
-		if p == ToPrevPage {
-			v.currentLine -= perPage
-		} else {
-			v.currentLine += perPage
-		}
-	}
-
-	if v.currentLine < 1 {
-		if v.current != nil {
-			// Go to last page, if possible
-			v.currentLine = len(v.current)
-		} else {
-			v.currentLine = 1
-		}
-	} else if v.current != nil && v.currentLine > len(v.current) {
-		v.currentLine = 1
-	}
-	v.drawScreen(nil)
+	v.layout.MovePage(p)
+	v.drawScreenNoLock(nil)
 }

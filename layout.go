@@ -20,6 +20,7 @@ type Layout interface {
 	ClearStatus(time.Duration)
 	PrintStatus(string)
 	DrawScreen([]Match)
+	MovePage(PagingRequest)
 }
 
 // Utility function
@@ -366,3 +367,41 @@ func (l *BasicLayout) DrawScreen(targets []Match) {
 		return
 	}
 }
+
+func (l *BasicLayout) MovePage(p PagingRequest) {
+	_, height := termbox.Size()
+	perPage := height - 2 // list area is always the display area - 2 lines for prompt and status
+
+	switch p {
+	case ToLineAbove:
+		if l.list.sortTopDown {
+			l.currentLine--
+		} else {
+			l.currentLine++
+		}
+	case ToLineBelow:
+		if l.list.sortTopDown {
+			l.currentLine++
+		} else {
+			l.currentLine--
+		}
+	case ToPrevPage, ToNextPage:
+		if p == ToPrevPage {
+			l.currentLine -= perPage
+		} else {
+			l.currentLine += perPage
+		}
+	}
+
+	if l.currentLine < 1 {
+		if l.current != nil {
+			// Go to last page, if possible
+			l.currentLine = len(l.current)
+		} else {
+			l.currentLine = 1
+		}
+	} else if l.current != nil && l.currentLine > len(l.current) {
+		l.currentLine = 1
+	}
+}
+
