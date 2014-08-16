@@ -14,12 +14,12 @@ type PagingRequest int
 const (
 	// ToLineAbove moves the selection to the line above
 	ToLineAbove PagingRequest = iota
-	// ToNextPage moves the selection to the next page
-	ToNextPage
+	// ToScrollPageDown moves the selection to the next page
+	ToScrollPageDown
 	// ToLineBelow moves the selection to the line below
 	ToLineBelow
-	// ToPrevPage moves the selection to the previous page
-	ToPrevPage
+	// ToScrollPageUp moves the selection to the previous page
+	ToScrollPageUp
 )
 
 // Loop receives requests to update the screen

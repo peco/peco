@@ -181,8 +181,8 @@ Example:
 ```json
 {
     "Keymap": {
-        "M-v": "peco.SelectPreviousPage",
-        "C-v": "peco.SelectNextPage",
+        "M-v": "peco.ScrollPageDown",
+        "C-v": "peco.ScrollPageUp",
         "C-x,C-c": "peco.Cancel"
     }
 }
@@ -201,9 +201,9 @@ As of v0.2.1, you can create custom combined actions. For example, if you find y
     "Action": {
         "foo.SelectFour": [
             "peco.ToggleRangeMode",
-            "peco.SelectNext",
-            "peco.SelectNext",
-            "peco.SelectNext",
+            "peco.SelectDown",
+            "peco.SelectDown",
+            "peco.SelectDown",
             "peco.ToggleRangeMode"
         ]
     },
@@ -269,8 +269,10 @@ Some keys just... don't map correctly / too easily for various reasons. Here, we
 | peco.DeleteBackwardWord | Delete one word backward |
 | peco.KillEndOfLine      | Delete the characters under the cursor until the end of the line |
 | peco.DeleteAll          | Delete all entered characters |
-| peco.SelectPreviousPage | Jumps to previous page |
-| peco.SelectNextPage     | Jumps to next page|
+| peco.SelectPreviousPage | (DEPRECATED) Alias to ScrollPageUp |
+| peco.SelectNextPage     | (DEPRECATED) Alias to ScrollPageDown |
+| peco.ScrollPageDown     | Moves the selected line cursor for an entire page, downwards |
+| peco.ScrollPageUp       | Moves the selected line cursor for an entire page, upwards |
 | peco.SelectUp           | Moves the selected line cursor to one line above |
 | peco.SelectDown         | Moves the selected line cursor to one line below |
 | peco.SelectPrevious     | (DEPRECATED) Alias to SelectUp |

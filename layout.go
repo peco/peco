@@ -383,28 +383,33 @@ func (l *BasicLayout) DrawScreen(targets []Match) {
 	}
 }
 
-func (l *BasicLayout) MovePage(p PagingRequest) {
+func linesPerPage() int {
 	_, height := termbox.Size()
-	perPage := height - 2 // list area is always the display area - 2 lines for prompt and status
+	return height - 2 // list area is always the display area - 2 lines for prompt and status
+}
 
-	switch p {
-	case ToLineAbove:
-		if l.list.sortTopDown {
+func (l *BasicLayout) MovePage(p PagingRequest) {
+	if l.list.sortTopDown {
+		switch p {
+		case ToLineAbove:
 			l.currentLine--
-		} else {
+		case ToLineBelow:
 			l.currentLine++
+		case ToScrollPageDown:
+			l.currentLine += linesPerPage()
+		case ToScrollPageUp:
+			l.currentLine -= linesPerPage()
 		}
-	case ToLineBelow:
-		if l.list.sortTopDown {
+	} else {
+		switch p {
+		case ToLineAbove:
 			l.currentLine++
-		} else {
+		case ToLineBelow:
 			l.currentLine--
-		}
-	case ToPrevPage, ToNextPage:
-		if p == ToPrevPage {
-			l.currentLine -= perPage
-		} else {
-			l.currentLine += perPage
+		case ToScrollPageDown:
+			l.currentLine -= linesPerPage()
+		case ToScrollPageUp:
+			l.currentLine += linesPerPage()
 		}
 	}
 
