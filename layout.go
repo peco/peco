@@ -50,6 +50,7 @@ func printScreen(x, y int, fg, bg termbox.Attribute, msg string, fill bool) {
 // UserPrompt draws the prompt line
 type UserPrompt struct {
 	*Ctx
+	location int
 	prefix string
 	prefixLen int
 }
@@ -63,6 +64,7 @@ func NewUserPrompt(ctx *Ctx) *UserPrompt {
 
 	return &UserPrompt{
 		Ctx: ctx,
+		location:  0, // effectively, the line number where the prompt is going to be displayed at
 		prefix:    prefix,
 		prefixLen: prefixLen,
 	}
@@ -70,7 +72,7 @@ func NewUserPrompt(ctx *Ctx) *UserPrompt {
 
 func (u UserPrompt) Draw() {
 	// print "QUERY>"
-	printScreen(0, 0, u.config.Style.BasicFG(), u.config.Style.BasicBG(), u.prefix, false)
+	printScreen(0, u.location, u.config.Style.BasicFG(), u.config.Style.BasicBG(), u.prefix, false)
 
 	if u.caretPos <= 0 {
 		u.caretPos = 0 // sanity
@@ -86,9 +88,9 @@ func (u UserPrompt) Draw() {
 		bg := u.config.Style.QueryBG()
 		qs := string(u.query)
 		ql := runewidth.StringWidth(qs)
-		printScreen(u.prefixLen+1, 0, fg, bg, qs, false)
-		printScreen(u.prefixLen+1+ql, 0, fg|termbox.AttrReverse, bg|termbox.AttrReverse, " ", false)
-		printScreen(u.prefixLen+1+ql+1, 0, fg, bg, "", true)
+		printScreen(u.prefixLen+1, u.location, fg, bg, qs, false)
+		printScreen(u.prefixLen+1+ql, u.location, fg|termbox.AttrReverse, bg|termbox.AttrReverse, " ", false)
+		printScreen(u.prefixLen+1+ql+1, u.location, fg, bg, "", true)
 	} else {
 		// the caret is in the middle of the string
 		prev := 0
@@ -99,7 +101,7 @@ func (u UserPrompt) Draw() {
 				fg |= termbox.AttrReverse
 				bg |= termbox.AttrReverse
 			}
-			termbox.SetCell(u.prefixLen+1+prev, 0, r, fg, bg)
+			termbox.SetCell(u.prefixLen+1+prev, u.location, r, fg, bg)
 			prev += runewidth.RuneWidth(r)
 		}
 	}
@@ -107,7 +109,7 @@ func (u UserPrompt) Draw() {
 	width, _ := termbox.Size()
 
 	pmsg := fmt.Sprintf("%s [%d/%d]", u.Matcher().String(), u.currentPage.index, u.maxPage)
-	printScreen(width-runewidth.StringWidth(pmsg), 0, u.config.Style.BasicFG(), u.config.Style.BasicBG(), pmsg, false)
+	printScreen(width-runewidth.StringWidth(pmsg), u.location, u.config.Style.BasicFG(), u.config.Style.BasicBG(), pmsg, false)
 }
 
 // StatusBar draws the status message bar
@@ -169,10 +171,76 @@ func (s *StatusBar) PrintStatus(msg string) {
 	termbox.Flush()
 }
 
+type ListArea struct {
+	*Ctx
+	sortTopDown bool
+}
+
+func NewListArea(ctx *Ctx) *ListArea {
+	return &ListArea{
+		ctx,
+		true,
+	}
+}
+
+func (l *ListArea) Draw(targets []Match, perPage int) {
+	currentPage := l.currentPage
+
+	var fgAttr, bgAttr termbox.Attribute
+	for n := 1; n <= perPage; n++ {
+		switch {
+		case n+currentPage.offset == l.currentLine:
+			fgAttr = l.config.Style.SelectedFG()
+			bgAttr = l.config.Style.SelectedBG()
+		case l.selection.Has(n+currentPage.offset) || l.SelectedRange().Has(n+currentPage.offset):
+			fgAttr = l.config.Style.SavedSelectionFG()
+			bgAttr = l.config.Style.SavedSelectionBG()
+		default:
+			fgAttr = l.config.Style.BasicFG()
+			bgAttr = l.config.Style.BasicBG()
+		}
+
+		targetIdx := currentPage.offset + n - 1
+		if targetIdx >= len(targets) {
+			break
+		}
+
+		target := targets[targetIdx]
+		line := target.Line()
+		matches := target.Indices()
+		if matches == nil {
+			printScreen(0, n, fgAttr, bgAttr, line, true)
+		} else {
+			prev := 0
+			index := 0
+			for _, m := range matches {
+				if m[0] > index {
+					c := line[index:m[0]]
+					printScreen(prev, n, fgAttr, bgAttr, c, false)
+					prev += runewidth.StringWidth(c)
+					index += len(c)
+				}
+				c := line[m[0]:m[1]]
+				printScreen(prev, n, l.config.Style.MatchedFG(), mergeAttribute(bgAttr, l.config.Style.MatchedBG()), c, true)
+				prev += runewidth.StringWidth(c)
+				index += len(c)
+			}
+
+			m := matches[len(matches)-1]
+			if m[0] > index {
+				printScreen(prev, n, l.config.Style.QueryFG(), mergeAttribute(bgAttr, l.config.Style.QueryBG()), line[m[0]:m[1]], true)
+			} else if len(line) > m[1] {
+				printScreen(prev, n, fgAttr, bgAttr, line[m[1]:len(line)], true)
+			}
+		}
+	}
+}
+
 type basicLayout struct {
 	*Ctx
 	*StatusBar
-	*UserPrompt
+	prompt *UserPrompt
+	list   *ListArea
 }
 
 // DefaultLayout implements the top-down layout
@@ -188,7 +256,8 @@ func NewDefaultLayout(ctx *Ctx) *DefaultLayout {
 		&basicLayout{
 			Ctx: ctx,
 			StatusBar: NewStatusBar(ctx),
-			UserPrompt: NewUserPrompt(ctx),
+			prompt: NewUserPrompt(ctx),
+			list: NewListArea(ctx),
 		},
 	}
 }
@@ -239,57 +308,8 @@ func (l *DefaultLayout) DrawScreen(targets []Match) {
 		return
 	}
 
-	l.UserPrompt.Draw()
-	currentPage := l.currentPage
-
-	for n := 1; n <= perPage; n++ {
-		switch {
-		case n+currentPage.offset == l.currentLine:
-			fgAttr = l.config.Style.SelectedFG()
-			bgAttr = l.config.Style.SelectedBG()
-		case l.selection.Has(n+currentPage.offset) || l.SelectedRange().Has(n+currentPage.offset):
-			fgAttr = l.config.Style.SavedSelectionFG()
-			bgAttr = l.config.Style.SavedSelectionBG()
-		default:
-			fgAttr = l.config.Style.BasicFG()
-			bgAttr = l.config.Style.BasicBG()
-		}
-
-		targetIdx := currentPage.offset + n - 1
-		if targetIdx >= len(targets) {
-			break
-		}
-
-		target := targets[targetIdx]
-		line := target.Line()
-		matches := target.Indices()
-		if matches == nil {
-			printScreen(0, n, fgAttr, bgAttr, line, true)
-		} else {
-			prev := 0
-			index := 0
-			for _, m := range matches {
-				if m[0] > index {
-					c := line[index:m[0]]
-					printScreen(prev, n, fgAttr, bgAttr, c, false)
-					prev += runewidth.StringWidth(c)
-					index += len(c)
-				}
-				c := line[m[0]:m[1]]
-				printScreen(prev, n, l.config.Style.MatchedFG(), mergeAttribute(bgAttr, l.config.Style.MatchedBG()), c, true)
-				prev += runewidth.StringWidth(c)
-				index += len(c)
-			}
-
-			m := matches[len(matches)-1]
-			if m[0] > index {
-				printScreen(prev, n, l.config.Style.QueryFG(), mergeAttribute(bgAttr, l.config.Style.QueryBG()), line[m[0]:m[1]], true)
-			} else if len(line) > m[1] {
-				printScreen(prev, n, fgAttr, bgAttr, line[m[1]:len(line)], true)
-			}
-		}
-	}
-
+	l.prompt.Draw()
+	l.list.Draw(targets, perPage)
 	if err := termbox.Flush(); err != nil {
 		return
 	}
