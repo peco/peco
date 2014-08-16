@@ -9,6 +9,13 @@ import (
 	"github.com/nsf/termbox-go"
 )
 
+type VerticalAnchor int
+
+const (
+	AnchorTop VerticalAnchor = iota + 1
+	AnchorBottom
+)
+
 type Layout interface {
 	ClearStatus(time.Duration)
 	PrintStatus(string)
@@ -50,12 +57,13 @@ func printScreen(x, y int, fg, bg termbox.Attribute, msg string, fill bool) {
 // UserPrompt draws the prompt line
 type UserPrompt struct {
 	*Ctx
-	location int
-	prefix string
-	prefixLen int
+	anchor       VerticalAnchor // AnchorTop or AnchorBottom
+	anchorOffset int            // offset this many lines from the anchor
+	prefix       string
+	prefixLen    int
 }
 
-func NewUserPrompt(ctx *Ctx) *UserPrompt {
+func NewUserPrompt(ctx *Ctx, anchor VerticalAnchor, anchorOffset int) *UserPrompt {
 	prefix := ctx.config.Prompt
 	if len(prefix) <= 0 { // default
 		prefix = "QUERY>"
@@ -63,16 +71,30 @@ func NewUserPrompt(ctx *Ctx) *UserPrompt {
 	prefixLen := runewidth.StringWidth(prefix)
 
 	return &UserPrompt{
-		Ctx: ctx,
-		location:  0, // effectively, the line number where the prompt is going to be displayed at
-		prefix:    prefix,
-		prefixLen: prefixLen,
+		Ctx:          ctx,
+		anchor:       anchor,
+		anchorOffset: anchorOffset,
+		prefix:       prefix,
+		prefixLen:    prefixLen,
 	}
 }
 
 func (u UserPrompt) Draw() {
 	// print "QUERY>"
-	printScreen(0, u.location, u.config.Style.BasicFG(), u.config.Style.BasicBG(), u.prefix, false)
+
+	_, h := termbox.Size()
+
+	var location int
+	switch u.anchor {
+	case AnchorTop:
+		location = u.anchorOffset
+	case AnchorBottom:
+		location = h - u.anchorOffset - 1 // -1 is required because y is 0 base, but h is 1 base
+	default:
+		panic("Unknown anchor type!")
+	}
+
+	printScreen(0, location, u.config.Style.BasicFG(), u.config.Style.BasicBG(), u.prefix, false)
 
 	if u.caretPos <= 0 {
 		u.caretPos = 0 // sanity
@@ -88,9 +110,9 @@ func (u UserPrompt) Draw() {
 		bg := u.config.Style.QueryBG()
 		qs := string(u.query)
 		ql := runewidth.StringWidth(qs)
-		printScreen(u.prefixLen+1, u.location, fg, bg, qs, false)
-		printScreen(u.prefixLen+1+ql, u.location, fg|termbox.AttrReverse, bg|termbox.AttrReverse, " ", false)
-		printScreen(u.prefixLen+1+ql+1, u.location, fg, bg, "", true)
+		printScreen(u.prefixLen+1, location, fg, bg, qs, false)
+		printScreen(u.prefixLen+1+ql, location, fg|termbox.AttrReverse, bg|termbox.AttrReverse, " ", false)
+		printScreen(u.prefixLen+1+ql+1, location, fg, bg, "", true)
 	} else {
 		// the caret is in the middle of the string
 		prev := 0
@@ -101,7 +123,7 @@ func (u UserPrompt) Draw() {
 				fg |= termbox.AttrReverse
 				bg |= termbox.AttrReverse
 			}
-			termbox.SetCell(u.prefixLen+1+prev, u.location, r, fg, bg)
+			termbox.SetCell(u.prefixLen+1+prev, location, r, fg, bg)
 			prev += runewidth.RuneWidth(r)
 		}
 	}
@@ -109,7 +131,7 @@ func (u UserPrompt) Draw() {
 	width, _ := termbox.Size()
 
 	pmsg := fmt.Sprintf("%s [%d/%d]", u.Matcher().String(), u.currentPage.index, u.maxPage)
-	printScreen(width-runewidth.StringWidth(pmsg), u.location, u.config.Style.BasicFG(), u.config.Style.BasicBG(), pmsg, false)
+	printScreen(width-runewidth.StringWidth(pmsg), location, u.config.Style.BasicFG(), u.config.Style.BasicBG(), pmsg, false)
 }
 
 // StatusBar draws the status message bar
@@ -162,11 +184,11 @@ func (s *StatusBar) PrintStatus(msg string) {
 	bgAttr := s.config.Style.BasicBG()
 
 	if w > width {
-		printScreen(0, h-2, fgAttr, bgAttr, string(pad), false)
+		printScreen(0, h-1, fgAttr, bgAttr, string(pad), false)
 	}
 
 	if width > 0 {
-		printScreen(w-width, h-2, fgAttr|termbox.AttrReverse|termbox.AttrBold, bgAttr|termbox.AttrReverse, msg, false)
+		printScreen(w-width, h-1, fgAttr|termbox.AttrReverse|termbox.AttrBold, bgAttr|termbox.AttrReverse, msg, false)
 	}
 	termbox.Flush()
 }
@@ -174,7 +196,7 @@ func (s *StatusBar) PrintStatus(msg string) {
 type ListArea struct {
 	*Ctx
 	sortTopDown bool
-	start int
+	start       int
 }
 
 func NewListArea(ctx *Ctx) *ListArea {
@@ -200,7 +222,7 @@ func (l *ListArea) Draw(targets []Match, perPage int) {
 	var fgAttr, bgAttr termbox.Attribute
 	for n := 0; n < perPage; n++ {
 		switch {
-		case n+currentPage.offset == l.currentLine - l.start:
+		case n+currentPage.offset == l.currentLine-l.start:
 			fgAttr = l.config.Style.SelectedFG()
 			bgAttr = l.config.Style.SelectedBG()
 		case l.selection.Has(n+currentPage.offset) || l.SelectedRange().Has(n+currentPage.offset):
@@ -267,10 +289,10 @@ type BottomUpLayout struct {
 func NewDefaultLayout(ctx *Ctx) *DefaultLayout {
 	return &DefaultLayout{
 		&basicLayout{
-			Ctx: ctx,
+			Ctx:       ctx,
 			StatusBar: NewStatusBar(ctx),
-			prompt: NewUserPrompt(ctx),
-			list: NewListArea(ctx),
+			prompt:    NewUserPrompt(ctx, AnchorTop, 0),
+			list:      NewListArea(ctx),
 		},
 	}
 }
