@@ -20,10 +20,11 @@ type Config struct {
 	// events against user input, but since then this has changed
 	// into something that just records the user's config input
 	Keymap         map[string]string `json:"Keymap"`
-	Matcher        string            `json:"Matcher"` // Deprecated.
+	Matcher        string            `json:"Matcher"`        // Deprecated.
 	InitialMatcher string            `json:"InitialMatcher"` // Use this instead of Matcher
 	Style          *StyleSet         `json:"Style"`
 	Prompt         string            `json:"Prompt"`
+	Layout         string            `json:"Layout"`
 	CustomMatcher  map[string][]string
 }
 
@@ -34,6 +35,7 @@ func NewConfig() *Config {
 		InitialMatcher: IgnoreCaseMatch,
 		Style:          NewStyleSet(),
 		Prompt:         "QUERY>",
+		Layout:         "top-down",
 	}
 }
 
@@ -49,6 +51,10 @@ func (c *Config) ReadFilename(filename string) error {
 	err = json.NewDecoder(f).Decode(c)
 	if err != nil {
 		return err
+	}
+
+	if !IsValidLayoutType(c.Layout) {
+		return fmt.Errorf("invalid layout type: %s", c.Layout)
 	}
 
 	return nil

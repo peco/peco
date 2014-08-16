@@ -110,6 +110,12 @@ func (c *Ctx) ReadConfig(file string) error {
 
 	c.SetCurrentMatcher(c.config.InitialMatcher)
 
+	if c.layoutType == "" { // Not set yet
+		if c.config.Layout != "" {
+			c.layoutType = c.config.Layout
+		}
+	}
+
 	return nil
 }
 
@@ -188,12 +194,10 @@ func (c *Ctx) NewBufferReader(r io.ReadCloser) *BufferReader {
 func (c *Ctx) NewView() *View {
 	var layout Layout
 	switch c.layoutType {
-	case "top-down":
-		layout = NewDefaultLayout(c)
 	case "bottom-up":
 		layout = NewBottomUpLayout(c)
 	default:
-		panic("Unknown layout")
+		layout = NewDefaultLayout(c)
 	}
 	return &View{c, layout}
 }

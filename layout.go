@@ -9,6 +9,21 @@ import (
 	"github.com/nsf/termbox-go"
 )
 
+type LayoutType string
+const (
+	LayoutTypeTopDown = "top-down"
+	LayoutTypeBottomUp = "bottom-up"
+)
+
+// IsValidLayoutType checks if a string is a supported layout type
+func IsValidLayoutType(v string) bool {
+	if v == LayoutTypeTopDown || v == LayoutTypeBottomUp {
+		return true
+	}
+
+	return false
+}
+
 type VerticalAnchor int
 
 const (

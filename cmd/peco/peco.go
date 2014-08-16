@@ -44,7 +44,7 @@ type cmdOptions struct {
 	OptInitialIndex   int    `long:"initial-index" description:"position of the initial index of the selection (0 base)"`
 	OptInitialMatcher string `long:"initial-matcher" description:"matcher"`
 	OptPrompt         string `long:"prompt"`
-	OptLayout         string `long:"layout" description:"layout to be used 'top-down' (default) or 'bottom-up'" default:"top-down"`
+	OptLayout         string `long:"layout" description:"layout to be used 'top-down' (default) or 'bottom-up'"`
 }
 
 // BufferSize returns the specified buffer size. Fulfills peco.CtxOptions
@@ -87,11 +87,12 @@ func main() {
 		return
 	}
 
-	// XXX silly way to validate. come back later to make validation a bit smarter
-	if opts.OptLayout != "top-down" && opts.OptLayout != "bottom-up" {
-		fmt.Fprintf(os.Stderr, "Unknown layout: '%s'\n", opts.OptLayout)
-		st = 1
-		return
+	if opts.OptLayout != "" {
+		if ! peco.IsValidLayoutType(opts.OptLayout) {
+			fmt.Fprintf(os.Stderr, "Unknown layout: '%s'\n", opts.OptLayout)
+			st = 1
+			return
+		}
 	}
 
 	if opts.OptHelp {
