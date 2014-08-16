@@ -24,6 +24,9 @@ type CtxOptions interface {
 	// InitialIndex is the line number to put the cursor on
 	// when peco starts
 	InitialIndex() int
+
+	// LayoutType returns the name of the layout to use
+	LayoutType() string
 }
 
 type PageInfo struct {
@@ -54,6 +57,7 @@ type Ctx struct {
 	CurrentMatcher      int
 	ExitStatus          int
 	selectionRangeStart int
+	layoutType          string
 
 	wait *sync.WaitGroup
 }
@@ -83,6 +87,7 @@ func NewCtx(o CtxOptions) *Ctx {
 		0,
 		0,
 		invalidSelectionRange,
+		o.LayoutType(),
 		&sync.WaitGroup{},
 	}
 }
@@ -181,7 +186,16 @@ func (c *Ctx) NewBufferReader(r io.ReadCloser) *BufferReader {
 }
 
 func (c *Ctx) NewView() *View {
-	return &View{c, NewDefaultLayout(c)}
+	var layout Layout
+	switch c.layoutType {
+	case "top-down":
+		layout = NewDefaultLayout(c)
+	case "bottom-up":
+		layout = NewBottomUpLayout(c)
+	default:
+		panic("Unknown layout")
+	}
+	return &View{c, layout}
 }
 
 func (c *Ctx) NewFilter() *Filter {
