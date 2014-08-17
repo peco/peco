@@ -93,7 +93,7 @@ func init() {
 	ActionFunc(func(i *Input, ev termbox.Event) {
 		i.SendStatusMsg("SelectPrevious is deprecated. Use SelectUp/SelectDown")
 		doSelectDown(i, ev)
-	}).Register( "SelectPrevious")
+	}).Register("SelectPrevious")
 
 	ActionFunc(doScrollPageUp).Register("ScrollPageUp", termbox.KeyArrowLeft)
 	ActionFunc(func(i *Input, ev termbox.Event) {
@@ -275,13 +275,15 @@ func doScrollPageDown(i *Input, ev termbox.Event) {
 }
 
 func doToggleSelectionAndSelectNext(i *Input, ev termbox.Event) {
-	doToggleSelection(i, ev)
-	// XXX This is sucky. Fix later
-	if i.layoutType == "top-down" {
-		doSelectDown(i, ev)
-	} else {
-		doSelectUp(i, ev)
-	}
+	i.Batch(func() {
+		doToggleSelection(i, ev)
+		// XXX This is sucky. Fix later
+		if i.layoutType == "top-down" {
+			doSelectDown(i, ev)
+		} else {
+			doSelectUp(i, ev)
+		}
+	})
 }
 
 func doDeleteBackwardWord(i *Input, _ termbox.Event) {
