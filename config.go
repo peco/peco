@@ -20,10 +20,11 @@ type Config struct {
 	// events against user input, but since then this has changed
 	// into something that just records the user's config input
 	Keymap         map[string]string `json:"Keymap"`
-	Matcher        string            `json:"Matcher"` // Deprecated.
+	Matcher        string            `json:"Matcher"`        // Deprecated.
 	InitialMatcher string            `json:"InitialMatcher"` // Use this instead of Matcher
-	Style          StyleSet          `json:"Style"`
+	Style          *StyleSet         `json:"Style"`
 	Prompt         string            `json:"Prompt"`
+	Layout         string            `json:"Layout"`
 	CustomMatcher  map[string][]string
 }
 
@@ -34,6 +35,7 @@ func NewConfig() *Config {
 		InitialMatcher: IgnoreCaseMatch,
 		Style:          NewStyleSet(),
 		Prompt:         "QUERY>",
+		Layout:         "top-down",
 	}
 }
 
@@ -49,6 +51,10 @@ func (c *Config) ReadFilename(filename string) error {
 	err = json.NewDecoder(f).Decode(c)
 	if err != nil {
 		return err
+	}
+
+	if !IsValidLayoutType(c.Layout) {
+		return fmt.Errorf("invalid layout type: %s", c.Layout)
 	}
 
 	return nil
@@ -97,14 +103,54 @@ type StyleSet struct {
 }
 
 // NewStyleSet creates a new StyleSet struct
-func NewStyleSet() StyleSet {
-	return StyleSet{
+func NewStyleSet() *StyleSet {
+	return &StyleSet{
 		Basic:          Style{fg: termbox.ColorDefault, bg: termbox.ColorDefault},
-		SavedSelection: Style{fg: termbox.ColorBlack | termbox.AttrBold, bg: termbox.ColorCyan},
-		Selected:       Style{fg: termbox.ColorDefault | termbox.AttrUnderline, bg: termbox.ColorMagenta},
 		Query:          Style{fg: termbox.ColorDefault, bg: termbox.ColorDefault},
 		Matched:        Style{fg: termbox.ColorCyan, bg: termbox.ColorDefault},
+		SavedSelection: Style{fg: termbox.ColorBlack | termbox.AttrBold, bg: termbox.ColorCyan},
+		Selected:       Style{fg: termbox.ColorDefault | termbox.AttrUnderline, bg: termbox.ColorMagenta},
 	}
+}
+
+func (s StyleSet) BasicFG() termbox.Attribute {
+	return s.Basic.fg
+}
+
+func (s StyleSet) BasicBG() termbox.Attribute {
+	return s.Basic.bg
+}
+
+func (s StyleSet) QueryFG() termbox.Attribute {
+	return s.Query.fg
+}
+
+func (s StyleSet) QueryBG() termbox.Attribute {
+	return s.Query.bg
+}
+
+func (s StyleSet) MatchedFG() termbox.Attribute {
+	return s.Matched.fg
+}
+
+func (s StyleSet) MatchedBG() termbox.Attribute {
+	return s.Matched.bg
+}
+
+func (s StyleSet) SavedSelectionFG() termbox.Attribute {
+	return s.SavedSelection.fg
+}
+
+func (s StyleSet) SavedSelectionBG() termbox.Attribute {
+	return s.SavedSelection.bg
+}
+
+func (s StyleSet) SelectedFG() termbox.Attribute {
+	return s.Selected.fg
+}
+
+func (s StyleSet) SelectedBG() termbox.Attribute {
+	return s.Selected.bg
 }
 
 // Style describes termbox styles

@@ -27,6 +27,7 @@ Options:
   --initial-index       position of the initial index of the selection (0 base)
   --initial-matcher     specify default matcher
   --prompt              specify prompt
+  --layout              specify the layout to use. default is 'top-down'
 `
 	os.Stderr.Write([]byte(v))
 }
@@ -43,6 +44,7 @@ type cmdOptions struct {
 	OptInitialIndex   int    `long:"initial-index" description:"position of the initial index of the selection (0 base)"`
 	OptInitialMatcher string `long:"initial-matcher" description:"matcher"`
 	OptPrompt         string `long:"prompt"`
+	OptLayout         string `long:"layout" description:"layout to be used 'top-down' (default) or 'bottom-up'"`
 }
 
 // BufferSize returns the specified buffer size. Fulfills peco.CtxOptions
@@ -62,6 +64,10 @@ func (o cmdOptions) InitialIndex() int {
 	return 1
 }
 
+func (o cmdOptions) LayoutType() string {
+	return o.OptLayout
+}
+
 func main() {
 	var err error
 	var st int
@@ -79,6 +85,14 @@ func main() {
 		showHelp()
 		st = 1
 		return
+	}
+
+	if opts.OptLayout != "" {
+		if ! peco.IsValidLayoutType(opts.OptLayout) {
+			fmt.Fprintf(os.Stderr, "Unknown layout: '%s'\n", opts.OptLayout)
+			st = 1
+			return
+		}
 	}
 
 	if opts.OptHelp {

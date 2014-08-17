@@ -24,6 +24,9 @@ type CtxOptions interface {
 	// InitialIndex is the line number to put the cursor on
 	// when peco starts
 	InitialIndex() int
+
+	// LayoutType returns the name of the layout to use
+	LayoutType() string
 }
 
 type PageInfo struct {
@@ -43,7 +46,8 @@ type Ctx struct {
 	prompt              []rune
 	caretPos            int
 	currentLine         int
-	currentPage         PageInfo
+	currentPage         *PageInfo
+	maxPage             int
 	selection           Selection
 	lines               []Match
 	current             []Match
@@ -53,6 +57,7 @@ type Ctx struct {
 	CurrentMatcher      int
 	ExitStatus          int
 	selectionRangeStart int
+	layoutType          string
 
 	wait *sync.WaitGroup
 }
@@ -67,7 +72,8 @@ func NewCtx(o CtxOptions) *Ctx {
 		[]rune{},
 		0,
 		o.InitialIndex(),
-		struct{ index, offset, perPage int }{0, 1, 0},
+		&PageInfo{0, 1, 0},
+		0,
 		Selection([]int{}),
 		[]Match{},
 		nil,
@@ -81,6 +87,7 @@ func NewCtx(o CtxOptions) *Ctx {
 		0,
 		0,
 		invalidSelectionRange,
+		o.LayoutType(),
 		&sync.WaitGroup{},
 	}
 }
@@ -102,6 +109,12 @@ func (c *Ctx) ReadConfig(file string) error {
 	}
 
 	c.SetCurrentMatcher(c.config.InitialMatcher)
+
+	if c.layoutType == "" { // Not set yet
+		if c.config.Layout != "" {
+			c.layoutType = c.config.Layout
+		}
+	}
 
 	return nil
 }
@@ -179,7 +192,14 @@ func (c *Ctx) NewBufferReader(r io.ReadCloser) *BufferReader {
 }
 
 func (c *Ctx) NewView() *View {
-	return &View{c, nil}
+	var layout Layout
+	switch c.layoutType {
+	case "bottom-up":
+		layout = NewBottomUpLayout(c)
+	default:
+		layout = NewDefaultLayout(c)
+	}
+	return &View{c, layout}
 }
 
 func (c *Ctx) NewFilter() *Filter {

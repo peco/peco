@@ -76,24 +76,30 @@ func init() {
 	ActionFunc(doKillEndOfLine).Register("KillEndOfLine", termbox.KeyCtrlK)
 	ActionFunc(doKillBeginningOfLine).Register("KillBeginningOfLine", termbox.KeyCtrlU)
 	ActionFunc(doRotateMatcher).Register("RotateMatcher", termbox.KeyCtrlR)
-	ActionFunc(doSelectNext).Register(
-		"SelectNext",
-		termbox.KeyArrowDown,
-		termbox.KeyCtrlN,
-	)
-	ActionFunc(doSelectNextPage).Register(
-		"SelectNextPage",
-		termbox.KeyArrowRight,
-	)
-	ActionFunc(doSelectPrevious).Register(
-		"SelectPrevious",
-		termbox.KeyArrowUp,
-		termbox.KeyCtrlP,
-	)
-	ActionFunc(doSelectPreviousPage).Register(
-		"SelectPreviousPage",
-		termbox.KeyArrowLeft,
-	)
+
+	ActionFunc(doSelectUp).Register("SelectUp", termbox.KeyArrowUp, termbox.KeyCtrlP)
+	ActionFunc(func(i *Input, ev termbox.Event) {
+		i.SendStatusMsg("SelectNext is deprecated. Use SelectUp/SelectDown")
+		doSelectUp(i, ev)
+	}).Register("SelectNext")
+
+	ActionFunc(doScrollPageDown).Register("ScrollPageDown", termbox.KeyArrowRight)
+	ActionFunc(func(i *Input, ev termbox.Event) {
+		i.SendStatusMsg("SelectNextPage is deprecated. Use ScrollPageDown/ScrollPageUp")
+		doScrollPageDown(i, ev)
+	}).Register("SelectNextPage")
+
+	ActionFunc(doSelectDown).Register("SelectDown", termbox.KeyArrowDown, termbox.KeyCtrlN)
+	ActionFunc(func(i *Input, ev termbox.Event) {
+		i.SendStatusMsg("SelectPrevious is deprecated. Use SelectUp/SelectDown")
+		doSelectDown(i, ev)
+	}).Register("SelectPrevious")
+
+	ActionFunc(doScrollPageUp).Register("ScrollPageUp", termbox.KeyArrowLeft)
+	ActionFunc(func(i *Input, ev termbox.Event) {
+		i.SendStatusMsg("SelectPreviousPage is deprecated. Uselect ScrollPageDown/ScrollPageUp")
+		doScrollPageUp(i, ev)
+	}).Register("SelectPreviousPage")
 
 	ActionFunc(doToggleSelection).Register("ToggleSelection")
 	ActionFunc(doToggleSelectionAndSelectNext).Register(
@@ -248,29 +254,36 @@ func doCancel(i *Input, ev termbox.Event) {
 	i.ExitWith(1)
 }
 
-func doSelectPrevious(i *Input, ev termbox.Event) {
-	i.SendPaging(ToPrevLine)
+func doSelectDown(i *Input, ev termbox.Event) {
+	i.SendPaging(ToLineBelow)
 	i.DrawMatches(nil)
 }
 
-func doSelectNext(i *Input, ev termbox.Event) {
-	i.SendPaging(ToNextLine)
+func doSelectUp(i *Input, ev termbox.Event) {
+	i.SendPaging(ToLineAbove)
 	i.DrawMatches(nil)
 }
 
-func doSelectPreviousPage(i *Input, ev termbox.Event) {
-	i.SendPaging(ToPrevPage)
+func doScrollPageUp(i *Input, ev termbox.Event) {
+	i.SendPaging(ToScrollPageUp)
 	i.DrawMatches(nil)
 }
 
-func doSelectNextPage(i *Input, ev termbox.Event) {
-	i.SendPaging(ToNextPage)
+func doScrollPageDown(i *Input, ev termbox.Event) {
+	i.SendPaging(ToScrollPageDown)
 	i.DrawMatches(nil)
 }
 
 func doToggleSelectionAndSelectNext(i *Input, ev termbox.Event) {
-	doToggleSelection(i, ev)
-	doSelectNext(i, ev)
+	i.Batch(func() {
+		doToggleSelection(i, ev)
+		// XXX This is sucky. Fix later
+		if i.layoutType == "top-down" {
+			doSelectDown(i, ev)
+		} else {
+			doSelectUp(i, ev)
+		}
+	})
 }
 
 func doDeleteBackwardWord(i *Input, _ termbox.Event) {
