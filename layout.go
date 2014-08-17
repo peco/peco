@@ -243,7 +243,7 @@ func (l *ListArea) Draw(targets []Match, perPage int) {
 		case n+currentPage.offset == l.currentLine-1:
 			fgAttr = l.config.Style.SelectedFG()
 			bgAttr = l.config.Style.SelectedBG()
-		case l.selection.Has(n+currentPage.offset) || l.SelectedRange().Has(n+currentPage.offset):
+		case l.selection.Has(n+currentPage.offset+1) || l.SelectedRange().Has(n+currentPage.offset+1):
 			fgAttr = l.config.Style.SavedSelectionFG()
 			bgAttr = l.config.Style.SavedSelectionBG()
 		default:
