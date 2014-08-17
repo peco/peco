@@ -181,8 +181,8 @@ Example:
 ```json
 {
     "Keymap": {
-        "M-v": "peco.ScrollPageDown",
-        "C-v": "peco.ScrollPageUp",
+        "M-v": "peco.ScrollPageUp",
+        "C-v": "peco.ScrollPageDown",
         "C-x,C-c": "peco.Cancel"
     }
 }
