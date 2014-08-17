@@ -364,8 +364,7 @@ func (l *BasicLayout) DrawScreen(targets []Match) {
 		l.currentLine = len(targets)
 	}
 
-	_, height := termbox.Size()
-	perPage := height - 2 // list area is always the display area - 2 lines for prompt and status
+	perPage := linesPerPage()
 
 	if err := l.CalculatePage(targets, perPage); err != nil {
 		return
