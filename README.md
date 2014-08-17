@@ -60,6 +60,12 @@ Different types of matchers are available. Default is case-insensitive matcher, 
 
 ![optimized](http://peco.github.io/images/peco-demo-matcher.gif)
 
+## Selectable Layout
+
+If you would rather not move your eyes off of the bottom of the screen, you can change the screen layout by either proviging the `--layout=bottom-up` command line option, or set the `Layout` variable in your configuration file
+
+![optmized](http://peco.github.io/images/peco-demo-layout-bottom-up.gif)
+
 ## Works on Windows!
 
 I have been told that peco even works on windows :) Look ma! I'm not lying!
