@@ -62,7 +62,7 @@ Different types of matchers are available. Default is case-insensitive matcher, 
 
 ## Selectable Layout
 
-If you would rather not move your eyes off of the bottom of the screen, you can change the screen layout by either proviging the `--layout=bottom-up` command line option, or set the `Layout` variable in your configuration file
+As of v0.2.5, if you would rather not move your eyes off of the bottom of the screen, you can change the screen layout by either proviging the `--layout=bottom-up` command line option, or set the `Layout` variable in your configuration file
 
 ![optmized](http://peco.github.io/images/peco-demo-layout-bottom-up.gif)
 
