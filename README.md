@@ -161,6 +161,8 @@ Specifies the query line's prompt string. When specified, takes precedence over 
 
 Specifies the display layout. Default is `top-down`, where query prompt is at the top, followed by the list, then the system status message line. `bottom-up` changes this to the list first (displayed in reverse order), the query prompt, and then the system status message line.
 
+For `percol` users, `--layout=bottom-up` is almost equivalent of `--prompt-bottom --result-bottom-up`.
+
 Configuration File
 ==================
 
