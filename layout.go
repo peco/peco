@@ -9,9 +9,13 @@ import (
 	"github.com/nsf/termbox-go"
 )
 
+// LayoutType describes the types of layout that peco can take
 type LayoutType string
+
 const (
+	// LayoutTypeTopDown is the default. All the items read from top to bottom
 	LayoutTypeTopDown = "top-down"
+	// LayoutTypeBottomUp changes the layout to read from bottom to up
 	LayoutTypeBottomUp = "bottom-up"
 )
 
@@ -20,13 +24,18 @@ func IsValidLayoutType(v string) bool {
 	return v == LayoutTypeTopDown || v == LayoutTypeBottomUp
 }
 
+// VerticalAnchor describes the direction to which elements in the
+// layout are anchored to
 type VerticalAnchor int
 
 const (
+	// AnchorTop anchors elements towards the top of the screen
 	AnchorTop VerticalAnchor = iota + 1
+	// AnchorBottom anchors elements towards the bottom of the screen
 	AnchorBottom
 )
 
+// Layout represents the component that controls where elements are placed on screen
 type Layout interface {
 	ClearStatus(time.Duration)
 	PrintStatus(string)
@@ -38,9 +47,8 @@ type Layout interface {
 func mergeAttribute(a, b termbox.Attribute) termbox.Attribute {
 	if a&0x0F == 0 || b&0x0F == 0 {
 		return a | b
-	} else {
-		return ((a - 1) | (b - 1)) + 1
 	}
+	return ((a - 1) | (b - 1)) + 1
 }
 
 // Utility function
@@ -66,6 +74,8 @@ func printScreen(x, y int, fg, bg termbox.Attribute, msg string, fill bool) {
 	}
 }
 
+// AnchorSettings groups items that are required to control
+// where an anchored item is actually placed
 type AnchorSettings struct {
 	anchor       VerticalAnchor // AnchorTop or AnchorBottom
 	anchorOffset int            // offset this many lines from the anchor
@@ -96,6 +106,7 @@ type UserPrompt struct {
 	prefixLen int
 }
 
+// NewUserPrompt creates a new UserPrompt struct
 func NewUserPrompt(ctx *Ctx, anchor VerticalAnchor, anchorOffset int) *UserPrompt {
 	prefix := ctx.config.Prompt
 	if len(prefix) <= 0 { // default
@@ -111,6 +122,7 @@ func NewUserPrompt(ctx *Ctx, anchor VerticalAnchor, anchorOffset int) *UserPromp
 	}
 }
 
+// Draw draws the query prompt
 func (u UserPrompt) Draw() {
 	location := u.AnchorPosition()
 
@@ -162,10 +174,11 @@ type StatusBar struct {
 	clearTimer *time.Timer
 }
 
+// NewStatusBar creates a new StatusBar struct
 func NewStatusBar(ctx *Ctx, anchor VerticalAnchor, anchorOffset int) *StatusBar {
 	return &StatusBar{
 		ctx,
-		&AnchorSettings{ anchor, anchorOffset },
+		&AnchorSettings{anchor, anchorOffset},
 		nil,
 	}
 }
@@ -176,6 +189,8 @@ func (s *StatusBar) stopTimer() {
 	}
 }
 
+// ClearStatus clears the string displayed in the status bar area
+// after `d time.Duration`.
 func (s *StatusBar) ClearStatus(d time.Duration) {
 	s.stopTimer()
 	s.clearTimer = time.AfterFunc(d, func() {
@@ -183,6 +198,8 @@ func (s *StatusBar) ClearStatus(d time.Duration) {
 	})
 }
 
+// PrintStatus prints a new status message. This also resets the
+// timer created by ClearStatus()
 func (s *StatusBar) PrintStatus(msg string) {
 	s.stopTimer()
 
@@ -217,20 +234,24 @@ func (s *StatusBar) PrintStatus(msg string) {
 	termbox.Flush()
 }
 
+// ListArea represents the area where the actual line buffer is
+// displayed in the screen
 type ListArea struct {
 	*Ctx
 	*AnchorSettings
-	sortTopDown  bool
+	sortTopDown bool
 }
 
+// NewListArea creates a new ListArea struct
 func NewListArea(ctx *Ctx, anchor VerticalAnchor, anchorOffset int, sortTopDown bool) *ListArea {
 	return &ListArea{
 		ctx,
-		&AnchorSettings{ anchor, anchorOffset },
+		&AnchorSettings{anchor, anchorOffset},
 		sortTopDown,
 	}
 }
 
+// Draw displays the ListArea on the screen
 func (l *ListArea) Draw(targets []Match, perPage int) {
 	currentPage := l.currentPage
 
@@ -304,6 +325,7 @@ type BasicLayout struct {
 	list   *ListArea
 }
 
+// NewDefaultLayout creates a new Layout in the default format (top-down)
 func NewDefaultLayout(ctx *Ctx) *BasicLayout {
 	return &BasicLayout{
 		Ctx:       ctx,
@@ -316,6 +338,7 @@ func NewDefaultLayout(ctx *Ctx) *BasicLayout {
 	}
 }
 
+// NewBottomUpLayout creates a new Layout in bottom-up format
 func NewBottomUpLayout(ctx *Ctx) *BasicLayout {
 	return &BasicLayout{
 		Ctx:       ctx,
@@ -328,6 +351,7 @@ func NewBottomUpLayout(ctx *Ctx) *BasicLayout {
 	}
 }
 
+// CalculatePage calculates which page we're displaying
 func (l *BasicLayout) CalculatePage(targets []Match, perPage int) error {
 CALCULATE_PAGE:
 	currentPage := l.currentPage
@@ -355,6 +379,7 @@ CALCULATE_PAGE:
 	return nil
 }
 
+// DrawScreen draws the entire screen
 func (l *BasicLayout) DrawScreen(targets []Match) {
 	if err := termbox.Clear(l.config.Style.BasicFG(), l.config.Style.BasicBG()); err != nil {
 		return
@@ -383,6 +408,7 @@ func linesPerPage() int {
 	return height - 2 // list area is always the display area - 2 lines for prompt and status
 }
 
+// MovePage moves the cursor
 func (l *BasicLayout) MovePage(p PagingRequest) {
 	if l.list.sortTopDown {
 		switch p {
@@ -419,4 +445,3 @@ func (l *BasicLayout) MovePage(p PagingRequest) {
 		l.currentLine = 1
 	}
 }
-
