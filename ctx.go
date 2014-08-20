@@ -289,6 +289,6 @@ func (s *signalHandler) Loop() {
 	}
 }
 
-func (c *Ctx) SetPrompt(p []rune) {
-	c.prompt = p
+func (c *Ctx) SetPrompt(p string) {
+	c.config.Prompt = p
 }
