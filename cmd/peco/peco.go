@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"reflect"
 	"runtime"
 
 	"github.com/jessevdk/go-flags"
@@ -12,39 +13,50 @@ import (
 
 var version = "v0.2.5"
 
-func showHelp() {
-	const v = ` 
-Usage: peco [options] [FILE]
-
-Options:
-  -h, --help            show this help message and exit
-  --version             print the version and exit
-  --rcfile=RCFILE       path to the settings file
-  --query=QUERY         pre-input query
-  --no-ignore-case      start in case-sensitive mode
-  -b, --buffer-size     number of lines to keep in search buffer
-  --null                expect NUL (\0) as separator for target/output (EXPERIMENTAL)
-  --initial-index       position of the initial index of the selection (0 base)
-  --initial-matcher     specify default matcher
-  --prompt              specify prompt
-  --layout              specify the layout to use. default is 'top-down'
-`
-	os.Stderr.Write([]byte(v))
-}
-
 type cmdOptions struct {
 	OptHelp           bool   `short:"h" long:"help" description:"show this help message and exit"`
 	OptTTY            string `long:"tty" description:"path to the TTY (usually, the value of $TTY)"`
-	OptQuery          string `long:"query"`
-	OptRcfile         string `long:"rcfile" descriotion:"path to the settings file"`
-	OptNoIgnoreCase   bool   `long:"no-ignore-case" description:"start in case-sensitive-mode" default:"false"`
+	OptQuery          string `long:"query" description:"initial value for query"`
+	OptRcfile         string `long:"rcfile" description:"path to the settings file"`
+	OptNoIgnoreCase   bool   `long:"no-ignore-case" description:"start in case-sensitive-mode (DEPRECATED)" default:"false"`
 	OptVersion        bool   `long:"version" description:"print the version and exit"`
 	OptBufferSize     int    `long:"buffer-size" short:"b" description:"number of lines to keep in search buffer"`
 	OptEnableNullSep  bool   `long:"null" description:"expect NUL (\\0) as separator for target/output"`
 	OptInitialIndex   int    `long:"initial-index" description:"position of the initial index of the selection (0 base)"`
-	OptInitialMatcher string `long:"initial-matcher" description:"matcher"`
-	OptPrompt         string `long:"prompt"`
+	OptInitialMatcher string `long:"initial-matcher" description:"specify the default matcher"`
+	OptPrompt         string `long:"prompt" description:"specify the prompt string"`
 	OptLayout         string `long:"layout" description:"layout to be used 'top-down' (default) or 'bottom-up'"`
+}
+
+func showHelp() {
+	// The ONLY reason we're not using go-flags' help option is
+	// because I wanted to tweak the format just a bit... but
+	// there wasn't an easy way to do so
+	os.Stderr.WriteString(` 
+Usage: peco [options] [FILE]
+
+Options:
+`)
+
+	t := reflect.TypeOf(cmdOptions{})
+	for i := 0; i < t.NumField(); i++ {
+		f := t.Field(i)
+		tag := f.Tag
+
+		var o string
+		if s := tag.Get("short"); s != "" {
+			o = fmt.Sprintf("-%s, --%s", tag.Get("short"), tag.Get("long"))
+		} else {
+			o = fmt.Sprintf("--%s", tag.Get("long"))
+		}
+
+		fmt.Fprintf(
+			os.Stderr,
+			"  %-21s %s\n",
+			o,
+			tag.Get("description"),
+		)
+	}
 }
 
 // BufferSize returns the specified buffer size. Fulfills peco.CtxOptions
