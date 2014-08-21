@@ -40,8 +40,7 @@ Options:
 
 	t := reflect.TypeOf(cmdOptions{})
 	for i := 0; i < t.NumField(); i++ {
-		f := t.Field(i)
-		tag := f.Tag
+		tag := t.Field(i).Tag
 
 		var o string
 		if s := tag.Get("short"); s != "" {
