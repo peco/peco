@@ -8,9 +8,8 @@ import (
 	"strings"
 
 	"github.com/nsf/termbox-go"
+	"github.com/mitchellh/go-homedir"
 )
-
-var homedirFunc = homedir
 
 // Config holds all the data that can be configured in the
 // external configuran file
@@ -220,7 +219,7 @@ func LocateRcfile() (string, error) {
 	//    $XDG_CONFIG_DIR/peco/config.json (where XDG_CONFIG_DIR is listed in $XDG_CONFIG_DIRS)
 	//	  ~/.peco/config.json
 
-	home, uErr := homedirFunc()
+	home, uErr := homedir.Dir()
 
 	// Try dir supplied via env var
 	if dir := os.Getenv("XDG_CONFIG_HOME"); dir != "" {

@@ -3,13 +3,13 @@ package peco
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
 
 	"github.com/nsf/termbox-go"
+	"github.com/mitchellh/go-homedir"
 )
 
 func TestReadRC(t *testing.T) {
@@ -74,13 +74,9 @@ func TestStringsToStyle(t *testing.T) {
 }
 
 func TestLocateRcfile(t *testing.T) {
-	dir, err := ioutil.TempDir("", "peco-")
+	dir, err := homedir.Dir()
 	if err != nil {
 		t.Fatalf("Failed to create temporary directory: %s", err)
-	}
-
-	homedirFunc = func() (string, error) {
-		return dir, nil
 	}
 
 	expected := []string{
