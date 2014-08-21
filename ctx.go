@@ -9,6 +9,8 @@ import (
 	"syscall"
 )
 
+var screen Screen = Termbox{}
+
 // CtxOptions is the interface that defines that options can be
 // passed in from the command line
 type CtxOptions interface {

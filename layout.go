@@ -60,7 +60,7 @@ func printScreen(x, y int, fg, bg termbox.Attribute, msg string, fill bool) {
 			w = 1
 		}
 		msg = msg[w:]
-		termbox.SetCell(x, y, c, fg, bg)
+		screen.SetCell(x, y, c, fg, bg)
 		x += runewidth.RuneWidth(c)
 	}
 
@@ -68,9 +68,9 @@ func printScreen(x, y int, fg, bg termbox.Attribute, msg string, fill bool) {
 		return
 	}
 
-	width, _ := termbox.Size()
+	width, _ := screen.Size()
 	for ; x < width; x++ {
-		termbox.SetCell(x, y, ' ', fg, bg)
+		screen.SetCell(x, y, ' ', fg, bg)
 	}
 }
 
@@ -89,7 +89,7 @@ func (as AnchorSettings) AnchorPosition() int {
 	case AnchorTop:
 		pos = as.anchorOffset
 	case AnchorBottom:
-		_, h := termbox.Size()
+		_, h := screen.Size()
 		pos = h - as.anchorOffset - 1 // -1 is required because y is 0 base, but h is 1 base
 	default:
 		panic("Unknown anchor type!")
@@ -156,12 +156,12 @@ func (u UserPrompt) Draw() {
 				fg |= termbox.AttrReverse
 				bg |= termbox.AttrReverse
 			}
-			termbox.SetCell(u.prefixLen+1+prev, location, r, fg, bg)
+			screen.SetCell(u.prefixLen+1+prev, location, r, fg, bg)
 			prev += runewidth.RuneWidth(r)
 		}
 	}
 
-	width, _ := termbox.Size()
+	width, _ := screen.Size()
 
 	pmsg := fmt.Sprintf("%s [%d/%d]", u.Matcher().String(), u.currentPage.index, u.maxPage)
 	printScreen(width-runewidth.StringWidth(pmsg), location, u.config.Style.BasicFG(), u.config.Style.BasicBG(), pmsg, false)
@@ -205,7 +205,7 @@ func (s *StatusBar) PrintStatus(msg string) {
 
 	location := s.AnchorPosition()
 
-	w, _ := termbox.Size()
+	w, _ := screen.Size()
 	width := runewidth.StringWidth(msg)
 	for width > w {
 		_, rw := utf8.DecodeRuneInString(msg)
@@ -231,7 +231,7 @@ func (s *StatusBar) PrintStatus(msg string) {
 	if width > 0 {
 		printScreen(w-width, location, fgAttr|termbox.AttrReverse|termbox.AttrBold, bgAttr|termbox.AttrReverse, msg, false)
 	}
-	termbox.Flush()
+	screen.Flush()
 }
 
 // ListArea represents the area where the actual line buffer is
@@ -381,7 +381,7 @@ CALCULATE_PAGE:
 
 // DrawScreen draws the entire screen
 func (l *BasicLayout) DrawScreen(targets []Match) {
-	if err := termbox.Clear(l.config.Style.BasicFG(), l.config.Style.BasicBG()); err != nil {
+	if err := screen.Clear(l.config.Style.BasicFG(), l.config.Style.BasicBG()); err != nil {
 		return
 	}
 
@@ -398,13 +398,13 @@ func (l *BasicLayout) DrawScreen(targets []Match) {
 	l.prompt.Draw()
 	l.list.Draw(targets, perPage)
 
-	if err := termbox.Flush(); err != nil {
+	if err := screen.Flush(); err != nil {
 		return
 	}
 }
 
 func linesPerPage() int {
-	_, height := termbox.Size()
+	_, height := screen.Size()
 	return height - 2 // list area is always the display area - 2 lines for prompt and status
 }
 
