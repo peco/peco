@@ -161,6 +161,10 @@ func main() {
 		}
 	}
 
+	if len(opts.OptPrompt) > 0 {
+		ctx.SetPrompt(opts.OptPrompt)
+	}
+
 	// Deprecated. --no-ignore-case options will be removed in later.
 	if opts.OptNoIgnoreCase {
 		ctx.SetCurrentMatcher(peco.CaseSensitiveMatch)
@@ -223,10 +227,6 @@ func main() {
 		ctx.ExecQuery()
 	} else {
 		view.Refresh()
-	}
-
-	if len(opts.OptPrompt) > 0 {
-		ctx.SetPrompt([]rune(opts.OptPrompt))
 	}
 
 	ctx.WaitDone()

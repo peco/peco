@@ -43,7 +43,6 @@ type Ctx struct {
 	result              []Match
 	mutex               sync.Mutex
 	query               []rune
-	prompt              []rune
 	caretPos            int
 	currentLine         int
 	currentPage         *PageInfo
@@ -68,7 +67,6 @@ func NewCtx(o CtxOptions) *Ctx {
 		o.EnableNullSep(),
 		[]Match{},
 		sync.Mutex{},
-		[]rune{},
 		[]rune{},
 		0,
 		o.InitialIndex(),
@@ -289,6 +287,6 @@ func (s *signalHandler) Loop() {
 	}
 }
 
-func (c *Ctx) SetPrompt(p []rune) {
-	c.prompt = p
+func (c *Ctx) SetPrompt(p string) {
+	c.config.Prompt = p
 }
