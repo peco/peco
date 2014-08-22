@@ -100,7 +100,7 @@ func main() {
 	}
 
 	if opts.OptLayout != "" {
-		if ! peco.IsValidLayoutType(opts.OptLayout) {
+		if ! peco.IsValidLayoutType(peco.LayoutType(opts.OptLayout)) {
 			fmt.Fprintf(os.Stderr, "Unknown layout: '%s'\n", opts.OptLayout)
 			st = 1
 			return
