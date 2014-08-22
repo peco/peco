@@ -93,3 +93,8 @@ func TestPrintScreen(t *testing.T) {
 	verify("Hello, World!")
 	verify("日本語")
 }
+
+func TestStatusBar(t *testing.T) {
+	st := NewStatusBar(NewCtx(nil), AnchorBottom, 0)
+	st.PrintStatus("Hello, World!")
+}

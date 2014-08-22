@@ -35,6 +35,11 @@ const (
 	AnchorBottom
 )
 
+// IsValidVerticalAnchor checks if the specified anchor is supported
+func IsValidVerticalAnchor(anchor VerticalAnchor) bool {
+	return anchor == AnchorTop || anchor == AnchorBottom
+}
+
 // Layout represents the component that controls where elements are placed on screen
 type Layout interface {
 	ClearStatus(time.Duration)
@@ -79,6 +84,16 @@ func printScreen(x, y int, fg, bg termbox.Attribute, msg string, fill bool) {
 type AnchorSettings struct {
 	anchor       VerticalAnchor // AnchorTop or AnchorBottom
 	anchorOffset int            // offset this many lines from the anchor
+}
+
+// NewAnchorSettings creates a new AnchorSetting struct. Panics if
+// an unknown VerticalAnchor is sent
+func NewAnchorSettings(anchor VerticalAnchor, offset int) *AnchorSettings {
+	if !IsValidVerticalAnchor(anchor) {
+		panic("Invalid vertical anchor specified")
+	}
+
+	return &AnchorSettings{anchor, offset}
 }
 
 // AnchorPosition returns the starting y-offset, based on the
@@ -178,7 +193,7 @@ type StatusBar struct {
 func NewStatusBar(ctx *Ctx, anchor VerticalAnchor, anchorOffset int) *StatusBar {
 	return &StatusBar{
 		ctx,
-		&AnchorSettings{anchor, anchorOffset},
+		NewAnchorSettings(anchor, anchorOffset),
 		nil,
 	}
 }
@@ -246,7 +261,7 @@ type ListArea struct {
 func NewListArea(ctx *Ctx, anchor VerticalAnchor, anchorOffset int, sortTopDown bool) *ListArea {
 	return &ListArea{
 		ctx,
-		&AnchorSettings{anchor, anchorOffset},
+		NewAnchorSettings(anchor, anchorOffset),
 		sortTopDown,
 	}
 }

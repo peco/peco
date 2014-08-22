@@ -64,32 +64,40 @@ type Ctx struct {
 }
 
 func NewCtx(o CtxOptions) *Ctx {
-	return &Ctx{
-		NewHub(),
-		o.EnableNullSep(),
-		[]Match{},
-		sync.Mutex{},
-		[]rune{},
-		0,
-		o.InitialIndex(),
-		&PageInfo{0, 1, 0},
-		0,
-		Selection([]int{}),
-		[]Match{},
-		nil,
-		o.BufferSize(),
-		NewConfig(),
-		[]Matcher{
-			NewIgnoreCaseMatcher(o.EnableNullSep()),
-			NewCaseSensitiveMatcher(o.EnableNullSep()),
-			NewRegexpMatcher(o.EnableNullSep()),
-		},
-		0,
-		0,
-		invalidSelectionRange,
-		o.LayoutType(),
-		&sync.WaitGroup{},
+	c := &Ctx{
+		Hub:                 NewHub(),
+		result:              []Match{},
+		mutex:               sync.Mutex{},
+		query:               []rune{},
+		caretPos:            0,
+		currentPage:         &PageInfo{0, 1, 0},
+		maxPage:             0,
+		selection:           Selection([]int{}),
+		lines:               []Match{},
+		current:             nil,
+		config:              NewConfig(),
+		Matchers:            nil,
+		CurrentMatcher:      0,
+		ExitStatus:          0,
+		selectionRangeStart: invalidSelectionRange,
+		wait:                &sync.WaitGroup{},
 	}
+
+	if o != nil {
+		// XXX Pray this is really nil :)
+		c.enableSep = o.EnableNullSep()
+		c.currentLine = o.InitialIndex()
+		c.bufferSize = o.BufferSize()
+		c.layoutType = o.LayoutType()
+	}
+
+	c.Matchers = []Matcher{
+		NewIgnoreCaseMatcher(c.enableSep),
+		NewCaseSensitiveMatcher(c.enableSep),
+		NewRegexpMatcher(c.enableSep),
+	}
+
+	return c
 }
 
 const invalidSelectionRange = -1
