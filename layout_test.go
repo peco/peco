@@ -2,6 +2,7 @@ package peco
 
 import (
 	"testing"
+	"time"
 	"unicode/utf8"
 
 	"github.com/mattn/go-runewidth"
@@ -14,12 +15,27 @@ type dummyScreen struct {
 	height int
 }
 
+func setDummyScreen() (*interceptor, func()) {
+	i := newInterceptor()
+	old := screen
+	guard := func() { screen = old }
+	screen = dummyScreen{
+		i,
+		100,
+		100,
+	}
+	return i, guard
+}
+
 func (d dummyScreen) SetCell(x, y int, ch rune, fg, bg termbox.Attribute) {
 	d.record("SetCell", interceptorArgs{x, y, ch, fg, bg})
 }
 func (d dummyScreen) Clear(fg, bg termbox.Attribute) error { return nil }
-func (d dummyScreen) Flush() error                         { return nil }
-func (d dummyScreen) PollEvent() chan termbox.Event        { return nil }
+func (d dummyScreen) Flush() error {
+	d.record("Flush", interceptorArgs{})
+	return nil
+}
+func (d dummyScreen) PollEvent() chan termbox.Event { return nil }
 func (d dummyScreen) Size() (int, int) {
 	return d.width, d.height
 }
@@ -46,12 +62,8 @@ func TestLayoutType(t *testing.T) {
 }
 
 func TestPrintScreen(t *testing.T) {
-	i := newInterceptor()
-	screen = dummyScreen{
-		i,
-		100,
-		100,
-	}
+	i, guard := setDummyScreen()
+	defer guard()
 
 	makeVerifier := func(initX, initY int, fill bool) func(string) {
 		return func(msg string) {
@@ -95,6 +107,20 @@ func TestPrintScreen(t *testing.T) {
 }
 
 func TestStatusBar(t *testing.T) {
+	i, guard := setDummyScreen()
+	defer guard()
+
 	st := NewStatusBar(NewCtx(nil), AnchorBottom, 0)
 	st.PrintStatus("Hello, World!")
+
+	events := i.events
+	if l := len(events["Flush"]); l != 1 {
+		t.Errorf("Expected 1 Flush event, got %d", l)
+		return
+	}
+
+	// XXX This is not a test... :/
+	// need to think of a way to verify that we're actually doing something
+	st.ClearStatus(500 * time.Millisecond)
+	<-time.After(time.Second)
 }
