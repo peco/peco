@@ -20,7 +20,7 @@ const (
 )
 
 // IsValidLayoutType checks if a string is a supported layout type
-func IsValidLayoutType(v string) bool {
+func IsValidLayoutType(v LayoutType) bool {
 	return v == LayoutTypeTopDown || v == LayoutTypeBottomUp
 }
 
