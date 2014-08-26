@@ -25,16 +25,15 @@ func TestANSIColorStrip(t *testing.T) {
 	}
 }
 
-func TestNewNoMatch(t *testing.T) {
-	var m *NoMatch
+func TestNewMatch(t *testing.T) {
+	var m Match
 
 	m = NewNoMatch("Hello, World!", false)
 	if m.Indices() != nil {
 		t.Errorf("NoMatch.Indices() must always return nil")
 	}
 
-	nullsepCheck := func(buf string) {
-		m = NewNoMatch(buf, true)
+	nullsepCheck := func(buf string, m Match) {
 		if m.Buffer() != buf {
 			t.Errorf("m.Buffer() should return '%s', got %s", buf, m.Buffer())
 		}
@@ -56,6 +55,16 @@ func TestNewNoMatch(t *testing.T) {
 		}
 	}
 
-	nullsepCheck("Hello, World!")
-	nullsepCheck("Hello, World!\000Hello, peco!")
+	makeDidMatch := func(buf string) (string, Match) {
+		return buf, NewDidMatch(buf, true, [][]int{{0,5}})
+	}
+
+	makeNoMatch := func(buf string) (string, Match) {
+		return buf, NewNoMatch(buf, true)
+	}
+
+	nullsepCheck(makeNoMatch("Hello, World!"))
+	nullsepCheck(makeNoMatch("Hello, World!\000Hello, peco!"))
+	nullsepCheck(makeDidMatch("Hello, World!"))
+	nullsepCheck(makeDidMatch("Hello, World!\000Hello, peco!"))
 }
