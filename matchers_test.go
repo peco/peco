@@ -56,7 +56,7 @@ func TestNewMatch(t *testing.T) {
 	}
 
 	makeDidMatch := func(buf string) (string, Match) {
-		return buf, NewDidMatch(buf, true, [][]int{{0,5}})
+		return buf, NewDidMatch(buf, true, [][]int{{0, 5}})
 	}
 
 	makeNoMatch := func(buf string) (string, Match) {

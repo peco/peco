@@ -13,7 +13,7 @@ func TestHub(t *testing.T) {
 	go func() {
 		hr := <-h.QueryCh()
 		time.Sleep(100 * time.Millisecond)
-		done["query"]= time.Now()
+		done["query"] = time.Now()
 		hr.Done()
 	}()
 	go func() {
@@ -22,7 +22,7 @@ func TestHub(t *testing.T) {
 			t.Errorf("Expected data to be nil, got %s", hr.DataInterface())
 		}
 		time.Sleep(100 * time.Millisecond)
-		done["draw"]= time.Now()
+		done["draw"] = time.Now()
 		hr.Done()
 	}()
 	go func() {
@@ -37,13 +37,13 @@ func TestHub(t *testing.T) {
 	go func() {
 		hr := <-h.ClearStatusCh()
 		time.Sleep(100 * time.Millisecond)
-		done["clearStatus"]= time.Now()
+		done["clearStatus"] = time.Now()
 		hr.Done()
 	}()
 	go func() {
 		hr := <-h.PagingCh()
 		time.Sleep(100 * time.Millisecond)
-		done["paging"]= time.Now()
+		done["paging"] = time.Now()
 		hr.Done()
 	}()
 
