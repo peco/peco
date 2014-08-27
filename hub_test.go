@@ -81,7 +81,7 @@ func TestHub(t *testing.T) {
 	h.Stop()
 
 	_, ok := <-h.LoopCh()
-	if !ok {
+	if ok {
 		t.Errorf("LoopCh should be closed, but it is not")
 	}
 }
