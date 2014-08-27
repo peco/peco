@@ -166,10 +166,7 @@ func doAcceptChar(i *Input, ev termbox.Event) {
 }
 
 func doRotateMatcher(i *Input, ev termbox.Event) {
-	i.Ctx.CurrentMatcher++
-	if i.Ctx.CurrentMatcher >= len(i.Ctx.Matchers) {
-		i.Ctx.CurrentMatcher = 0
-	}
+	i.RotateMatcher()
 	if i.ExecQuery() {
 		return
 	}

@@ -39,7 +39,11 @@ func (v *View) Loop() {
 			v.movePage(r.DataInterface().(PagingRequest))
 			r.Done()
 		case lines := <-v.DrawCh():
-			v.drawScreen(lines.DataInterface().([]Match))
+			var matches []Match
+			if tmp := lines.DataInterface(); tmp != nil {
+				matches = tmp.([]Match)
+			}
+			v.drawScreen(matches)
 			lines.Done()
 		}
 	}

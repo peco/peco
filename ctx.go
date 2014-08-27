@@ -55,7 +55,7 @@ type Ctx struct {
 	bufferSize          int
 	config              *Config
 	Matchers            []Matcher
-	CurrentMatcher      int
+	currentMatcher      int
 	ExitStatus          int
 	selectionRangeStart int
 	layoutType          string
@@ -77,7 +77,7 @@ func NewCtx(o CtxOptions) *Ctx {
 		current:             nil,
 		config:              NewConfig(),
 		Matchers:            nil,
-		CurrentMatcher:      0,
+		currentMatcher:      0,
 		ExitStatus:          0,
 		selectionRangeStart: invalidSelectionRange,
 		wait:                &sync.WaitGroup{},
@@ -227,7 +227,7 @@ func (c *Ctx) SetQuery(q []rune) {
 }
 
 func (c *Ctx) Matcher() Matcher {
-	return c.Matchers[c.CurrentMatcher]
+	return c.Matchers[c.currentMatcher]
 }
 
 func (c *Ctx) AddMatcher(m Matcher) error {
@@ -241,7 +241,7 @@ func (c *Ctx) AddMatcher(m Matcher) error {
 func (c *Ctx) SetCurrentMatcher(n string) bool {
 	for i, m := range c.Matchers {
 		if m.String() == n {
-			c.CurrentMatcher = i
+			c.currentMatcher = i
 			return true
 		}
 	}
@@ -299,4 +299,12 @@ func (s *signalHandler) Loop() {
 
 func (c *Ctx) SetPrompt(p string) {
 	c.config.Prompt = p
+}
+
+// RotateMatcher rotates the matchers
+func (c *Ctx) RotateMatcher() {
+	c.currentMatcher++
+	if c.currentMatcher >= len(c.Matchers) {
+		c.currentMatcher = 0
+	}
 }
