@@ -243,5 +243,5 @@ func main() {
 
 	ctx.WaitDone()
 
-	st = ctx.ExitStatus
+	st = ctx.ExitStatus()
 }

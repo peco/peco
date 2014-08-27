@@ -56,7 +56,7 @@ type Ctx struct {
 	config              *Config
 	Matchers            []Matcher
 	currentMatcher      int
-	ExitStatus          int
+	exitStatus          int
 	selectionRangeStart int
 	layoutType          string
 
@@ -78,7 +78,7 @@ func NewCtx(o CtxOptions) *Ctx {
 		config:              NewConfig(),
 		Matchers:            nil,
 		currentMatcher:      0,
-		ExitStatus:          0,
+		exitStatus:          0,
 		selectionRangeStart: invalidSelectionRange,
 		wait:                &sync.WaitGroup{},
 	}
@@ -262,7 +262,7 @@ func (c *Ctx) LoadCustomMatcher() error {
 }
 
 func (c *Ctx) ExitWith(i int) {
-	c.ExitStatus = i
+	c.exitStatus = i
 	c.Stop()
 }
 
@@ -307,4 +307,9 @@ func (c *Ctx) RotateMatcher() {
 	if c.currentMatcher >= len(c.Matchers) {
 		c.currentMatcher = 0
 	}
+}
+
+// ExitStatus() returns the exit status that we think should be used
+func (c Ctx) ExitStatus() int {
+	return c.exitStatus
 }
