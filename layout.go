@@ -144,19 +144,19 @@ func (u UserPrompt) Draw() {
 	// print "QUERY>"
 	printScreen(0, location, u.config.Style.BasicFG(), u.config.Style.BasicBG(), u.prefix, false)
 
-	if u.caretPos <= 0 {
-		u.caretPos = 0 // sanity
+	if u.CaretPos() <= 0 { // XXX Do we really need this?
+		u.SetCaretPos(0) // sanity
 	}
 
-	if u.caretPos > len(u.query) {
-		u.caretPos = len(u.query)
+	if u.CaretPos().Int() > u.QueryLen() { // XXX Do we really need this?
+		u.SetCaretPos(u.QueryLen())
 	}
 
-	if u.caretPos == len(u.query) {
+	if u.CaretPos().Int() == u.QueryLen() {
 		// the entire string + the caret after the string
 		fg := u.config.Style.QueryFG()
 		bg := u.config.Style.QueryBG()
-		qs := string(u.query)
+		qs := u.Query().String()
 		ql := runewidth.StringWidth(qs)
 		printScreen(u.prefixLen+1, location, fg, bg, qs, false)
 		printScreen(u.prefixLen+1+ql, location, fg|termbox.AttrReverse, bg|termbox.AttrReverse, " ", false)
@@ -166,8 +166,8 @@ func (u UserPrompt) Draw() {
 		prev := 0
 		fg := u.config.Style.QueryFG()
 		bg := u.config.Style.QueryBG()
-		for i, r := range u.query {
-			if i == u.caretPos {
+		for i, r := range []rune(u.Query()) {
+			if i == u.CaretPos().Int() {
 				fg |= termbox.AttrReverse
 				bg |= termbox.AttrReverse
 			}
@@ -383,7 +383,7 @@ CALCULATE_PAGE:
 	}
 
 	if l.maxPage < currentPage.index {
-		if len(targets) == 0 && len(l.query) == 0 {
+		if len(targets) == 0 && l.QueryLen() == 0 {
 			// wait for targets
 			return fmt.Errorf("no targets or query. nothing to do")
 		}

@@ -151,16 +151,12 @@ func doAcceptChar(i *Input, ev termbox.Event) {
 	}
 
 	if ev.Ch > 0 {
-		if len(i.query) == i.caretPos {
-			i.query = append(i.query, ev.Ch)
+		if i.QueryLen() == i.CaretPos().Int() {
+			i.AppendQuery(ev.Ch)
 		} else {
-			buf := make([]rune, len(i.query)+1)
-			copy(buf, i.query[:i.caretPos])
-			buf[i.caretPos] = ev.Ch
-			copy(buf[i.caretPos+1:], i.query[i.caretPos:])
-			i.query = buf
+			i.InsertQueryAt(ev.Ch, i.CaretPos().Int())
 		}
-		i.caretPos++
+		i.MoveCaretPos(1)
 		i.ExecQuery()
 	}
 }
@@ -284,22 +280,23 @@ func doToggleSelectionAndSelectNext(i *Input, ev termbox.Event) {
 }
 
 func doDeleteBackwardWord(i *Input, _ termbox.Event) {
-	if i.caretPos == 0 {
+	if i.CaretPos() == 0 {
 		return
 	}
 
-	for pos := i.caretPos - 1; pos >= 0; pos-- {
+	for pos := i.CaretPos().Int() - 1; pos >= 0; pos-- {
+		q := i.Query()
 		if pos == 0 {
-			i.query = i.query[i.caretPos:]
+			i.SetQuery(q[i.CaretPos().Int():])
 			break
 		}
 
-		if unicode.IsSpace(i.query[pos]) {
-			buf := make([]rune, len(i.query)-(i.caretPos-pos))
-			copy(buf, i.query[:pos])
-			copy(buf[pos:], i.query[i.caretPos:])
-			i.query = buf
-			i.caretPos = pos
+		if unicode.IsSpace(q[pos]) {
+			buf := make([]rune, q.QueryLen()-(i.CaretPos().Int()-pos))
+			copy(buf, q[:pos])
+			copy(buf[pos:], q[i.CaretPos().Int():])
+			i.SetQuery(buf)
+			i.SetCaretPos(pos)
 			break
 		}
 	}
@@ -313,16 +310,16 @@ func doDeleteBackwardWord(i *Input, _ termbox.Event) {
 }
 
 func doForwardWord(i *Input, _ termbox.Event) {
-	if i.caretPos >= len(i.query) {
+	if i.CaretPos().Int() >= i.QueryLen() {
 		return
 	}
 
 	foundSpace := false
-	for pos := i.caretPos; pos < len(i.query); pos++ {
-		r := i.query[pos]
+	for pos := i.CaretPos().Int(); pos < i.QueryLen(); pos++ {
+		r := i.Query()[pos]
 		if foundSpace {
 			if !unicode.IsSpace(r) {
-				i.caretPos = pos
+				i.SetCaretPos(pos)
 				i.DrawMatches(nil)
 				return
 			}
@@ -334,28 +331,28 @@ func doForwardWord(i *Input, _ termbox.Event) {
 	}
 
 	// not found. just move to the end of the buffer
-	i.caretPos = len(i.query)
+	i.SetCaretPos(i.QueryLen())
 	i.DrawMatches(nil)
 
 }
 
 func doBackwardWord(i *Input, _ termbox.Event) {
-	if i.caretPos == 0 {
+	if i.CaretPos().Int() == 0 {
 		return
 	}
 
-	if i.caretPos >= len(i.query) {
-		i.caretPos--
+	if i.CaretPos().Int() >= i.QueryLen() {
+		i.MoveCaretPos(-1)
 	}
 
 	// if we start from a whitespace-ish position, we should
 	// rewind to the end of the previous word, and then do the
 	// search all over again
 SEARCH_PREV_WORD:
-	if unicode.IsSpace(i.query[i.caretPos]) {
-		for pos := i.caretPos; pos > 0; pos-- {
-			if !unicode.IsSpace(i.query[pos]) {
-				i.caretPos = pos
+	if unicode.IsSpace(i.Query()[i.CaretPos().Int()]) {
+		for pos := i.CaretPos().Int(); pos > 0; pos-- {
+			if !unicode.IsSpace(i.Query()[pos]) {
+				i.SetCaretPos(pos)
 				break
 			}
 		}
@@ -363,57 +360,57 @@ SEARCH_PREV_WORD:
 
 	// if we start from the first character of a word, we
 	// should attempt to move back and search for the previous word
-	if i.caretPos > 0 && unicode.IsSpace(i.query[i.caretPos-1]) {
-		i.caretPos--
+	if i.CaretPos() > 0 && unicode.IsSpace(i.Query()[i.CaretPos()-1]) {
+		i.MoveCaretPos(-1)
 		goto SEARCH_PREV_WORD
 	}
 
 	// Now look for a space
-	for pos := i.caretPos; pos > 0; pos-- {
-		if unicode.IsSpace(i.query[pos]) {
-			i.caretPos = pos + 1
+	for pos := i.CaretPos(); pos > 0; pos-- {
+		if unicode.IsSpace(i.Query()[pos]) {
+			i.SetCaretPos(int(pos + 1))
 			i.DrawMatches(nil)
 			return
 		}
 	}
 
 	// not found. just move to the beginning of the buffer
-	i.caretPos = 0
+	i.SetCaretPos(0)
 	i.DrawMatches(nil)
 }
 
 func doForwardChar(i *Input, _ termbox.Event) {
-	if i.caretPos >= len(i.query) {
+	if i.CaretPos().Int() >= i.QueryLen() {
 		return
 	}
-	i.caretPos++
+	i.MoveCaretPos(1)
 	i.DrawMatches(nil)
 }
 
 func doBackwardChar(i *Input, _ termbox.Event) {
-	if i.caretPos <= 0 {
+	if i.CaretPos() <= 0 {
 		return
 	}
-	i.caretPos--
+	i.MoveCaretPos(-1)
 	i.DrawMatches(nil)
 }
 
 func doDeleteForwardWord(i *Input, _ termbox.Event) {
-	if len(i.query) <= i.caretPos {
+	if i.QueryLen() <= i.CaretPos().Int() {
 		return
 	}
 
-	for pos := i.caretPos; pos < len(i.query); pos++ {
-		if pos == len(i.query)-1 {
-			i.query = i.query[:i.caretPos]
+	for pos := i.CaretPos().Int(); pos < i.QueryLen(); pos++ {
+		if pos == i.QueryLen()-1 {
+			i.SetQuery(i.Query()[:i.CaretPos()])
 			break
 		}
 
-		if unicode.IsSpace(i.query[pos]) {
-			buf := make([]rune, len(i.query)-(pos-i.caretPos))
-			copy(buf, i.query[:i.caretPos])
-			copy(buf[i.caretPos:], i.query[pos:])
-			i.query = buf
+		if unicode.IsSpace(i.Query()[pos]) {
+			buf := make([]rune, i.QueryLen()-(pos-i.CaretPos().Int()))
+			copy(buf, i.Query()[:i.CaretPos()])
+			copy(buf[i.CaretPos():], i.Query()[pos:])
+			i.SetQuery(buf)
 			break
 		}
 	}
@@ -427,17 +424,17 @@ func doDeleteForwardWord(i *Input, _ termbox.Event) {
 }
 
 func doBeginningOfLine(i *Input, _ termbox.Event) {
-	i.caretPos = 0
+	i.SetCaretPos(0)
 	i.DrawMatches(nil)
 }
 
 func doEndOfLine(i *Input, _ termbox.Event) {
-	i.caretPos = len(i.query)
+	i.SetCaretPos(i.QueryLen())
 	i.DrawMatches(nil)
 }
 
 func doEndOfFile(i *Input, ev termbox.Event) {
-	if len(i.query) > 0 {
+	if i.QueryLen() > 0 {
 		doDeleteForwardChar(i, ev)
 	} else {
 		doCancel(i, ev)
@@ -445,8 +442,8 @@ func doEndOfFile(i *Input, ev termbox.Event) {
 }
 
 func doKillBeginningOfLine(i *Input, _ termbox.Event) {
-	i.query = i.query[i.caretPos:]
-	i.caretPos = 0
+	i.SetQuery(i.Query()[i.CaretPos():])
+	i.SetCaretPos(0)
 	if i.ExecQuery() {
 		return
 	}
@@ -455,11 +452,11 @@ func doKillBeginningOfLine(i *Input, _ termbox.Event) {
 }
 
 func doKillEndOfLine(i *Input, _ termbox.Event) {
-	if len(i.query) <= i.caretPos {
+	if i.QueryLen() <= i.CaretPos().Int() {
 		return
 	}
 
-	i.query = i.query[0:i.caretPos]
+	i.SetQuery(i.Query()[0:i.CaretPos()])
 	if i.ExecQuery() {
 		return
 	}
@@ -468,20 +465,20 @@ func doKillEndOfLine(i *Input, _ termbox.Event) {
 }
 
 func doDeleteAll(i *Input, _ termbox.Event) {
-	i.query = make([]rune, 0)
+	i.SetQuery(make([]rune, 0))
 	i.current = nil
 	i.DrawMatches(nil)
 }
 
 func doDeleteForwardChar(i *Input, _ termbox.Event) {
-	if len(i.query) <= i.caretPos {
+	if i.QueryLen() <= i.CaretPos().Int() {
 		return
 	}
 
-	buf := make([]rune, len(i.query)-1)
-	copy(buf, i.query[:i.caretPos])
-	copy(buf[i.caretPos:], i.query[i.caretPos+1:])
-	i.query = buf
+	buf := make([]rune, i.QueryLen()-1)
+	copy(buf, i.Query()[:i.CaretPos()])
+	copy(buf[i.CaretPos():], i.Query()[i.CaretPos()+1:])
+	i.SetQuery(buf)
 
 	if i.ExecQuery() {
 		return
@@ -492,23 +489,23 @@ func doDeleteForwardChar(i *Input, _ termbox.Event) {
 }
 
 func doDeleteBackwardChar(i *Input, ev termbox.Event) {
-	if len(i.query) <= 0 {
+	if i.QueryLen() <= 0 {
 		return
 	}
 
-	switch i.caretPos {
+	switch i.CaretPos().Int() {
 	case 0:
 		// No op
 		return
-	case len(i.query):
-		i.query = i.query[:len(i.query)-1]
+	case i.QueryLen():
+		i.SetQuery(i.Query()[:i.QueryLen()-1])
 	default:
-		buf := make([]rune, len(i.query)-1)
-		copy(buf, i.query[:i.caretPos])
-		copy(buf[i.caretPos-1:], i.query[i.caretPos:])
-		i.query = buf
+		buf := make([]rune, i.QueryLen()-1)
+		copy(buf, i.Query()[:i.CaretPos()])
+		copy(buf[i.CaretPos()-1:], i.Query()[i.CaretPos():])
+		i.SetQuery(buf)
 	}
-	i.caretPos--
+	i.MoveCaretPos(-1)
 
 	if i.ExecQuery() {
 		return

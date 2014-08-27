@@ -37,15 +37,60 @@ type PageInfo struct {
 	perPage int
 }
 
+type CaretPosition int
+
+func (p CaretPosition) Int() int {
+	return int(p)
+}
+
+func (p CaretPosition) CaretPos() CaretPosition {
+	return p
+}
+
+func (p *CaretPosition) SetCaretPos(where int) {
+	*p = CaretPosition(where)
+}
+
+func (p *CaretPosition) MoveCaretPos(offset int) {
+	*p = CaretPosition(p.Int() + offset)
+}
+
+type FilterQuery []rune
+
+func (q FilterQuery) Query() FilterQuery {
+	return q
+}
+
+func (q FilterQuery) String() string {
+	return string(q)
+}
+
+func (q FilterQuery) QueryLen() int {
+	return len(q)
+}
+
+func (q *FilterQuery) AppendQuery(r rune) {
+	*q = FilterQuery(append([]rune(*q), r))
+}
+
+func (q *FilterQuery) InsertQueryAt(ch rune, where int) {
+	sq := []rune(*q)
+	buf := make([]rune, q.QueryLen()+1)
+	copy(buf, sq[:where])
+	buf[where] = ch
+	copy(buf[where+1:], sq[where:])
+	*q = FilterQuery(buf)
+}
+
 // Ctx contains all the important data. while you can easily access
 // data in this struct from anwyehre, only do so via channels
 type Ctx struct {
 	*Hub
+	CaretPosition
+	FilterQuery
 	enableSep           bool
 	result              []Match
 	mutex               sync.Mutex
-	query               []rune
-	caretPos            int
 	currentLine         int
 	currentPage         *PageInfo
 	maxPage             int
@@ -66,10 +111,10 @@ type Ctx struct {
 func NewCtx(o CtxOptions) *Ctx {
 	c := &Ctx{
 		Hub:                 NewHub(),
+		CaretPosition:       0,
+		FilterQuery:         FilterQuery{},
 		result:              []Match{},
 		mutex:               sync.Mutex{},
-		query:               []rune{},
-		caretPos:            0,
 		currentPage:         &PageInfo{0, 1, 0},
 		maxPage:             0,
 		selection:           Selection([]int{}),
@@ -174,8 +219,8 @@ func (c *Ctx) WaitDone() {
 }
 
 func (c *Ctx) ExecQuery() bool {
-	if len(c.query) > 0 {
-		c.SendQuery(string(c.query))
+	if c.QueryLen() > 0 {
+		c.SendQuery(c.Query().String())
 		return true
 	}
 	return false
@@ -222,8 +267,8 @@ func (c *Ctx) NewInput() *Input {
 }
 
 func (c *Ctx) SetQuery(q []rune) {
-	c.query = q
-	c.caretPos = len(q)
+	c.FilterQuery = FilterQuery(q)
+	c.SetCaretPos(c.QueryLen())
 }
 
 func (c *Ctx) Matcher() Matcher {

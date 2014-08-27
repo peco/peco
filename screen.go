@@ -35,6 +35,8 @@ func (t Termbox) PollEvent() chan termbox.Event {
 	// safe from being stuck.
 	evCh := make(chan termbox.Event)
 	go func() {
+		defer func() { recover() }()
+		defer func() { close(evCh) }()
 		for {
 			evCh <- termbox.PollEvent()
 		}
