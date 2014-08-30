@@ -151,7 +151,7 @@ Specifies the initial line position upon start up. E.g. If you want to start out
 
 ### --initial-matcher `IgnoreCase|CaseSensitive|Regexp`
 
-Specifies the initial matcher to use upon start up. You should specify the name of the macher like `IgnoreCase`, `CaseSensitive`, and `Regexp`.
+Specifies the initial matcher to use upon start up. You should specify the name of the macher like `IgnoreCase`, `CaseSensitive`, and `Regexp`. Default is `IgnoreCase`.
 
 ### --prompt
 
