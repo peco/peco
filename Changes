@@ -1,6 +1,12 @@
 Changes
 =======
 
+v0.2.6 30 Aug 2014
+  Bugs/Fixes
+  * --prompt option was not properly working
+  Miscellaneous
+  * Bunch of internal cleanups to make testing easier
+
 v0.2.5 18 Aug 2014
   Features
   * Add --layout option, which allows you to switch between `top-down`

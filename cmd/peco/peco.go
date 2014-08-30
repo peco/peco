@@ -11,7 +11,7 @@ import (
 	"github.com/peco/peco"
 )
 
-var version = "v0.2.5"
+var version = "v0.2.6"
 
 type cmdOptions struct {
 	OptHelp           bool   `short:"h" long:"help" description:"show this help message and exit"`
