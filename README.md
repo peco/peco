@@ -149,7 +149,7 @@ By default peco starts in case insensitive mode. When this option is specified, 
 
 Specifies the initial line position upon start up. E.g. If you want to start out with the second line selected, set it to "1" (because the index is 0 based)
 
-### --initial-matcher `IgnoreCase|CaseSensitve|Regexp`
+### --initial-matcher `IgnoreCase|CaseSensitive|Regexp`
 
 Specifies the initial matcher to use upon start up. You should specify the name of the macher like `IgnoreCase`, `CaseSensitive`, and `Regexp`.
 
