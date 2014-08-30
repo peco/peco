@@ -62,7 +62,10 @@ func (b *BufferReader) Loop() {
 			}
 
 			if line != "" {
+				// Notify once that we have received something from the file/stdin
 				once.Do(func() { b.inputReadyCh <- struct{}{} })
+
+				// Make sure we lock access to b.lines
 				m.Lock()
 				b.lines = append(b.lines, NewNoMatch(line, b.enableSep))
 				if b.IsBufferOverflowing() {

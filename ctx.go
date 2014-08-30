@@ -9,6 +9,8 @@ import (
 	"syscall"
 )
 
+var screen Screen = Termbox{}
+
 // CtxOptions is the interface that defines that options can be
 // passed in from the command line
 type CtxOptions interface {
@@ -35,15 +37,60 @@ type PageInfo struct {
 	perPage int
 }
 
+type CaretPosition int
+
+func (p CaretPosition) Int() int {
+	return int(p)
+}
+
+func (p CaretPosition) CaretPos() CaretPosition {
+	return p
+}
+
+func (p *CaretPosition) SetCaretPos(where int) {
+	*p = CaretPosition(where)
+}
+
+func (p *CaretPosition) MoveCaretPos(offset int) {
+	*p = CaretPosition(p.Int() + offset)
+}
+
+type FilterQuery []rune
+
+func (q FilterQuery) Query() FilterQuery {
+	return q
+}
+
+func (q FilterQuery) String() string {
+	return string(q)
+}
+
+func (q FilterQuery) QueryLen() int {
+	return len(q)
+}
+
+func (q *FilterQuery) AppendQuery(r rune) {
+	*q = FilterQuery(append([]rune(*q), r))
+}
+
+func (q *FilterQuery) InsertQueryAt(ch rune, where int) {
+	sq := []rune(*q)
+	buf := make([]rune, q.QueryLen()+1)
+	copy(buf, sq[:where])
+	buf[where] = ch
+	copy(buf[where+1:], sq[where:])
+	*q = FilterQuery(buf)
+}
+
 // Ctx contains all the important data. while you can easily access
 // data in this struct from anwyehre, only do so via channels
 type Ctx struct {
 	*Hub
+	CaretPosition
+	FilterQuery
 	enableSep           bool
 	result              []Match
 	mutex               sync.Mutex
-	query               []rune
-	caretPos            int
 	currentLine         int
 	currentPage         *PageInfo
 	maxPage             int
@@ -53,8 +100,8 @@ type Ctx struct {
 	bufferSize          int
 	config              *Config
 	Matchers            []Matcher
-	CurrentMatcher      int
-	ExitStatus          int
+	currentMatcher      int
+	exitStatus          int
 	selectionRangeStart int
 	layoutType          string
 
@@ -62,32 +109,40 @@ type Ctx struct {
 }
 
 func NewCtx(o CtxOptions) *Ctx {
-	return &Ctx{
-		NewHub(),
-		o.EnableNullSep(),
-		[]Match{},
-		sync.Mutex{},
-		[]rune{},
-		0,
-		o.InitialIndex(),
-		&PageInfo{0, 1, 0},
-		0,
-		Selection([]int{}),
-		[]Match{},
-		nil,
-		o.BufferSize(),
-		NewConfig(),
-		[]Matcher{
-			NewIgnoreCaseMatcher(o.EnableNullSep()),
-			NewCaseSensitiveMatcher(o.EnableNullSep()),
-			NewRegexpMatcher(o.EnableNullSep()),
-		},
-		0,
-		0,
-		invalidSelectionRange,
-		o.LayoutType(),
-		&sync.WaitGroup{},
+	c := &Ctx{
+		Hub:                 NewHub(),
+		CaretPosition:       0,
+		FilterQuery:         FilterQuery{},
+		result:              []Match{},
+		mutex:               sync.Mutex{},
+		currentPage:         &PageInfo{0, 1, 0},
+		maxPage:             0,
+		selection:           Selection([]int{}),
+		lines:               []Match{},
+		current:             nil,
+		config:              NewConfig(),
+		Matchers:            nil,
+		currentMatcher:      0,
+		exitStatus:          0,
+		selectionRangeStart: invalidSelectionRange,
+		wait:                &sync.WaitGroup{},
 	}
+
+	if o != nil {
+		// XXX Pray this is really nil :)
+		c.enableSep = o.EnableNullSep()
+		c.currentLine = o.InitialIndex()
+		c.bufferSize = o.BufferSize()
+		c.layoutType = o.LayoutType()
+	}
+
+	c.Matchers = []Matcher{
+		NewIgnoreCaseMatcher(c.enableSep),
+		NewCaseSensitiveMatcher(c.enableSep),
+		NewRegexpMatcher(c.enableSep),
+	}
+
+	return c
 }
 
 const invalidSelectionRange = -1
@@ -164,8 +219,8 @@ func (c *Ctx) WaitDone() {
 }
 
 func (c *Ctx) ExecQuery() bool {
-	if len(c.query) > 0 {
-		c.SendQuery(string(c.query))
+	if c.QueryLen() > 0 {
+		c.SendQuery(c.Query().String())
 		return true
 	}
 	return false
@@ -212,12 +267,12 @@ func (c *Ctx) NewInput() *Input {
 }
 
 func (c *Ctx) SetQuery(q []rune) {
-	c.query = q
-	c.caretPos = len(q)
+	c.FilterQuery = FilterQuery(q)
+	c.SetCaretPos(c.QueryLen())
 }
 
 func (c *Ctx) Matcher() Matcher {
-	return c.Matchers[c.CurrentMatcher]
+	return c.Matchers[c.currentMatcher]
 }
 
 func (c *Ctx) AddMatcher(m Matcher) error {
@@ -231,7 +286,7 @@ func (c *Ctx) AddMatcher(m Matcher) error {
 func (c *Ctx) SetCurrentMatcher(n string) bool {
 	for i, m := range c.Matchers {
 		if m.String() == n {
-			c.CurrentMatcher = i
+			c.currentMatcher = i
 			return true
 		}
 	}
@@ -252,7 +307,7 @@ func (c *Ctx) LoadCustomMatcher() error {
 }
 
 func (c *Ctx) ExitWith(i int) {
-	c.ExitStatus = i
+	c.exitStatus = i
 	c.Stop()
 }
 
@@ -289,4 +344,17 @@ func (s *signalHandler) Loop() {
 
 func (c *Ctx) SetPrompt(p string) {
 	c.config.Prompt = p
+}
+
+// RotateMatcher rotates the matchers
+func (c *Ctx) RotateMatcher() {
+	c.currentMatcher++
+	if c.currentMatcher >= len(c.Matchers) {
+		c.currentMatcher = 0
+	}
+}
+
+// ExitStatus() returns the exit status that we think should be used
+func (c Ctx) ExitStatus() int {
+	return c.exitStatus
 }

@@ -20,7 +20,7 @@ const (
 )
 
 // IsValidLayoutType checks if a string is a supported layout type
-func IsValidLayoutType(v string) bool {
+func IsValidLayoutType(v LayoutType) bool {
 	return v == LayoutTypeTopDown || v == LayoutTypeBottomUp
 }
 
@@ -34,6 +34,11 @@ const (
 	// AnchorBottom anchors elements towards the bottom of the screen
 	AnchorBottom
 )
+
+// IsValidVerticalAnchor checks if the specified anchor is supported
+func IsValidVerticalAnchor(anchor VerticalAnchor) bool {
+	return anchor == AnchorTop || anchor == AnchorBottom
+}
 
 // Layout represents the component that controls where elements are placed on screen
 type Layout interface {
@@ -60,7 +65,7 @@ func printScreen(x, y int, fg, bg termbox.Attribute, msg string, fill bool) {
 			w = 1
 		}
 		msg = msg[w:]
-		termbox.SetCell(x, y, c, fg, bg)
+		screen.SetCell(x, y, c, fg, bg)
 		x += runewidth.RuneWidth(c)
 	}
 
@@ -68,9 +73,9 @@ func printScreen(x, y int, fg, bg termbox.Attribute, msg string, fill bool) {
 		return
 	}
 
-	width, _ := termbox.Size()
+	width, _ := screen.Size()
 	for ; x < width; x++ {
-		termbox.SetCell(x, y, ' ', fg, bg)
+		screen.SetCell(x, y, ' ', fg, bg)
 	}
 }
 
@@ -81,6 +86,16 @@ type AnchorSettings struct {
 	anchorOffset int            // offset this many lines from the anchor
 }
 
+// NewAnchorSettings creates a new AnchorSetting struct. Panics if
+// an unknown VerticalAnchor is sent
+func NewAnchorSettings(anchor VerticalAnchor, offset int) *AnchorSettings {
+	if !IsValidVerticalAnchor(anchor) {
+		panic("Invalid vertical anchor specified")
+	}
+
+	return &AnchorSettings{anchor, offset}
+}
+
 // AnchorPosition returns the starting y-offset, based on the
 // anchor type and offset
 func (as AnchorSettings) AnchorPosition() int {
@@ -89,7 +104,7 @@ func (as AnchorSettings) AnchorPosition() int {
 	case AnchorTop:
 		pos = as.anchorOffset
 	case AnchorBottom:
-		_, h := termbox.Size()
+		_, h := screen.Size()
 		pos = h - as.anchorOffset - 1 // -1 is required because y is 0 base, but h is 1 base
 	default:
 		panic("Unknown anchor type!")
@@ -129,19 +144,19 @@ func (u UserPrompt) Draw() {
 	// print "QUERY>"
 	printScreen(0, location, u.config.Style.BasicFG(), u.config.Style.BasicBG(), u.prefix, false)
 
-	if u.caretPos <= 0 {
-		u.caretPos = 0 // sanity
+	if u.CaretPos() <= 0 { // XXX Do we really need this?
+		u.SetCaretPos(0) // sanity
 	}
 
-	if u.caretPos > len(u.query) {
-		u.caretPos = len(u.query)
+	if u.CaretPos().Int() > u.QueryLen() { // XXX Do we really need this?
+		u.SetCaretPos(u.QueryLen())
 	}
 
-	if u.caretPos == len(u.query) {
+	if u.CaretPos().Int() == u.QueryLen() {
 		// the entire string + the caret after the string
 		fg := u.config.Style.QueryFG()
 		bg := u.config.Style.QueryBG()
-		qs := string(u.query)
+		qs := u.Query().String()
 		ql := runewidth.StringWidth(qs)
 		printScreen(u.prefixLen+1, location, fg, bg, qs, false)
 		printScreen(u.prefixLen+1+ql, location, fg|termbox.AttrReverse, bg|termbox.AttrReverse, " ", false)
@@ -151,17 +166,17 @@ func (u UserPrompt) Draw() {
 		prev := 0
 		fg := u.config.Style.QueryFG()
 		bg := u.config.Style.QueryBG()
-		for i, r := range u.query {
-			if i == u.caretPos {
+		for i, r := range []rune(u.Query()) {
+			if i == u.CaretPos().Int() {
 				fg |= termbox.AttrReverse
 				bg |= termbox.AttrReverse
 			}
-			termbox.SetCell(u.prefixLen+1+prev, location, r, fg, bg)
+			screen.SetCell(u.prefixLen+1+prev, location, r, fg, bg)
 			prev += runewidth.RuneWidth(r)
 		}
 	}
 
-	width, _ := termbox.Size()
+	width, _ := screen.Size()
 
 	pmsg := fmt.Sprintf("%s [%d/%d]", u.Matcher().String(), u.currentPage.index, u.maxPage)
 	printScreen(width-runewidth.StringWidth(pmsg), location, u.config.Style.BasicFG(), u.config.Style.BasicBG(), pmsg, false)
@@ -178,7 +193,7 @@ type StatusBar struct {
 func NewStatusBar(ctx *Ctx, anchor VerticalAnchor, anchorOffset int) *StatusBar {
 	return &StatusBar{
 		ctx,
-		&AnchorSettings{anchor, anchorOffset},
+		NewAnchorSettings(anchor, anchorOffset),
 		nil,
 	}
 }
@@ -205,7 +220,7 @@ func (s *StatusBar) PrintStatus(msg string) {
 
 	location := s.AnchorPosition()
 
-	w, _ := termbox.Size()
+	w, _ := screen.Size()
 	width := runewidth.StringWidth(msg)
 	for width > w {
 		_, rw := utf8.DecodeRuneInString(msg)
@@ -231,7 +246,7 @@ func (s *StatusBar) PrintStatus(msg string) {
 	if width > 0 {
 		printScreen(w-width, location, fgAttr|termbox.AttrReverse|termbox.AttrBold, bgAttr|termbox.AttrReverse, msg, false)
 	}
-	termbox.Flush()
+	screen.Flush()
 }
 
 // ListArea represents the area where the actual line buffer is
@@ -246,7 +261,7 @@ type ListArea struct {
 func NewListArea(ctx *Ctx, anchor VerticalAnchor, anchorOffset int, sortTopDown bool) *ListArea {
 	return &ListArea{
 		ctx,
-		&AnchorSettings{anchor, anchorOffset},
+		NewAnchorSettings(anchor, anchorOffset),
 		sortTopDown,
 	}
 }
@@ -368,7 +383,7 @@ CALCULATE_PAGE:
 	}
 
 	if l.maxPage < currentPage.index {
-		if len(targets) == 0 && len(l.query) == 0 {
+		if len(targets) == 0 && l.QueryLen() == 0 {
 			// wait for targets
 			return fmt.Errorf("no targets or query. nothing to do")
 		}
@@ -381,7 +396,7 @@ CALCULATE_PAGE:
 
 // DrawScreen draws the entire screen
 func (l *BasicLayout) DrawScreen(targets []Match) {
-	if err := termbox.Clear(l.config.Style.BasicFG(), l.config.Style.BasicBG()); err != nil {
+	if err := screen.Clear(l.config.Style.BasicFG(), l.config.Style.BasicBG()); err != nil {
 		return
 	}
 
@@ -398,13 +413,13 @@ func (l *BasicLayout) DrawScreen(targets []Match) {
 	l.prompt.Draw()
 	l.list.Draw(targets, perPage)
 
-	if err := termbox.Flush(); err != nil {
+	if err := screen.Flush(); err != nil {
 		return
 	}
 }
 
 func linesPerPage() int {
-	_, height := termbox.Size()
+	_, height := screen.Size()
 	return height - 2 // list area is always the display area - 2 lines for prompt and status
 }
 

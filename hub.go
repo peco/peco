@@ -30,6 +30,9 @@ type HubReq struct {
 
 // DataInterface returns the underlying data as interface{}
 func (hr HubReq) DataInterface() interface{} {
+	if hr.data == nil {
+		return nil
+	}
 	return hr.data
 }
 
@@ -117,7 +120,12 @@ func (h *Hub) DrawCh() chan HubReq {
 
 // SendDraw sends a request to redraw the terminal display
 func (h *Hub) SendDraw(matches []Match) {
-	send(h.DrawCh(), HubReq{matches, nil}, h.isSync)
+	// to make sure interface is nil, I need to EXPLICITLY set nil
+	req := HubReq{nil, nil}
+	if matches != nil {
+		req.data = matches
+	}
+	send(h.DrawCh(), req, h.isSync)
 }
 
 // StatusMsgCh returns the channel to update the status message

@@ -53,7 +53,7 @@ func (c *Config) ReadFilename(filename string) error {
 		return err
 	}
 
-	if !IsValidLayoutType(c.Layout) {
+	if !IsValidLayoutType(LayoutType(c.Layout)) {
 		return fmt.Errorf("invalid layout type: %s", c.Layout)
 	}
 
