@@ -308,8 +308,8 @@ Note: If in case below keymap seems wrong, check the source code in [keymap.go](
 |Ctrl-b|handleBackwardChar|
 |Ctrl-a|handleBeginningOfLine|
 |Ctrl-e|handleEndOfLine|
-|Ctrl-d|handleDeleteBackwardWord|
-|Ctrl-w|handleKillEndOfLine|
+|Ctrl-d|handleDeleteForwardChar|
+|Ctrl-w|handleDeleteBackwardWord|
 |Ctrl-u|handleKillBeginOfLine|
 |Ctrl-k|handleKillEndOfLine|
 |Ctrl-space|handleToggleSelectionAndSelectNext|
