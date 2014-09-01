@@ -294,6 +294,7 @@ func doDeleteBackwardWord(i *Input, _ termbox.Event) {
 	for pos := start - 1; pos >= 0; pos-- {
 		if pos == 0 {
 			i.SetQuery(q[start:])
+			i.SetCaretPos(pos)
 			break
 		}
 
