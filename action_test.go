@@ -3,6 +3,7 @@ package peco
 import (
 	"testing"
 
+	"github.com/mattn/go-runewidth"
 	"github.com/nsf/termbox-go"
 )
 
@@ -39,7 +40,9 @@ func TestActionNames(t *testing.T) {
 	}
 }
 
-func expectCaretPos(t *testing.T, c interface { CaretPos() CaretPosition }, expect CaretPosition) bool {
+func expectCaretPos(t *testing.T, c interface {
+	CaretPos() CaretPosition
+}, expect CaretPosition) bool {
 	if c.CaretPos() != expect {
 		t.Errorf("Expected caret position %d, got %d", expect, c.CaretPos())
 		return false
@@ -47,7 +50,9 @@ func expectCaretPos(t *testing.T, c interface { CaretPos() CaretPosition }, expe
 	return true
 }
 
-func expectQueryString(t *testing.T, c interface { QueryString() string }, expect string) bool {
+func expectQueryString(t *testing.T, c interface {
+	QueryString() string
+}, expect string) bool {
 	if c.QueryString() != expect {
 		t.Errorf("Expected '%s', got '%s'", expect, c.QueryString())
 		return false
@@ -65,4 +70,16 @@ func TestDoDeleteForwardChar(t *testing.T) {
 
 	expectQueryString(t, ctx, "Hello World!")
 	expectCaretPos(t, ctx, 5)
+
+	ctx.SetCaretPos(runewidth.StringWidth(ctx.QueryString()))
+	doDeleteForwardChar(input, termbox.Event{})
+
+	expectQueryString(t, ctx, "Hello World!")
+	expectCaretPos(t, ctx, CaretPosition(runewidth.StringWidth(ctx.QueryString())))
+
+	ctx.SetCaretPos(0)
+	doDeleteForwardChar(input, termbox.Event{})
+
+	expectQueryString(t, ctx, "ello World!")
+	expectCaretPos(t, ctx, 0)
 }
