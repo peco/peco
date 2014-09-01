@@ -400,17 +400,20 @@ func doDeleteForwardWord(i *Input, _ termbox.Event) {
 		return
 	}
 
-	for pos := i.CaretPos().Int(); pos < i.QueryLen(); pos++ {
+	start := i.CaretPos().Int()
+	for pos := start; pos < i.QueryLen(); pos++ {
 		if pos == i.QueryLen()-1 {
-			i.SetQuery(i.Query()[:i.CaretPos()])
+			i.SetQuery(i.Query()[:start])
+			i.SetCaretPos(start)
 			break
 		}
 
 		if unicode.IsSpace(i.Query()[pos]) {
-			buf := make([]rune, i.QueryLen()-(pos-i.CaretPos().Int()))
-			copy(buf, i.Query()[:i.CaretPos()])
-			copy(buf[i.CaretPos():], i.Query()[pos:])
+			buf := make([]rune, i.QueryLen()-(pos-start))
+			copy(buf, i.Query()[:start])
+			copy(buf[start:], i.Query()[pos:])
 			i.SetQuery(buf)
+			i.SetCaretPos(start)
 			break
 		}
 	}
