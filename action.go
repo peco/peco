@@ -493,7 +493,8 @@ func doDeleteBackwardChar(i *Input, ev termbox.Event) {
 		return
 	}
 
-	switch i.CaretPos().Int() {
+	pos := i.CaretPos().Int()
+	switch pos {
 	case 0:
 		// No op
 		return
@@ -505,7 +506,7 @@ func doDeleteBackwardChar(i *Input, ev termbox.Event) {
 		copy(buf[i.CaretPos()-1:], i.Query()[i.CaretPos():])
 		i.SetQuery(buf)
 	}
-	i.MoveCaretPos(-1)
+	i.SetCaretPos(pos-1)
 
 	if i.ExecQuery() {
 		return
