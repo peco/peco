@@ -475,12 +475,10 @@ func doDeleteForwardChar(i *Input, _ termbox.Event) {
 		return
 	}
 
-	pos := i.CaretPos().Int()
 	buf := make([]rune, i.QueryLen()-1)
 	copy(buf, i.Query()[:i.CaretPos()])
 	copy(buf[i.CaretPos():], i.Query()[i.CaretPos()+1:])
 	i.SetQuery(buf)
-	i.SetCaretPos(pos)
 
 	if i.ExecQuery() {
 		return
@@ -508,7 +506,7 @@ func doDeleteBackwardChar(i *Input, ev termbox.Event) {
 		copy(buf[i.CaretPos()-1:], i.Query()[i.CaretPos():])
 		i.SetQuery(buf)
 	}
-	i.SetCaretPos(pos - 1)
+	i.SetCaretPos(pos-1)
 
 	if i.ExecQuery() {
 		return
