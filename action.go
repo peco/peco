@@ -2,7 +2,6 @@ package peco
 
 import (
 	"unicode"
-
 	"github.com/nsf/termbox-go"
 	"github.com/peco/peco/keyseq"
 )
@@ -286,28 +285,32 @@ func doDeleteBackwardWord(i *Input, _ termbox.Event) {
 
 	q := i.Query()
 	start := i.CaretPos().Int()
+	if l := len(q); l <= start {
+		start = l
+	}
+
 	sepFunc := unicode.IsSpace
 	if unicode.IsSpace(q[start-1]) {
 		sepFunc = func(r rune) bool { return !unicode.IsSpace(r) }
 	}
 
+	found := false
 	for pos := start - 1; pos >= 0; pos-- {
-		if pos == 0 {
-			i.SetQuery(q[start:])
-			i.SetCaretPos(pos)
-			break
-		}
-
 		if sepFunc(q[pos]) {
 			buf := make([]rune, q.QueryLen()-(start-pos-1))
 			copy(buf, q[:pos+1])
 			copy(buf[pos+1:], q[start:])
 			i.SetQuery(buf)
 			i.SetCaretPos(pos + 1)
+			found = true
 			break
 		}
 	}
 
+	if !found {
+		i.SetQuery(q[start:])
+		i.SetCaretPos(0)
+	}
 	if i.ExecQuery() {
 		return
 	}

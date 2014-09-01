@@ -108,3 +108,31 @@ func TestDoDeleteBackwardChar(t *testing.T) {
 	expectCaretPos(t, ctx, 0)
 }
 
+func TestDoDeleteBackwardWord(t *testing.T) {
+	ctx := NewCtx(nil)
+	input := ctx.NewInput()
+
+	// In case of an overflow (bug)
+	ctx.SetQuery([]rune("foo"))
+	ctx.SetCaretPos(5)
+	doDeleteBackwardWord(input, termbox.Event{})
+
+	// https://github.com/peco/peco/pull/184#issuecomment-54026739
+
+	// Case 1. " foo<caret>" -> " "
+	ctx.SetQuery([]rune(" foo"))
+	ctx.SetCaretPos(4)
+	doDeleteBackwardWord(input, termbox.Event{})
+
+	expectQueryString(t, ctx, " ")
+	expectCaretPos(t, ctx, 1)
+
+	// Case 2. "foo bar<caret>" -> "foo "
+	ctx.SetQuery([]rune("foo bar"))
+	ctx.SetCaretPos(7)
+	doDeleteBackwardWord(input, termbox.Event{})
+
+	expectQueryString(t, ctx, "foo ")
+	expectCaretPos(t, ctx, 4)
+}
+
