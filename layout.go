@@ -164,9 +164,9 @@ func (u UserPrompt) Draw() {
 	} else {
 		// the caret is in the middle of the string
 		prev := 0
-		fg := u.config.Style.QueryFG()
-		bg := u.config.Style.QueryBG()
 		for i, r := range []rune(u.Query()) {
+			fg := u.config.Style.QueryFG()
+			bg := u.config.Style.QueryBG()
 			if i == u.CaretPos().Int() {
 				fg |= termbox.AttrReverse
 				bg |= termbox.AttrReverse
