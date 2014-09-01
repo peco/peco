@@ -1,20 +1,26 @@
 Changes
 =======
 
-v0.2.7 01 Sep 2014
+v0.2.8 - 01 Sep 2014
+  Bugs/Fixes
+  * Fix in v0.2.7 was apparently not enough. Things should be fixed now.
+  * Long standing bugs against DeleteForwardWord/DeleteBackwardWord have
+    been fixed
+
+v0.2.7 - 01 Sep 2014
   Bugs/Fixes
   * A regression introduced in v0.2.6 for DeleteForwardChar/DeleteBackwardChar 
     has been fixed
   * Some entries in the Keymap section of the README was wrong, and has
     been fixed
 
-v0.2.6 30 Aug 2014
+v0.2.6 - 30 Aug 2014
   Bugs/Fixes
   * --prompt option was not properly working
   Miscellaneous
   * Bunch of internal cleanups to make testing easier
 
-v0.2.5 18 Aug 2014
+v0.2.5 - 18 Aug 2014
   Features
   * Add --layout option, which allows you to switch between `top-down`
     and `bottom-up` layout mode. This is equivalent of percol's
