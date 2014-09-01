@@ -84,6 +84,35 @@ func TestDoDeleteForwardChar(t *testing.T) {
 	expectCaretPos(t, ctx, 0)
 }
 
+func TestDoDeleteForwardWord(t *testing.T) {
+	ctx := NewCtx(nil)
+	input := ctx.NewInput()
+
+	ctx.SetQuery([]rune("Hello, World!"))
+	ctx.SetCaretPos(5)
+	doDeleteForwardWord(input, termbox.Event{})
+
+	expectQueryString(t, ctx, "Hello World!")
+	expectCaretPos(t, ctx, 5)
+
+	ctx.SetCaretPos(runewidth.StringWidth(ctx.QueryString()))
+	doDeleteForwardWord(input, termbox.Event{})
+
+	expectQueryString(t, ctx, "Hello World!")
+	expectCaretPos(t, ctx, CaretPosition(runewidth.StringWidth(ctx.QueryString())))
+
+	ctx.SetCaretPos(0)
+	doDeleteForwardWord(input, termbox.Event{})
+
+	expectQueryString(t, ctx, " World!")
+	expectCaretPos(t, ctx, 0)
+
+	ctx.SetCaretPos(1)
+	doDeleteForwardWord(input, termbox.Event{})
+
+	expectQueryString(t, ctx, " ")
+}
+
 func TestDoDeleteBackwardChar(t *testing.T) {
 	ctx := NewCtx(nil)
 	input := ctx.NewInput()
