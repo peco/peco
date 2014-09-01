@@ -1,6 +1,13 @@
 Changes
 =======
 
+v0.2.7 01 Sep 2014
+  Bugs/Fixes
+  * A regression introduced in v0.2.6 for DeleteForwardChar/DeleteBackwardChar 
+    has been fixed
+  * Some entries in the Keymap section of the README was wrong, and has
+    been fixed
+
 v0.2.6 30 Aug 2014
   Bugs/Fixes
   * --prompt option was not properly working
