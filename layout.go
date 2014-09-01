@@ -156,7 +156,7 @@ func (u UserPrompt) Draw() {
 		// the entire string + the caret after the string
 		fg := u.config.Style.QueryFG()
 		bg := u.config.Style.QueryBG()
-		qs := u.Query().String()
+		qs := u.QueryString()
 		ql := runewidth.StringWidth(qs)
 		printScreen(u.prefixLen+1, location, fg, bg, qs, false)
 		printScreen(u.prefixLen+1+ql, location, fg|termbox.AttrReverse, bg|termbox.AttrReverse, " ", false)

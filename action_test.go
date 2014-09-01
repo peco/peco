@@ -1,6 +1,10 @@
 package peco
 
-import "testing"
+import (
+	"testing"
+
+	"github.com/nsf/termbox-go"
+)
 
 func TestActionNames(t *testing.T) {
 	// These names MUST exist
@@ -33,4 +37,32 @@ func TestActionNames(t *testing.T) {
 			t.Errorf("Action %s should exist, but it does not", name)
 		}
 	}
+}
+
+func expectCaretPos(t *testing.T, c interface { CaretPos() CaretPosition }, expect CaretPosition) bool {
+	if c.CaretPos() != expect {
+		t.Errorf("Expected caret position %d, got %d", expect, c.CaretPos())
+		return false
+	}
+	return true
+}
+
+func expectQueryString(t *testing.T, c interface { QueryString() string }, expect string) bool {
+	if c.QueryString() != expect {
+		t.Errorf("Expected '%s', got '%s'", expect, c.QueryString())
+		return false
+	}
+	return true
+}
+
+func TestDoDeleteForwardChar(t *testing.T) {
+	ctx := NewCtx(nil)
+	input := ctx.NewInput()
+
+	ctx.SetQuery([]rune("Hello, World!"))
+	ctx.SetCaretPos(5)
+	doDeleteForwardChar(input, termbox.Event{})
+
+	expectQueryString(t, ctx, "Hello World!")
+	expectCaretPos(t, ctx, 5)
 }

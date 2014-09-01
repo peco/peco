@@ -61,7 +61,7 @@ func (q FilterQuery) Query() FilterQuery {
 	return q
 }
 
-func (q FilterQuery) String() string {
+func (q FilterQuery) QueryString() string {
 	return string(q)
 }
 
@@ -220,7 +220,7 @@ func (c *Ctx) WaitDone() {
 
 func (c *Ctx) ExecQuery() bool {
 	if c.QueryLen() > 0 {
-		c.SendQuery(c.Query().String())
+		c.SendQuery(c.QueryString())
 		return true
 	}
 	return false
