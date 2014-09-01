@@ -284,19 +284,26 @@ func doDeleteBackwardWord(i *Input, _ termbox.Event) {
 		return
 	}
 
-	for pos := i.CaretPos().Int() - 1; pos >= 0; pos-- {
-		q := i.Query()
+	q := i.Query()
+	start := i.CaretPos().Int()
+	sepFunc := unicode.IsSpace
+	if unicode.IsSpace(q[start-1]) {
+		sepFunc = func(r rune) bool { return !unicode.IsSpace(r) }
+	}
+
+	for pos := start - 1; pos >= 0; pos-- {
 		if pos == 0 {
-			i.SetQuery(q[i.CaretPos().Int():])
+			i.SetQuery(q[start:])
+			i.SetCaretPos(pos)
 			break
 		}
 
-		if unicode.IsSpace(q[pos]) {
-			buf := make([]rune, q.QueryLen()-(i.CaretPos().Int()-pos))
-			copy(buf, q[:pos])
-			copy(buf[pos:], q[i.CaretPos().Int():])
+		if sepFunc(q[pos]) {
+			buf := make([]rune, q.QueryLen()-(start-pos-1))
+			copy(buf, q[:pos+1])
+			copy(buf[pos+1:], q[start:])
 			i.SetQuery(buf)
-			i.SetCaretPos(pos)
+			i.SetCaretPos(pos + 1)
 			break
 		}
 	}
@@ -400,17 +407,30 @@ func doDeleteForwardWord(i *Input, _ termbox.Event) {
 		return
 	}
 
-	for pos := i.CaretPos().Int(); pos < i.QueryLen(); pos++ {
+	start := i.CaretPos().Int()
+
+	// If we are on a word (non-Space, delete till the end of the word.
+	// If we are on a space, delete till the end of space.
+
+	q := i.Query()
+	sepFunc := unicode.IsSpace
+	if unicode.IsSpace(q[start]) {
+		sepFunc = func(r rune) bool { return !unicode.IsSpace(r) }
+	}
+
+	for pos := start; pos < i.QueryLen(); pos++ {
 		if pos == i.QueryLen()-1 {
-			i.SetQuery(i.Query()[:i.CaretPos()])
+			i.SetQuery(q[:start])
+			i.SetCaretPos(start)
 			break
 		}
 
-		if unicode.IsSpace(i.Query()[pos]) {
-			buf := make([]rune, i.QueryLen()-(pos-i.CaretPos().Int()))
-			copy(buf, i.Query()[:i.CaretPos()])
-			copy(buf[i.CaretPos():], i.Query()[pos:])
+		if sepFunc(q[pos]) {
+			buf := make([]rune, i.QueryLen()-(pos-start))
+			copy(buf, q[:start])
+			copy(buf[start:], q[pos:])
 			i.SetQuery(buf)
+			i.SetCaretPos(start)
 			break
 		}
 	}
