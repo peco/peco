@@ -182,8 +182,9 @@ func main() {
 	}
 
 	if len(opts.OptInitialMatcher) > 0 {
-		if ctx.SetCurrentMatcher(opts.OptInitialMatcher) == false {
-			fmt.Fprintf(os.Stderr, "Error: Invalid matcher %s\n", opts.OptInitialMatcher)
+		ok := ctx.SetCurrentMatcher(opts.OptInitialMatcher)
+		if !ok {
+			fmt.Fprintf(os.Stderr, "Unknown matcher: '%s'\n", opts.OptInitialMatcher)
 			st = 1
 			return
 		}
