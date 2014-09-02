@@ -182,8 +182,7 @@ func main() {
 	}
 
 	if len(opts.OptInitialMatcher) > 0 {
-		ok := ctx.SetCurrentMatcher(opts.OptInitialMatcher)
-		if !ok {
+		if !ctx.SetCurrentMatcher(opts.OptInitialMatcher) {
 			fmt.Fprintf(os.Stderr, "Unknown matcher: '%s'\n", opts.OptInitialMatcher)
 			st = 1
 			return
