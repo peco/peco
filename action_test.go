@@ -164,4 +164,3 @@ func TestDoDeleteBackwardWord(t *testing.T) {
 	expectQueryString(t, ctx, "foo ")
 	expectCaretPos(t, ctx, 4)
 }
-
