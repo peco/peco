@@ -32,7 +32,7 @@ func showHelp() {
 	// The ONLY reason we're not using go-flags' help option is
 	// because I wanted to tweak the format just a bit... but
 	// there wasn't an easy way to do so
-	os.Stderr.WriteString(` 
+	os.Stderr.WriteString(`
 Usage: peco [options] [FILE]
 
 Options:
@@ -182,7 +182,11 @@ func main() {
 	}
 
 	if len(opts.OptInitialMatcher) > 0 {
-		ctx.SetCurrentMatcher(opts.OptInitialMatcher)
+		if ctx.SetCurrentMatcher(opts.OptInitialMatcher) == false {
+			fmt.Fprintf(os.Stderr, "Error: Invalid matcher %s\n", opts.OptInitialMatcher)
+			st = 1
+			return
+		}
 	}
 
 	// Try waiting for something available in the source stream
