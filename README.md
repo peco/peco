@@ -50,7 +50,7 @@ You can select multiple lines!
 
 ## Select Range Of Lines
 
-Not only can you select multiple lines one by one, you can select a range of lines
+Not only can you select multiple lines one by one, you can select a range of lines (Note: The ToggleRangeMode action is not enabled by default. You need to put a custom key binding in your config file)
 
 ![optimized](http://peco.github.io/images/peco-demo-range-mode.gif)
 
