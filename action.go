@@ -1,9 +1,9 @@
 package peco
 
 import (
-	"unicode"
 	"github.com/nsf/termbox-go"
 	"github.com/peco/peco/keyseq"
+	"unicode"
 )
 
 // Action describes an action that can be executed upon receiving user

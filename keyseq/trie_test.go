@@ -19,12 +19,12 @@ func checkTrieNode(t *testing.T, n Node, k Key, value int) {
 func TestTrie(t *testing.T) {
 	trie := NewTrie()
 	for i := 1; i <= 5; i++ {
-		trie.Put(KeyList{Key{0, 0, rune(i)}}, 111 * i)
+		trie.Put(KeyList{Key{0, 0, rune(i)}}, 111*i)
 	}
 
 	nodes := Children(trie.Root())
 	for i := 0; i < 5; i++ {
-		checkTrieNode(t, nodes[i], Key{0, 0, rune(i+1)}, 111 * (i + 1))
+		checkTrieNode(t, nodes[i], Key{0, 0, rune(i + 1)}, 111*(i+1))
 	}
 
 	if s := trie.Size(); s != 5 {
@@ -34,7 +34,7 @@ func TestTrie(t *testing.T) {
 
 func TestNotFound(t *testing.T) {
 	trie := NewTrie()
-	if trie.Get(Key{999,999,'a'}) != nil {
+	if trie.Get(Key{999, 999, 'a'}) != nil {
 		t.Errorf("found 'not_exist' in empty trie")
 	}
 }
