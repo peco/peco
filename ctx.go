@@ -139,6 +139,7 @@ func NewCtx(o CtxOptions) *Ctx {
 	c.Matchers = []Matcher{
 		NewIgnoreCaseMatcher(c.enableSep),
 		NewCaseSensitiveMatcher(c.enableSep),
+		NewSmartCaseMatcher(c.enableSep),
 		NewRegexpMatcher(c.enableSep),
 	}
 
