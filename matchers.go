@@ -140,7 +140,7 @@ const (
 // RegexpMatcher is the most basic matcher
 type RegexpMatcher struct {
 	enableSep bool
-	flags     []string
+	getFlags  func(string) []string
 	quotemeta bool
 }
 
@@ -159,8 +159,7 @@ type IgnoreCaseMatcher struct {
 // SmartCaseMatcher turns ON the ignore-case flag in the regexp
 // iff the query contains a upper-case character
 type SmartCaseMatcher struct {
-	enableSep bool
-	quotemeta bool
+	*RegexpMatcher
 }
 
 // CustomMatcher spawns a new process to filter the buffer
@@ -182,7 +181,7 @@ func NewCaseSensitiveMatcher(enableSep bool) *CaseSensitiveMatcher {
 // NewIgnoreCaseMatcher creates a new IgnoreCaseMatcher
 func NewIgnoreCaseMatcher(enableSep bool) *IgnoreCaseMatcher {
 	m := &IgnoreCaseMatcher{NewRegexpMatcher(enableSep)}
-	m.flags = []string{"i"}
+	m.getFlags = func(_ string) []string { return []string{"i"} }
 	m.quotemeta = true
 	return m
 }
@@ -191,7 +190,7 @@ func NewIgnoreCaseMatcher(enableSep bool) *IgnoreCaseMatcher {
 func NewRegexpMatcher(enableSep bool) *RegexpMatcher {
 	return &RegexpMatcher{
 		enableSep,
-		[]string{},
+		func(_ string) []string { return []string{} },
 		false,
 	}
 }
@@ -201,17 +200,27 @@ func (m *RegexpMatcher) Verify() error {
 	return nil
 }
 
-// NewSmartCaseMatcher creates a new SmartCaseMatcher
-func NewSmartCaseMatcher(enableSep bool) *SmartCaseMatcher {
-	return &SmartCaseMatcher{
-		enableSep,
-		true,
+func containsUpper(query string) bool {
+	for _, c := range query {
+		if unicode.IsUpper(c) {
+			return true
+		}
 	}
+	return false
 }
 
-// Verify always returns nil
-func (m *SmartCaseMatcher) Verify() error {
-	return nil
+// NewSmartCaseMatcher creates a new SmartCaseMatcher
+func NewSmartCaseMatcher(enableSep bool) *SmartCaseMatcher {
+	m := &SmartCaseMatcher{NewRegexpMatcher(enableSep)}
+	m.getFlags = func(q string) []string {
+		if containsUpper(q) {
+			return []string{}
+		} else {
+			return []string{"i"}
+		}
+	}
+	m.quotemeta = true
+	return m
 }
 
 // NewCustomMatcher creates a new CustomMatcher
@@ -250,7 +259,7 @@ func (m *RegexpMatcher) queryToRegexps(query string) ([]*regexp.Regexp, error) {
 	regexps := make([]*regexp.Regexp, 0)
 
 	for _, q := range queries {
-		re, err := regexpFor(q, m.flags, m.quotemeta)
+		re, err := regexpFor(q, m.getFlags(query), m.quotemeta)
 		if err != nil {
 			return nil, err
 		}
@@ -397,130 +406,6 @@ Match:
 	sort.Sort(byStart(matches))
 
 	return matches
-}
-
-func (m *SmartCaseMatcher) Match(quit chan struct{}, q string, buffer []Match) []Match {
-	results := []Match{}
-	regexps, err := m.queryToRegexps(q)
-	if err != nil {
-		return results
-	}
-
-	// The actual matching is done in a separate goroutine
-	iter := make(chan Match, len(buffer))
-	go func() {
-		// This protects us from panics, caused when we cancel the
-		// query and forcefully close the channel (and thereby
-		// causing a "close of a closed channel"
-		defer func() { recover() }()
-
-		// This must be here to make sure the channel is properly
-		// closed in normal cases
-		defer close(iter)
-
-		// Iterate through the lines, and do the match.
-		// Upon success, send it through the channel
-		for _, match := range buffer {
-			ms := m.MatchAllRegexps(regexps, match.Line())
-			if ms == nil {
-				continue
-			}
-			iter <- NewDidMatch(match.Buffer(), m.enableSep, ms)
-		}
-		iter <- nil
-	}()
-
-MATCH:
-	for {
-		select {
-		case <-quit:
-			// If we recieved a cancel request, we immediately bail out.
-			// It's a little dirty, but we focefully terminate the other
-			// goroutine by closing the channel, and invoking a panic in the
-			// goroutine above
-
-			// There's a possibility that the match fails early and the
-			// cancel happens after iter has been closed. It's totally okay
-			// for us to try to close iter, but trying to detect if the
-			// channel can be closed safely synchronously is really hard
-			// so we punt it by letting the close() happen at a separate
-			// goroutine, protected by a defer recover()
-			go func() {
-				defer func() { recover() }()
-				close(iter)
-			}()
-			break MATCH
-		case match := <-iter:
-			// Receive elements from the goroutine performing the match
-			if match == nil {
-				break MATCH
-			}
-
-			results = append(results, match)
-		}
-	}
-	return results
-}
-
-// MatchAllRegexps matches all the regexps in `regexps` against line
-func (m *SmartCaseMatcher) MatchAllRegexps(regexps []*regexp.Regexp, line string) [][]int {
-	matches := make([][]int, 0)
-
-	allMatched := true
-Match:
-	for _, re := range regexps {
-		match := re.FindAllStringSubmatchIndex(line, -1)
-		if match == nil {
-			allMatched = false
-			break Match
-		}
-
-		for _, ma := range match {
-			start, end := ma[0], ma[1]
-			for _, m := range matches {
-				if start >= m[0] && start < m[1] {
-					continue Match
-				}
-
-				if start < m[0] && end >= m[0] {
-					continue Match
-				}
-			}
-			matches = append(matches, ma)
-		}
-	}
-
-	if !allMatched {
-		return nil
-	}
-
-	sort.Sort(byStart(matches))
-
-	return matches
-}
-
-func (*SmartCaseMatcher) getFlag(query string) []string {
-	for _, c := range query {
-		if unicode.IsUpper(c) {
-			return []string{}
-		}
-	}
-	return []string{"i"}
-}
-
-func (m *SmartCaseMatcher) queryToRegexps(query string) ([]*regexp.Regexp, error) {
-	queries := strings.Split(strings.TrimSpace(query), " ")
-	regexps := make([]*regexp.Regexp, 0)
-
-	for _, q := range queries {
-		re, err := regexpFor(q, m.getFlag(query), m.quotemeta)
-		if err != nil {
-			return nil, err
-		}
-		regexps = append(regexps, re)
-	}
-
-	return regexps, nil
 }
 
 // Match matches `q` aginst `buffer`
