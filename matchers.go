@@ -201,7 +201,7 @@ func NewCustomMatcher(enableSep bool, name string, args []string) *CustomMatcher
 // is actual found and is executable via exec.LookPath
 func (m *CustomMatcher) Verify() error {
 	if len(m.args) == 0 {
-		return fmt.Errorf("'%s' doesn't specify executable", m.name)
+		return fmt.Errorf("no executable specified for custom matcher '%s'", m.name)
 	}
 
 	if _, err := exec.LookPath(m.args[0]); err != nil {
