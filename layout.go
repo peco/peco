@@ -44,6 +44,7 @@ func IsValidVerticalAnchor(anchor VerticalAnchor) bool {
 type Layout interface {
 	ClearStatus(time.Duration)
 	PrintStatus(string)
+	DrawPrompt()
 	DrawScreen([]Match)
 	MovePage(PagingRequest)
 }
@@ -394,6 +395,10 @@ CALCULATE_PAGE:
 	return nil
 }
 
+func (l *BasicLayout) DrawPrompt() {
+	l.prompt.Draw()
+}
+
 // DrawScreen draws the entire screen
 func (l *BasicLayout) DrawScreen(targets []Match) {
 	if err := screen.Clear(l.config.Style.BasicFG(), l.config.Style.BasicBG()); err != nil {
@@ -410,7 +415,7 @@ func (l *BasicLayout) DrawScreen(targets []Match) {
 		return
 	}
 
-	l.prompt.Draw()
+	l.DrawPrompt()
 	l.list.Draw(targets, perPage)
 
 	if err := screen.Flush(); err != nil {
