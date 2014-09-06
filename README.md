@@ -309,7 +309,7 @@ Note: If in case below keymap seems wrong, check the source code in [keymap.go](
 |Ctrl-d|peco.DeleteForwardChar|
 |Ctrl-e|peco.EndOfLine|
 |Ctrl-k|peco.KillEndOfLine|
-|Ctrl-i|peco.RefreshScreen|
+|Ctrl-l|peco.RefreshScreen|
 |Ctrl-n|peco.SelectDown|
 |Ctrl-p|peco.SelectUp|
 |Ctrl-u|peco.KillBeginOfLine|

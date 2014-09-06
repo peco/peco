@@ -121,7 +121,7 @@ func init() {
 	}).Register("CancelSelectMode")
 	ActionFunc(doToggleRangeMode).Register("ToggleRangeMode")
 	ActionFunc(doCancelRangeMode).Register("CancelRangeMode")
-	ActionFunc(doRefreshScreen).Register("RefreshScreen", termbox.KeyCtrlI)
+	ActionFunc(doRefreshScreen).Register("RefreshScreen", termbox.KeyCtrlL)
 
 	ActionFunc(doKonamiCommand).RegisterKeySequence(
 		keyseq.KeyList{
