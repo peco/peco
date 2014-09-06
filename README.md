@@ -277,6 +277,7 @@ Some keys just... don't map correctly / too easily for various reasons. Here, we
 | peco.DeleteBackwardWord | Delete one word backward |
 | peco.KillEndOfLine      | Delete the characters under the cursor until the end of the line |
 | peco.DeleteAll          | Delete all entered characters |
+| peco.RefreshScreen      | Redraws the screen. Note that this effectively re-runs your query |
 | peco.SelectPreviousPage | (DEPRECATED) Alias to ScrollPageUp |
 | peco.SelectNextPage     | (DEPRECATED) Alias to ScrollPageDown |
 | peco.ScrollPageDown     | Moves the selected line cursor for an entire page, downwards |
@@ -299,26 +300,27 @@ Note: If in case below keymap seems wrong, check the source code in [keymap.go](
 
 |Key|Action|
 |---|------|
-|Esc|handleCancel|
-|Ctrl-c|handleCancel|
-|Enter|handleFinish|
-|Ctrl-n|handleSelectNext|
-|Ctrl-p|handleSelectPrevious|
-|Ctrl-f|handleForwardChar|
-|Ctrl-b|handleBackwardChar|
-|Ctrl-a|handleBeginningOfLine|
-|Ctrl-e|handleEndOfLine|
-|Ctrl-d|handleDeleteForwardChar|
-|Ctrl-w|handleDeleteBackwardWord|
-|Ctrl-u|handleKillBeginOfLine|
-|Ctrl-k|handleKillEndOfLine|
-|Ctrl-space|handleToggleSelectionAndSelectNext|
-|ArrorUp|handleSelectPrevious|
-|ArrowDown|handleSelectNext|
-|ArrowLeft|handleSelectPreviousPage|
-|ArrowRight|handleSelectNextPage|
-|Backspace|handleDeleteBackwardChar|
-|Ctrl-r|handleRotateMatcher|
+|Esc|peco.Cancel|
+|Ctrl-c|peco.Cancel|
+|Enter|peco.Finish|
+|Ctrl-f|peco.ForwardChar|
+|Ctrl-a|peco.BeginningOfLine|
+|Ctrl-b|peco.BackwardChar|
+|Ctrl-d|peco.DeleteForwardChar|
+|Ctrl-e|peco.EndOfLine|
+|Ctrl-k|peco.KillEndOfLine|
+|Ctrl-i|peco.RefreshScreen|
+|Ctrl-n|peco.SelectDown|
+|Ctrl-p|peco.SelectUp|
+|Ctrl-u|peco.KillBeginOfLine|
+|Ctrl-r|peco.RotateMatcher|
+|Ctrl-w|peco/DeleteBackwardWord|
+|Ctrl-space|peco.ToggleSelectionAndSelectNext|
+|ArrorUp|peco.SelectPrevious|
+|ArrowDown|peco.SelectNext|
+|ArrowLeft|peco.SelectPreviousPage|
+|ArrowRight|peco.SelectNextPage|
+|Backspace|peco.DeleteBackwardChar|
 
 ## Styles
 
