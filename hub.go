@@ -118,6 +118,12 @@ func (h *Hub) DrawCh() chan HubReq {
 	return h.drawCh
 }
 
+// SendDrawPrompt sends a request to redraw the prompt only
+func (h *Hub) SendDrawPrompt() {
+	req := HubReq{"prompt", nil}
+	send(h.DrawCh(), req, h.isSync)
+}
+
 // SendDraw sends a request to redraw the terminal display
 func (h *Hub) SendDraw(matches []Match) {
 	// to make sure interface is nil, I need to EXPLICITLY set nil

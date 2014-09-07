@@ -39,11 +39,16 @@ func (v *View) Loop() {
 			v.movePage(r.DataInterface().(PagingRequest))
 			r.Done()
 		case lines := <-v.DrawCh():
-			var matches []Match
-			if tmp := lines.DataInterface(); tmp != nil {
-				matches = tmp.([]Match)
+			tmp := lines.DataInterface();
+			if tmp == nil {
+				v.drawScreen(nil)
+			} else if matches, ok := tmp.([]Match); ok {
+				v.drawScreen(matches)
+			} else if name, ok := tmp.(string); ok {
+				if name == "prompt" {
+					v.drawPrompt()
+				}
 			}
-			v.drawScreen(matches)
 			lines.Done()
 		}
 	}
@@ -75,6 +80,12 @@ func (v *View) drawScreen(targets []Match) {
 	v.mutex.Lock()
 	defer v.mutex.Unlock()
 	v.drawScreenNoLock(targets)
+}
+
+func (v *View) drawPrompt() {
+	v.mutex.Lock()
+	defer v.mutex.Unlock()
+	v.layout.DrawPrompt()
 }
 
 func (v *View) movePage(p PagingRequest) {

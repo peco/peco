@@ -229,6 +229,11 @@ func (c *Ctx) ExecQuery() bool {
 func (c *Ctx) DrawMatches(m []Match) {
 	c.SendDraw(m)
 }
+
+func (c *Ctx) DrawPrompt() {
+	c.SendDrawPrompt()
+}
+
 func (c *Ctx) Refresh() {
 	c.DrawMatches(nil)
 }
