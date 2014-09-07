@@ -56,7 +56,7 @@ Not only can you select multiple lines one by one, you can select a range of lin
 
 ## Select Matchers
 
-Different types of matchers are available. Default is case-insensitive matcher, so lines with any case will match. You can toggle between IgnoreCase, CaseSensitive, SmartCase and RegExp matchers. The RegExp matcher allows you to use any valid regular expression to match lines
+Different types of matchers are available. Default is case-insensitive matcher, so lines with any case will match. You can toggle between IgnoreCase, CaseSensitive, SmartCase and RegExp matchers. The SmartCase matcher uses case-insensitive matching when the queries don't include any upper characters and otherwise uses case-sensitive matching.  The RegExp matcher allows you to use any valid regular expression to match lines
 
 ![optimized](http://peco.github.io/images/peco-demo-matcher.gif)
 
