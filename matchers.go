@@ -137,10 +137,25 @@ const (
 	RegexpMatch        = "Regexp"
 )
 
+var ignoreCaseFlags = []string{"i"}
+var defaultFlags = []string{}
+
+type regexpFlags interface {
+	flags(string) []string
+}
+type regexpFlagList []string
+func (r regexpFlagList) flags(_ string) []string {
+	return []string(r)
+}
+type regexpFlagFunc func(string) []string
+func (r regexpFlagFunc) flags(s string) []string {
+	return r(s)
+}
+
 // RegexpMatcher is the most basic matcher
 type RegexpMatcher struct {
 	enableSep bool
-	getFlags  func(string) []string
+	flags		  regexpFlags
 	quotemeta bool
 }
 
@@ -181,7 +196,7 @@ func NewCaseSensitiveMatcher(enableSep bool) *CaseSensitiveMatcher {
 // NewIgnoreCaseMatcher creates a new IgnoreCaseMatcher
 func NewIgnoreCaseMatcher(enableSep bool) *IgnoreCaseMatcher {
 	m := &IgnoreCaseMatcher{NewRegexpMatcher(enableSep)}
-	m.getFlags = func(_ string) []string { return []string{"i"} }
+	m.flags = regexpFlagList(ignoreCaseFlags)
 	m.quotemeta = true
 	return m
 }
@@ -190,7 +205,7 @@ func NewIgnoreCaseMatcher(enableSep bool) *IgnoreCaseMatcher {
 func NewRegexpMatcher(enableSep bool) *RegexpMatcher {
 	return &RegexpMatcher{
 		enableSep,
-		func(_ string) []string { return []string{} },
+		regexpFlagList(defaultFlags),
 		false,
 	}
 }
@@ -212,13 +227,12 @@ func containsUpper(query string) bool {
 // NewSmartCaseMatcher creates a new SmartCaseMatcher
 func NewSmartCaseMatcher(enableSep bool) *SmartCaseMatcher {
 	m := &SmartCaseMatcher{NewRegexpMatcher(enableSep)}
-	m.getFlags = func(q string) []string {
+	m.flags = regexpFlagFunc(func(q string) []string {
 		if containsUpper(q) {
-			return []string{}
-		} else {
-			return []string{"i"}
+			return defaultFlags
 		}
-	}
+		return []string{"i"}
+	})
 	m.quotemeta = true
 	return m
 }
@@ -263,7 +277,7 @@ func (m *RegexpMatcher) queryToRegexps(query string) ([]*regexp.Regexp, error) {
 	regexps := make([]*regexp.Regexp, 0)
 
 	for _, q := range queries {
-		re, err := regexpFor(q, m.getFlags(query), m.quotemeta)
+		re, err := regexpFor(q, m.flags.flags(query), m.quotemeta)
 		if err != nil {
 			return nil, err
 		}
