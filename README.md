@@ -56,7 +56,7 @@ Not only can you select multiple lines one by one, you can select a range of lin
 
 ## Select Matchers
 
-Different types of matchers are available. Default is case-insensitive matcher, so lines with any case will match. You can toggle between IgnoreCase, CaseSensitive, and RegExp matchers. The RegExp matcher allows you to use any valid regular expression to match lines
+Different types of matchers are available. Default is case-insensitive matcher, so lines with any case will match. You can toggle between IgnoreCase, CaseSensitive, SmartCase and RegExp matchers. The SmartCase matcher uses case-insensitive matching when the queries don't include any upper characters and otherwise uses case-sensitive matching.  The RegExp matcher allows you to use any valid regular expression to match lines
 
 ![optimized](http://peco.github.io/images/peco-demo-matcher.gif)
 
@@ -149,9 +149,9 @@ By default peco starts in case insensitive mode. When this option is specified, 
 
 Specifies the initial line position upon start up. E.g. If you want to start out with the second line selected, set it to "1" (because the index is 0 based)
 
-### --initial-matcher `IgnoreCase|CaseSensitive|Regexp`
+### --initial-matcher `IgnoreCase|CaseSensitive|SmartCase|Regexp`
 
-Specifies the initial matcher to use upon start up. You should specify the name of the macher like `IgnoreCase`, `CaseSensitive`, and `Regexp`. Default is `IgnoreCase`.
+Specifies the initial matcher to use upon start up. You should specify the name of the macher like `IgnoreCase`, `CaseSensitive`, `SmartCase` and `Regexp`. Default is `IgnoreCase`.
 
 ### --prompt
 
@@ -377,7 +377,7 @@ For now, styles of following 5 items can be customized in `config.json`.
 
 This is an experimental feature. Please note that some details of this specificaiton may change
 
-By default `peco` comes with `IgnoreCase`, `CaseSensitive`, and `Regexp` matchers, but since v0.1.3, it is possible to create your own custom matcher.
+By default `peco` comes with `IgnoreCase`, `CaseSensitive`, `SmartCase` and `Regexp` matchers, but since v0.1.3, it is possible to create your own custom matcher.
 
 The matcher will be executed via  `Command.Run()` as an external process, and it will be passed the query values in the command line, and the original unaltered buffer is passed via `os.Stdin`. Your matcher must perform the matching, and print out to `os.Stdout` matched lines. Note that currently there is no way to specify where in the line the match occurred. Note that the matcher does not need to be a go program. It can be a perl/ruby/python/bash script, or anything else that is executable.
 
@@ -412,7 +412,7 @@ You can change the query line's prompt, which is `QUERY>` by default.
 
 ## InitialMatcher
 
-Specifies the matcher name to start peco with. You should specify the name of the matcher, such as `IgnoreCase`, `CaseSensitive`, and `Regexp`
+Specifies the matcher name to start peco with. You should specify the name of the matcher, such as `IgnoreCase`, `CaseSensitive`, `SmartCase` and `Regexp`
 
 Note: `Matcher` key has been deprecated in favor of `InitialMatcher`. `Matcher` will be unavailable in peco 0.3.0
 

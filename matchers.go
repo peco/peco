@@ -6,6 +6,7 @@ import (
 	"regexp"
 	"sort"
 	"strings"
+	"unicode"
 )
 
 // Global var used to strips ansi sequences
@@ -132,13 +133,14 @@ type Matcher interface {
 const (
 	IgnoreCaseMatch    = "IgnoreCase"
 	CaseSensitiveMatch = "CaseSensitive"
+	SmartCaseMatch     = "SmartCase"
 	RegexpMatch        = "Regexp"
 )
 
 // RegexpMatcher is the most basic matcher
 type RegexpMatcher struct {
 	enableSep bool
-	flags     []string
+	getFlags  func(string) []string
 	quotemeta bool
 }
 
@@ -151,6 +153,12 @@ type CaseSensitiveMatcher struct {
 // IgnoreCaseMatcher extends the RegexpMatcher, and always
 // turns ON the ignore-case flag in the regexp
 type IgnoreCaseMatcher struct {
+	*RegexpMatcher
+}
+
+// SmartCaseMatcher turns ON the ignore-case flag in the regexp
+// iff the query contains a upper-case character
+type SmartCaseMatcher struct {
 	*RegexpMatcher
 }
 
@@ -173,7 +181,7 @@ func NewCaseSensitiveMatcher(enableSep bool) *CaseSensitiveMatcher {
 // NewIgnoreCaseMatcher creates a new IgnoreCaseMatcher
 func NewIgnoreCaseMatcher(enableSep bool) *IgnoreCaseMatcher {
 	m := &IgnoreCaseMatcher{NewRegexpMatcher(enableSep)}
-	m.flags = []string{"i"}
+	m.getFlags = func(_ string) []string { return []string{"i"} }
 	m.quotemeta = true
 	return m
 }
@@ -182,7 +190,7 @@ func NewIgnoreCaseMatcher(enableSep bool) *IgnoreCaseMatcher {
 func NewRegexpMatcher(enableSep bool) *RegexpMatcher {
 	return &RegexpMatcher{
 		enableSep,
-		[]string{},
+		func(_ string) []string { return []string{} },
 		false,
 	}
 }
@@ -190,6 +198,29 @@ func NewRegexpMatcher(enableSep bool) *RegexpMatcher {
 // Verify always returns nil
 func (m *RegexpMatcher) Verify() error {
 	return nil
+}
+
+func containsUpper(query string) bool {
+	for _, c := range query {
+		if unicode.IsUpper(c) {
+			return true
+		}
+	}
+	return false
+}
+
+// NewSmartCaseMatcher creates a new SmartCaseMatcher
+func NewSmartCaseMatcher(enableSep bool) *SmartCaseMatcher {
+	m := &SmartCaseMatcher{NewRegexpMatcher(enableSep)}
+	m.getFlags = func(q string) []string {
+		if containsUpper(q) {
+			return []string{}
+		} else {
+			return []string{"i"}
+		}
+	}
+	m.quotemeta = true
+	return m
 }
 
 // NewCustomMatcher creates a new CustomMatcher
@@ -232,7 +263,7 @@ func (m *RegexpMatcher) queryToRegexps(query string) ([]*regexp.Regexp, error) {
 	regexps := make([]*regexp.Regexp, 0)
 
 	for _, q := range queries {
-		re, err := regexpFor(q, m.flags, m.quotemeta)
+		re, err := regexpFor(q, m.getFlags(query), m.quotemeta)
 		if err != nil {
 			return nil, err
 		}
@@ -252,6 +283,10 @@ func (m *CaseSensitiveMatcher) String() string {
 
 func (m *IgnoreCaseMatcher) String() string {
 	return "IgnoreCase"
+}
+
+func (m *SmartCaseMatcher) String() string {
+	return "SmartCase"
 }
 
 func (m *CustomMatcher) String() string {
