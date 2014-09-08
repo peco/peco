@@ -157,7 +157,7 @@ type IgnoreCaseMatcher struct {
 }
 
 // SmartCaseMatcher turns ON the ignore-case flag in the regexp
-// iff the query contains a upper-case character
+// if the query contains a upper-case character
 type SmartCaseMatcher struct {
 	*RegexpMatcher
 }
