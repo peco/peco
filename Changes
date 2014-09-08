@@ -1,6 +1,17 @@
 Changes
 =======
 
+v0.2.9 - 08 Sep 2014
+  Features
+  * Add SmartCase matcher, which automatically toggles between case sensitive
+    and insensitive modes depending on the case of your query.
+  * Ctrl-l is now "peco.RefreshScreen", which basically runs the current query
+    again
+  Bugs/Fixes
+  * User prompt is now draw *before* the filtering is executed.
+  * Be more strict about checking invalid matchers.
+  * Add more tests (work in progress...)
+
 v0.2.8 - 01 Sep 2014
   Bugs/Fixes
   * Fix in v0.2.7 was apparently not enough. Things should be fixed now.
