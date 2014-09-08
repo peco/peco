@@ -473,6 +473,7 @@ CONTRIBUTORS
 * cubicdaiya
 * kei\_q
 * negipo
+* sona\_tar
 * sugyan
 * swdyh
 * MURAOKA Taro (kaoriya/koron), for aho-corasick search
@@ -480,6 +481,7 @@ CONTRIBUTORS
 * uobikiemukot
 * Samuel Lemaitre
 * Yousuke Ushiki
+* Linda\_pp
 
 Notes
 =====
