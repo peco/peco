@@ -274,19 +274,19 @@ func (m *RegexpMatcher) queryToRegexps(query string) ([]*regexp.Regexp, error) {
 }
 
 func (m *RegexpMatcher) String() string {
-	return "Regexp"
+	return RegexpMatch
 }
 
 func (m *CaseSensitiveMatcher) String() string {
-	return "CaseSensitive"
+	return CaseSensitiveMatch
 }
 
 func (m *IgnoreCaseMatcher) String() string {
-	return "IgnoreCase"
+	return IgnoreCaseMatch
 }
 
 func (m *SmartCaseMatcher) String() string {
-	return "SmartCase"
+	return SmartCaseMatch
 }
 
 func (m *CustomMatcher) String() string {
