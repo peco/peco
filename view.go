@@ -39,7 +39,7 @@ func (v *View) Loop() {
 			v.movePage(r.DataInterface().(PagingRequest))
 			r.Done()
 		case lines := <-v.DrawCh():
-			tmp := lines.DataInterface();
+			tmp := lines.DataInterface()
 			if tmp == nil {
 				v.drawScreen(nil)
 			} else if matches, ok := tmp.([]Match); ok {

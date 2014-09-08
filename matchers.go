@@ -144,10 +144,13 @@ type regexpFlags interface {
 	flags(string) []string
 }
 type regexpFlagList []string
+
 func (r regexpFlagList) flags(_ string) []string {
 	return []string(r)
 }
+
 type regexpFlagFunc func(string) []string
+
 func (r regexpFlagFunc) flags(s string) []string {
 	return r(s)
 }
@@ -155,7 +158,7 @@ func (r regexpFlagFunc) flags(s string) []string {
 // RegexpMatcher is the most basic matcher
 type RegexpMatcher struct {
 	enableSep bool
-	flags		  regexpFlags
+	flags     regexpFlags
 	quotemeta bool
 }
 
