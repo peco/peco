@@ -63,11 +63,10 @@ func wrapClearSequence(a Action) Action {
 		}
 
 		if len(i.currentKeySeq) > 0 {
-			i.SendStatusMsg(strings.Join(i.currentKeySeq, " "))
+			i.SendStatusMsgAndClear(strings.Join(i.currentKeySeq, " "), 500 * time.Millisecond)
 			i.currentKeySeq = []string{}
 		}
 
-		i.SendClearStatus(500 * time.Millisecond)
 		a.Execute(i, ev)
 	})
 }

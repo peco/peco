@@ -27,17 +27,12 @@ func TestHub(t *testing.T) {
 	}()
 	go func() {
 		hr := <-h.StatusMsgCh()
-		if hr.DataString() != "Hello, World!" {
-			t.Errorf("Expected data to be 'Hello World!', got '%s'", hr.DataString())
+		r := hr.DataInterface().(StatusMsgRequest)
+		if r.message != "Hello, World!" {
+			t.Errorf("Expected data to be 'Hello World!', got '%s'", r.message)
 		}
 		time.Sleep(100 * time.Millisecond)
 		done["status"] = time.Now()
-		hr.Done()
-	}()
-	go func() {
-		hr := <-h.ClearStatusCh()
-		time.Sleep(100 * time.Millisecond)
-		done["clearStatus"] = time.Now()
 		hr.Done()
 	}()
 	go func() {
@@ -51,7 +46,6 @@ func TestHub(t *testing.T) {
 		h.SendQuery("Hello World!")
 		h.SendDraw(nil)
 		h.SendStatusMsg("Hello, World!")
-		h.SendClearStatus(time.Second)
 		h.SendPaging(ToLineAbove)
 	})
 
@@ -59,7 +53,6 @@ func TestHub(t *testing.T) {
 		"query",
 		"draw",
 		"status",
-		"clearStatus",
 		"paging",
 	}
 

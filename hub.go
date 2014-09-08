@@ -141,18 +141,11 @@ func (h *Hub) StatusMsgCh() chan HubReq {
 
 // SendStatusMsg sends a string to be displayed in the status message
 func (h *Hub) SendStatusMsg(q string) {
-	send(h.StatusMsgCh(), HubReq{q, nil}, h.isSync)
+	h.SendStatusMsgAndClear(q, 0)
 }
 
-func (h *Hub) ClearStatusCh() chan HubReq {
-	return h.clearStatusCh
-}
-
-// SendClearStatus sends a request to clear the status message in
-// `d` duration. If a new status message is sent before the clear
-// request is executed, the clear instruction will be canceled
-func (h *Hub) SendClearStatus(d time.Duration) {
-	send(h.ClearStatusCh(), HubReq{d, nil}, h.isSync)
+func (h *Hub) SendStatusMsgAndClear(q string, clearDelay time.Duration) {
+	send(h.StatusMsgCh(), HubReq{StatusMsgRequest{q, clearDelay}, nil}, h.isSync)
 }
 
 // PagingCh returns the channel to page through the results
