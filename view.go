@@ -22,6 +22,14 @@ const (
 	ToScrollPageUp
 )
 
+// StatusMsgRequest specifies the string to be drawn
+// on the status message bar and an optional delay that tells
+// the view to clear that message
+type StatusMsgRequest struct {
+	message string
+	clearDelay time.Duration
+}
+
 // Loop receives requests to update the screen
 func (v *View) Loop() {
 	defer v.ReleaseWaitGroup()
@@ -30,10 +38,7 @@ func (v *View) Loop() {
 		case <-v.LoopCh():
 			return
 		case m := <-v.StatusMsgCh():
-			v.printStatus(m.DataString())
-			m.Done()
-		case m := <-v.ClearStatusCh():
-			v.clearStatus(m.DataInterface().(time.Duration))
+			v.printStatus(m.DataInterface().(StatusMsgRequest))
 			m.Done()
 		case r := <-v.PagingCh():
 			v.movePage(r.DataInterface().(PagingRequest))
@@ -54,12 +59,8 @@ func (v *View) Loop() {
 	}
 }
 
-func (v *View) printStatus(m string) {
-	v.layout.PrintStatus(m)
-}
-
-func (v *View) clearStatus(d time.Duration) {
-	v.layout.ClearStatus(d)
+func (v *View) printStatus(r StatusMsgRequest) {
+	v.layout.PrintStatus(r.message, r.clearDelay)
 }
 
 func (v *View) drawScreenNoLock(targets []Match) {

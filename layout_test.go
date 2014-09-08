@@ -2,7 +2,6 @@ package peco
 
 import (
 	"testing"
-	"time"
 	"unicode/utf8"
 
 	"github.com/mattn/go-runewidth"
@@ -111,16 +110,11 @@ func TestStatusBar(t *testing.T) {
 	defer guard()
 
 	st := NewStatusBar(NewCtx(nil), AnchorBottom, 0)
-	st.PrintStatus("Hello, World!")
+	st.PrintStatus("Hello, World!", 0)
 
 	events := i.events
 	if l := len(events["Flush"]); l != 1 {
 		t.Errorf("Expected 1 Flush event, got %d", l)
 		return
 	}
-
-	// XXX This is not a test... :/
-	// need to think of a way to verify that we're actually doing something
-	st.ClearStatus(500 * time.Millisecond)
-	<-time.After(time.Second)
 }

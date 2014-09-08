@@ -2,6 +2,7 @@ package peco
 
 import (
 	"fmt"
+	"sync"
 	"time"
 	"unicode/utf8"
 
@@ -42,8 +43,7 @@ func IsValidVerticalAnchor(anchor VerticalAnchor) bool {
 
 // Layout represents the component that controls where elements are placed on screen
 type Layout interface {
-	ClearStatus(time.Duration)
-	PrintStatus(string)
+	PrintStatus(string, time.Duration)
 	DrawPrompt()
 	DrawScreen([]Match)
 	MovePage(PagingRequest)
@@ -188,6 +188,7 @@ type StatusBar struct {
 	*Ctx
 	*AnchorSettings
 	clearTimer *time.Timer
+	timerMutex *sync.Mutex
 }
 
 // NewStatusBar creates a new StatusBar struct
@@ -196,28 +197,25 @@ func NewStatusBar(ctx *Ctx, anchor VerticalAnchor, anchorOffset int) *StatusBar 
 		ctx,
 		NewAnchorSettings(anchor, anchorOffset),
 		nil,
+		&sync.Mutex{},
 	}
 }
 
 func (s *StatusBar) stopTimer() {
+	s.timerMutex.Lock()
+	defer s.timerMutex.Unlock()
 	if t := s.clearTimer; t != nil {
 		t.Stop()
+		s.clearTimer = nil
 	}
-}
-
-// ClearStatus clears the string displayed in the status bar area
-// after `d time.Duration`.
-func (s *StatusBar) ClearStatus(d time.Duration) {
-	s.stopTimer()
-	s.clearTimer = time.AfterFunc(d, func() {
-		s.PrintStatus("")
-	})
 }
 
 // PrintStatus prints a new status message. This also resets the
 // timer created by ClearStatus()
-func (s *StatusBar) PrintStatus(msg string) {
+func (s *StatusBar) PrintStatus(msg string, clearDelay time.Duration) {
 	s.stopTimer()
+
+	s.timerMutex.Lock()
 
 	location := s.AnchorPosition()
 
@@ -248,6 +246,16 @@ func (s *StatusBar) PrintStatus(msg string) {
 		printScreen(w-width, location, fgAttr|termbox.AttrReverse|termbox.AttrBold, bgAttr|termbox.AttrReverse, msg, false)
 	}
 	screen.Flush()
+
+	s.timerMutex.Unlock()
+
+	// if everything is successful AND the clearDelay timer is specified,
+	// then set a timer to clear the status
+	if clearDelay != 0 {
+		s.clearTimer = time.AfterFunc(clearDelay, func() {
+			s.PrintStatus("", 0)
+		})
+	}
 }
 
 // ListArea represents the area where the actual line buffer is
