@@ -227,6 +227,22 @@ As of v0.2.1, you can create custom combined actions. For example, if you find y
 
 This creates a new combined action `foo.SelectFour` (the format of the name is totally arbitrary, I just like to put namespaces), and assigns that action to `M-f`. When it's fired, it toggles the range selection mode and highlights 4 lines, and then goes back to waiting for your input.
 
+As a similar example, a common idiom in emacs is that `C-c C-c` means "take the contents of this buffer and accept it", whatever that means.  This adds exactly that keybinding:
+
+```json
+{
+    "Action": {
+        "selectAllAndFinish": [
+            "peco.SelectAll",
+            "peco.Finish"
+        ]
+    },
+    "Keymap": {
+        "C-c,C-c": "selectAllAndFinish"
+    }
+}
+```
+
 ### Available keys
 
 Since v0.1.8, in addition to values below, you may put a `M-` prefix on any 
