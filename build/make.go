@@ -86,7 +86,7 @@ func main() {
 
 	gopath := os.Getenv("GOPATH")
 	if gopath != "" {
-		gopath = strings.Join([]string{pwd, gopath}, filepath.ListSeparator)
+		gopath = strings.Join([]string{pwd, gopath}, string([]rune{filepath.ListSeparator}))
 	}
 	os.Setenv("GOPATH", gopath)
 
@@ -105,7 +105,7 @@ func main() {
 func run(name string, args ...string) error {
 	cmd := exec.Command(name, args...)
 	out, err := cmd.CombinedOutput()
-	for _, line := range strings.Split(string(out)) {
+	for _, line := range strings.Split(string(out), "\n") {
 		log.Print(line)
 	}
 	return err
