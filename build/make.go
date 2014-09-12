@@ -90,7 +90,15 @@ func main() {
 	}
 	os.Setenv("GOPATH", gopath)
 
-	if err = run("goxc", "-tasks", "xc archive", "-bc", "linux windows darwin", "-d", os.Args[1], "-resources-include", "README*", "-resources-include", "Changes"); err != nil {
+	goxcArgs := []string {
+		"-tasks", "xc archive",
+		"-bc", "linux windows darwin",
+		"-d", os.Args[1],
+		"-resources-include", "README*",
+		"-resources-include", "Changes",
+		"-main-dirs-exclude", "*/build/*",
+	}
+	if err = run("goxc", goxcArgs...); err != nil {
 		panic(err)
 	}
 }
