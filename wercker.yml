@@ -6,17 +6,18 @@ build:
         name: go get
         code: |
           go version
-          godep restore
     - script:
         name: go test
         code: |
-          godep go test ./...
+          cd build
+          go run make.go deps
+          cd ..
+          GOPATH=`pwd`/build go test .
     - script:
         name: goxc build & archive
         code: |
-          GODEPPATH=`godep path`
-          export GOPATH="$GODEPPATH:$GOPATH"
-          goxc -tasks='xc archive' -bc 'linux windows darwin' -d $WERCKER_OUTPUT_DIR/ -resources-include='README*' -resources-include='Changes'
+          cd build
+          go run make.go build $WERCKER_OUTPUT_DIR/
     - script:
         name: output release tag
         code: |
