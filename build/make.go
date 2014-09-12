@@ -86,7 +86,7 @@ func main() {
 
 	gopath := os.Getenv("GOPATH")
 	if gopath != "" {
-		gopath = strings.Join([]string{pwd, gopath}, ":")
+		gopath = strings.Join([]string{pwd, gopath}, filepath.ListSeparator)
 	}
 	os.Setenv("GOPATH", gopath)
 
@@ -94,8 +94,7 @@ func main() {
 		"-tasks", "xc archive",
 		"-bc", "linux windows darwin",
 		"-d", os.Args[1],
-		"-resources-include", "README*",
-		"-resources-include", "Changes",
+		"-resources-include", "README*,Changes",
 		"-main-dirs-exclude", "_demos,examples,build",
 	}
 	if err = run("goxc", goxcArgs...); err != nil {
@@ -106,7 +105,7 @@ func main() {
 func run(name string, args ...string) error {
 	cmd := exec.Command(name, args...)
 	out, err := cmd.CombinedOutput()
-	for _, line := range strings.SplitN(string(out), "\n", -1) {
+	for _, line := range strings.Split(string(out)) {
 		log.Print(line)
 	}
 	return err
