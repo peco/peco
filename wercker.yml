@@ -6,16 +6,18 @@ build:
         name: go get
         code: |
           go version
-          godep restore
     - script:
         name: go test
         code: |
-          godep go test ./...
+          cd build
+          go run make.go deps
+          cd ..
+          GOPATH=`pwd`/build go test .
     - script:
         name: goxc build & archive
         code: |
           cd build
-          go run make.go $WERCKER_OUTPUT_DIR/
+          go run make.go build $WERCKER_OUTPUT_DIR/
     - script:
         name: output release tag
         code: |

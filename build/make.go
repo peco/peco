@@ -14,6 +14,18 @@ import (
  */
 
 func main() {
+	switch os.Args[1] {
+	case "deps":
+		setupDeps()
+	case "build":
+		setupDeps()
+		buildBinaries()
+	default:
+		panic("Unknown action: " + os.Args[1])
+	}
+}
+
+func setupDeps() {
 	deps := map[string]string{
 		"github.com/jessevdk/go-flags":  "8ec9564882e7923e632f012761c81c46dcf5bec1",
 		"github.com/mattn/go-runewidth": "36f63b8223e701c16f36010094fb6e84ffbaf8e0",
@@ -59,6 +71,14 @@ func main() {
 			panic(err)
 		}
 	}
+}
+
+func buildBinaries() {
+	var pwd string
+	var err error
+	if pwd, err = os.Getwd(); err != nil {
+		panic(err)
+	}
 
 	// Link src/github.com/peco/peco to updir
 	pecodir := filepath.Join("src", "github.com", "peco", "peco")
@@ -93,7 +113,7 @@ func main() {
 	goxcArgs := []string {
 		"-tasks", "xc archive",
 		"-bc", "linux windows darwin",
-		"-d", os.Args[1],
+		"-d", os.Args[2],
 		"-resources-include", "README*,Changes",
 		"-main-dirs-exclude", "_demos,examples,build",
 	}
