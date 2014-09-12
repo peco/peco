@@ -14,6 +14,7 @@ import (
  */
 
 var pwd string
+
 func init() {
 	var err error
 	if pwd, err = os.Getwd(); err != nil {
@@ -46,7 +47,7 @@ func setupDeps() {
 		repo := repoURL(dir)
 		dir = filepath.Join("src", dir)
 		if _, err = os.Stat(dir); err != nil {
-			if err = exec.Command("git", "clone", repo, dir).Run(); err != nil {
+			if err = run("git", "clone", repo, dir); err != nil {
 				panic(err)
 			}
 		}
@@ -55,19 +56,19 @@ func setupDeps() {
 			panic(err)
 		}
 
-		if err = exec.Command("git", "reset", "--hard").Run(); err != nil {
+		if err = run("git", "reset", "--hard"); err != nil {
 			panic(err)
 		}
 
-		if err = exec.Command("git", "checkout", "master").Run(); err != nil {
+		if err = run("git", "checkout", "master"); err != nil {
 			panic(err)
 		}
 
-		if err = exec.Command("git", "pull").Run(); err != nil {
+		if err = run("git", "pull"); err != nil {
 			panic(err)
 		}
 
-		if err = exec.Command("git", "checkout", hash).Run(); err != nil {
+		if err = run("git", "checkout", hash); err != nil {
 			panic(err)
 		}
 
@@ -119,7 +120,7 @@ func buildBinaries() {
 	}
 	os.Setenv("GOPATH", gopath)
 
-	goxcArgs := []string {
+	goxcArgs := []string{
 		"-tasks", "xc archive",
 		"-bc", "linux windows darwin",
 		"-d", os.Args[2],
@@ -132,11 +133,16 @@ func buildBinaries() {
 }
 
 func run(name string, args ...string) error {
+	splat := []string{name}
+	splat = append(splat, args...)
+	log.Printf("---> Running %v...\n", splat)
 	cmd := exec.Command(name, args...)
 	out, err := cmd.CombinedOutput()
 	for _, line := range strings.Split(string(out), "\n") {
 		log.Print(line)
 	}
+	log.Println("")
+	log.Println("<---DONE")
 	return err
 }
 
