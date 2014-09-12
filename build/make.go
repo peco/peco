@@ -96,7 +96,7 @@ func main() {
 		"-d", os.Args[1],
 		"-resources-include", "README*",
 		"-resources-include", "Changes",
-		"-main-dirs-exclude", "_demos,examples,build"
+		"-main-dirs-exclude", "_demos,examples,build",
 	}
 	if err = run("goxc", goxcArgs...); err != nil {
 		panic(err)
