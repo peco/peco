@@ -13,6 +13,14 @@ import (
  * correct choice
  */
 
+var pwd string
+func init() {
+	var err error
+	if pwd, err = os.Getwd(); err != nil {
+		panic(err)
+	}
+}
+
 func main() {
 	switch os.Args[1] {
 	case "deps":
@@ -32,11 +40,7 @@ func setupDeps() {
 		"github.com/nsf/termbox-go":     "e9227d640138066e099db60f3010bd8d55c8da72",
 	}
 
-	var pwd string
 	var err error
-	if pwd, err = os.Getwd(); err != nil {
-		panic(err)
-	}
 
 	for dir, hash := range deps {
 		repo := repoURL(dir)
@@ -76,6 +80,8 @@ func setupDeps() {
 }
 
 func linkPecodir() string {
+	var err error
+
 	// Link src/github.com/peco/peco to updir
 	pecodir := filepath.Join("src", "github.com", "peco", "peco")
 	parent := filepath.Dir(pecodir)
@@ -100,11 +106,7 @@ func linkPecodir() string {
 }
 
 func buildBinaries() {
-	var pwd string
 	var err error
-	if pwd, err = os.Getwd(); err != nil {
-		panic(err)
-	}
 
 	pecodir := linkPecodir()
 	if err = os.Chdir(pecodir); err != nil {
