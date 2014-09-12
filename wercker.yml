@@ -14,9 +14,8 @@ build:
     - script:
         name: goxc build & archive
         code: |
-          GODEPPATH=`godep path`
-          export GOPATH="$GODEPPATH:$GOPATH"
-          goxc -tasks='xc archive' -bc 'linux windows darwin' -d $WERCKER_OUTPUT_DIR/ -resources-include='README*' -resources-include='Changes'
+          cd build
+          go run make.go $WERCKER_OUTPUT_DIR/
     - script:
         name: output release tag
         code: |
