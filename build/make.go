@@ -71,15 +71,11 @@ func setupDeps() {
 			panic(err)
 		}
 	}
+
+	linkPecodir()
 }
 
-func buildBinaries() {
-	var pwd string
-	var err error
-	if pwd, err = os.Getwd(); err != nil {
-		panic(err)
-	}
-
+func linkPecodir() string {
 	// Link src/github.com/peco/peco to updir
 	pecodir := filepath.Join("src", "github.com", "peco", "peco")
 	parent := filepath.Dir(pecodir)
@@ -100,6 +96,17 @@ func buildBinaries() {
 		}
 	}
 
+	return pecodir
+}
+
+func buildBinaries() {
+	var pwd string
+	var err error
+	if pwd, err = os.Getwd(); err != nil {
+		panic(err)
+	}
+
+	pecodir := linkPecodir()
 	if err = os.Chdir(pecodir); err != nil {
 		panic(err)
 	}
