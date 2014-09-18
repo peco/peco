@@ -7,8 +7,9 @@ import (
 )
 
 var (
-	kernel32         = syscall.MustLoadDLL("kernel32.dll")
-	procSetStdHandle = kernel32.MustFindProc("SetStdHandle")
+	kernel32           = syscall.MustLoadDLL("kernel32.dll")
+	procSetStdHandle   = kernel32.MustFindProc("SetStdHandle")
+	procGetConsoleMode = kernel32.MustFindProc("GetConsoleMode")
 )
 
 func getStdHandle(h int) (fd syscall.Handle) {
@@ -18,56 +19,37 @@ func getStdHandle(h int) (fd syscall.Handle) {
 }
 
 func setStdHandle(stdhandle int32, handle syscall.Handle) error {
-	r0, _, e1 := syscall.Syscall(procSetStdHandle.Addr(), 2, uintptr(stdhandle), uintptr(handle), 0)
-	if r0 == 0 {
-		if e1 != 0 {
-			return error(e1)
-		}
-		return syscall.EINVAL
+	r1, _, err := procSetStdHandle.Call(uintptr(stdhandle), uintptr(handle))
+	if r1 == 0 && err != nil {
+		return err
 	}
 	return nil
 }
 
 // IsTty checks if the given fd is a tty
 func IsTty(fd uintptr) bool {
-	f := syscall.MustLoadDLL("kernel32.dll").MustFindProc("GetConsoleMode")
 	var st uint32
-	r1, _, err := f.Call(fd, uintptr(unsafe.Pointer(&st)))
+	r1, _, err := procGetConsoleMode.Call(fd, uintptr(unsafe.Pointer(&st)))
 	return r1 != 0 && err != nil
 }
 
-var stdout = os.Stdout
 var stdin = os.Stdin
 
 // TtyReady checks if the tty is ready to go
 func TtyReady() error {
 	var err error
+
 	_stdin, err := os.Open("CONIN$")
 	if err != nil {
 		return err
 	}
-	_stdout, err := os.Open("CONOUT$")
-	if err != nil {
-		return err
-	}
-
 	stdin = os.Stdin
-	stdout = os.Stdout
-
 	os.Stdin = _stdin
-	os.Stdout = _stdout
-
 	syscall.Stdin = syscall.Handle(os.Stdin.Fd())
 	err = setStdHandle(syscall.STD_INPUT_HANDLE, syscall.Stdin)
 	if err != nil {
 		return err
 	}
-	syscall.Stdout = syscall.Handle(os.Stdout.Fd())
-	err = setStdHandle(syscall.STD_OUTPUT_HANDLE, syscall.Stdout)
-	if err != nil {
-		return err
-	}
-
 	return nil
 }
 
@@ -76,7 +58,4 @@ func TtyTerm() {
 	os.Stdin = stdin
 	syscall.Stdin = syscall.Handle(os.Stdin.Fd())
 	setStdHandle(syscall.STD_INPUT_HANDLE, syscall.Stdin)
-	os.Stdout = stdout
-	syscall.Stdout = syscall.Handle(os.Stdout.Fd())
-	setStdHandle(syscall.STD_OUTPUT_HANDLE, syscall.Stdout)
 }
