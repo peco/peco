@@ -38,7 +38,7 @@ func setupDeps() {
 	deps := map[string]string{
 		"github.com/jessevdk/go-flags":  "8ec9564882e7923e632f012761c81c46dcf5bec1",
 		"github.com/mattn/go-runewidth": "36f63b8223e701c16f36010094fb6e84ffbaf8e0",
-		"github.com/nsf/termbox-go":     "e9227d640138066e099db60f3010bd8d55c8da72",
+		"github.com/nsf/termbox-go":     "bb19a81afd4bc2729799d1fedb19f7bd7ee284cf",
 	}
 
 	var err error
