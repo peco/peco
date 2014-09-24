@@ -15,7 +15,6 @@ type Hub struct {
 	queryCh       chan HubReq
 	drawCh        chan HubReq
 	statusMsgCh   chan HubReq
-	clearStatusCh chan HubReq
 	pagingCh      chan HubReq
 }
 
@@ -62,7 +61,6 @@ func NewHub() *Hub {
 		make(chan HubReq, 5), // queryCh.
 		make(chan HubReq, 5), // drawCh.
 		make(chan HubReq, 5), // statusMsgCh
-		make(chan HubReq, 5), // clearStatusCh
 		make(chan HubReq, 5), // pagingCh
 	}
 }
