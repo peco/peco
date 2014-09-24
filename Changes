@@ -1,7 +1,7 @@
 Changes
 =======
 
-v0.2.10
+v0.2.10 - 24 Sep 2014
   Bugs/Fixes
   * There was a race condition in the way status messages were cleared,
     which could leave a message to be not cleared. This has no serious
