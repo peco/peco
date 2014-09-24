@@ -9,6 +9,8 @@ v0.2.10
   Miscellaneous
   * We stopped using godep because it no longer allowed us to use -copy=false.
     This should have no effect on users.
+  * Update termbox-go dependency
+  * Remove stdout hack
 
 v0.2.9 - 08 Sep 2014
   Features
