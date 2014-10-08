@@ -161,7 +161,7 @@ func main() {
 	}
 
 	// Default matcher is IgnoreCase
-	ctx.SetCurrentMatcher(peco.IgnoreCaseMatch)
+	ctx.MatcherSet.SetCurrentByName(peco.IgnoreCaseMatch)
 
 	if opts.OptRcfile != "" {
 		err = ctx.ReadConfig(opts.OptRcfile)
@@ -178,11 +178,11 @@ func main() {
 
 	// Deprecated. --no-ignore-case options will be removed in later.
 	if opts.OptNoIgnoreCase {
-		ctx.SetCurrentMatcher(peco.CaseSensitiveMatch)
+		ctx.MatcherSet.SetCurrentByName(peco.CaseSensitiveMatch)
 	}
 
 	if len(opts.OptInitialMatcher) > 0 {
-		if !ctx.SetCurrentMatcher(opts.OptInitialMatcher) {
+		if !ctx.MatcherSet.SetCurrentByName(opts.OptInitialMatcher) {
 			fmt.Fprintf(os.Stderr, "Unknown matcher: '%s'\n", opts.OptInitialMatcher)
 			st = 1
 			return

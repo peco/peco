@@ -110,6 +110,7 @@ type Ctx struct {
 	*Hub
 	*CaretPosition
 	*FilterQuery
+	*MatcherSet
 	enableSep           bool
 	result              []Match
 	mutex               *sync.Mutex
@@ -123,7 +124,6 @@ type Ctx struct {
 	currentMutex        *sync.Mutex
 	bufferSize          int
 	config              *Config
-	Matchers            []Matcher
 	currentMatcher      int
 	exitStatus          int
 	selectionRangeStart int
@@ -137,6 +137,7 @@ func NewCtx(o CtxOptions) *Ctx {
 		Hub:                 NewHub(),
 		CaretPosition:       &CaretPosition{0, &sync.Mutex{}},
 		FilterQuery:         &FilterQuery{[]rune{}, &sync.Mutex{}},
+		MatcherSet:          nil,
 		result:              []Match{},
 		mutex:               &sync.Mutex{},
 		currentPage:         &PageInfo{0, 1, 0},
@@ -147,7 +148,6 @@ func NewCtx(o CtxOptions) *Ctx {
 		current:             nil,
 		currentMutex:        &sync.Mutex{},
 		config:              NewConfig(),
-		Matchers:            nil,
 		currentMatcher:      0,
 		exitStatus:          0,
 		selectionRangeStart: invalidSelectionRange,
@@ -162,12 +162,17 @@ func NewCtx(o CtxOptions) *Ctx {
 		c.layoutType = o.LayoutType()
 	}
 
-	c.Matchers = []Matcher{
+	matchers := []Matcher{
 		NewIgnoreCaseMatcher(c.enableSep),
 		NewCaseSensitiveMatcher(c.enableSep),
 		NewSmartCaseMatcher(c.enableSep),
 		NewRegexpMatcher(c.enableSep),
 	}
+	matcherSet := NewMatcherSet()
+	for _, m := range matchers {
+		matcherSet.Add(m)
+	}
+	c.MatcherSet = matcherSet
 
 	return c
 }
@@ -188,7 +193,7 @@ func (c *Ctx) ReadConfig(file string) error {
 		c.config.InitialMatcher = c.config.Matcher
 	}
 
-	c.SetCurrentMatcher(c.config.InitialMatcher)
+	c.MatcherSet.SetCurrentByName(c.config.InitialMatcher)
 
 	if c.layoutType == "" { // Not set yet
 		if c.config.Layout != "" {
@@ -358,25 +363,7 @@ func (c *Ctx) SetQuery(q []rune) {
 }
 
 func (c *Ctx) Matcher() Matcher {
-	return c.Matchers[c.currentMatcher]
-}
-
-func (c *Ctx) AddMatcher(m Matcher) error {
-	if err := m.Verify(); err != nil {
-		return fmt.Errorf("verification for custom matcher failed: %s", err)
-	}
-	c.Matchers = append(c.Matchers, m)
-	return nil
-}
-
-func (c *Ctx) SetCurrentMatcher(n string) bool {
-	for i, m := range c.Matchers {
-		if m.String() == n {
-			c.currentMatcher = i
-			return true
-		}
-	}
-	return false
+	return c.MatcherSet.GetCurrent()
 }
 
 func (c *Ctx) LoadCustomMatcher() error {
@@ -385,7 +372,7 @@ func (c *Ctx) LoadCustomMatcher() error {
 	}
 
 	for name, args := range c.config.CustomMatcher {
-		if err := c.AddMatcher(NewCustomMatcher(c.enableSep, name, args)); err != nil {
+		if err := c.MatcherSet.Add(NewCustomMatcher(c.enableSep, name, args)); err != nil {
 			return err
 		}
 	}
@@ -430,14 +417,6 @@ func (s *signalHandler) Loop() {
 
 func (c *Ctx) SetPrompt(p string) {
 	c.config.Prompt = p
-}
-
-// RotateMatcher rotates the matchers
-func (c *Ctx) RotateMatcher() {
-	c.currentMatcher++
-	if c.currentMatcher >= len(c.Matchers) {
-		c.currentMatcher = 0
-	}
 }
 
 // ExitStatus() returns the exit status that we think should be used

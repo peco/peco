@@ -163,7 +163,7 @@ func doAcceptChar(i *Input, ev termbox.Event) {
 }
 
 func doRotateMatcher(i *Input, ev termbox.Event) {
-	i.RotateMatcher()
+	i.MatcherSet.Rotate()
 	if i.ExecQuery() {
 		return
 	}
