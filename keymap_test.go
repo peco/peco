@@ -3,7 +3,7 @@ package peco
 import "testing"
 
 func TestSelection(t *testing.T) {
-	s := Selection([]int{})
+	s := NewSelection()
 
 	s.Add(10)
 	if s.Len() != 1 {
