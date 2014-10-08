@@ -149,11 +149,11 @@ func (u UserPrompt) Draw() {
 		u.SetCaretPos(0) // sanity
 	}
 
-	if u.CaretPos().Int() > u.QueryLen() { // XXX Do we really need this?
+	if u.CaretPos() > u.QueryLen() { // XXX Do we really need this?
 		u.SetCaretPos(u.QueryLen())
 	}
 
-	if u.CaretPos().Int() == u.QueryLen() {
+	if u.CaretPos() == u.QueryLen() {
 		// the entire string + the caret after the string
 		fg := u.config.Style.QueryFG()
 		bg := u.config.Style.QueryBG()
@@ -168,7 +168,7 @@ func (u UserPrompt) Draw() {
 		for i, r := range []rune(u.Query()) {
 			fg := u.config.Style.QueryFG()
 			bg := u.config.Style.QueryBG()
-			if i == u.CaretPos().Int() {
+			if i == u.CaretPos() {
 				fg |= termbox.AttrReverse
 				bg |= termbox.AttrReverse
 			}
@@ -208,6 +208,12 @@ func (s *StatusBar) stopTimer() {
 		t.Stop()
 		s.clearTimer = nil
 	}
+}
+
+func (s *StatusBar) setClearTimer(t *time.Timer) {
+	s.timerMutex.Lock()
+	defer s.timerMutex.Unlock()
+	s.clearTimer = t
 }
 
 // PrintStatus prints a new status message. This also resets the
@@ -252,9 +258,9 @@ func (s *StatusBar) PrintStatus(msg string, clearDelay time.Duration) {
 	// if everything is successful AND the clearDelay timer is specified,
 	// then set a timer to clear the status
 	if clearDelay != 0 {
-		s.clearTimer = time.AfterFunc(clearDelay, func() {
+		s.setClearTimer(time.AfterFunc(clearDelay, func() {
 			s.PrintStatus("", 0)
-		})
+		}))
 	}
 }
 
@@ -288,7 +294,7 @@ func (l *ListArea) Draw(targets []Match, perPage int) {
 		case n+currentPage.offset == l.currentLine-1:
 			fgAttr = l.config.Style.SelectedFG()
 			bgAttr = l.config.Style.SelectedBG()
-		case l.selection.Has(n+currentPage.offset+1) || l.SelectedRange().Has(n+currentPage.offset+1):
+		case l.SelectionContains(n+currentPage.offset+1) || l.SelectedRange().Has(n+currentPage.offset+1):
 			fgAttr = l.config.Style.SavedSelectionFG()
 			bgAttr = l.config.Style.SavedSelectionBG()
 		default:

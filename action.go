@@ -151,10 +151,10 @@ func doAcceptChar(i *Input, ev termbox.Event) {
 	}
 
 	if ev.Ch > 0 {
-		if i.QueryLen() == i.CaretPos().Int() {
+		if i.QueryLen() == i.CaretPos() {
 			i.AppendQuery(ev.Ch)
 		} else {
-			i.InsertQueryAt(ev.Ch, i.CaretPos().Int())
+			i.InsertQueryAt(ev.Ch, i.CaretPos())
 		}
 		i.MoveCaretPos(1)
 		i.DrawPrompt() // Update prompt before running query
@@ -180,7 +180,7 @@ func doToggleSelection(i *Input, _ termbox.Event) {
 
 func doToggleRangeMode(i *Input, _ termbox.Event) {
 	if i.IsRangeMode() {
-		for _, line := range i.SelectedRange() {
+		for _, line := range i.SelectedRange().GetSelection() {
 			i.selection.Add(line)
 		}
 		i.selection.Add(i.currentLine)
@@ -225,9 +225,9 @@ func doFinish(i *Input, _ termbox.Event) {
 	}
 
 	i.result = []Match{}
-	for _, lineno := range append(i.selection, i.SelectedRange()...) {
-		if lineno <= len(i.current) {
-			i.result = append(i.result, i.current[lineno-1])
+	for _, lineno := range append(i.selection.GetSelection(), i.SelectedRange().GetSelection()...) {
+		if lineno <= i.GetCurrentLen() {
+			i.result = append(i.result, i.GetCurrentAt(lineno-1))
 		}
 	}
 	i.ExitWith(0)
@@ -286,7 +286,7 @@ func doDeleteBackwardWord(i *Input, _ termbox.Event) {
 	}
 
 	q := i.Query()
-	start := i.CaretPos().Int()
+	start := i.CaretPos()
 	if l := len(q); l <= start {
 		start = l
 	}
@@ -299,7 +299,7 @@ func doDeleteBackwardWord(i *Input, _ termbox.Event) {
 	found := false
 	for pos := start - 1; pos >= 0; pos-- {
 		if sepFunc(q[pos]) {
-			buf := make([]rune, q.QueryLen()-(start-pos-1))
+			buf := make([]rune, len(q)-(start-pos-1))
 			copy(buf, q[:pos+1])
 			copy(buf[pos+1:], q[start:])
 			i.SetQuery(buf)
@@ -322,12 +322,12 @@ func doDeleteBackwardWord(i *Input, _ termbox.Event) {
 }
 
 func doForwardWord(i *Input, _ termbox.Event) {
-	if i.CaretPos().Int() >= i.QueryLen() {
+	if i.CaretPos() >= i.QueryLen() {
 		return
 	}
 
 	foundSpace := false
-	for pos := i.CaretPos().Int(); pos < i.QueryLen(); pos++ {
+	for pos := i.CaretPos(); pos < i.QueryLen(); pos++ {
 		r := i.Query()[pos]
 		if foundSpace {
 			if !unicode.IsSpace(r) {
@@ -349,11 +349,11 @@ func doForwardWord(i *Input, _ termbox.Event) {
 }
 
 func doBackwardWord(i *Input, _ termbox.Event) {
-	if i.CaretPos().Int() == 0 {
+	if i.CaretPos() == 0 {
 		return
 	}
 
-	if i.CaretPos().Int() >= i.QueryLen() {
+	if i.CaretPos() >= i.QueryLen() {
 		i.MoveCaretPos(-1)
 	}
 
@@ -361,8 +361,8 @@ func doBackwardWord(i *Input, _ termbox.Event) {
 	// rewind to the end of the previous word, and then do the
 	// search all over again
 SEARCH_PREV_WORD:
-	if unicode.IsSpace(i.Query()[i.CaretPos().Int()]) {
-		for pos := i.CaretPos().Int(); pos > 0; pos-- {
+	if unicode.IsSpace(i.Query()[i.CaretPos()]) {
+		for pos := i.CaretPos(); pos > 0; pos-- {
 			if !unicode.IsSpace(i.Query()[pos]) {
 				i.SetCaretPos(pos)
 				break
@@ -392,7 +392,7 @@ SEARCH_PREV_WORD:
 }
 
 func doForwardChar(i *Input, _ termbox.Event) {
-	if i.CaretPos().Int() >= i.QueryLen() {
+	if i.CaretPos() >= i.QueryLen() {
 		return
 	}
 	i.MoveCaretPos(1)
@@ -408,11 +408,11 @@ func doBackwardChar(i *Input, _ termbox.Event) {
 }
 
 func doDeleteForwardWord(i *Input, _ termbox.Event) {
-	if i.QueryLen() <= i.CaretPos().Int() {
+	if i.QueryLen() <= i.CaretPos() {
 		return
 	}
 
-	start := i.CaretPos().Int()
+	start := i.CaretPos()
 
 	// If we are on a word (non-Space, delete till the end of the word.
 	// If we are on a space, delete till the end of space.
@@ -477,7 +477,7 @@ func doKillBeginningOfLine(i *Input, _ termbox.Event) {
 }
 
 func doKillEndOfLine(i *Input, _ termbox.Event) {
-	if i.QueryLen() <= i.CaretPos().Int() {
+	if i.QueryLen() <= i.CaretPos() {
 		return
 	}
 
@@ -496,11 +496,11 @@ func doDeleteAll(i *Input, _ termbox.Event) {
 }
 
 func doDeleteForwardChar(i *Input, _ termbox.Event) {
-	if i.QueryLen() <= i.CaretPos().Int() {
+	if i.QueryLen() <= i.CaretPos() {
 		return
 	}
 
-	pos := i.CaretPos().Int()
+	pos := i.CaretPos()
 	buf := make([]rune, i.QueryLen()-1)
 	copy(buf, i.Query()[:i.CaretPos()])
 	copy(buf[i.CaretPos():], i.Query()[i.CaretPos()+1:])
@@ -520,7 +520,7 @@ func doDeleteBackwardChar(i *Input, ev termbox.Event) {
 		return
 	}
 
-	pos := i.CaretPos().Int()
+	pos := i.CaretPos()
 	switch pos {
 	case 0:
 		// No op

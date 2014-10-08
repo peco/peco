@@ -68,13 +68,12 @@ func (v *View) drawScreenNoLock(targets []Match) {
 		if current := v.current; current != nil {
 			targets = v.current
 		} else {
-			targets = v.lines
+			targets = v.GetLines()
 		}
 	}
 
 	v.layout.DrawScreen(targets)
-	// FIXME
-	v.current = targets
+	v.SetCurrent(targets)
 }
 
 func (v *View) drawScreen(targets []Match) {

@@ -37,66 +37,90 @@ type PageInfo struct {
 	perPage int
 }
 
-type CaretPosition int
-
-func (p CaretPosition) Int() int {
-	return int(p)
+type CaretPosition struct {
+	pos int
+	mutex *sync.Mutex
 }
 
-func (p CaretPosition) CaretPos() CaretPosition {
-	return p
+func (p CaretPosition) Int() int {
+	p.mutex.Lock()
+	defer p.mutex.Unlock()
+	return int(p.pos)
+}
+
+func (p CaretPosition) CaretPos() int {
+	p.mutex.Lock()
+	defer p.mutex.Unlock()
+	return p.pos
 }
 
 func (p *CaretPosition) SetCaretPos(where int) {
-	*p = CaretPosition(where)
+	p.mutex.Lock()
+	defer p.mutex.Unlock()
+	p.pos = where
 }
 
 func (p *CaretPosition) MoveCaretPos(offset int) {
-	*p = CaretPosition(p.Int() + offset)
+	p.SetCaretPos(p.Int() + offset)
 }
 
-type FilterQuery []rune
+type FilterQuery struct {
+	query []rune
+	mutex *sync.Mutex
+}
 
-func (q FilterQuery) Query() FilterQuery {
-	return q
+func (q FilterQuery) Query() []rune {
+	q.mutex.Lock()
+	defer q.mutex.Unlock()
+	return q.query[:]
 }
 
 func (q FilterQuery) QueryString() string {
-	return string(q)
+	qbytes := q.Query()
+	return string(qbytes)
 }
 
 func (q FilterQuery) QueryLen() int {
-	return len(q)
+	q.mutex.Lock()
+	defer q.mutex.Unlock()
+	return len(q.query)
 }
 
 func (q *FilterQuery) AppendQuery(r rune) {
-	*q = FilterQuery(append([]rune(*q), r))
+	q.mutex.Lock()
+	defer q.mutex.Unlock()
+	q.query = append(q.query, r)
 }
 
 func (q *FilterQuery) InsertQueryAt(ch rune, where int) {
-	sq := []rune(*q)
-	buf := make([]rune, q.QueryLen()+1)
+	q.mutex.Lock()
+	defer q.mutex.Unlock()
+
+	sq := q.query
+	buf := make([]rune, len(sq)+1)
 	copy(buf, sq[:where])
 	buf[where] = ch
 	copy(buf[where+1:], sq[where:])
-	*q = FilterQuery(buf)
+	q.query = buf
 }
 
 // Ctx contains all the important data. while you can easily access
 // data in this struct from anwyehre, only do so via channels
 type Ctx struct {
 	*Hub
-	CaretPosition
-	FilterQuery
+	*CaretPosition
+	*FilterQuery
 	enableSep           bool
 	result              []Match
-	mutex               sync.Mutex
+	mutex               *sync.Mutex
 	currentLine         int
 	currentPage         *PageInfo
 	maxPage             int
-	selection           Selection
+	selection           *Selection
 	lines               []Match
+	linesMutex          *sync.Mutex
 	current             []Match
+	currentMutex        *sync.Mutex
 	bufferSize          int
 	config              *Config
 	Matchers            []Matcher
@@ -111,15 +135,17 @@ type Ctx struct {
 func NewCtx(o CtxOptions) *Ctx {
 	c := &Ctx{
 		Hub:                 NewHub(),
-		CaretPosition:       0,
-		FilterQuery:         FilterQuery{},
+		CaretPosition:       &CaretPosition{0, &sync.Mutex{}},
+		FilterQuery:         &FilterQuery{[]rune{}, &sync.Mutex{}},
 		result:              []Match{},
-		mutex:               sync.Mutex{},
+		mutex:               &sync.Mutex{},
 		currentPage:         &PageInfo{0, 1, 0},
 		maxPage:             0,
-		selection:           Selection([]int{}),
+		selection:           NewSelection(),
 		lines:               []Match{},
+		linesMutex:          &sync.Mutex{},
 		current:             nil,
+		currentMutex:        &sync.Mutex{},
 		config:              NewConfig(),
 		Matchers:            nil,
 		currentMatcher:      0,
@@ -173,6 +199,24 @@ func (c *Ctx) ReadConfig(file string) error {
 	return nil
 }
 
+func (c *Ctx) SetLines(newLines []Match) {
+	c.linesMutex.Lock()
+	defer c.linesMutex.Unlock()
+	c.lines = newLines
+}
+
+func (c *Ctx) GetLines() []Match {
+	c.linesMutex.Lock()
+	defer c.linesMutex.Unlock()
+	return c.lines[:]
+}
+
+func (c *Ctx) GetLinesCount() int {
+	c.linesMutex.Lock()
+	defer c.linesMutex.Unlock()
+	return len(c.lines)
+}
+
 func (c *Ctx) IsBufferOverflowing() bool {
 	if c.bufferSize <= 0 {
 		return false
@@ -185,9 +229,17 @@ func (c *Ctx) IsRangeMode() bool {
 	return c.selectionRangeStart != invalidSelectionRange
 }
 
-func (c *Ctx) SelectedRange() Selection {
+func (c *Ctx) SelectionClear() {
+	c.selection.Clear()
+}
+
+func (c *Ctx) SelectionContains(n int) bool {
+	return c.selection.Has(n)
+}
+
+func (c *Ctx) SelectedRange() *Selection {
 	if !c.IsRangeMode() {
-		return Selection{}
+		return NewSelection()
 	}
 
 	selectedLines := []int{}
@@ -200,7 +252,33 @@ func (c *Ctx) SelectedRange() Selection {
 			selectedLines = append(selectedLines, i)
 		}
 	}
-	return Selection(selectedLines)
+	s := NewSelection()
+	s.selection = selectedLines
+	return s
+}
+
+func (c *Ctx) GetCurrent() []Match {
+	c.currentMutex.Lock()
+	defer c.currentMutex.Unlock()
+	return c.current[:]
+}
+
+func (c *Ctx) GetCurrentLen() int {
+	c.currentMutex.Lock()
+	defer c.currentMutex.Unlock()
+	return len(c.current)
+}
+
+func (c *Ctx) SetCurrent(newMatches []Match) {
+	c.currentMutex.Lock()
+	defer c.currentMutex.Unlock()
+	c.current = newMatches
+}
+
+func (c *Ctx) GetCurrentAt(i int) Match {
+	c.currentMutex.Lock()
+	defer c.currentMutex.Unlock()
+	return c.current[i]
 }
 
 func (c *Ctx) Result() []Match {
@@ -273,7 +351,9 @@ func (c *Ctx) NewInput() *Input {
 }
 
 func (c *Ctx) SetQuery(q []rune) {
-	c.FilterQuery = FilterQuery(q)
+	c.FilterQuery.mutex.Lock()
+	c.FilterQuery.query = q
+	c.FilterQuery.mutex.Unlock()
 	c.SetCaretPos(c.QueryLen())
 }
 

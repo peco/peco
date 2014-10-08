@@ -41,8 +41,8 @@ func TestActionNames(t *testing.T) {
 }
 
 func expectCaretPos(t *testing.T, c interface {
-	CaretPos() CaretPosition
-}, expect CaretPosition) bool {
+	CaretPos() int
+}, expect int) bool {
 	if c.CaretPos() != expect {
 		t.Errorf("Expected caret position %d, got %d", expect, c.CaretPos())
 		return false
@@ -75,7 +75,7 @@ func TestDoDeleteForwardChar(t *testing.T) {
 	doDeleteForwardChar(input, termbox.Event{})
 
 	expectQueryString(t, ctx, "Hello World!")
-	expectCaretPos(t, ctx, CaretPosition(runewidth.StringWidth(ctx.QueryString())))
+	expectCaretPos(t, ctx, runewidth.StringWidth(ctx.QueryString()))
 
 	ctx.SetCaretPos(0)
 	doDeleteForwardChar(input, termbox.Event{})
@@ -99,7 +99,7 @@ func TestDoDeleteForwardWord(t *testing.T) {
 	doDeleteForwardWord(input, termbox.Event{})
 
 	expectQueryString(t, ctx, "Hello World!")
-	expectCaretPos(t, ctx, CaretPosition(runewidth.StringWidth(ctx.QueryString())))
+	expectCaretPos(t, ctx, runewidth.StringWidth(ctx.QueryString()))
 
 	ctx.SetCaretPos(0)
 	doDeleteForwardWord(input, termbox.Event{})
@@ -128,7 +128,7 @@ func TestDoDeleteBackwardChar(t *testing.T) {
 	doDeleteBackwardChar(input, termbox.Event{})
 
 	expectQueryString(t, ctx, "Hell, World")
-	expectCaretPos(t, ctx, CaretPosition(runewidth.StringWidth(ctx.QueryString())))
+	expectCaretPos(t, ctx, runewidth.StringWidth(ctx.QueryString()))
 
 	ctx.SetCaretPos(0)
 	doDeleteBackwardChar(input, termbox.Event{})
