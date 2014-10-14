@@ -145,11 +145,12 @@ func (u UserPrompt) Draw() {
 	// print "QUERY>"
 	printScreen(0, location, u.config.Style.BasicFG(), u.config.Style.BasicBG(), u.prefix, false)
 
-	if u.CaretPos() <= 0 { // XXX Do we really need this?
+	pos := u.CaretPos()
+	if pos <= 0 { // XXX Do we really need this?
 		u.SetCaretPos(0) // sanity
 	}
 
-	if u.CaretPos() > u.QueryLen() { // XXX Do we really need this?
+	if pos > u.QueryLen() { // XXX Do we really need this?
 		u.SetCaretPos(u.QueryLen())
 	}
 

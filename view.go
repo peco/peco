@@ -69,8 +69,8 @@ func (v *View) printStatus(r StatusMsgRequest) {
 
 func (v *View) drawScreenNoLock(targets []Match) {
 	if targets == nil {
-		if current := v.current; current != nil {
-			targets = v.current
+		if current := v.GetCurrent(); current != nil {
+			targets = current
 		} else {
 			targets = v.GetLines()
 		}

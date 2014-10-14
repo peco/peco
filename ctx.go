@@ -40,27 +40,22 @@ type PageInfo struct {
 	perPage int
 }
 
-type CaretPosition struct {
-	pos   int
-	mutex *sync.Mutex
-}
-
-func (p CaretPosition) CaretPos() int {
+func (p *Ctx) CaretPos() int {
 	p.mutex.Lock()
 	defer p.mutex.Unlock()
-	return p.pos
+	return p.caretPosition
 }
 
-func (p *CaretPosition) SetCaretPos(where int) {
+func (p *Ctx) SetCaretPos(where int) {
 	p.mutex.Lock()
 	defer p.mutex.Unlock()
-	p.pos = where
+	p.caretPosition = where
 }
 
-func (p *CaretPosition) MoveCaretPos(offset int) {
+func (p *Ctx) MoveCaretPos(offset int) {
 	p.mutex.Lock()
 	defer p.mutex.Unlock()
-	p.pos = p.pos + offset
+	p.caretPosition = p.caretPosition + offset
 }
 
 type FilterQuery struct {
@@ -107,9 +102,9 @@ func (q *FilterQuery) InsertQueryAt(ch rune, where int) {
 // data in this struct from anwyehre, only do so via channels
 type Ctx struct {
 	*Hub
-	*CaretPosition
 	*FilterQuery
 	*MatcherSet
+	caretPosition       int
 	enableSep           bool
 	result              []Match
 	mutex               sync.Locker
@@ -159,9 +154,9 @@ func (m *loggingMutex) Unlock() {
 func NewCtx(o CtxOptions) *Ctx {
 	c := &Ctx{
 		Hub:                 NewHub(),
-		CaretPosition:       &CaretPosition{0, &sync.Mutex{}},
 		FilterQuery:         &FilterQuery{[]rune{}, &sync.Mutex{}},
 		MatcherSet:          nil,
+		caretPosition:       0,
 		result:              []Match{},
 		mutex:               newMutex(),
 		currentPage:         &PageInfo{0, 1, 0},
@@ -256,6 +251,18 @@ func (c *Ctx) IsBufferOverflowing() bool {
 
 func (c *Ctx) IsRangeMode() bool {
 	return c.selectionRangeStart != invalidSelectionRange
+}
+
+func (c *Ctx) SelectionLen() int {
+	c.mutex.Lock()
+	defer c.mutex.Unlock()
+	return c.selection.Len()
+}
+
+func (c *Ctx) SelectionAdd(x int) {
+	c.mutex.Lock()
+	defer c.mutex.Unlock()
+	c.selection.Add(x)
 }
 
 func (c *Ctx) SelectionClear() {
