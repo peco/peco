@@ -1,6 +1,16 @@
 Changes
 =======
 
+v0.2.11
+  Miscellaneous
+  * Massive refactoring to avoid possible race conditions. Note that I am
+    not aware of any breakage caused by previous builds of peco. Even
+    without these changes you most likely did not see a race or it was
+    something you could totally ignore by simply redrawing the page.
+    However, since I was in the mood, and since go is awesome for providing
+    us the `-race` switch, I decided to silence these warnings.
+    
+
 v0.2.10 - 24 Sep 2014
   Bugs/Fixes
   * There was a race condition in the way status messages were cleared,
