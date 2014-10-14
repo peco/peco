@@ -1,10 +1,14 @@
 package peco
 
-import "time"
+import (
+	"sync"
+	"time"
+)
 
 // View handles the drawing/updating the screen
 type View struct {
 	*Ctx
+	mutex  sync.Locker
 	layout Layout
 }
 
@@ -26,7 +30,7 @@ const (
 // on the status message bar and an optional delay that tells
 // the view to clear that message
 type StatusMsgRequest struct {
-	message string
+	message    string
 	clearDelay time.Duration
 }
 

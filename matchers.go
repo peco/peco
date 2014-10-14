@@ -416,6 +416,7 @@ func (m *RegexpMatcher) Match(quit chan struct{}, q string, buffer []Match) []Ma
 			if ms == nil {
 				continue
 			}
+
 			iter <- NewDidMatch(match.Buffer(), m.enableSep, ms)
 		}
 		iter <- nil

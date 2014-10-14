@@ -317,7 +317,7 @@ func doDeleteBackwardWord(i *Input, _ termbox.Event) {
 		return
 	}
 
-	i.current = nil
+	i.SetCurrent(nil)
 	i.DrawMatches(nil)
 }
 
@@ -444,7 +444,7 @@ func doDeleteForwardWord(i *Input, _ termbox.Event) {
 		return
 	}
 
-	i.current = nil
+	i.SetCurrent(nil)
 	i.DrawMatches(nil)
 }
 
@@ -472,7 +472,7 @@ func doKillBeginningOfLine(i *Input, _ termbox.Event) {
 	if i.ExecQuery() {
 		return
 	}
-	i.current = nil
+	i.SetCurrent(nil)
 	i.DrawMatches(nil)
 }
 
@@ -485,13 +485,13 @@ func doKillEndOfLine(i *Input, _ termbox.Event) {
 	if i.ExecQuery() {
 		return
 	}
-	i.current = nil
+	i.SetCurrent(nil)
 	i.DrawMatches(nil)
 }
 
 func doDeleteAll(i *Input, _ termbox.Event) {
 	i.SetQuery(make([]rune, 0))
-	i.current = nil
+	i.SetCurrent(nil)
 	i.DrawMatches(nil)
 }
 
@@ -511,7 +511,7 @@ func doDeleteForwardChar(i *Input, _ termbox.Event) {
 		return
 	}
 
-	i.current = nil
+	i.SetCurrent(nil)
 	i.DrawMatches(nil)
 }
 
@@ -539,7 +539,7 @@ func doDeleteBackwardChar(i *Input, ev termbox.Event) {
 		return
 	}
 
-	i.current = nil
+	i.SetCurrent(nil)
 	i.DrawMatches(nil)
 }
 

@@ -5,9 +5,12 @@ import (
 	"io"
 	"os"
 	"os/signal"
+	"runtime"
 	"sync"
 	"syscall"
 )
+
+const debug = false
 
 var screen Screen = Termbox{}
 
@@ -38,14 +41,8 @@ type PageInfo struct {
 }
 
 type CaretPosition struct {
-	pos int
+	pos   int
 	mutex *sync.Mutex
-}
-
-func (p CaretPosition) Int() int {
-	p.mutex.Lock()
-	defer p.mutex.Unlock()
-	return int(p.pos)
 }
 
 func (p CaretPosition) CaretPos() int {
@@ -61,7 +58,9 @@ func (p *CaretPosition) SetCaretPos(where int) {
 }
 
 func (p *CaretPosition) MoveCaretPos(offset int) {
-	p.SetCaretPos(p.Int() + offset)
+	p.mutex.Lock()
+	defer p.mutex.Unlock()
+	p.pos = p.pos + offset
 }
 
 type FilterQuery struct {
@@ -113,7 +112,7 @@ type Ctx struct {
 	*MatcherSet
 	enableSep           bool
 	result              []Match
-	mutex               *sync.Mutex
+	mutex               sync.Locker
 	currentLine         int
 	currentPage         *PageInfo
 	maxPage             int
@@ -132,6 +131,31 @@ type Ctx struct {
 	wait *sync.WaitGroup
 }
 
+func newMutex() sync.Locker {
+	if debug {
+		return &loggingMutex{&sync.Mutex{}}
+	}
+	return &sync.Mutex{}
+}
+
+type loggingMutex struct {
+	*sync.Mutex
+}
+
+func (m *loggingMutex) Lock() {
+	buf := make([]byte, 8092)
+	l := runtime.Stack(buf, false)
+	fmt.Printf("LOCK %s\n", buf[:l])
+	m.Mutex.Lock()
+}
+
+func (m *loggingMutex) Unlock() {
+	buf := make([]byte, 8092)
+	l := runtime.Stack(buf, false)
+	fmt.Printf("UNLOCK %s\n", buf[:l])
+	m.Mutex.Unlock()
+}
+
 func NewCtx(o CtxOptions) *Ctx {
 	c := &Ctx{
 		Hub:                 NewHub(),
@@ -139,7 +163,7 @@ func NewCtx(o CtxOptions) *Ctx {
 		FilterQuery:         &FilterQuery{[]rune{}, &sync.Mutex{}},
 		MatcherSet:          nil,
 		result:              []Match{},
-		mutex:               &sync.Mutex{},
+		mutex:               newMutex(),
 		currentPage:         &PageInfo{0, 1, 0},
 		maxPage:             0,
 		selection:           NewSelection(),
@@ -235,10 +259,14 @@ func (c *Ctx) IsRangeMode() bool {
 }
 
 func (c *Ctx) SelectionClear() {
+	c.mutex.Lock()
+	defer c.mutex.Unlock()
 	c.selection.Clear()
 }
 
 func (c *Ctx) SelectionContains(n int) bool {
+	c.mutex.Lock()
+	defer c.mutex.Unlock()
 	return c.selection.Has(n)
 }
 
@@ -341,7 +369,7 @@ func (c *Ctx) NewView() *View {
 	default:
 		layout = NewDefaultLayout(c)
 	}
-	return &View{c, layout}
+	return &View{c, &sync.Mutex{}, layout}
 }
 
 func (c *Ctx) NewFilter() *Filter {
@@ -356,9 +384,9 @@ func (c *Ctx) NewInput() *Input {
 }
 
 func (c *Ctx) SetQuery(q []rune) {
-	c.FilterQuery.mutex.Lock()
+	c.mutex.Lock()
 	c.FilterQuery.query = q
-	c.FilterQuery.mutex.Unlock()
+	c.mutex.Unlock()
 	c.SetCaretPos(c.QueryLen())
 }
 
