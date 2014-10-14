@@ -60,7 +60,7 @@ func (p *Ctx) MoveCaretPos(offset int) {
 
 type FilterQuery struct {
 	query []rune
-	mutex *sync.Mutex
+	mutex sync.Locker
 }
 
 func (q FilterQuery) Query() []rune {
@@ -113,9 +113,9 @@ type Ctx struct {
 	maxPage             int
 	selection           *Selection
 	lines               []Match
-	linesMutex          *sync.Mutex
+	linesMutex          sync.Locker
 	current             []Match
-	currentMutex        *sync.Mutex
+	currentMutex        sync.Locker
 	bufferSize          int
 	config              *Config
 	currentMatcher      int
@@ -154,7 +154,7 @@ func (m *loggingMutex) Unlock() {
 func NewCtx(o CtxOptions) *Ctx {
 	c := &Ctx{
 		Hub:                 NewHub(),
-		FilterQuery:         &FilterQuery{[]rune{}, &sync.Mutex{}},
+		FilterQuery:         &FilterQuery{[]rune{}, newMutex()},
 		MatcherSet:          nil,
 		caretPosition:       0,
 		result:              []Match{},
@@ -163,9 +163,9 @@ func NewCtx(o CtxOptions) *Ctx {
 		maxPage:             0,
 		selection:           NewSelection(),
 		lines:               []Match{},
-		linesMutex:          &sync.Mutex{},
+		linesMutex:          newMutex(),
 		current:             nil,
-		currentMutex:        &sync.Mutex{},
+		currentMutex:        newMutex(),
 		config:              NewConfig(),
 		currentMatcher:      0,
 		exitStatus:          0,
@@ -376,7 +376,7 @@ func (c *Ctx) NewView() *View {
 	default:
 		layout = NewDefaultLayout(c)
 	}
-	return &View{c, &sync.Mutex{}, layout}
+	return &View{c, newMutex(), layout}
 }
 
 func (c *Ctx) NewFilter() *Filter {
@@ -387,7 +387,7 @@ func (c *Ctx) NewInput() *Input {
 	// Create a new keymap object
 	k := NewKeymap(c.config.Keymap, c.config.Action)
 	k.ApplyKeybinding()
-	return &Input{c, &sync.Mutex{}, nil, k, []string{}}
+	return &Input{c, newMutex(), nil, k, []string{}}
 }
 
 func (c *Ctx) SetQuery(q []rune) {

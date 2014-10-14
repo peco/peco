@@ -9,13 +9,13 @@ import (
 // it controls how the communication that goes through channels
 // are handled.
 type Hub struct {
-	isSync        bool
-	mutex         *sync.Mutex
-	loopCh        chan struct{}
-	queryCh       chan HubReq
-	drawCh        chan HubReq
-	statusMsgCh   chan HubReq
-	pagingCh      chan HubReq
+	isSync      bool
+	mutex       sync.Locker
+	loopCh      chan struct{}
+	queryCh     chan HubReq
+	drawCh      chan HubReq
+	statusMsgCh chan HubReq
+	pagingCh    chan HubReq
 }
 
 // HubReq is a wrapper around the actual requst value that needs
@@ -56,7 +56,7 @@ func (hr HubReq) Done() {
 func NewHub() *Hub {
 	return &Hub{
 		false,
-		&sync.Mutex{},
+		newMutex(),
 		make(chan struct{}),  // loopCh. You never send messages to this. no point in buffering
 		make(chan HubReq, 5), // queryCh.
 		make(chan HubReq, 5), // drawCh.

@@ -189,7 +189,7 @@ type StatusBar struct {
 	*Ctx
 	*AnchorSettings
 	clearTimer *time.Timer
-	timerMutex *sync.Mutex
+	timerMutex sync.Locker
 }
 
 // NewStatusBar creates a new StatusBar struct
@@ -198,7 +198,7 @@ func NewStatusBar(ctx *Ctx, anchor VerticalAnchor, anchorOffset int) *StatusBar 
 		ctx,
 		NewAnchorSettings(anchor, anchorOffset),
 		nil,
-		&sync.Mutex{},
+		newMutex(),
 	}
 }
 

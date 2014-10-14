@@ -46,7 +46,7 @@ func (b *BufferReader) Loop() {
 		}
 	}()
 
-	m := &sync.Mutex{}
+	m := newMutex()
 	once := &sync.Once{}
 	var refresh *time.Timer
 

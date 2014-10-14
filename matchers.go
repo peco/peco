@@ -13,11 +13,11 @@ import (
 type MatcherSet struct {
 	current  int
 	matchers []Matcher
-	mutex    *sync.Mutex
+	mutex    sync.Locker
 }
 
 func NewMatcherSet() *MatcherSet {
-	return &MatcherSet{0, []Matcher{}, &sync.Mutex{}}
+	return &MatcherSet{0, []Matcher{}, newMutex()}
 }
 
 func (s *MatcherSet) GetCurrent() Matcher {

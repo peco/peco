@@ -10,11 +10,11 @@ import (
 // largest line number
 type Selection struct {
 	selection []int
-	mutex     *sync.Mutex
+	mutex     sync.Locker
 }
 
 func NewSelection() *Selection {
-	return &Selection{nil,&sync.Mutex{}}
+	return &Selection{nil, newMutex()}
 }
 
 func (s *Selection) GetSelection() []int {

@@ -1,10 +1,6 @@
 package peco
 
-import (
-	"sync"
-
-	"github.com/nsf/termbox-go"
-)
+import "github.com/nsf/termbox-go"
 
 // Screen hides termbox from tne consuming code so that
 // it can be swapped out for testing
@@ -21,7 +17,7 @@ type Termbox struct{}
 
 // termbox always gives us some sort of warning when we run
 // go run -race cmd/peco/peco.go
-var termboxMutex = &sync.Mutex{}
+var termboxMutex = newMutex()
 
 func (t Termbox) Clear(fg, bg termbox.Attribute) error {
 	termboxMutex.Lock()
