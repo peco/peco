@@ -145,15 +145,16 @@ func (u UserPrompt) Draw() {
 	// print "QUERY>"
 	printScreen(0, location, u.config.Style.BasicFG(), u.config.Style.BasicBG(), u.prefix, false)
 
-	if u.CaretPos() <= 0 { // XXX Do we really need this?
+	pos := u.CaretPos()
+	if pos <= 0 { // XXX Do we really need this?
 		u.SetCaretPos(0) // sanity
 	}
 
-	if u.CaretPos().Int() > u.QueryLen() { // XXX Do we really need this?
+	if pos > u.QueryLen() { // XXX Do we really need this?
 		u.SetCaretPos(u.QueryLen())
 	}
 
-	if u.CaretPos().Int() == u.QueryLen() {
+	if u.CaretPos() == u.QueryLen() {
 		// the entire string + the caret after the string
 		fg := u.config.Style.QueryFG()
 		bg := u.config.Style.QueryBG()
@@ -168,7 +169,7 @@ func (u UserPrompt) Draw() {
 		for i, r := range []rune(u.Query()) {
 			fg := u.config.Style.QueryFG()
 			bg := u.config.Style.QueryBG()
-			if i == u.CaretPos().Int() {
+			if i == u.CaretPos() {
 				fg |= termbox.AttrReverse
 				bg |= termbox.AttrReverse
 			}
@@ -188,7 +189,7 @@ type StatusBar struct {
 	*Ctx
 	*AnchorSettings
 	clearTimer *time.Timer
-	timerMutex *sync.Mutex
+	timerMutex sync.Locker
 }
 
 // NewStatusBar creates a new StatusBar struct
@@ -197,7 +198,7 @@ func NewStatusBar(ctx *Ctx, anchor VerticalAnchor, anchorOffset int) *StatusBar 
 		ctx,
 		NewAnchorSettings(anchor, anchorOffset),
 		nil,
-		&sync.Mutex{},
+		newMutex(),
 	}
 }
 
@@ -208,6 +209,12 @@ func (s *StatusBar) stopTimer() {
 		t.Stop()
 		s.clearTimer = nil
 	}
+}
+
+func (s *StatusBar) setClearTimer(t *time.Timer) {
+	s.timerMutex.Lock()
+	defer s.timerMutex.Unlock()
+	s.clearTimer = t
 }
 
 // PrintStatus prints a new status message. This also resets the
@@ -252,9 +259,9 @@ func (s *StatusBar) PrintStatus(msg string, clearDelay time.Duration) {
 	// if everything is successful AND the clearDelay timer is specified,
 	// then set a timer to clear the status
 	if clearDelay != 0 {
-		s.clearTimer = time.AfterFunc(clearDelay, func() {
+		s.setClearTimer(time.AfterFunc(clearDelay, func() {
 			s.PrintStatus("", 0)
-		})
+		}))
 	}
 }
 
@@ -288,7 +295,7 @@ func (l *ListArea) Draw(targets []Match, perPage int) {
 		case n+currentPage.offset == l.currentLine-1:
 			fgAttr = l.config.Style.SelectedFG()
 			bgAttr = l.config.Style.SelectedBG()
-		case l.selection.Has(n+currentPage.offset+1) || l.SelectedRange().Has(n+currentPage.offset+1):
+		case l.SelectionContains(n+currentPage.offset+1) || l.SelectedRange().Has(n+currentPage.offset+1):
 			fgAttr = l.config.Style.SavedSelectionFG()
 			bgAttr = l.config.Style.SavedSelectionBG()
 		default:

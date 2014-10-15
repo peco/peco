@@ -6,8 +6,69 @@ import (
 	"regexp"
 	"sort"
 	"strings"
+	"sync"
 	"unicode"
 )
+
+type MatcherSet struct {
+	current  int
+	matchers []Matcher
+	mutex    sync.Locker
+}
+
+func NewMatcherSet() *MatcherSet {
+	return &MatcherSet{0, []Matcher{}, newMutex()}
+}
+
+func (s *MatcherSet) GetCurrent() Matcher {
+	s.mutex.Lock()
+	i := s.current
+	s.mutex.Unlock()
+
+	return s.Get(i)
+}
+
+func (s *MatcherSet) Get(i int) Matcher {
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
+
+	return s.matchers[i]
+}
+
+func (s *MatcherSet) SetCurrentByName(n string) bool {
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
+
+	for i, m := range s.matchers {
+		if m.String() == n {
+			s.current = i
+			return true
+		}
+	}
+	return false
+}
+
+func (s *MatcherSet) Add(m Matcher) error {
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
+
+	if err := m.Verify(); err != nil {
+		return fmt.Errorf("verification for custom matcher failed: %s", err)
+	}
+	s.matchers = append(s.matchers, m)
+	return nil
+}
+
+// Rotate rotates the matchers
+func (s *MatcherSet) Rotate() {
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
+
+	s.current++
+	if s.current >= len(s.matchers) {
+		s.current = 0
+	}
+}
 
 // Global var used to strips ansi sequences
 var reANSIEscapeChars = regexp.MustCompile("\x1B\\[(?:[0-9]{1,2}(?:;[0-9]{1,2})?)*[a-zA-Z]")
@@ -355,6 +416,7 @@ func (m *RegexpMatcher) Match(quit chan struct{}, q string, buffer []Match) []Ma
 			if ms == nil {
 				continue
 			}
+
 			iter <- NewDidMatch(match.Buffer(), m.enableSep, ms)
 		}
 		iter <- nil

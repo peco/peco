@@ -15,11 +15,19 @@ type Screen interface {
 // Termbox just hands out the processing to the termbox library
 type Termbox struct{}
 
+// termbox always gives us some sort of warning when we run
+// go run -race cmd/peco/peco.go
+var termboxMutex = newMutex()
+
 func (t Termbox) Clear(fg, bg termbox.Attribute) error {
+	termboxMutex.Lock()
+	defer termboxMutex.Unlock()
 	return termbox.Clear(fg, bg)
 }
 
 func (t Termbox) Flush() error {
+	termboxMutex.Lock()
+	defer termboxMutex.Unlock()
 	return termbox.Flush()
 }
 
@@ -46,9 +54,13 @@ func (t Termbox) PollEvent() chan termbox.Event {
 }
 
 func (t Termbox) SetCell(x, y int, ch rune, fg, bg termbox.Attribute) {
+	termboxMutex.Lock()
+	defer termboxMutex.Unlock()
 	termbox.SetCell(x, y, ch, fg, bg)
 }
 
 func (t Termbox) Size() (int, int) {
+	termboxMutex.Lock()
+	defer termboxMutex.Unlock()
 	return termbox.Size()
 }

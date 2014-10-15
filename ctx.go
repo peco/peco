@@ -5,9 +5,12 @@ import (
 	"io"
 	"os"
 	"os/signal"
+	"runtime"
 	"sync"
 	"syscall"
 )
+
+const debug = false
 
 var screen Screen = Termbox{}
 
@@ -37,69 +40,84 @@ type PageInfo struct {
 	perPage int
 }
 
-type CaretPosition int
-
-func (p CaretPosition) Int() int {
-	return int(p)
+func (p *Ctx) CaretPos() int {
+	p.mutex.Lock()
+	defer p.mutex.Unlock()
+	return p.caretPosition
 }
 
-func (p CaretPosition) CaretPos() CaretPosition {
-	return p
+func (p *Ctx) SetCaretPos(where int) {
+	p.mutex.Lock()
+	defer p.mutex.Unlock()
+	p.caretPosition = where
 }
 
-func (p *CaretPosition) SetCaretPos(where int) {
-	*p = CaretPosition(where)
+func (p *Ctx) MoveCaretPos(offset int) {
+	p.mutex.Lock()
+	defer p.mutex.Unlock()
+	p.caretPosition = p.caretPosition + offset
 }
 
-func (p *CaretPosition) MoveCaretPos(offset int) {
-	*p = CaretPosition(p.Int() + offset)
+type FilterQuery struct {
+	query []rune
+	mutex sync.Locker
 }
 
-type FilterQuery []rune
-
-func (q FilterQuery) Query() FilterQuery {
-	return q
+func (q FilterQuery) Query() []rune {
+	q.mutex.Lock()
+	defer q.mutex.Unlock()
+	return q.query[:]
 }
 
 func (q FilterQuery) QueryString() string {
-	return string(q)
+	qbytes := q.Query()
+	return string(qbytes)
 }
 
 func (q FilterQuery) QueryLen() int {
-	return len(q)
+	q.mutex.Lock()
+	defer q.mutex.Unlock()
+	return len(q.query)
 }
 
 func (q *FilterQuery) AppendQuery(r rune) {
-	*q = FilterQuery(append([]rune(*q), r))
+	q.mutex.Lock()
+	defer q.mutex.Unlock()
+	q.query = append(q.query, r)
 }
 
 func (q *FilterQuery) InsertQueryAt(ch rune, where int) {
-	sq := []rune(*q)
-	buf := make([]rune, q.QueryLen()+1)
+	q.mutex.Lock()
+	defer q.mutex.Unlock()
+
+	sq := q.query
+	buf := make([]rune, len(sq)+1)
 	copy(buf, sq[:where])
 	buf[where] = ch
 	copy(buf[where+1:], sq[where:])
-	*q = FilterQuery(buf)
+	q.query = buf
 }
 
 // Ctx contains all the important data. while you can easily access
 // data in this struct from anwyehre, only do so via channels
 type Ctx struct {
 	*Hub
-	CaretPosition
-	FilterQuery
+	*FilterQuery
+	*MatcherSet
+	caretPosition       int
 	enableSep           bool
 	result              []Match
-	mutex               sync.Mutex
+	mutex               sync.Locker
 	currentLine         int
 	currentPage         *PageInfo
 	maxPage             int
-	selection           Selection
+	selection           *Selection
 	lines               []Match
+	linesMutex          sync.Locker
 	current             []Match
+	currentMutex        sync.Locker
 	bufferSize          int
 	config              *Config
-	Matchers            []Matcher
 	currentMatcher      int
 	exitStatus          int
 	selectionRangeStart int
@@ -108,20 +126,47 @@ type Ctx struct {
 	wait *sync.WaitGroup
 }
 
+func newMutex() sync.Locker {
+	if debug {
+		return &loggingMutex{&sync.Mutex{}}
+	}
+	return &sync.Mutex{}
+}
+
+type loggingMutex struct {
+	*sync.Mutex
+}
+
+func (m *loggingMutex) Lock() {
+	buf := make([]byte, 8092)
+	l := runtime.Stack(buf, false)
+	fmt.Printf("LOCK %s\n", buf[:l])
+	m.Mutex.Lock()
+}
+
+func (m *loggingMutex) Unlock() {
+	buf := make([]byte, 8092)
+	l := runtime.Stack(buf, false)
+	fmt.Printf("UNLOCK %s\n", buf[:l])
+	m.Mutex.Unlock()
+}
+
 func NewCtx(o CtxOptions) *Ctx {
 	c := &Ctx{
 		Hub:                 NewHub(),
-		CaretPosition:       0,
-		FilterQuery:         FilterQuery{},
+		FilterQuery:         &FilterQuery{[]rune{}, newMutex()},
+		MatcherSet:          nil,
+		caretPosition:       0,
 		result:              []Match{},
-		mutex:               sync.Mutex{},
+		mutex:               newMutex(),
 		currentPage:         &PageInfo{0, 1, 0},
 		maxPage:             0,
-		selection:           Selection([]int{}),
+		selection:           NewSelection(),
 		lines:               []Match{},
+		linesMutex:          newMutex(),
 		current:             nil,
+		currentMutex:        newMutex(),
 		config:              NewConfig(),
-		Matchers:            nil,
 		currentMatcher:      0,
 		exitStatus:          0,
 		selectionRangeStart: invalidSelectionRange,
@@ -136,12 +181,17 @@ func NewCtx(o CtxOptions) *Ctx {
 		c.layoutType = o.LayoutType()
 	}
 
-	c.Matchers = []Matcher{
+	matchers := []Matcher{
 		NewIgnoreCaseMatcher(c.enableSep),
 		NewCaseSensitiveMatcher(c.enableSep),
 		NewSmartCaseMatcher(c.enableSep),
 		NewRegexpMatcher(c.enableSep),
 	}
+	matcherSet := NewMatcherSet()
+	for _, m := range matchers {
+		matcherSet.Add(m)
+	}
+	c.MatcherSet = matcherSet
 
 	return c
 }
@@ -162,7 +212,7 @@ func (c *Ctx) ReadConfig(file string) error {
 		c.config.InitialMatcher = c.config.Matcher
 	}
 
-	c.SetCurrentMatcher(c.config.InitialMatcher)
+	c.MatcherSet.SetCurrentByName(c.config.InitialMatcher)
 
 	if c.layoutType == "" { // Not set yet
 		if c.config.Layout != "" {
@@ -171,6 +221,24 @@ func (c *Ctx) ReadConfig(file string) error {
 	}
 
 	return nil
+}
+
+func (c *Ctx) SetLines(newLines []Match) {
+	c.linesMutex.Lock()
+	defer c.linesMutex.Unlock()
+	c.lines = newLines
+}
+
+func (c *Ctx) GetLines() []Match {
+	c.linesMutex.Lock()
+	defer c.linesMutex.Unlock()
+	return c.lines[:]
+}
+
+func (c *Ctx) GetLinesCount() int {
+	c.linesMutex.Lock()
+	defer c.linesMutex.Unlock()
+	return len(c.lines)
 }
 
 func (c *Ctx) IsBufferOverflowing() bool {
@@ -185,9 +253,33 @@ func (c *Ctx) IsRangeMode() bool {
 	return c.selectionRangeStart != invalidSelectionRange
 }
 
-func (c *Ctx) SelectedRange() Selection {
+func (c *Ctx) SelectionLen() int {
+	c.mutex.Lock()
+	defer c.mutex.Unlock()
+	return c.selection.Len()
+}
+
+func (c *Ctx) SelectionAdd(x int) {
+	c.mutex.Lock()
+	defer c.mutex.Unlock()
+	c.selection.Add(x)
+}
+
+func (c *Ctx) SelectionClear() {
+	c.mutex.Lock()
+	defer c.mutex.Unlock()
+	c.selection.Clear()
+}
+
+func (c *Ctx) SelectionContains(n int) bool {
+	c.mutex.Lock()
+	defer c.mutex.Unlock()
+	return c.selection.Has(n)
+}
+
+func (c *Ctx) SelectedRange() *Selection {
 	if !c.IsRangeMode() {
-		return Selection{}
+		return NewSelection()
 	}
 
 	selectedLines := []int{}
@@ -200,7 +292,33 @@ func (c *Ctx) SelectedRange() Selection {
 			selectedLines = append(selectedLines, i)
 		}
 	}
-	return Selection(selectedLines)
+	s := NewSelection()
+	s.selection = selectedLines
+	return s
+}
+
+func (c *Ctx) GetCurrent() []Match {
+	c.currentMutex.Lock()
+	defer c.currentMutex.Unlock()
+	return c.current[:]
+}
+
+func (c *Ctx) GetCurrentLen() int {
+	c.currentMutex.Lock()
+	defer c.currentMutex.Unlock()
+	return len(c.current)
+}
+
+func (c *Ctx) SetCurrent(newMatches []Match) {
+	c.currentMutex.Lock()
+	defer c.currentMutex.Unlock()
+	c.current = newMatches
+}
+
+func (c *Ctx) GetCurrentAt(i int) Match {
+	c.currentMutex.Lock()
+	defer c.currentMutex.Unlock()
+	return c.current[i]
 }
 
 func (c *Ctx) Result() []Match {
@@ -258,7 +376,7 @@ func (c *Ctx) NewView() *View {
 	default:
 		layout = NewDefaultLayout(c)
 	}
-	return &View{c, layout}
+	return &View{c, newMutex(), layout}
 }
 
 func (c *Ctx) NewFilter() *Filter {
@@ -269,34 +387,18 @@ func (c *Ctx) NewInput() *Input {
 	// Create a new keymap object
 	k := NewKeymap(c.config.Keymap, c.config.Action)
 	k.ApplyKeybinding()
-	return &Input{c, &sync.Mutex{}, nil, k, []string{}}
+	return &Input{c, newMutex(), nil, k, []string{}}
 }
 
 func (c *Ctx) SetQuery(q []rune) {
-	c.FilterQuery = FilterQuery(q)
+	c.mutex.Lock()
+	c.FilterQuery.query = q
+	c.mutex.Unlock()
 	c.SetCaretPos(c.QueryLen())
 }
 
 func (c *Ctx) Matcher() Matcher {
-	return c.Matchers[c.currentMatcher]
-}
-
-func (c *Ctx) AddMatcher(m Matcher) error {
-	if err := m.Verify(); err != nil {
-		return fmt.Errorf("verification for custom matcher failed: %s", err)
-	}
-	c.Matchers = append(c.Matchers, m)
-	return nil
-}
-
-func (c *Ctx) SetCurrentMatcher(n string) bool {
-	for i, m := range c.Matchers {
-		if m.String() == n {
-			c.currentMatcher = i
-			return true
-		}
-	}
-	return false
+	return c.MatcherSet.GetCurrent()
 }
 
 func (c *Ctx) LoadCustomMatcher() error {
@@ -305,7 +407,7 @@ func (c *Ctx) LoadCustomMatcher() error {
 	}
 
 	for name, args := range c.config.CustomMatcher {
-		if err := c.AddMatcher(NewCustomMatcher(c.enableSep, name, args)); err != nil {
+		if err := c.MatcherSet.Add(NewCustomMatcher(c.enableSep, name, args)); err != nil {
 			return err
 		}
 	}
@@ -350,14 +452,6 @@ func (s *signalHandler) Loop() {
 
 func (c *Ctx) SetPrompt(p string) {
 	c.config.Prompt = p
-}
-
-// RotateMatcher rotates the matchers
-func (c *Ctx) RotateMatcher() {
-	c.currentMatcher++
-	if c.currentMatcher >= len(c.Matchers) {
-		c.currentMatcher = 0
-	}
 }
 
 // ExitStatus() returns the exit status that we think should be used

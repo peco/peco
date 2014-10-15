@@ -46,7 +46,7 @@ func (b *BufferReader) Loop() {
 		}
 	}()
 
-	m := &sync.Mutex{}
+	m := newMutex()
 	once := &sync.Once{}
 	var refresh *time.Timer
 
@@ -67,9 +67,11 @@ func (b *BufferReader) Loop() {
 
 				// Make sure we lock access to b.lines
 				m.Lock()
-				b.lines = append(b.lines, NewNoMatch(line, b.enableSep))
+				b.SetLines(append(b.GetLines(), NewNoMatch(line, b.enableSep)))
 				if b.IsBufferOverflowing() {
-					b.lines = b.lines[1:]
+					lines := b.GetLines()
+					b.SetLines(lines[1:])
+
 				}
 				m.Unlock()
 			}
@@ -78,7 +80,7 @@ func (b *BufferReader) Loop() {
 			if refresh == nil {
 				refresh = time.AfterFunc(100*time.Millisecond, func() {
 					if !b.ExecQuery() {
-						b.DrawMatches(b.lines)
+						b.DrawMatches(b.GetLines())
 					}
 					m.Lock()
 					refresh = nil
@@ -93,7 +95,7 @@ func (b *BufferReader) Loop() {
 
 	// Out of the reader loop. If at this point we have no buffer,
 	// that means we have no buffer, so we should quit.
-	if len(b.lines) == 0 {
+	if b.GetLinesCount() == 0 {
 		b.ExitWith(1)
 		fmt.Fprintf(os.Stderr, "No buffer to work with was available")
 	}
