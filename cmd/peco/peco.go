@@ -1,12 +1,13 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"os"
 	"reflect"
 	"runtime"
+	"strconv"
 
-	"github.com/jessevdk/go-flags"
 	"github.com/nsf/termbox-go"
 	"github.com/peco/peco"
 )
@@ -28,34 +29,96 @@ type cmdOptions struct {
 	OptLayout         string `long:"layout" description:"layout to be used 'top-down' (default) or 'bottom-up'"`
 }
 
-func showHelp() {
-	// The ONLY reason we're not using go-flags' help option is
-	// because I wanted to tweak the format just a bit... but
-	// there wasn't an easy way to do so
-	os.Stderr.WriteString(`
+type myFlags struct {
+	*flag.FlagSet
+}
+
+type myValue struct {
+	reflect.Value
+}
+
+func (v myValue) IsBoolFlag() bool {
+	return v.Value.Type().Kind() == reflect.Bool
+}
+
+func (v myValue) Set(x string) error {
+	switch v.Value.Type().Kind() {
+	case reflect.Slice, reflect.Array:
+		v.Value.Set(reflect.Append(v.Value, reflect.ValueOf(x)))
+	case reflect.Bool:
+		b, err := strconv.ParseBool(x)
+		if err != nil {
+			return err
+		}
+		v.Value.Set(reflect.ValueOf(b))
+	case reflect.Int:
+		i, err := strconv.ParseInt(x, 10, 0)
+		if err != nil {
+			return err
+		}
+		v.Value.Set(reflect.ValueOf(int(i)))
+	default:
+		if !v.Value.CanSet() {
+			return fmt.Errorf("cannot set")
+		}
+
+		v.Value.Set(reflect.ValueOf(x))
+	}
+	return nil
+}
+
+// Creates a flag.FlagSet struct using informations from cmdOptions struct
+func makeFlagSet(o *cmdOptions) *flag.FlagSet {
+	fs := flag.NewFlagSet(os.Args[0], flag.ContinueOnError)
+	ov := reflect.ValueOf(o)
+	t := ov.Elem().Type()
+	for i := 0; i < t.NumField(); i++ {
+		f := t.Field(i)
+		if f.Anonymous {
+			continue
+		}
+
+		tag := f.Tag
+		if l := tag.Get("long"); l != "" {
+			v := myValue{ov.Elem().Field(i)}
+			fs.Var(v, l, "")
+			fs.Var(v, "-"+l, "")
+		}
+	}
+
+	fs.Usage = func() {
+		os.Stderr.WriteString(`
 Usage: peco [options] [FILE]
 
 Options:
 `)
+		for i := 0; i < t.NumField(); i++ {
+			f := t.Field(i)
+			if f.Anonymous {
+				continue
+			}
+			tag := f.Tag
+			if tag == "" {
+				continue
+			}
 
-	t := reflect.TypeOf(cmdOptions{})
-	for i := 0; i < t.NumField(); i++ {
-		tag := t.Field(i).Tag
+			var o string
+			if s := tag.Get("short"); s != "" {
+				o = fmt.Sprintf("-%s, --%s", tag.Get("short"), tag.Get("long"))
+			} else {
+				o = fmt.Sprintf("--%s", tag.Get("long"))
+			}
 
-		var o string
-		if s := tag.Get("short"); s != "" {
-			o = fmt.Sprintf("-%s, --%s", tag.Get("short"), tag.Get("long"))
-		} else {
-			o = fmt.Sprintf("--%s", tag.Get("long"))
+			fmt.Fprintf(
+				os.Stderr,
+				"  %-21s %s\n",
+				o,
+				tag.Get("description"),
+			)
 		}
-
-		fmt.Fprintf(
-			os.Stderr,
-			"  %-21s %s\n",
-			o,
-			tag.Get("description"),
-		)
 	}
+
+	return fs
 }
 
 // BufferSize returns the specified buffer size. Fulfills peco.CtxOptions
@@ -90,10 +153,12 @@ func main() {
 	}
 
 	opts := &cmdOptions{}
-	p := flags.NewParser(opts, flags.PrintErrors)
-	args, err := p.Parse()
-	if err != nil {
-		showHelp()
+	fs := makeFlagSet(opts)
+	if err = fs.Parse(os.Args[1:]); err != nil {
+		if err != flag.ErrHelp {
+			fmt.Fprintf(os.Stderr, "Error parsing command line options: %s\n", err)
+			fs.Usage()
+		}
 		st = 1
 		return
 	}
@@ -106,11 +171,6 @@ func main() {
 		}
 	}
 
-	if opts.OptHelp {
-		showHelp()
-		return
-	}
-
 	if opts.OptVersion {
 		fmt.Fprintf(os.Stderr, "peco: %s\n", version)
 		return
@@ -119,6 +179,7 @@ func main() {
 	var in *os.File
 
 	// receive in from either a file or Stdin
+	args := fs.Args()
 	switch {
 	case len(args) > 0:
 		in, err = os.Open(args[0])
