@@ -173,7 +173,7 @@ Configuration File
 peco by default consults a few locations for the config files.
 
 1. Location specified in --rcfile. If this doesn't exist, peco complains and exits
-2. $XDG\_CONFIG\_HOME/config.json
+2. $XDG\_CONFIG\_HOME/peco/config.json
 3. $HOME/.config/peco/config.json
 4. for each directories listed in $XDG\_CONFIG\_DIRS, $DIR/peco/config.json
 5. If all else fails, $HOME/.peco/config.json
