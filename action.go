@@ -224,12 +224,17 @@ func doFinish(i *Input, _ termbox.Event) {
 		i.SelectionAdd(i.currentLine)
 	}
 
-	i.result = []Match{}
-	for _, lineno := range append(i.selection.GetSelection(), i.SelectedRange().GetSelection()...) {
-		if lineno <= i.GetCurrentLen() {
-			i.result = append(i.result, i.GetCurrentAt(lineno-1))
+	i.resultCh = make(chan Match)
+	lines := append(i.selection.GetSelection(), i.SelectedRange().GetSelection()...)
+	go func(ch chan Match, lines []int) {
+		for _, lineno := range lines {
+			if lineno <= i.GetCurrentLen() {
+				ch <- i.GetCurrentAt(lineno-1)
+			}
 		}
-	}
+		close(ch)
+	}(i.resultCh, lines)
+
 	i.ExitWith(0)
 }
 

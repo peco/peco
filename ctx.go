@@ -106,7 +106,7 @@ type Ctx struct {
 	*MatcherSet
 	caretPosition       int
 	enableSep           bool
-	result              []Match
+	resultCh            chan Match
 	mutex               sync.Locker
 	currentLine         int
 	currentPage         *PageInfo
@@ -157,7 +157,7 @@ func NewCtx(o CtxOptions) *Ctx {
 		FilterQuery:         &FilterQuery{[]rune{}, newMutex()},
 		MatcherSet:          nil,
 		caretPosition:       0,
-		result:              []Match{},
+		resultCh:            nil,
 		mutex:               newMutex(),
 		currentPage:         &PageInfo{0, 1, 0},
 		maxPage:             0,
@@ -321,8 +321,8 @@ func (c *Ctx) GetCurrentAt(i int) Match {
 	return c.current[i]
 }
 
-func (c *Ctx) Result() []Match {
-	return c.result
+func (c *Ctx) ResultCh() <-chan Match {
+	return c.resultCh
 }
 
 func (c *Ctx) AddWaitGroup(v int) {
