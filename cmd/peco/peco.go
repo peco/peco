@@ -142,14 +142,17 @@ func main() {
 			fmt.Fprintf(os.Stderr, "Error:\n%s", err)
 		}
 
-		if result := ctx.Result(); result != nil {
-			for _, match := range result {
-				line := match.Output()
-				if line[len(line)-1] != '\n' {
-					line = line + "\n"
-				}
-				fmt.Fprint(os.Stdout, line)
+		ch := ctx.ResultCh()
+		if ch == nil {
+			return
+		}
+
+		for match := range ch {
+			line := match.Output()
+			if line[len(line)-1] != '\n' {
+				line = line + "\n"
 			}
+			fmt.Fprint(os.Stdout, line)
 		}
 	}()
 
