@@ -51,7 +51,7 @@ func (v *View) Loop() {
 			tmp := lines.DataInterface()
 			if tmp == nil {
 				v.drawScreen(nil)
-			} else if matches, ok := tmp.([]Match); ok {
+			} else if matches, ok := tmp.([]Line); ok {
 				v.drawScreen(matches)
 			} else if name, ok := tmp.(string); ok {
 				if name == "prompt" {
@@ -67,7 +67,7 @@ func (v *View) printStatus(r StatusMsgRequest) {
 	v.layout.PrintStatus(r.message, r.clearDelay)
 }
 
-func (v *View) drawScreenNoLock(targets []Match) {
+func (v *View) drawScreenNoLock(targets []Line) {
 	if targets == nil {
 		if current := v.GetCurrent(); current != nil {
 			targets = current
@@ -80,7 +80,7 @@ func (v *View) drawScreenNoLock(targets []Match) {
 	v.SetCurrent(targets)
 }
 
-func (v *View) drawScreen(targets []Match) {
+func (v *View) drawScreen(targets []Line) {
 	v.mutex.Lock()
 	defer v.mutex.Unlock()
 	v.drawScreenNoLock(targets)

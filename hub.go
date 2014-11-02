@@ -123,7 +123,7 @@ func (h *Hub) SendDrawPrompt() {
 }
 
 // SendDraw sends a request to redraw the terminal display
-func (h *Hub) SendDraw(matches []Match) {
+func (h *Hub) SendDraw(matches []Line) {
 	// to make sure interface is nil, I need to EXPLICITLY set nil
 	req := HubReq{nil, nil}
 	if matches != nil {

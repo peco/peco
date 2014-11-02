@@ -106,15 +106,15 @@ type Ctx struct {
 	*MatcherSet
 	caretPosition       int
 	enableSep           bool
-	resultCh            chan Match
+	resultCh            chan Line
 	mutex               sync.Locker
 	currentLine         int
 	currentPage         *PageInfo
 	maxPage             int
 	selection           *Selection
-	lines               []Match
+	lines               []Line
 	linesMutex          sync.Locker
-	current             []Match
+	current             []Line
 	currentMutex        sync.Locker
 	bufferSize          int
 	config              *Config
@@ -161,7 +161,7 @@ func NewCtx(o CtxOptions) *Ctx {
 		currentPage:         &PageInfo{0, 1, 0},
 		maxPage:             0,
 		selection:           NewSelection(),
-		lines:               []Match{},
+		lines:               []Line{},
 		linesMutex:          newMutex(),
 		current:             nil,
 		currentMutex:        newMutex(),
@@ -221,13 +221,13 @@ func (c *Ctx) ReadConfig(file string) error {
 	return nil
 }
 
-func (c *Ctx) SetLines(newLines []Match) {
+func (c *Ctx) SetLines(newLines []Line) {
 	c.linesMutex.Lock()
 	defer c.linesMutex.Unlock()
 	c.lines = newLines
 }
 
-func (c *Ctx) GetLines() []Match {
+func (c *Ctx) GetLines() []Line {
 	c.linesMutex.Lock()
 	defer c.linesMutex.Unlock()
 	return c.lines[:]
@@ -295,7 +295,7 @@ func (c *Ctx) SelectedRange() *Selection {
 	return s
 }
 
-func (c *Ctx) GetCurrent() []Match {
+func (c *Ctx) GetCurrent() []Line {
 	c.currentMutex.Lock()
 	defer c.currentMutex.Unlock()
 	return c.current[:]
@@ -307,19 +307,19 @@ func (c *Ctx) GetCurrentLen() int {
 	return len(c.current)
 }
 
-func (c *Ctx) SetCurrent(newMatches []Match) {
+func (c *Ctx) SetCurrent(newMatches []Line) {
 	c.currentMutex.Lock()
 	defer c.currentMutex.Unlock()
 	c.current = newMatches
 }
 
-func (c *Ctx) GetCurrentAt(i int) Match {
+func (c *Ctx) GetCurrentAt(i int) Line {
 	c.currentMutex.Lock()
 	defer c.currentMutex.Unlock()
 	return c.current[i]
 }
 
-func (c *Ctx) ResultCh() <-chan Match {
+func (c *Ctx) ResultCh() <-chan Line {
 	return c.resultCh
 }
 
@@ -343,7 +343,7 @@ func (c *Ctx) ExecQuery() bool {
 	return false
 }
 
-func (c *Ctx) DrawMatches(m []Match) {
+func (c *Ctx) DrawMatches(m []Line) {
 	c.SendDraw(m)
 }
 
@@ -355,9 +355,9 @@ func (c *Ctx) Refresh() {
 	c.DrawMatches(nil)
 }
 
-func (c *Ctx) Buffer() []Match {
+func (c *Ctx) Buffer() []Line {
 	// Copy lines so it's safe to read it
-	lcopy := make([]Match, len(c.lines))
+	lcopy := make([]Line, len(c.lines))
 	copy(lcopy, c.lines)
 	return lcopy
 }

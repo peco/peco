@@ -45,7 +45,7 @@ func IsValidVerticalAnchor(anchor VerticalAnchor) bool {
 type Layout interface {
 	PrintStatus(string, time.Duration)
 	DrawPrompt()
-	DrawScreen([]Match)
+	DrawScreen([]Line)
 	MovePage(PagingRequest)
 }
 
@@ -283,7 +283,7 @@ func NewListArea(ctx *Ctx, anchor VerticalAnchor, anchorOffset int, sortTopDown 
 }
 
 // Draw displays the ListArea on the screen
-func (l *ListArea) Draw(targets []Match, perPage int) {
+func (l *ListArea) Draw(targets []Line, perPage int) {
 	currentPage := l.currentPage
 
 	start := l.AnchorPosition()
@@ -315,7 +315,7 @@ func (l *ListArea) Draw(targets []Match, perPage int) {
 		}
 
 		target := targets[targetIdx]
-		line := target.Line()
+		line := target.DisplayString()
 		matches := target.Indices()
 		if matches == nil {
 			printScreen(0, y, fgAttr, bgAttr, line, true)
@@ -383,7 +383,7 @@ func NewBottomUpLayout(ctx *Ctx) *BasicLayout {
 }
 
 // CalculatePage calculates which page we're displaying
-func (l *BasicLayout) CalculatePage(targets []Match, perPage int) error {
+func (l *BasicLayout) CalculatePage(targets []Line, perPage int) error {
 CALCULATE_PAGE:
 	currentPage := l.currentPage
 	currentPage.index = ((l.currentLine - 1) / perPage) + 1
@@ -415,7 +415,7 @@ func (l *BasicLayout) DrawPrompt() {
 }
 
 // DrawScreen draws the entire screen
-func (l *BasicLayout) DrawScreen(targets []Match) {
+func (l *BasicLayout) DrawScreen(targets []Line) {
 	if err := screen.Clear(l.config.Style.BasicFG(), l.config.Style.BasicBG()); err != nil {
 		return
 	}
