@@ -26,28 +26,28 @@ func TestANSIColorStrip(t *testing.T) {
 }
 
 func TestNewMatch(t *testing.T) {
-	var m Match
+	var m Line
 
-	m = NewNoMatch("Hello, World!", false)
+	m = NewRawLine("Hello, World!", false)
 	if m.Indices() != nil {
 		t.Errorf("NoMatch.Indices() must always return nil")
 	}
 
-	nullsepCheck := func(buf string, m Match) {
+	nullsepCheck := func(buf string, m Line) {
 		if m.Buffer() != buf {
 			t.Errorf("m.Buffer() should return '%s', got %s", buf, m.Buffer())
 		}
 
 		if sepLoc := strings.Index(buf, "\000"); sepLoc > -1 {
-			if m.Line() != buf[0:sepLoc] {
-				t.Errorf("m.Line() should return '%s', got '%s'", buf[0:sepLoc], m.Line())
+			if m.DisplayString() != buf[0:sepLoc] {
+				t.Errorf("m.DisplayString() should return '%s', got '%s'", buf[0:sepLoc], m.DisplayString())
 			}
 			if m.Output() != buf[sepLoc+1:] {
 				t.Errorf("m.Output() should return '%s', got '%s'", buf[sepLoc+1:], m.Output())
 			}
 		} else {
-			if m.Line() != m.Buffer() {
-				t.Errorf("m.Line() should return '%s', got '%s'", m.Buffer(), m.Line())
+			if m.DisplayString() != m.Buffer() {
+				t.Errorf("m.DisplayString() should return '%s', got '%s'", m.Buffer(), m.DisplayString())
 			}
 			if m.Output() != m.Buffer() {
 				t.Errorf("m.Output() should return '%s', got '%s'", m.Buffer(), m.Output())
@@ -55,12 +55,12 @@ func TestNewMatch(t *testing.T) {
 		}
 	}
 
-	makeDidMatch := func(buf string) (string, Match) {
-		return buf, NewDidMatch(buf, true, [][]int{{0, 5}})
+	makeDidMatch := func(buf string) (string, Line) {
+		return buf, NewMatchedLine(buf, true, [][]int{{0, 5}})
 	}
 
-	makeNoMatch := func(buf string) (string, Match) {
-		return buf, NewNoMatch(buf, true)
+	makeNoMatch := func(buf string) (string, Line) {
+		return buf, NewRawLine(buf, true)
 	}
 
 	nullsepCheck(makeNoMatch("Hello, World!"))

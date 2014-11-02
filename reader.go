@@ -67,11 +67,10 @@ func (b *BufferReader) Loop() {
 
 				// Make sure we lock access to b.lines
 				m.Lock()
-				b.SetLines(append(b.GetLines(), NewNoMatch(line, b.enableSep)))
+				b.SetLines(append(b.GetLines(), NewRawLine(line, b.enableSep)))
 				if b.IsBufferOverflowing() {
 					lines := b.GetLines()
 					b.SetLines(lines[1:])
-
 				}
 				m.Unlock()
 			}

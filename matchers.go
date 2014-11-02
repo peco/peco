@@ -70,107 +70,6 @@ func (s *MatcherSet) Rotate() {
 	}
 }
 
-// Global var used to strips ansi sequences
-var reANSIEscapeChars = regexp.MustCompile("\x1B\\[(?:[0-9]{1,2}(?:;[0-9]{1,2})?)*[a-zA-Z]")
-
-// Function who strips ansi sequences
-func stripANSISequence(s string) string {
-	return reANSIEscapeChars.ReplaceAllString(s, "")
-}
-
-// Match defines the interface for matches. Note that to make drawing easier,
-// we have a DidMatch and NoMatch types instead of using []Match and []string.
-type Match interface {
-	Buffer() string // Raw buffer, may contain null
-	Line() string   // Line to be displayed
-	Output() string // Output string to be displayed after peco is done
-	Indices() [][]int
-}
-
-type matchString struct {
-	buf         string
-	sepLoc      int
-	displayLine string
-}
-
-func newMatchString(v string, enableSep bool) *matchString {
-	m := &matchString{
-		v,
-		-1,
-		"",
-	}
-	if !enableSep {
-		return m
-	}
-
-	// XXX This may be silly, but we're avoiding using strings.IndexByte()
-	// here because it doesn't exist on go1.1. Let's remove support for
-	// 1.1 when 1.4 comes out (or something)
-	for i := 0; i < len(m.buf); i++ {
-		if m.buf[i] == '\000' {
-			m.sepLoc = i
-		}
-	}
-	return m
-}
-
-func (m matchString) Buffer() string {
-	return m.buf
-}
-
-func (m matchString) Line() string {
-	if m.displayLine != "" {
-		return m.displayLine
-	}
-
-	if i := m.sepLoc; i > -1 {
-		m.displayLine = stripANSISequence(m.buf[:i])
-	} else {
-		m.displayLine = stripANSISequence(m.buf)
-	}
-	return m.displayLine
-}
-
-func (m matchString) Output() string {
-	if i := m.sepLoc; i > -1 {
-		return m.buf[i+1:]
-	}
-	return m.buf
-}
-
-// NoMatch is actually an alias to a regular string. It implements the
-// Match interface, but just returns the underlying string with no matches
-type NoMatch struct {
-	*matchString
-}
-
-// NewNoMatch creates a NoMatch struct
-func NewNoMatch(v string, enableSep bool) *NoMatch {
-	return &NoMatch{newMatchString(v, enableSep)}
-}
-
-// Indices always returns nil
-func (m NoMatch) Indices() [][]int {
-	return nil
-}
-
-// DidMatch contains the actual match, and the indices to the matches
-// in the line
-type DidMatch struct {
-	*matchString
-	matches [][]int
-}
-
-// NewDidMatch creates a new DidMatch struct
-func NewDidMatch(v string, enableSep bool, m [][]int) *DidMatch {
-	return &DidMatch{newMatchString(v, enableSep), m}
-}
-
-// Indices returns the indices in the buffer that matched
-func (d DidMatch) Indices() [][]int {
-	return d.matches
-}
-
 // Matcher interface defines the API for things that want to
 // match against the buffer
 type Matcher interface {
@@ -182,7 +81,7 @@ type Matcher interface {
 	// The second is the query. Do what you want with it
 	//
 	// The third is the buffer in which to match the query against.
-	Match(chan struct{}, string, []Match) []Match
+	Line(chan struct{}, string, []Line) []Line
 	String() string
 
 	// This is fugly. We just added a method only for CustomMatcner.
@@ -390,15 +289,15 @@ func (m byStart) Less(i, j int) bool {
 // While it is doing the match, it also listens for messages
 // via `quit`. If anything is received via `quit`, the match
 // is halted.
-func (m *RegexpMatcher) Match(quit chan struct{}, q string, buffer []Match) []Match {
-	results := []Match{}
+func (m *RegexpMatcher) Line(quit chan struct{}, q string, buffer []Line) []Line {
+	results := []Line{}
 	regexps, err := m.queryToRegexps(q)
 	if err != nil {
 		return results
 	}
 
 	// The actual matching is done in a separate goroutine
-	iter := make(chan Match, len(buffer))
+	iter := make(chan Line, len(buffer))
 	go func() {
 		// This protects us from panics, caused when we cancel the
 		// query and forcefully close the channel (and thereby
@@ -412,12 +311,12 @@ func (m *RegexpMatcher) Match(quit chan struct{}, q string, buffer []Match) []Ma
 		// Iterate through the lines, and do the match.
 		// Upon success, send it through the channel
 		for _, match := range buffer {
-			ms := m.MatchAllRegexps(regexps, match.Line())
+			ms := m.MatchAllRegexps(regexps, match.DisplayString())
 			if ms == nil {
 				continue
 			}
 
-			iter <- NewDidMatch(match.Buffer(), m.enableSep, ms)
+			iter <- NewMatchedLine(match.Buffer(), m.enableSep, ms)
 		}
 		iter <- nil
 	}()
@@ -459,23 +358,23 @@ func (m *RegexpMatcher) MatchAllRegexps(regexps []*regexp.Regexp, line string) [
 	matches := make([][]int, 0)
 
 	allMatched := true
-Match:
+Line:
 	for _, re := range regexps {
 		match := re.FindAllStringSubmatchIndex(line, -1)
 		if match == nil {
 			allMatched = false
-			break Match
+			break Line
 		}
 
 		for _, ma := range match {
 			start, end := ma[0], ma[1]
 			for _, m := range matches {
 				if start >= m[0] && start < m[1] {
-					continue Match
+					continue Line
 				}
 
 				if start < m[0] && end >= m[0] {
-					continue Match
+					continue Line
 				}
 			}
 			matches = append(matches, ma)
@@ -492,24 +391,24 @@ Match:
 }
 
 // Match matches `q` aginst `buffer`
-func (m *CustomMatcher) Match(quit chan struct{}, q string, buffer []Match) []Match {
+func (m *CustomMatcher) Line(quit chan struct{}, q string, buffer []Line) []Line {
 	if len(m.args) < 1 {
-		return []Match{}
+		return []Line{}
 	}
 
-	results := []Match{}
+	results := []Line{}
 	if q == "" {
 		for _, match := range buffer {
-			results = append(results, NewDidMatch(match.Buffer(), m.enableSep, nil))
+			results = append(results, NewMatchedLine(match.Buffer(), m.enableSep, nil))
 		}
 		return results
 	}
 
 	// Receive elements from the goroutine performing the match
-	lines := []Match{}
+	lines := []Line{}
 	matcherInput := ""
 	for _, match := range buffer {
-		matcherInput += match.Line() + "\n"
+		matcherInput += match.DisplayString() + "\n"
 		lines = append(lines, match)
 	}
 	args := []string{}
@@ -523,7 +422,7 @@ func (m *CustomMatcher) Match(quit chan struct{}, q string, buffer []Match) []Ma
 	cmd.Stdin = strings.NewReader(matcherInput)
 
 	// See RegexpMatcher.Match() for explanation of constructs
-	iter := make(chan Match, len(buffer))
+	iter := make(chan Line, len(buffer))
 	go func() {
 		defer func() { recover() }()
 		defer func() {
@@ -538,7 +437,7 @@ func (m *CustomMatcher) Match(quit chan struct{}, q string, buffer []Match) []Ma
 		}
 		for _, line := range strings.Split(string(b), "\n") {
 			if len(line) > 0 {
-				iter <- NewDidMatch(line, m.enableSep, nil)
+				iter <- NewMatchedLine(line, m.enableSep, nil)
 			}
 		}
 		iter <- nil
