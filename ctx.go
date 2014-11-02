@@ -118,7 +118,6 @@ type Ctx struct {
 	currentMutex        sync.Locker
 	bufferSize          int
 	config              *Config
-	currentMatcher      int
 	exitStatus          int
 	selectionRangeStart int
 	layoutType          string
@@ -167,7 +166,6 @@ func NewCtx(o CtxOptions) *Ctx {
 		current:             nil,
 		currentMutex:        newMutex(),
 		config:              NewConfig(),
-		currentMatcher:      0,
 		exitStatus:          0,
 		selectionRangeStart: invalidSelectionRange,
 		wait:                &sync.WaitGroup{},
