@@ -289,7 +289,7 @@ func doToggleSelectionAndSelectNext(i *Input, ev termbox.Event) {
 }
 
 func doInvertSelection(i *Input, _ termbox.Event) {
-	i.selection.Invert()
+	i.selection.Invert(i.GetCurrentLen())
 	i.DrawMatches(nil)
 }
 

@@ -18,10 +18,15 @@ func NewSelection() *Selection {
 	return &Selection{&big.Int{}, 0, newMutex()}
 }
 
-func (s *Selection) Invert() {
+func (s *Selection) Invert(pad int) {
 	dst := (&big.Int{}).Set(s.selection)
-	for i := range make([]struct{}, dst.BitLen()) {
+	for i := range make([]struct{}, pad) {
 		b := dst.Bit(i)
+		if b == 1 {
+			b = 0
+		} else {
+			b = 1
+		}
 		dst.SetBit(dst, i, b)
 		if b == 1 {
 			s.flipped++
