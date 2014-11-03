@@ -295,7 +295,7 @@ func (l *ListArea) Draw(targets []Line, perPage int) {
 		case n+currentPage.offset == l.currentLine-1:
 			fgAttr = l.config.Style.SelectedFG()
 			bgAttr = l.config.Style.SelectedBG()
-		case l.SelectionContains(n+currentPage.offset+1) || l.SelectedRange().Has(n+currentPage.offset+1):
+		case l.SelectionContains(n + currentPage.offset + 1):
 			fgAttr = l.config.Style.SavedSelectionFG()
 			bgAttr = l.config.Style.SavedSelectionBG()
 		default:
@@ -445,6 +445,8 @@ func linesPerPage() int {
 
 // MovePage moves the cursor
 func (l *BasicLayout) MovePage(p PagingRequest) {
+	// Before we moved, on which line were we located?
+	lineBefore := l.currentLine
 	if l.list.sortTopDown {
 		switch p {
 		case ToLineAbove:
@@ -469,14 +471,53 @@ func (l *BasicLayout) MovePage(p PagingRequest) {
 		}
 	}
 
+	lcur := len(l.current)
 	if l.currentLine < 1 {
 		if l.current != nil {
 			// Go to last page, if possible
-			l.currentLine = len(l.current)
+			l.currentLine = lcur
 		} else {
 			l.currentLine = 1
 		}
-	} else if l.current != nil && l.currentLine > len(l.current) {
+	} else if l.current != nil && l.currentLine > lcur {
 		l.currentLine = 1
+	}
+
+	// if we were in range mode, we need to do stuff. otherwise
+	// just bail out
+	if !l.IsRangeMode() {
+		return
+	}
+
+	if l.list.sortTopDown {
+		if l.currentLine < l.selectionRangeStart {
+			for lineno := l.currentLine; lineno <= l.selectionRangeStart; lineno++ {
+				l.SelectionAdd(lineno)
+			}
+			switch {
+			case l.selectionRangeStart <= lineBefore:
+				for lineno := l.selectionRangeStart + 1; lineno <= lcur && lineno < lineBefore; lineno++ {
+					l.SelectionRemove(lineno)
+				}
+			case lineBefore < l.currentLine:
+				for lineno := lineBefore; lineno < l.currentLine; lineno++ {
+					l.SelectionRemove(lineno)
+				}
+			}
+		} else {
+			for lineno := l.selectionRangeStart; lineno <= lcur && lineno <= l.currentLine; lineno++ {
+				l.SelectionAdd(lineno)
+			}
+			switch {
+			case lineBefore <= l.selectionRangeStart:
+				for lineno := lineBefore; lineno < l.selectionRangeStart; lineno++ {
+					l.SelectionRemove(lineno)
+				}
+			case l.currentLine < lineBefore:
+				for lineno := l.currentLine + 1; lineno <= lineBefore; lineno++ {
+					l.SelectionRemove(lineno)
+				}
+			}
+		}
 	}
 }

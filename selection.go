@@ -1,7 +1,7 @@
 package peco
 
 import (
-	"sort"
+	"math/big"
 	"sync"
 )
 
@@ -9,24 +9,26 @@ import (
 // The contents of the Selection is always sorted from smallest to
 // largest line number
 type Selection struct {
-	selection []int
+	selection *big.Int // bitmask
+	flipped   uint64
 	mutex     sync.Locker
 }
 
 func NewSelection() *Selection {
-	return &Selection{nil, newMutex()}
+	return &Selection{&big.Int{}, 0, newMutex()}
 }
 
-func (s *Selection) SetSelection(x []int) {
-	s.mutex.Lock()
-	defer s.mutex.Unlock()
-	s.selection = x
-}
+func (s *Selection) Invert() {
+	dst := (&big.Int{}).Set(s.selection)
+	for i := range make([]struct{}, dst.BitLen()) {
+		b := dst.Bit(i)
+		dst.SetBit(dst, i, b)
+		if b == 1 {
+			s.flipped++
+		}
+	}
 
-func (s *Selection) GetSelection() []int {
-	s.mutex.Lock()
-	defer s.mutex.Unlock()
-	return s.selection[:]
+	s.selection = dst
 }
 
 // Has returns true if line `v` is in the selection
@@ -34,12 +36,7 @@ func (s Selection) Has(v int) bool {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
 
-	for _, i := range s.selection {
-		if i == v {
-			return true
-		}
-	}
-	return false
+	return s.selection.Bit(v) == 1
 }
 
 // Add adds a new line number to the selection. If the line already
@@ -51,23 +48,22 @@ func (s *Selection) Add(v int) {
 
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
-	s.selection = append(s.selection, v)
-	sort.Sort(s)
+
+	s.flipped++
+	s.selection = s.selection.SetBit(s.selection, v, 1)
 }
 
 // Remove removes the specified line number from the selection
 func (s *Selection) Remove(v int) {
+	if ! s.Has(v) {
+		return
+	}
+
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
 
-	for k, i := range s.selection {
-		if i == v {
-			tmp := s.selection[:k]
-			tmp = append(tmp, s.selection[k+1:]...)
-			s.selection = tmp
-			return
-		}
-	}
+	s.flipped--
+	s.selection = s.selection.SetBit(s.selection, v, 0)
 }
 
 // Clear empties the selection
@@ -75,22 +71,11 @@ func (s *Selection) Clear() {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
 
-	s.selection = []int{}
+	s.flipped = 0
+	s.selection = &big.Int{}
 }
 
-// Len returns the number of elements in the selection. Satisfies
-// sort.Interface
-func (s Selection) Len() int {
-	return len(s.selection)
-}
-
-// Swap swaps the elements in indices i and j. Satisfies sort.Interface
-func (s *Selection) Swap(i, j int) {
-	s.selection[i], s.selection[j] = s.selection[j], s.selection[i]
-}
-
-// Less returns true if element at index i is less than the element at
-// index j. Satisfies sort.Interface
-func (s Selection) Less(i, j int) bool {
-	return s.selection[i] < s.selection[j]
+// Len returns the number of elements in the selection.
+func (s Selection) Len() uint64 {
+	return s.flipped
 }
