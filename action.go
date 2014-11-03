@@ -1,9 +1,10 @@
 package peco
 
 import (
+	"unicode"
+
 	"github.com/nsf/termbox-go"
 	"github.com/peco/peco/keyseq"
-	"unicode"
 )
 
 // Action describes an action that can be executed upon receiving user
@@ -51,6 +52,7 @@ func init() {
 	nameToActions = map[string]Action{}
 	defaultKeyBinding = map[string]Action{}
 
+	ActionFunc(doInvertSelection).Register("InvertSelection")
 	ActionFunc(doBeginningOfLine).Register("BeginningOfLine", termbox.KeyCtrlA)
 	ActionFunc(doBackwardChar).Register("BackwardChar", termbox.KeyCtrlB)
 	ActionFunc(doBackwardWord).Register("BackwardWord")
@@ -283,6 +285,32 @@ func doToggleSelectionAndSelectNext(i *Input, ev termbox.Event) {
 			doSelectUp(i, ev)
 		}
 	})
+}
+
+func doInvertSelection(i *Input, _ termbox.Event) {
+	lines := i.selection.GetSelection()
+	if lines == nil {
+		lines = []int{}
+	}
+	lines = append(lines, i.SelectedRange().GetSelection()...)
+	total := i.GetLinesCount()
+	newSelection := make([]int, total-len(lines))
+
+	checkIdx := 0
+	newIdx := 0
+	linesLen := len(lines)
+	for x := range make([]struct{}, total) {
+		if linesLen > checkIdx && lines[checkIdx] == x+1 {
+			// skip
+			checkIdx++
+		} else {
+			newSelection[newIdx] = x + 1
+			newIdx++
+		}
+	}
+
+	i.selection.SetSelection(newSelection)
+	i.DrawMatches(nil)
 }
 
 func doDeleteBackwardWord(i *Input, _ termbox.Event) {

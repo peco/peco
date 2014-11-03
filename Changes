@@ -2,6 +2,9 @@ Changes
 =======
 
 v0.2.11
+  Features
+  * Add a InvertSelection action. Not default keymapping has been assigned
+    as of this change, so you need to explicitly set one in your config file.
   Miscellaneous
   * Massive refactoring to avoid possible race conditions. Note that I am
     not aware of any breakage caused by previous builds of peco. Even
