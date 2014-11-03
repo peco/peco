@@ -17,6 +17,12 @@ func NewSelection() *Selection {
 	return &Selection{nil, newMutex()}
 }
 
+func (s *Selection) SetSelection(x []int) {
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
+	s.selection = x
+}
+
 func (s *Selection) GetSelection() []int {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()

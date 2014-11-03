@@ -295,6 +295,7 @@ Some keys just... don't map correctly / too easily for various reasons. Here, we
 | peco.DeleteBackwardChar | Delete one character backward |
 | peco.DeleteForwardWord  | Delete one word forward |
 | peco.DeleteBackwardWord | Delete one word backward |
+| peco.InvertSelection    | Inverts the selected lines |
 | peco.KillEndOfLine      | Delete the characters under the cursor until the end of the line |
 | peco.DeleteAll          | Delete all entered characters |
 | peco.RefreshScreen      | Redraws the screen. Note that this effectively re-runs your query |
