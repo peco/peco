@@ -255,10 +255,8 @@ func doCancel(i *Input, ev termbox.Event) {
 }
 
 func doSelectDown(i *Input, ev termbox.Event) {
-	i.Batch(func() {
-		i.SendPaging(ToLineBelow)
-		i.DrawMatches(nil)
-	})
+	i.SendPaging(ToLineBelow)
+	i.DrawMatches(nil)
 }
 
 func doSelectUp(i *Input, ev termbox.Event) {
