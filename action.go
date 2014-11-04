@@ -224,7 +224,8 @@ func doFinish(i *Input, _ termbox.Event) {
 
 	i.resultCh = make(chan Line)
 	go func() {
-		for x := range make([]struct{}, i.GetCurrentLen()) {
+		max := i.GetCurrentLen()
+		for x := 0; x < max; x++ {
 			if x > i.GetCurrentLen() {
 				break
 			}

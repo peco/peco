@@ -20,7 +20,7 @@ func NewSelection() *Selection {
 
 func (s *Selection) Invert(pad int) {
 	dst := (&big.Int{}).Set(s.selection)
-	for i := range make([]struct{}, pad) {
+	for i := 0; i < pad; i++ {
 		b := dst.Bit(i)
 		if b == 1 {
 			b = 0
