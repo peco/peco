@@ -38,6 +38,8 @@ type PageInfo struct {
 	index   int
 	offset  int
 	perPage int
+	total   int
+	maxPage int
 }
 
 func (p *Ctx) CaretPos() int {
@@ -110,7 +112,6 @@ type Ctx struct {
 	mutex               sync.Locker
 	currentLine         int
 	currentPage         *PageInfo
-	maxPage             int
 	selection           *Selection
 	lines               []Line
 	linesMutex          sync.Locker
@@ -158,8 +159,7 @@ func NewCtx(o CtxOptions) *Ctx {
 		caretPosition:       0,
 		resultCh:            nil,
 		mutex:               newMutex(),
-		currentPage:         &PageInfo{0, 1, 0},
-		maxPage:             0,
+		currentPage:         &PageInfo{0, 1, 0, 0, 0},
 		selection:           NewSelection(),
 		lines:               []Line{},
 		linesMutex:          newMutex(),

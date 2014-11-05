@@ -180,7 +180,7 @@ func (u UserPrompt) Draw() {
 
 	width, _ := screen.Size()
 
-	pmsg := fmt.Sprintf("%s [%d/%d]", u.Matcher().String(), u.currentPage.index, u.maxPage)
+	pmsg := fmt.Sprintf("%s [%d (%d/%d)]", u.Matcher().String(), u.currentPage.total, u.currentPage.index, u.currentPage.maxPage)
 	printScreen(width-runewidth.StringWidth(pmsg), location, u.config.Style.BasicFG(), u.config.Style.BasicBG(), pmsg, false)
 }
 
@@ -392,13 +392,14 @@ CALCULATE_PAGE:
 	}
 	currentPage.offset = (currentPage.index - 1) * perPage
 	currentPage.perPage = perPage
-	if len(targets) == 0 {
-		l.maxPage = 1
+	currentPage.total = len(targets)
+	if currentPage.total == 0 {
+		currentPage.maxPage = 1
 	} else {
-		l.maxPage = ((len(targets) + perPage - 1) / perPage)
+		currentPage.maxPage = ((currentPage.total + perPage - 1) / perPage)
 	}
 
-	if l.maxPage < currentPage.index {
+	if currentPage.maxPage < currentPage.index {
 		if len(targets) == 0 && l.QueryLen() == 0 {
 			// wait for targets
 			return fmt.Errorf("no targets or query. nothing to do")
