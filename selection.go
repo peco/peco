@@ -14,10 +14,14 @@ type Selection struct {
 	mutex     sync.Locker
 }
 
+// NewSelection creates a new empty Selection
 func NewSelection() *Selection {
 	return &Selection{&big.Int{}, 0, newMutex()}
 }
 
+// Invert inverts the selection - if items 2 and 3 are selected out of
+// 10 items, then items 1 and items 4 to 10 are selected after call
+// to this method
 func (s *Selection) Invert(pad int) {
 	dst := (&big.Int{}).Set(s.selection)
 	for i := 0; i < pad; i++ {
