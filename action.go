@@ -182,14 +182,10 @@ func doToggleSelection(i *Input, _ termbox.Event) {
 
 func doToggleRangeMode(i *Input, _ termbox.Event) {
 	if i.IsRangeMode() {
-		for _, line := range i.SelectedRange().GetSelection() {
-			i.selection.Add(line)
-		}
-		i.selection.Add(i.currentLine)
-
 		i.selectionRangeStart = invalidSelectionRange
 	} else {
 		i.selectionRangeStart = i.currentLine
+		i.SelectionAdd(i.currentPage.offset + i.currentLine)
 	}
 	i.DrawMatches(nil)
 }
@@ -227,15 +223,19 @@ func doFinish(i *Input, _ termbox.Event) {
 	}
 
 	i.resultCh = make(chan Line)
-	lines := append(i.selection.GetSelection(), i.SelectedRange().GetSelection()...)
-	go func(ch chan Line, lines []int) {
-		for _, lineno := range lines {
-			if lineno <= i.GetCurrentLen() {
-				ch <- i.GetCurrentAt(lineno - 1)
+	go func() {
+		max := i.GetCurrentLen()
+		for x := 0; x < max; x++ {
+			if x > i.GetCurrentLen() {
+				break
+			}
+
+			if i.selection.Has(x) {
+				i.resultCh <- i.GetCurrentAt(x - 1)
 			}
 		}
-		close(ch)
-	}(i.resultCh, lines)
+		close(i.resultCh)
+	}()
 
 	i.ExitWith(0)
 }
@@ -288,28 +288,7 @@ func doToggleSelectionAndSelectNext(i *Input, ev termbox.Event) {
 }
 
 func doInvertSelection(i *Input, _ termbox.Event) {
-	lines := i.selection.GetSelection()
-	if lines == nil {
-		lines = []int{}
-	}
-	lines = append(lines, i.SelectedRange().GetSelection()...)
-	total := i.GetLinesCount()
-	newSelection := make([]int, total-len(lines))
-
-	checkIdx := 0
-	newIdx := 0
-	linesLen := len(lines)
-	for x := range make([]struct{}, total) {
-		if linesLen > checkIdx && lines[checkIdx] == x+1 {
-			// skip
-			checkIdx++
-		} else {
-			newSelection[newIdx] = x + 1
-			newIdx++
-		}
-	}
-
-	i.selection.SetSelection(newSelection)
+	i.selection.Invert(i.GetCurrentLen())
 	i.DrawMatches(nil)
 }
 

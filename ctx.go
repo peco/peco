@@ -251,7 +251,7 @@ func (c *Ctx) IsRangeMode() bool {
 	return c.selectionRangeStart != invalidSelectionRange
 }
 
-func (c *Ctx) SelectionLen() int {
+func (c *Ctx) SelectionLen() uint64 {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
 	return c.selection.Len()
@@ -261,6 +261,12 @@ func (c *Ctx) SelectionAdd(x int) {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
 	c.selection.Add(x)
+}
+
+func (c *Ctx) SelectionRemove(x int) {
+	c.mutex.Lock()
+	defer c.mutex.Unlock()
+	c.selection.Remove(x)
 }
 
 func (c *Ctx) SelectionClear() {
@@ -273,26 +279,6 @@ func (c *Ctx) SelectionContains(n int) bool {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
 	return c.selection.Has(n)
-}
-
-func (c *Ctx) SelectedRange() *Selection {
-	if !c.IsRangeMode() {
-		return NewSelection()
-	}
-
-	selectedLines := []int{}
-	if c.selectionRangeStart < c.currentLine {
-		for i := c.selectionRangeStart; i < c.currentLine; i++ {
-			selectedLines = append(selectedLines, i)
-		}
-	} else {
-		for i := c.selectionRangeStart; i > c.currentLine; i-- {
-			selectedLines = append(selectedLines, i)
-		}
-	}
-	s := NewSelection()
-	s.selection = selectedLines
-	return s
 }
 
 func (c *Ctx) GetCurrent() []Line {
@@ -316,6 +302,10 @@ func (c *Ctx) SetCurrent(newMatches []Line) {
 func (c *Ctx) GetCurrentAt(i int) Line {
 	c.currentMutex.Lock()
 	defer c.currentMutex.Unlock()
+
+	if i < 0 || len(c.current) <= i {
+		panic(fmt.Sprintf("GetCurrentAt: index out of range (%d)", i))
+	}
 	return c.current[i]
 }
 
