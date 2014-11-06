@@ -67,6 +67,7 @@ func printScreen(x, y int, fg, bg termbox.Attribute, msg string, fill bool) {
 		}
 		msg = msg[w:]
 		if c == '\t' {
+			// In case we found a tab, we draw it as 4 spaces
 			n := 4 - x % 4
 			for i := 0; i <= n; i++ {
 				screen.SetCell(x + i, y, ' ', fg, bg)
