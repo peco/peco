@@ -66,8 +66,16 @@ func printScreen(x, y int, fg, bg termbox.Attribute, msg string, fill bool) {
 			w = 1
 		}
 		msg = msg[w:]
-		screen.SetCell(x, y, c, fg, bg)
-		x += runewidth.RuneWidth(c)
+		if c == '\t' {
+			n := 4 - x % 4
+			for i := 0; i <= n; i++ {
+				screen.SetCell(x + i, y, ' ', fg, bg)
+			}
+			x += n
+		} else {
+			screen.SetCell(x, y, c, fg, bg)
+			x += runewidth.RuneWidth(c)
+		}
 	}
 
 	if !fill {
