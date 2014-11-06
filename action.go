@@ -123,6 +123,7 @@ func init() {
 	}).Register("CancelSelectMode")
 	ActionFunc(doToggleRangeMode).Register("ToggleRangeMode")
 	ActionFunc(doCancelRangeMode).Register("CancelRangeMode")
+	ActionFunc(doToggleQuery).Register("ToggleQuery", termbox.KeyCtrlT)
 	ActionFunc(doRefreshScreen).Register("RefreshScreen", termbox.KeyCtrlL)
 
 	ActionFunc(doKonamiCommand).RegisterKeySequence(
@@ -557,6 +558,27 @@ func doDeleteBackwardChar(i *Input, ev termbox.Event) {
 
 func doRefreshScreen(i *Input, _ termbox.Event) {
 	i.ExecQuery()
+}
+
+func doToggleQuery(i *Input, _ termbox.Event) {
+	q := i.Query()
+	if len(q) == 0 {
+		sq := i.SavedQuery()
+		if len(sq) == 0 {
+			return
+		}
+		i.SetQuery(sq)
+		i.SetSavedQuery([]rune{})
+	} else {
+		i.SetSavedQuery(q)
+		i.SetQuery([]rune{})
+	}
+
+	if i.ExecQuery() {
+		return
+	}
+	i.SetCurrent(nil)
+	i.DrawMatches(nil)
 }
 
 func doKonamiCommand(i *Input, ev termbox.Event) {

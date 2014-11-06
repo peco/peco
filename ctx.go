@@ -62,6 +62,7 @@ func (p *Ctx) MoveCaretPos(offset int) {
 
 type FilterQuery struct {
 	query []rune
+	savedQuery []rune
 	mutex sync.Locker
 }
 
@@ -69,6 +70,12 @@ func (q FilterQuery) Query() []rune {
 	q.mutex.Lock()
 	defer q.mutex.Unlock()
 	return q.query[:]
+}
+
+func (q FilterQuery) SavedQuery() []rune {
+	q.mutex.Lock()
+	defer q.mutex.Unlock()
+	return q.savedQuery[:]
 }
 
 func (q FilterQuery) QueryString() string {
@@ -154,7 +161,7 @@ func (m *loggingMutex) Unlock() {
 func NewCtx(o CtxOptions) *Ctx {
 	c := &Ctx{
 		Hub:                 NewHub(),
-		FilterQuery:         &FilterQuery{[]rune{}, newMutex()},
+		FilterQuery:         &FilterQuery{[]rune{}, []rune{}, newMutex()},
 		MatcherSet:          nil,
 		caretPosition:       0,
 		resultCh:            nil,
@@ -376,6 +383,12 @@ func (c *Ctx) NewInput() *Input {
 	k := NewKeymap(c.config.Keymap, c.config.Action)
 	k.ApplyKeybinding()
 	return &Input{c, newMutex(), nil, k, []string{}}
+}
+
+func (c *Ctx) SetSavedQuery(q []rune) {
+	c.mutex.Lock()
+	defer c.mutex.Unlock()
+	c.FilterQuery.savedQuery = q
 }
 
 func (c *Ctx) SetQuery(q []rune) {
