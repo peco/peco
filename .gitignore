@@ -25,3 +25,6 @@ _testmain.go
 peco
 
 build/src
+
+c.out
+out
