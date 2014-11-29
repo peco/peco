@@ -58,7 +58,7 @@ Not only can you select multiple lines one by one, you can select a range of lin
 
 Different types of matchers are available. Default is case-insensitive matcher, so lines with any case will match. You can toggle between IgnoreCase, CaseSensitive, SmartCase and RegExp matchers. 
 
-The SmartCase matcher uses case-*insensitive* matching when the all of the queries iare lower case, and case-*sensitive* matching otherwise.
+The SmartCase matcher uses case-*insensitive* matching when all of the queries are lower case, and case-*sensitive* matching otherwise.
 
 The RegExp matcher allows you to use any valid regular expression to match lines
 
@@ -66,7 +66,7 @@ The RegExp matcher allows you to use any valid regular expression to match lines
 
 ## Selectable Layout
 
-As of v0.2.5, if you would rather not move your eyes off of the bottom of the screen, you can change the screen layout by either proviging the `--layout=bottom-up` command line option, or set the `Layout` variable in your configuration file
+As of v0.2.5, if you would rather not move your eyes off of the bottom of the screen, you can change the screen layout by either providing the `--layout=bottom-up` command line option, or set the `Layout` variable in your configuration file
 
 ![optmized](http://peco.github.io/images/peco-demo-layout-bottom-up.gif)
 
@@ -129,17 +129,17 @@ Specifies the default query to be used upon startup. This is useful for scripts 
 
 ### --rcfile <filename>
 
-Pass peco a configuration file, which currently must be a JSON file. If unspecified it will try a series of files by default. See `Configuration File` for the actual locationes searched.
+Pass peco a configuration file, which currently must be a JSON file. If unspecified it will try a series of files by default. See `Configuration File` for the actual locations searched.
 
 ### -b, --buffer-size <num>
 
-Limits the buffer size to `num`. This is an important feature when you are using peco against a possibbly infinite stream, as it limits the number of lines that peco holds at any given time, preventing it from exhausting all the memory. By default the buffer size is unlimited.
+Limits the buffer size to `num`. This is an important feature when you are using peco against a possibly infinite stream, as it limits the number of lines that peco holds at any given time, preventing it from exhausting all the memory. By default the buffer size is unlimited.
 
 ### --null
 
 WARNING: EXPERIMENTAL. This feature will probably stay, but the option name may change in the future.
 
-Changes how peco interprets incoming data. When this flag is set, you may insert NUL ('\0') characters in your input. Anything before the NUL character is treated as the string to be displaed by peco and is used for matching against user query. Anything after the NUL character is used as the "result": i.e., when peco is about to exit, it displays this string instead of the original string displayed.
+Changes how peco interprets incoming data. When this flag is set, you may insert NUL ('\0') characters in your input. Anything before the NUL character is treated as the string to be displayed by peco and is used for matching against user query. Anything after the NUL character is used as the "result": i.e., when peco is about to exit, it displays this string instead of the original string displayed.
 
 [Here's a simple example of how to use this feature](https://gist.github.com/mattn/3c7a14c1677ecb193acd)
 
@@ -155,7 +155,7 @@ Specifies the initial line position upon start up. E.g. If you want to start out
 
 ### --initial-matcher `IgnoreCase|CaseSensitive|SmartCase|Regexp`
 
-Specifies the initial matcher to use upon start up. You should specify the name of the macher like `IgnoreCase`, `CaseSensitive`, `SmartCase` and `Regexp`. Default is `IgnoreCase`.
+Specifies the initial matcher to use upon start up. You should specify the name of the matcher like `IgnoreCase`, `CaseSensitive`, `SmartCase` and `Regexp`. Default is `IgnoreCase`.
 
 ### --prompt
 
@@ -337,7 +337,7 @@ Note: If in case below keymap seems wrong, check the source code in [keymap.go](
 |Ctrl-r|peco.RotateMatcher|
 |Ctrl-w|peco/DeleteBackwardWord|
 |Ctrl-space|peco.ToggleSelectionAndSelectNext|
-|ArrorUp|peco.SelectPrevious|
+|ArrowUp|peco.SelectPrevious|
 |ArrowDown|peco.SelectNext|
 |ArrowLeft|peco.SelectPreviousPage|
 |ArrowRight|peco.SelectNextPage|
@@ -396,7 +396,7 @@ For now, styles of following 5 items can be customized in `config.json`.
 
 ## CustomMatcher
 
-This is an experimental feature. Please note that some details of this specificaiton may change
+This is an experimental feature. Please note that some details of this specification may change
 
 By default `peco` comes with `IgnoreCase`, `CaseSensitive`, `SmartCase` and `Regexp` matchers, but since v0.1.3, it is possible to create your own custom matcher.
 
