@@ -61,9 +61,9 @@ func (p *Ctx) MoveCaretPos(offset int) {
 }
 
 type FilterQuery struct {
-	query []rune
+	query      []rune
 	savedQuery []rune
-	mutex sync.Locker
+	mutex      sync.Locker
 }
 
 func (q FilterQuery) Query() []rune {
@@ -176,6 +176,7 @@ func NewCtx(o CtxOptions) *Ctx {
 		exitStatus:          0,
 		selectionRangeStart: invalidSelectionRange,
 		wait:                &sync.WaitGroup{},
+		layoutType:          "top-down",
 	}
 
 	if o != nil {
@@ -183,7 +184,10 @@ func NewCtx(o CtxOptions) *Ctx {
 		c.enableSep = o.EnableNullSep()
 		c.currentLine = o.InitialIndex()
 		c.bufferSize = o.BufferSize()
-		c.layoutType = o.LayoutType()
+
+		if v := o.LayoutType(); v != "" {
+			c.layoutType = v
+		}
 	}
 
 	matchers := []Matcher{
