@@ -25,7 +25,7 @@ type cmdOptions struct {
 	OptInitialIndex   int    `long:"initial-index" description:"position of the initial index of the selection (0 base)"`
 	OptInitialMatcher string `long:"initial-matcher" description:"specify the default matcher"`
 	OptPrompt         string `long:"prompt" description:"specify the prompt string"`
-	OptLayout         string `long:"layout" description:"layout to be used 'top-down' (default) or 'bottom-up'"`
+	OptLayout         string `long:"layout" description:"layout to be used 'top-down' (default) or 'bottom-up'" default:"top-down"`
 }
 
 func showHelp() {
