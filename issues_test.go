@@ -8,7 +8,7 @@ import (
 	"testing"
 )
 
-func TestIssue212(t *testing.T) {
+func TestIssue212_SanityCheck(t *testing.T) {
 	ctx := NewCtx(nil)
 
 	// Check if the default layout type is honored */
@@ -55,5 +55,20 @@ func TestIssue212(t *testing.T) {
 	}
 	if ctx.config.Layout != "bottom-up" {
 		t.Errorf("Default layout type should be 'bottom-up', got '%s'", ctx.config.Layout)
+	}
+}
+
+// Satisfy CtxOptions interface
+type issue212DummyConfig struct {
+	layout string
+}
+func (i issue212DummyConfig) BufferSize() int { return 0 }
+func (i issue212DummyConfig) InitialIndex() int { return 0 }
+func (i issue212DummyConfig) EnableNullSep() bool { return false }
+func (i issue212DummyConfig) LayoutType() string { return i.layout }
+func TestIssue212_ActualProblem(t *testing.T) {
+	ctx := NewCtx(issue212DummyConfig{ layout: "" })
+	if ctx.layoutType != "top-down" {
+		t.Errorf("event if CtxOption returns an empty string, we should still get the default top-down layout")
 	}
 }
