@@ -123,6 +123,7 @@ func buildBinaries() {
 	goxcArgs := []string{
 		"-tasks", "xc archive",
 		"-bc", "linux windows darwin",
+		"-wd", "/work/src/github.com/peco/peco/src/github.com/peco/peco",
 		"-d", os.Args[2],
 		"-resources-include", "README*,Changes",
 		"-main-dirs-exclude", "_demos,examples,build",
