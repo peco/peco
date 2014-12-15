@@ -1,10 +1,13 @@
 Changes
 =======
 
-v0.2.11
+v0.2.11 - 16 Dec 2014
   Features
   * Add a InvertSelection action. Not default keymapping has been assigned
     as of this change, so you need to explicitly set one in your config file.
+  * Display total entries in additin to number of pages
+  * Add experimental ToggleQuery action which enables/disables the current 
+    query. 
   Miscellaneous
   * Massive refactoring to avoid possible race conditions. Note that I am
     not aware of any breakage caused by previous builds of peco. Even
@@ -12,7 +15,7 @@ v0.2.11
     something you could totally ignore by simply redrawing the page.
     However, since I was in the mood, and since go is awesome for providing
     us the `-race` switch, I decided to silence these warnings.
-    
+  * Fix handling of --layout option when no config file is not present.
 
 v0.2.10 - 24 Sep 2014
   Bugs/Fixes
