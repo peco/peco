@@ -43,9 +43,10 @@ func setupDeps() {
 
 	var err error
 
+	baseDir := "/work/src"
 	for dir, hash := range deps {
 		repo := repoURL(dir)
-		dir = filepath.Join("src", dir)
+		dir = filepath.Join(baseDir, dir)
 		if _, err = os.Stat(dir); err != nil {
 			if err = run("git", "clone", repo, dir); err != nil {
 				panic(err)
@@ -76,59 +77,18 @@ func setupDeps() {
 			panic(err)
 		}
 	}
-
-	linkPecodir()
-}
-
-func linkPecodir() string {
-	var err error
-
-	// Link src/github.com/peco/peco to updir
-	pecodir := filepath.Join("src", "github.com", "peco", "peco")
-	parent := filepath.Dir(pecodir)
-	if _, err = os.Stat(parent); err != nil {
-		if err = os.MkdirAll(parent, 0777); err != nil {
-			panic(err)
-		}
-	}
-
-	updir, err := filepath.Abs(filepath.Join(pwd, ".."))
-	if err != nil {
-		panic(err)
-	}
-
-	if _, err := os.Stat(pecodir); err != nil {
-		if err = os.Symlink(updir, pecodir); err != nil {
-			panic(err)
-		}
-	}
-
-	return pecodir
 }
 
 func buildBinaries() {
-	var err error
-
-	pecodir := linkPecodir()
-	if err = os.Chdir(pecodir); err != nil {
-		panic(err)
-	}
-
-	gopath := os.Getenv("GOPATH")
-	if gopath != "" {
-		gopath = strings.Join([]string{pwd, gopath}, string([]rune{filepath.ListSeparator}))
-	}
-	os.Setenv("GOPATH", gopath)
-
 	goxcArgs := []string{
 		"-tasks", "xc archive",
 		"-bc", "linux windows darwin",
-		"-wd", "/work/src/github.com/peco/peco/src/github.com/peco/peco",
+		"-wd", "/work/src/github.com/peco/peco",
 		"-d", os.Args[2],
 		"-resources-include", "README*,Changes",
 		"-main-dirs-exclude", "_demos,examples,build",
 	}
-	if err = run("goxc", goxcArgs...); err != nil {
+	if err := run("goxc", goxcArgs...); err != nil {
 		panic(err)
 	}
 }
