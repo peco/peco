@@ -582,7 +582,7 @@ func doToggleQuery(i *Input, _ termbox.Event) {
 }
 
 func doKonamiCommand(i *Input, ev termbox.Event) {
-	i.SendStatusMsg("All your filters are blongs to us")
+	i.SendStatusMsg("All your filters are belongs to us")
 }
 
 func makeCombinedAction(actions ...Action) ActionFunc {
