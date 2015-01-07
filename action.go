@@ -81,7 +81,7 @@ func init() {
 	ActionFunc(doSelectUp).Register("SelectUp", termbox.KeyArrowUp, termbox.KeyCtrlP)
 	ActionFunc(func(i *Input, ev termbox.Event) {
 		i.SendStatusMsg("SelectNext is deprecated. Use SelectUp/SelectDown")
-		doSelectUp(i, ev)
+		doSelectDown(i, ev)
 	}).Register("SelectNext")
 
 	ActionFunc(doScrollPageDown).Register("ScrollPageDown", termbox.KeyArrowRight)
@@ -93,7 +93,7 @@ func init() {
 	ActionFunc(doSelectDown).Register("SelectDown", termbox.KeyArrowDown, termbox.KeyCtrlN)
 	ActionFunc(func(i *Input, ev termbox.Event) {
 		i.SendStatusMsg("SelectPrevious is deprecated. Use SelectUp/SelectDown")
-		doSelectDown(i, ev)
+		doSelectUp(i, ev)
 	}).Register("SelectPrevious")
 
 	ActionFunc(doScrollPageUp).Register("ScrollPageUp", termbox.KeyArrowLeft)
