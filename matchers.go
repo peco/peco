@@ -437,6 +437,7 @@ func (m *CustomMatcher) Line(quit chan struct{}, q string, buffer []Line) []Line
 			iter <- nil
 			return
 		}
+		defer r.Close()
 		err = cmd.Start()
 		if err != nil {
 			iter <- nil
