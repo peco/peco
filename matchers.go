@@ -1,6 +1,7 @@
 package peco
 
 import (
+	"bufio"
 	"fmt"
 	"os/exec"
 	"regexp"
@@ -431,13 +432,24 @@ func (m *CustomMatcher) Line(quit chan struct{}, q string, buffer []Line) []Line
 			}
 			close(iter)
 		}()
-		b, err := cmd.Output()
+		r, err := cmd.StdoutPipe()
 		if err != nil {
 			iter <- nil
+			return
 		}
-		for _, line := range strings.Split(string(b), "\n") {
-			if len(line) > 0 {
-				iter <- NewMatchedLine(line, m.enableSep, nil)
+		err = cmd.Start()
+		if err != nil {
+			iter <- nil
+			return
+		}
+		buf := bufio.NewReader(r)
+		for {
+			b, _, err := buf.ReadLine()
+			if len(b) > 0 {
+				iter <- NewMatchedLine(string(b), m.enableSep, nil)
+			}
+			if err != nil {
+				break
 			}
 		}
 		iter <- nil
