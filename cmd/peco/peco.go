@@ -169,7 +169,7 @@ func main() {
 	if opts.OptRcfile != "" {
 		err = ctx.ReadConfig(opts.OptRcfile)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "Failed to read config file %s: %s\n", opts.OptRcfile, err)
+			fmt.Fprintf(os.Stderr, "Failed to read config file %q: %s\n", opts.OptRcfile, err)
 			st = 1
 			return
 		}
