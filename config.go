@@ -48,6 +48,15 @@ func (c *Config) ReadFilename(filename string) error {
 	}
 	defer f.Close()
 
+	fi, err := f.Stat()
+	if err != nil {
+		return err
+	}
+
+	if fi.Size() == 0 {
+		return nil
+	}
+
 	err = json.NewDecoder(f).Decode(c)
 	if err != nil {
 		return err
