@@ -134,6 +134,46 @@ func TestEmptyConfig(t *testing.T) {
 	defer os.Remove(f.Name())
 	c := NewConfig()
 	if err := c.ReadFilename(f.Name()); err != nil {
-		t.Errorf("Reading an empty config file should not cause an error")
+		t.Errorf("Reading an empty config file should not cause an error, but got: %s", err)
 	}
 }
+
+func TestWhiteSpaceOnlyConfig(t *testing.T) {
+	// Create a dummy config file. Must be empty
+	f, err := ioutil.TempFile("", "pecoCmdTest")
+	if err != nil {
+		t.Errorf("Failed to create temporary file: %s", err)
+		return
+	}
+	defer f.Close()
+	defer os.Remove(f.Name())
+
+	f.WriteString(`  `)
+	f.Sync()
+
+	c := NewConfig()
+	if err := c.ReadFilename(f.Name()); err != nil {
+		t.Errorf("Reading a config file with just whitespaces should not cause an error, but got: %s", err)
+	}
+}
+
+func TestBadConfig(t *testing.T) {
+	// Create a dummy config file. Must be empty
+	f, err := ioutil.TempFile("", "pecoCmdTest")
+	if err != nil {
+		t.Errorf("Failed to create temporary file: %s", err)
+		return
+	}
+	defer f.Close()
+	defer os.Remove(f.Name())
+
+	f.WriteString(` {  `)
+	f.Sync()
+
+	c := NewConfig()
+	if err := c.ReadFilename(f.Name()); err == nil {
+		t.Errorf("Reading a config file bad JSON should cause an error")
+	}
+}
+
+
