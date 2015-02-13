@@ -87,14 +87,11 @@ _THIS IS THE RECOMMENDED WAY_ (except for OS X homebrew users)
 
 ### Mac OS X / Homebrew
 
-If you're on OS X and want to use homebrew, use my custom tap:
+If you're on OS X and want to use homebrew:
 
 ```
-brew tap peco/peco
 brew install peco
 ```
-
-![optimized](http://peco.github.io/images/peco-demo-homebrew.gif)
 
 ### Windows (Chocolatey NuGet Users)
 
