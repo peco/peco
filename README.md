@@ -93,6 +93,13 @@ If you're on OS X and want to use homebrew:
 brew install peco
 ```
 
+The above homebrew formula is maintained by the folks working on Homebrew. There is a custom tap maintained by the authors of peco, just in case something goes wrong in the homebrew formula. In general you *DO NOT* need to use this custom tap:
+
+```
+brew tap peco/peco
+brew install peco
+```
+
 ### Windows (Chocolatey NuGet Users)
 
 There's a third-party [peco package available](https://chocolatey.org/packages/peco) for Chocolatey NuGet.
