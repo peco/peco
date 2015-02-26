@@ -1,6 +1,18 @@
 Changes
 =======
 
+v0.2.12 - 27 Feb 2015
+  Bufs/Fixes
+  * Lines with tabs didn't display properly.
+  * Matches that would fail to hilight certain parts of the text
+    depending on the term order
+  * SelectNext/SelectPrevious actions were reversed (however, these were
+    deprecated anyways)
+  Miscellaneous
+  * You no longer need to tap our custom tap for peco to be installed from
+    homebrew.
+  * Custom matcher processing is fater now
+
 v0.2.11 - 16 Dec 2014
   Features
   * Add a InvertSelection action. Not default keymapping has been assigned
