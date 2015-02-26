@@ -58,7 +58,9 @@ func mergeAttribute(a, b termbox.Attribute) termbox.Attribute {
 }
 
 // Utility function
-func printScreen(x, y int, fg, bg termbox.Attribute, msg string, fill bool) {
+func printScreen(x, y int, fg, bg termbox.Attribute, msg string, fill bool) int {
+	var written int = 0
+
 	for len(msg) > 0 {
 		c, w := utf8.DecodeRuneInString(msg)
 		if c == utf8.RuneError {
@@ -68,25 +70,30 @@ func printScreen(x, y int, fg, bg termbox.Attribute, msg string, fill bool) {
 		msg = msg[w:]
 		if c == '\t' {
 			// In case we found a tab, we draw it as 4 spaces
-			n := 4 - x % 4
+			n := 4 - x%4
 			for i := 0; i <= n; i++ {
-				screen.SetCell(x + i, y, ' ', fg, bg)
+				screen.SetCell(x+i, y, ' ', fg, bg)
 			}
+			written += n
 			x += n
 		} else {
 			screen.SetCell(x, y, c, fg, bg)
-			x += runewidth.RuneWidth(c)
+			n := runewidth.RuneWidth(c)
+			x += n
+			written += n
 		}
 	}
 
 	if !fill {
-		return
+		return written
 	}
 
 	width, _ := screen.Size()
 	for ; x < width; x++ {
 		screen.SetCell(x, y, ' ', fg, bg)
 	}
+	written += width - x
+	return written
 }
 
 // AnchorSettings groups items that are required to control
@@ -328,28 +335,31 @@ func (l *ListArea) Draw(targets []Line, perPage int) {
 		matches := target.Indices()
 		if matches == nil {
 			printScreen(0, y, fgAttr, bgAttr, line, true)
-		} else {
-			prev := 0
-			index := 0
-			for _, m := range matches {
-				if m[0] > index {
-					c := line[index:m[0]]
-					printScreen(prev, y, fgAttr, bgAttr, c, false)
-					prev += runewidth.StringWidth(c)
-					index += len(c)
-				}
-				c := line[m[0]:m[1]]
-				printScreen(prev, y, l.config.Style.MatchedFG(), mergeAttribute(bgAttr, l.config.Style.MatchedBG()), c, true)
-				prev += runewidth.StringWidth(c)
+			continue
+		}
+
+		prev := 0
+		index := 0
+
+		for _, m := range matches {
+			if m[0] > index {
+				c := line[index:m[0]]
+				n := printScreen(prev, y, fgAttr, bgAttr, c, false)
+				prev += n
 				index += len(c)
 			}
+			c := line[m[0]:m[1]]
 
-			m := matches[len(matches)-1]
-			if m[0] > index {
-				printScreen(prev, y, l.config.Style.QueryFG(), mergeAttribute(bgAttr, l.config.Style.QueryBG()), line[m[0]:m[1]], true)
-			} else if len(line) > m[1] {
-				printScreen(prev, y, fgAttr, bgAttr, line[m[1]:len(line)], true)
-			}
+			n := printScreen(prev, y, l.config.Style.MatchedFG(), mergeAttribute(bgAttr, l.config.Style.MatchedBG()), c, true)
+			prev += n
+			index += len(c)
+		}
+
+		m := matches[len(matches)-1]
+		if m[0] > index {
+			printScreen(prev, y, l.config.Style.QueryFG(), mergeAttribute(bgAttr, l.config.Style.QueryBG()), line[m[0]:m[1]], true)
+		} else if len(line) > m[1] {
+			printScreen(prev, y, fgAttr, bgAttr, line[m[1]:len(line)], true)
 		}
 	}
 }
