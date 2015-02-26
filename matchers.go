@@ -373,8 +373,21 @@ func matchOverlaps(a []int, b []int) bool {
 
 func mergeMatches(a []int, b []int) []int {
 	ret := make([]int, 2)
-	ret[0] = a[0]
-	ret[1] = b[1]
+
+	// Note: In practice this should never happen
+	// because we're sorting by N[0] before calling
+	// this routine, but for completeness' sake...
+	if a[0] < b[0] {
+		ret[0] = a[0]
+	} else {
+		ret[0] = b[0]
+	}
+
+	if a[1] < b[1] {
+		ret[1] = b[1]
+	} else {
+		ret[1] = a[1]
+	}
 	return ret
 }
 
