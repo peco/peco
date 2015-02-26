@@ -283,7 +283,15 @@ func (m byStart) Swap(i, j int) {
 }
 
 func (m byStart) Less(i, j int) bool {
-	return m[i][0] < m[j][0]
+	if m[i][0] < m[j][0] {
+		return true
+	}
+
+	if m[i][0] == m[j][0] {
+		return m[i][1]-m[i][0] < m[i][1]-m[i][0]
+	}
+
+	return false
 }
 
 // Match does the heavy lifting, and matches `q` against `buffer`.
@@ -354,10 +362,25 @@ MATCH:
 	return results
 }
 
+func matchContains(a []int, b []int) bool {
+	return a[0] <= b[0] && a[1] >= b[1]
+}
+
+func matchOverlaps(a []int, b []int) bool {
+	return a[0] <= b[0] && a[1] >= b[0] ||
+		a[0] <= b[1] && a[1] >= b[1]
+}
+
+func mergeMatches(a []int, b []int) []int {
+	ret := make([]int, 2)
+	ret[0] = a[0]
+	ret[1] = b[1]
+	return ret
+}
+
 // MatchAllRegexps matches all the regexps in `regexps` against line
 func (m *RegexpMatcher) MatchAllRegexps(regexps []*regexp.Regexp, line string) [][]int {
 	matches := make([][]int, 0)
-
 	allMatched := true
 Line:
 	for _, re := range regexps {
@@ -367,19 +390,7 @@ Line:
 			break Line
 		}
 
-		for _, ma := range match {
-			start, end := ma[0], ma[1]
-			for _, m := range matches {
-				if start >= m[0] && start < m[1] {
-					continue Line
-				}
-
-				if start < m[0] && end >= m[0] {
-					continue Line
-				}
-			}
-			matches = append(matches, ma)
-		}
+		matches = append(matches, match...)
 	}
 
 	if !allMatched {
@@ -387,8 +398,34 @@ Line:
 	}
 
 	sort.Sort(byStart(matches))
+	// We need to "dedupe" the results. For example, if we matched the
+	// same region twice, we don't want that to be drawn
 
-	return matches
+	deduped := make([][]int, 0, len(matches))
+
+	for i, m := range matches {
+		// Always push the first one
+		if i == 0 {
+			deduped = append(deduped, m)
+			continue
+		}
+
+		prev := deduped[len(deduped)-1]
+		switch {
+		case matchContains(prev, m):
+			// If the previous match contains this one, then
+			// don't do anything
+			continue
+		case matchOverlaps(prev, m):
+			// If the previous match overlaps with this one,
+			// merge the results and make it a bigger one
+			deduped[len(deduped)-1] = mergeMatches(prev, m)
+		default:
+			deduped = append(deduped, m)
+		}
+	}
+
+	return deduped
 }
 
 // Match matches `q` aginst `buffer`
