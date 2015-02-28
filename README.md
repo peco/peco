@@ -339,7 +339,7 @@ Note: If in case below keymap seems wrong, check the source code in [keymap.go](
 |Ctrl-p|peco.SelectUp|
 |Ctrl-u|peco.KillBeginOfLine|
 |Ctrl-r|peco.RotateMatcher|
-|Ctrl-w|peco/DeleteBackwardWord|
+|Ctrl-w|peco.DeleteBackwardWord|
 |Ctrl-space|peco.ToggleSelectionAndSelectNext|
 |ArrowUp|peco.SelectPrevious|
 |ArrowDown|peco.SelectNext|
