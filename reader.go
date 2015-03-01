@@ -50,6 +50,7 @@ func (b *BufferReader) Loop() {
 	once := &sync.Once{}
 	var refresh *time.Timer
 
+	overflow := false
 	loop := true
 	for loop {
 		select {
@@ -71,6 +72,7 @@ func (b *BufferReader) Loop() {
 				if b.IsBufferOverflowing() {
 					lines := b.GetLines()
 					b.SetLines(lines[1:])
+					overflow = true
 				}
 				m.Unlock()
 			}
@@ -97,5 +99,11 @@ func (b *BufferReader) Loop() {
 	if b.GetLinesCount() == 0 {
 		b.ExitWith(1)
 		fmt.Fprintf(os.Stderr, "No buffer to work with was available")
+	}
+
+	if overflow {
+		for i, line := range b.GetLines() {
+			line.SetIndex(i + 1)
+		}
 	}
 }

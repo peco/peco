@@ -19,6 +19,7 @@ type Line interface {
 	Output() string        // Output string to be displayed after peco is done
 	Indices() [][]int      // If the type allows, indices into matched portions of the string
 	Index() int            // Index in lines
+	SetIndex(int)          // Set index in lines
 }
 
 // baseLine is the common implementation between RawLine and MatchedLine
@@ -77,6 +78,10 @@ func (m baseLine) Output() string {
 
 func (m baseLine) Index() int {
 	return m.idx
+}
+
+func (m *baseLine) SetIndex(idx int) {
+	m.idx = idx
 }
 
 // RawLine implements the Line interface. It represents a line with no matches,
