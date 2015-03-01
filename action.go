@@ -174,6 +174,9 @@ func doRotateMatcher(i *Input, ev termbox.Event) {
 }
 
 func doToggleSelection(i *Input, _ termbox.Event) {
+	if i.IsCurrentEmpty() {
+		return
+	}
 	l := i.GetCurrentAt(i.currentLine - 1)
 	if i.selection.Has(l.Index()) {
 		i.selection.Remove(l.Index())
@@ -220,7 +223,7 @@ func doSelectVisible(i *Input, _ termbox.Event) {
 
 func doFinish(i *Input, _ termbox.Event) {
 	// Must end with all the selected lines.
-	if i.SelectionLen() == 0 {
+	if i.SelectionLen() == 0 && !i.IsCurrentEmpty() {
 		l := i.GetCurrentAt(i.currentLine - 1)
 		i.SelectionAdd(l.Index())
 	}

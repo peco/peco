@@ -314,6 +314,10 @@ func (c *Ctx) GetCurrentLen() int {
 	return len(c.current)
 }
 
+func (c *Ctx) IsCurrentEmpty() bool {
+	return c.GetCurrentLen() <= 0
+}
+
 func (c *Ctx) SetCurrent(newMatches []Line) {
 	c.currentMutex.Lock()
 	defer c.currentMutex.Unlock()
