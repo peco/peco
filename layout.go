@@ -307,18 +307,6 @@ func (l *ListArea) Draw(targets []Line, perPage int) {
 	var y int
 	var fgAttr, bgAttr termbox.Attribute
 	for n := 0; n < perPage; n++ {
-		switch {
-		case n+currentPage.offset == l.currentLine-1:
-			fgAttr = l.config.Style.SelectedFG()
-			bgAttr = l.config.Style.SelectedBG()
-		case l.SelectionContains(n + currentPage.offset + 1):
-			fgAttr = l.config.Style.SavedSelectionFG()
-			bgAttr = l.config.Style.SavedSelectionBG()
-		default:
-			fgAttr = l.config.Style.BasicFG()
-			bgAttr = l.config.Style.BasicBG()
-		}
-
 		targetIdx := currentPage.offset + n
 		if targetIdx >= len(targets) {
 			break
@@ -331,6 +319,19 @@ func (l *ListArea) Draw(targets []Line, perPage int) {
 		}
 
 		target := targets[targetIdx]
+
+		switch {
+		case n+currentPage.offset == l.currentLine-1:
+			fgAttr = l.config.Style.SelectedFG()
+			bgAttr = l.config.Style.SelectedBG()
+		case l.SelectionContains(n + currentPage.offset + 1):
+			fgAttr = l.config.Style.SavedSelectionFG()
+			bgAttr = l.config.Style.SavedSelectionBG()
+		default:
+			fgAttr = l.config.Style.BasicFG()
+			bgAttr = l.config.Style.BasicBG()
+		}
+
 		line := target.DisplayString()
 		matches := target.Indices()
 		if matches == nil {
