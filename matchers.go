@@ -325,7 +325,7 @@ func (m *RegexpMatcher) Line(quit chan struct{}, q string, buffer []Line) []Line
 				continue
 			}
 
-			iter <- NewMatchedLine(match.Buffer(), m.enableSep, ms)
+			iter <- NewMatchedLine(match.Buffer(), match.Index(), m.enableSep, ms)
 		}
 		iter <- nil
 	}()
@@ -450,7 +450,7 @@ func (m *CustomMatcher) Line(quit chan struct{}, q string, buffer []Line) []Line
 	results := []Line{}
 	if q == "" {
 		for _, match := range buffer {
-			results = append(results, NewMatchedLine(match.Buffer(), m.enableSep, nil))
+			results = append(results, NewMatchedLine(match.Buffer(), match.Index(), m.enableSep, nil))
 		}
 		return results
 	}
@@ -462,6 +462,7 @@ func (m *CustomMatcher) Line(quit chan struct{}, q string, buffer []Line) []Line
 		matcherInput += match.DisplayString() + "\n"
 		lines = append(lines, match)
 	}
+	idx := 0
 	args := []string{}
 	for _, arg := range m.args {
 		if arg == "$QUERY" {
@@ -497,7 +498,13 @@ func (m *CustomMatcher) Line(quit chan struct{}, q string, buffer []Line) []Line
 		for {
 			b, _, err := buf.ReadLine()
 			if len(b) > 0 {
-				iter <- NewMatchedLine(string(b), m.enableSep, nil)
+				for i, line := range lines[idx:] {
+					if line.DisplayString() == string(b) {
+						idx = idx + i + 1
+						break
+					}
+				}
+				iter <- NewMatchedLine(string(b), idx, m.enableSep, nil)
 			}
 			if err != nil {
 				break

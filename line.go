@@ -18,6 +18,7 @@ type Line interface {
 	DisplayString() string // Line to be displayed
 	Output() string        // Output string to be displayed after peco is done
 	Indices() [][]int      // If the type allows, indices into matched portions of the string
+	Index() int            // Index in lines
 }
 
 // baseLine is the common implementation between RawLine and MatchedLine
@@ -25,13 +26,15 @@ type baseLine struct {
 	buf           string
 	sepLoc        int
 	displayString string
+	idx           int
 }
 
-func newBaseLine(v string, enableSep bool) *baseLine {
+func newBaseLine(v string, idx int, enableSep bool) *baseLine {
 	m := &baseLine{
 		v,
 		-1,
 		"",
+		idx,
 	}
 	if !enableSep {
 		return m
@@ -72,6 +75,10 @@ func (m baseLine) Output() string {
 	return m.buf
 }
 
+func (m baseLine) Index() int {
+	return m.idx
+}
+
 // RawLine implements the Line interface. It represents a line with no matches,
 // which means that it can only be used in the initial unfiltered view
 type RawLine struct {
@@ -79,8 +86,8 @@ type RawLine struct {
 }
 
 // NewRawLine creates a RawLine struct
-func NewRawLine(v string, enableSep bool) *RawLine {
-	return &RawLine{newBaseLine(v, enableSep)}
+func NewRawLine(v string, idx int, enableSep bool) *RawLine {
+	return &RawLine{newBaseLine(v, idx, enableSep)}
 }
 
 // Indices always returns nil
@@ -96,8 +103,8 @@ type MatchedLine struct {
 }
 
 // NewMatchedLine creates a new MatchedLine struct
-func NewMatchedLine(v string, enableSep bool, m [][]int) *MatchedLine {
-	return &MatchedLine{newBaseLine(v, enableSep), m}
+func NewMatchedLine(v string, idx int, enableSep bool, m [][]int) *MatchedLine {
+	return &MatchedLine{newBaseLine(v, idx, enableSep), m}
 }
 
 // Indices returns the indices in the buffer that matched
