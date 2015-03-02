@@ -309,6 +309,7 @@ Some keys just... don't map correctly / too easily for various reasons. Here, we
 | peco.DeleteForwardWord  | Delete one word forward |
 | peco.DeleteBackwardWord | Delete one word backward |
 | peco.InvertSelection    | Inverts the selected lines |
+| peco.KillBeginningOfLine | Delete the characters under the cursor backward until the beginning of the line |
 | peco.KillEndOfLine      | Delete the characters under the cursor until the end of the line |
 | peco.DeleteAll          | Delete all entered characters |
 | peco.RefreshScreen      | Redraws the screen. Note that this effectively re-runs your query |
@@ -322,11 +323,18 @@ Some keys just... don't map correctly / too easily for various reasons. Here, we
 | peco.SelectNext         | (DEPRECATED) Alias to SelectDown |
 | peco.ToggleSelection    | Selects the current line, and saves it |
 | peco.ToggleSelectionAndSelectNext | Selects the current line, saves it, and proceeds to the next line |
+| peco.SelectNone         | Remove all saved selections |
+| peco.SelectAll          | Selects the all line, and save it  |
+| peco.SelectVisible      | Selects the all visible line, and save it |
+| peco.ToggleSelectMode   | (DEPRECATED) Alias to ToggleRangeMode |
+| peco.CancelSelectMode   | (DEPRECATED) Alias to CancelRangeMode |
+| peco.ToggleQuery        | Toggle list between filterd by query and not filterd. |
 | peco.ToggleRangeMode   | Start selecting by range, or append selecting range to selections |
 | peco.CancelRangeMode   | Finish selecting by range and cancel range selection |
 | peco.RotateMatcher      | Rotate between matchers (by default, ignore-case/no-ignore-case)|
 | peco.Finish             | Exits from peco with success status |
 | peco.Cancel             | Exits from peco with failure status, or cancel select mode |
+
 
 ### Default Keymap
 
