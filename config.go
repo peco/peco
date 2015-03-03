@@ -6,7 +6,6 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"regexp"
 	"strconv"
 
 	"github.com/nsf/termbox-go"
@@ -179,18 +178,13 @@ func stringsToStyle(raw []string) *Style {
 		bg: termbox.ColorDefault,
 	}
 
-	reFg := regexp.MustCompile("^\\d{1,3}$")
-	reBg := regexp.MustCompile("^on_(\\d{1,3})$")
-
 	for _, s := range raw {
 		fg, ok := stringToFg[s]
 		if ok {
 			style.fg = fg
 		} else {
-			if matchFg := reFg.FindString(s); matchFg != "" {
-				if fg, err := strconv.ParseUint(matchFg, 10, 8); err == nil {
-					style.fg = termbox.Attribute(fg+1)
-				}
+			if fg, err := strconv.ParseUint(s, 10, 8); err == nil {
+				style.fg = termbox.Attribute(fg+1)
 			}
 		}
 
@@ -198,8 +192,8 @@ func stringsToStyle(raw []string) *Style {
 		if ok {
 			style.bg = bg
 		} else {
-			if matchesBg := reBg.FindStringSubmatch(s); matchesBg != nil {
-				if bg, err := strconv.ParseUint(matchesBg[1], 10, 8); err == nil {
+			if strings.HasPrefix(s, "on_") {
+				if bg, err := strconv.ParseUint(s[3:], 10, 8); err == nil {
 					style.bg = termbox.Attribute(bg+1)
 				}
 			}

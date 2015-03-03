@@ -217,7 +217,7 @@ func main() {
 	}
 	defer termbox.Close()
 
-	if ctx.IsUse256Color() {
+	if ctx.Use256Color() {
 		// This has no effect on Windows,
 		// because termbox.SetOutputMode always sets termbox.OutputNormal on Windows.
 		termbox.SetOutputMode(termbox.Output256)

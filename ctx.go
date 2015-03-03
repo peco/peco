@@ -419,7 +419,7 @@ func (c *Ctx) LoadCustomMatcher() error {
 	return nil
 }
 
-func (c *Ctx) IsUse256Color() bool {
+func (c *Ctx) Use256Color() bool {
 	return c.config.Use256Color
 }
 

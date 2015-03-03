@@ -380,7 +380,7 @@ For now, styles of following 5 items can be customized in `config.json`.
 - `"magenta"` for `termbox.ColorMagenta`
 - `"cyan"` for `termbox.ColorCyan`
 - `"white"` for `termbox.ColorWhite`
-- `"0"`-`"255"` for 256color (these colors need [Use256Color](#use256color) is set to `true`)
+- `"0"`-`"255"` for 256color ([Use256Color](#use256color) must be enabled)
 
 ### Background Colors
 
@@ -392,7 +392,7 @@ For now, styles of following 5 items can be customized in `config.json`.
 - `"on_magenta"` for `termbox.ColorMagenta`
 - `"on_cyan"` for `termbox.ColorCyan`
 - `"on_white"` for `termbox.ColorWhite`
-- `"on_0"`-`"on_255"` for 256color (these colors need [Use256Color](#use256color) is set to `true`)
+- `"on_0"`-`"on_255"` for 256color ([Use256Color](#use256color) must be enabled)
 
 ### Attributes
 
