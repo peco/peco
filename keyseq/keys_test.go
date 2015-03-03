@@ -2,6 +2,7 @@ package keyseq
 
 import (
 	"testing"
+	"unicode/utf8"
 
 	"github.com/nsf/termbox-go"
 )
@@ -84,7 +85,6 @@ func TestKeymapStrToKeyValue(t *testing.T) {
 	t.Logf("Checking key name -> actual key value mapping...")
 	for n, v := range expected {
 		t.Logf("    checking %s...", n)
-		// TODO ch isn't being checked
 		e, modifier, _, err := ToKey(n)
 		if err != nil {
 			t.Errorf("Key name %s not found", n)
@@ -126,4 +126,31 @@ func TestKeymapStrToKeyValueWithAlt(t *testing.T) {
 			t.Errorf("Expected '%s' to be '%c', but got '%c'", n, v.ch, ch)
 		}
 	}
+}
+
+func TestKeymapStrToKeyValueCh(t *testing.T) {
+	expected := []string{
+		"q", "w", "e", "r", "t", "y",
+		"🙏", "せ", "か", "い", "〠",
+	}
+
+	t.Logf("Checking character mapping...")
+	for _, n := range expected {
+		t.Logf("    checking %s...", n)
+		k, modifier, ch, err := ToKey(n)
+		if err != nil {
+			t.Errorf("Failed ToKey: Key name %s", n)
+		}
+		if k != 0 {
+			t.Errorf("Key name %s is mapped key", n)
+		}
+		if modifier == 1 {
+			t.Errorf("Key name %s has Alt prefix", n)
+		}
+		r, _ := utf8.DecodeRuneInString(n)
+		if ch != r {
+			t.Errorf("key name %s cannot convert to rune", n)
+		}
+	}
+
 }
