@@ -263,7 +263,7 @@ key item to use Alt/Option key as a mask.
 | C-\\\\      | Note that you need to escape the backslash |
 | C-/         ||
 | C-Space     ||
-| F-1 ... F12 | Function + 1..12 |
+| F1 ... F12  ||
 | Esc         ||
 | Tab         ||
 | Enter       ||
