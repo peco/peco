@@ -20,11 +20,11 @@ func mapkey(n string, k termbox.Key) {
 }
 
 func init() {
-	fidx := 12
-	for k := termbox.KeyF1; k > termbox.KeyF12; k-- {
+	fidx := 1
+	for k := termbox.KeyF1; k >= termbox.KeyF12; k-- {
 		sk := fmt.Sprintf("F%d", fidx)
 		mapkey(sk, k)
-		fidx--
+		fidx++
 	}
 
 	names := []string{
