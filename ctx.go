@@ -419,6 +419,10 @@ func (c *Ctx) LoadCustomMatcher() error {
 	return nil
 }
 
+func (c *Ctx) Use256Color() bool {
+	return c.config.Use256Color
+}
+
 func (c *Ctx) ExitWith(i int) {
 	c.exitStatus = i
 	c.Stop()

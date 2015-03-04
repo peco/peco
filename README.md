@@ -189,6 +189,7 @@ Below are configuration sections that you may specify in your config file:
 * [CustomMatcher](#custommatcher)
 * [Prompt](#prompt)
 * [InitialMatcher](#initialmatcher)
+* [Use256Color](#use256color)
 
 ## Keymaps
 
@@ -398,6 +399,7 @@ For now, styles of following 5 items can be customized in `config.json`.
 - `"magenta"` for `termbox.ColorMagenta`
 - `"cyan"` for `termbox.ColorCyan`
 - `"white"` for `termbox.ColorWhite`
+- `"0"`-`"255"` for 256color ([Use256Color](#use256color) must be enabled)
 
 ### Background Colors
 
@@ -409,6 +411,7 @@ For now, styles of following 5 items can be customized in `config.json`.
 - `"on_magenta"` for `termbox.ColorMagenta`
 - `"on_cyan"` for `termbox.ColorCyan`
 - `"on_white"` for `termbox.ColorWhite`
+- `"on_0"`-`"on_255"` for 256color ([Use256Color](#use256color) must be enabled)
 
 ### Attributes
 
@@ -463,6 +466,18 @@ Note: `Matcher` key has been deprecated in favor of `InitialMatcher`. `Matcher` 
 ## Layout
 
 See --layout.
+
+## Use256Color
+
+Boolean value that determines whether or not to use 256color. The default is `false`.
+
+Note: This has no effect on Windows because Windows console does not support extra color modes.
+
+```json
+{
+    "Use256Color": true
+}
+```
 
 Hacking
 =======
