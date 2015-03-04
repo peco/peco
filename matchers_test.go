@@ -28,7 +28,7 @@ func TestANSIColorStrip(t *testing.T) {
 func TestNewMatch(t *testing.T) {
 	var m Line
 
-	m = NewRawLine("Hello, World!", false)
+	m = NewRawLine("Hello, World!", 1, false)
 	if m.Indices() != nil {
 		t.Errorf("NoMatch.Indices() must always return nil")
 	}
@@ -56,11 +56,11 @@ func TestNewMatch(t *testing.T) {
 	}
 
 	makeDidMatch := func(buf string) (string, Line) {
-		return buf, NewMatchedLine(buf, true, [][]int{{0, 5}})
+		return buf, NewMatchedLine(buf, 1, true, [][]int{{0, 5}})
 	}
 
 	makeNoMatch := func(buf string) (string, Line) {
-		return buf, NewRawLine(buf, true)
+		return buf, NewRawLine(buf, 1, true)
 	}
 
 	nullsepCheck(makeNoMatch("Hello, World!"))

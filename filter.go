@@ -17,7 +17,6 @@ func (f *Filter) Work(cancel chan struct{}, q HubReq) {
 	}
 	f.SetCurrent(f.Matcher().Line(cancel, query, f.Buffer()))
 	f.SendStatusMsg("")
-	f.SelectionClear()
 	f.DrawMatches(nil)
 }
 

@@ -250,6 +250,16 @@ func (c *Ctx) GetLinesCount() int {
 	return len(c.lines)
 }
 
+func (c *Ctx) GetLineAt(i int) Line {
+	c.currentMutex.Lock()
+	defer c.currentMutex.Unlock()
+
+	if i < 0 || len(c.lines) <= i {
+		panic(fmt.Sprintf("GetCurrentAt: index out of range (%d)", i))
+	}
+	return c.lines[i]
+}
+
 func (c *Ctx) IsBufferOverflowing() bool {
 	if c.bufferSize <= 0 {
 		return false
@@ -302,6 +312,10 @@ func (c *Ctx) GetCurrentLen() int {
 	c.currentMutex.Lock()
 	defer c.currentMutex.Unlock()
 	return len(c.current)
+}
+
+func (c *Ctx) IsCurrentEmpty() bool {
+	return c.GetCurrentLen() <= 0
 }
 
 func (c *Ctx) SetCurrent(newMatches []Line) {
