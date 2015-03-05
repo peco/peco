@@ -3,6 +3,7 @@ package peco
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"strings"
@@ -50,6 +51,12 @@ func (c *Config) ReadFilename(filename string) error {
 
 	err = json.NewDecoder(f).Decode(c)
 	if err != nil {
+		if err == io.EOF {
+			// If it got here, then the file did not contain any parsable
+			// JSON characters. It's okay. Just ignore
+			return nil
+		}
+
 		return err
 	}
 
