@@ -170,7 +170,6 @@ func doRotateMatcher(i *Input, ev termbox.Event) {
 	if i.ExecQuery() {
 		return
 	}
-	i.DrawMatches(nil)
 }
 
 func doToggleSelection(i *Input, _ termbox.Event) {
@@ -188,24 +187,20 @@ func doToggleRangeMode(i *Input, _ termbox.Event) {
 		i.selectionRangeStart = i.currentLine
 		i.SelectionAdd(i.currentPage.offset + i.currentLine)
 	}
-	i.DrawMatches(nil)
 }
 
 func doCancelRangeMode(i *Input, _ termbox.Event) {
 	i.selectionRangeStart = invalidSelectionRange
-	i.DrawMatches(nil)
 }
 
 func doSelectNone(i *Input, _ termbox.Event) {
 	i.selection.Clear()
-	i.DrawMatches(nil)
 }
 
 func doSelectAll(i *Input, _ termbox.Event) {
 	for lineno := 1; lineno <= len(i.current); lineno++ {
 		i.selection.Add(lineno)
 	}
-	i.DrawMatches(nil)
 }
 
 func doSelectVisible(i *Input, _ termbox.Event) {
@@ -214,10 +209,12 @@ func doSelectVisible(i *Input, _ termbox.Event) {
 	for lineno := pageStart; lineno <= pageEnd; lineno++ {
 		i.selection.Add(lineno)
 	}
-	i.DrawMatches(nil)
 }
 
 func doFinish(i *Input, _ termbox.Event) {
+	tracer.Printf("doFinish: START")
+	defer tracer.Printf("doFinish: END")
+
 	// Must end with all the selected lines.
 	if i.SelectionLen() == 0 {
 		i.SelectionAdd(i.currentLine)
@@ -225,14 +222,13 @@ func doFinish(i *Input, _ termbox.Event) {
 
 	i.resultCh = make(chan Line)
 	go func() {
-		max := i.GetCurrentLen()
-		for x := 1; x <= max; x++ {
-			if x > i.GetCurrentLen() {
-				break
-			}
-
-			if i.selection.Has(x) {
-				i.resultCh <- i.GetCurrentAt(x - 1)
+		buf := i.GetCurrentLineBuffer()
+		max := buf.Size()
+		for x := 0; x < max; x++ {
+			if i.selection.Has(x+1) {
+				if l, err := buf.LineAt(x); err == nil {
+					i.resultCh <- l
+				}
 			}
 		}
 		close(i.resultCh)
@@ -257,23 +253,21 @@ func doCancel(i *Input, ev termbox.Event) {
 }
 
 func doSelectDown(i *Input, ev termbox.Event) {
+	tracer.Printf("doSelectDown: START")
+	defer tracer.Printf("doSelectDown: END")
 	i.SendPaging(ToLineBelow)
-	i.DrawMatches(nil)
 }
 
 func doSelectUp(i *Input, ev termbox.Event) {
 	i.SendPaging(ToLineAbove)
-	i.DrawMatches(nil)
 }
 
 func doScrollPageUp(i *Input, ev termbox.Event) {
 	i.SendPaging(ToScrollPageUp)
-	i.DrawMatches(nil)
 }
 
 func doScrollPageDown(i *Input, ev termbox.Event) {
 	i.SendPaging(ToScrollPageDown)
-	i.DrawMatches(nil)
 }
 
 func doToggleSelectionAndSelectNext(i *Input, ev termbox.Event) {
@@ -290,7 +284,6 @@ func doToggleSelectionAndSelectNext(i *Input, ev termbox.Event) {
 
 func doInvertSelection(i *Input, _ termbox.Event) {
 	i.selection.Invert(i.GetCurrentLen())
-	i.DrawMatches(nil)
 }
 
 func doDeleteBackwardWord(i *Input, _ termbox.Event) {
@@ -331,7 +324,6 @@ func doDeleteBackwardWord(i *Input, _ termbox.Event) {
 	}
 
 	i.SetCurrent(nil)
-	i.DrawMatches(nil)
 }
 
 func doForwardWord(i *Input, _ termbox.Event) {
@@ -345,7 +337,6 @@ func doForwardWord(i *Input, _ termbox.Event) {
 		if foundSpace {
 			if !unicode.IsSpace(r) {
 				i.SetCaretPos(pos)
-				i.DrawMatches(nil)
 				return
 			}
 		} else {
@@ -357,7 +348,6 @@ func doForwardWord(i *Input, _ termbox.Event) {
 
 	// not found. just move to the end of the buffer
 	i.SetCaretPos(i.QueryLen())
-	i.DrawMatches(nil)
 
 }
 
@@ -394,14 +384,12 @@ SEARCH_PREV_WORD:
 	for pos := i.CaretPos(); pos > 0; pos-- {
 		if unicode.IsSpace(i.Query()[pos]) {
 			i.SetCaretPos(int(pos + 1))
-			i.DrawMatches(nil)
 			return
 		}
 	}
 
 	// not found. just move to the beginning of the buffer
 	i.SetCaretPos(0)
-	i.DrawMatches(nil)
 }
 
 func doForwardChar(i *Input, _ termbox.Event) {
@@ -409,7 +397,6 @@ func doForwardChar(i *Input, _ termbox.Event) {
 		return
 	}
 	i.MoveCaretPos(1)
-	i.DrawMatches(nil)
 }
 
 func doBackwardChar(i *Input, _ termbox.Event) {
@@ -417,7 +404,7 @@ func doBackwardChar(i *Input, _ termbox.Event) {
 		return
 	}
 	i.MoveCaretPos(-1)
-	i.DrawMatches(nil)
+	i.SendDraw(nil)
 }
 
 func doDeleteForwardWord(i *Input, _ termbox.Event) {
@@ -458,17 +445,14 @@ func doDeleteForwardWord(i *Input, _ termbox.Event) {
 	}
 
 	i.SetCurrent(nil)
-	i.DrawMatches(nil)
 }
 
 func doBeginningOfLine(i *Input, _ termbox.Event) {
 	i.SetCaretPos(0)
-	i.DrawMatches(nil)
 }
 
 func doEndOfLine(i *Input, _ termbox.Event) {
 	i.SetCaretPos(i.QueryLen())
-	i.DrawMatches(nil)
 }
 
 func doEndOfFile(i *Input, ev termbox.Event) {
@@ -486,7 +470,6 @@ func doKillBeginningOfLine(i *Input, _ termbox.Event) {
 		return
 	}
 	i.SetCurrent(nil)
-	i.DrawMatches(nil)
 }
 
 func doKillEndOfLine(i *Input, _ termbox.Event) {
@@ -499,13 +482,11 @@ func doKillEndOfLine(i *Input, _ termbox.Event) {
 		return
 	}
 	i.SetCurrent(nil)
-	i.DrawMatches(nil)
 }
 
 func doDeleteAll(i *Input, _ termbox.Event) {
 	i.SetQuery(make([]rune, 0))
 	i.SetCurrent(nil)
-	i.DrawMatches(nil)
 }
 
 func doDeleteForwardChar(i *Input, _ termbox.Event) {
@@ -525,35 +506,47 @@ func doDeleteForwardChar(i *Input, _ termbox.Event) {
 	}
 
 	i.SetCurrent(nil)
-	i.DrawMatches(nil)
 }
 
 func doDeleteBackwardChar(i *Input, ev termbox.Event) {
-	if i.QueryLen() <= 0 {
+	tracer.Printf("doDeleteBackwardChar: START")
+	defer tracer.Printf("doDeleteBackwardChar: END")
+
+	qlen := i.QueryLen()
+	if qlen <= 0 {
+		tracer.Printf("doDeleteBackwardChar: QueryLen <= 0, do nothing")
 		return
 	}
 
 	pos := i.CaretPos()
-	switch pos {
-	case 0:
+	if pos == 0 {
+		tracer.Printf("doDeleteBackwardChar: Already at position 0")
 		// No op
 		return
-	case i.QueryLen():
-		i.SetQuery(i.Query()[:i.QueryLen()-1])
-	default:
-		buf := make([]rune, i.QueryLen()-1)
-		copy(buf, i.Query()[:i.CaretPos()])
-		copy(buf[i.CaretPos()-1:], i.Query()[i.CaretPos():])
-		i.SetQuery(buf)
 	}
+
+	var buf []rune
+	if qlen == 1 {
+		// Micro optimization
+		buf = []rune{}
+	} else {
+		q := i.Query()
+		if pos == qlen {
+			buf = q[:qlen-1 : qlen-1]
+		} else {
+			buf := make([]rune, qlen-1)
+			copy(buf, q[:pos])
+			copy(buf[pos-1:], q[pos:])
+		}
+	}
+	i.SetQuery(buf)
 	i.SetCaretPos(pos - 1)
 
 	if i.ExecQuery() {
 		return
 	}
 
-	i.SetCurrent(nil)
-	i.DrawMatches(nil)
+	i.SetActiveLineBuffer(i.rawLineBuffer)
 }
 
 func doRefreshScreen(i *Input, _ termbox.Event) {
@@ -578,7 +571,6 @@ func doToggleQuery(i *Input, _ termbox.Event) {
 		return
 	}
 	i.SetCurrent(nil)
-	i.DrawMatches(nil)
 }
 
 func doKonamiCommand(i *Input, ev termbox.Event) {

@@ -287,6 +287,7 @@ type ListArea struct {
 	*Ctx
 	*AnchorSettings
 	sortTopDown bool
+	displayCache []Line
 }
 
 // NewListArea creates a new ListArea struct
@@ -295,32 +296,79 @@ func NewListArea(ctx *Ctx, anchor VerticalAnchor, anchorOffset int, sortTopDown 
 		ctx,
 		NewAnchorSettings(anchor, anchorOffset),
 		sortTopDown,
+		[]Line{},
 	}
 }
 
 // Draw displays the ListArea on the screen
+var drawLock = make(chan struct{}, 1)
 func (l *ListArea) Draw(targets []Line, perPage int) {
+	// XXX FIX ME
+	drawLock <- struct{}{}
+	defer func() { <-drawLock }()
+	tracer.Printf("ListArea.Draw: START")
+	defer tracer.Printf("ListArea.Draw: END")
 	currentPage := l.currentPage
 
-	start := l.AnchorPosition()
+	pf := PagingFilter{perPage: currentPage.perPage, currentPage: currentPage.index}
+	buf := pf.Filter(l.GetCurrentLineBuffer())
+	bufsiz := buf.Size()
+
+	// previously drawn lines are cached. first, truncate the cache
+	// to current size of the drawable area
+	switch ldc := len(l.displayCache); {
+	case ldc > perPage:
+		l.displayCache = append([]Line(nil), l.displayCache[:ldc]...)
+	case ldc < perPage:
+		// XXX Is there a more efficient way to grow the array?
+		for i := ldc; i < perPage; i++ {
+			l.displayCache = append(l.displayCache, nil)
+		}
+	}
 
 	var y int
+	start := l.AnchorPosition()
+
+	// If our buffer is smaller than perPage, we may need to
+	// clear some lines
+	tracer.Printf("ListeArea.Draw: buffer size is %d, our view area is %d\n", bufsiz, perPage)
+	for n := bufsiz; n < perPage; n++ {
+		l.displayCache[n] = nil
+		if l.sortTopDown {
+			y = n + start
+		} else {
+			y = start - n
+		}
+
+		tracer.Printf("ListArea.Draw: clearing row %d", y)
+		printScreen(0, y, l.config.Style.BasicFG(), l.config.Style.BasicBG(), "", true)
+	}
+
+	var cached, written int
 	var fgAttr, bgAttr termbox.Attribute
 	for n := 0; n < perPage; n++ {
 		switch {
 		case n+currentPage.offset == l.currentLine-1:
 			fgAttr = l.config.Style.SelectedFG()
 			bgAttr = l.config.Style.SelectedBG()
+			// Not a good place to put this, move it out later
+			l.displayCache[n] = nil
 		case l.SelectionContains(n + currentPage.offset + 1):
 			fgAttr = l.config.Style.SavedSelectionFG()
 			bgAttr = l.config.Style.SavedSelectionBG()
 		default:
 			fgAttr = l.config.Style.BasicFG()
 			bgAttr = l.config.Style.BasicBG()
+			// Not a good place to put this, move it out later
+			if n + 1 < len(l.displayCache) &&
+			 n+currentPage.offset+1 == l.currentLine-1 {
+				l.displayCache[n+1] = nil
+			} else if n > 0 && n+currentPage.offset -1 == l.currentLine-1 {
+				l.displayCache[n-1] = nil
+			}
 		}
 
-		targetIdx := currentPage.offset + n
-		if targetIdx >= len(targets) {
+		if n >= bufsiz {
 			break
 		}
 
@@ -330,7 +378,19 @@ func (l *ListArea) Draw(targets []Line, perPage int) {
 			y = start - n
 		}
 
-		target := targets[targetIdx]
+		target, err := buf.LineAt(n)
+		if err != nil {
+			break
+		}
+
+		if l.displayCache[n] == target {
+			cached++
+			continue
+		}
+
+		written++
+		l.displayCache[n] = target
+
 		line := target.DisplayString()
 		matches := target.Indices()
 		if matches == nil {
@@ -362,6 +422,7 @@ func (l *ListArea) Draw(targets []Line, perPage int) {
 			printScreen(prev, y, fgAttr, bgAttr, line[m[1]:len(line)], true)
 		}
 	}
+	tracer.Printf("ListArea.Draw: Written total of %d lines (%d cached)\n", written+cached, cached)
 }
 
 // BasicLayout is... the basic layout :) At this point this is the
@@ -403,6 +464,7 @@ func NewBottomUpLayout(ctx *Ctx) *BasicLayout {
 
 // CalculatePage calculates which page we're displaying
 func (l *BasicLayout) CalculatePage(targets []Line, perPage int) error {
+	buf := l.GetCurrentLineBuffer()
 CALCULATE_PAGE:
 	currentPage := l.currentPage
 	currentPage.index = ((l.currentLine - 1) / perPage) + 1
@@ -411,7 +473,7 @@ CALCULATE_PAGE:
 	}
 	currentPage.offset = (currentPage.index - 1) * perPage
 	currentPage.perPage = perPage
-	currentPage.total = len(targets)
+	currentPage.total = buf.Size()
 	if currentPage.total == 0 {
 		currentPage.maxPage = 1
 	} else {
@@ -419,7 +481,7 @@ CALCULATE_PAGE:
 	}
 
 	if currentPage.maxPage < currentPage.index {
-		if len(targets) == 0 && l.QueryLen() == 0 {
+		if buf.Size() == 0 && l.QueryLen() == 0 {
 			// wait for targets
 			return fmt.Errorf("no targets or query. nothing to do")
 		}
@@ -436,9 +498,11 @@ func (l *BasicLayout) DrawPrompt() {
 
 // DrawScreen draws the entire screen
 func (l *BasicLayout) DrawScreen(targets []Line) {
-	if err := screen.Clear(l.config.Style.BasicFG(), l.config.Style.BasicBG()); err != nil {
-		return
-	}
+//	if err := screen.Clear(l.config.Style.BasicFG(), l.config.Style.BasicBG()); err != nil {
+//		return
+//	}
+	tracer.Printf("DrawScreen: START")
+	defer tracer.Printf("DrawScreen: END")
 
 	if l.currentLine > len(targets) && len(targets) > 0 {
 		l.currentLine = len(targets)
@@ -465,8 +529,11 @@ func linesPerPage() int {
 
 // MovePage moves the cursor
 func (l *BasicLayout) MovePage(p PagingRequest) {
+	cp := l.currentPage
+	lcur := l.GetCurrentLineBuffer().Size()
 	// Before we moved, on which line were we located?
 	lineBefore := l.currentLine
+	lpp := linesPerPage()
 	if l.list.sortTopDown {
 		switch p {
 		case ToLineAbove:
@@ -475,6 +542,9 @@ func (l *BasicLayout) MovePage(p PagingRequest) {
 			l.currentLine++
 		case ToScrollPageDown:
 			l.currentLine += linesPerPage()
+			if cp.index == cp.maxPage - 1 && lcur < l.currentLine && (lcur - lineBefore) < lpp {
+				l.currentLine = lcur
+			}
 		case ToScrollPageUp:
 			l.currentLine -= linesPerPage()
 		}
@@ -491,7 +561,6 @@ func (l *BasicLayout) MovePage(p PagingRequest) {
 		}
 	}
 
-	lcur := len(l.current)
 	if l.currentLine < 1 {
 		if l.current != nil {
 			// Go to last page, if possible

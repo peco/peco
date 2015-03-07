@@ -236,12 +236,12 @@ func regexpFor(q string, flags []string, quotemeta bool) (*regexp.Regexp, error)
 	return re, nil
 }
 
-func (m *RegexpMatcher) queryToRegexps(query string) ([]*regexp.Regexp, error) {
+func queryToRegexps(flags regexpFlags, quotemeta bool, query string) ([]*regexp.Regexp, error) {
 	queries := strings.Split(strings.TrimSpace(query), " ")
 	regexps := make([]*regexp.Regexp, 0)
 
 	for _, q := range queries {
-		re, err := regexpFor(q, m.flags.flags(query), m.quotemeta)
+		re, err := regexpFor(q, flags.flags(query), quotemeta)
 		if err != nil {
 			return nil, err
 		}
@@ -300,7 +300,7 @@ func (m byStart) Less(i, j int) bool {
 // is halted.
 func (m *RegexpMatcher) Line(quit chan struct{}, q string, buffer []Line) []Line {
 	results := []Line{}
-	regexps, err := m.queryToRegexps(q)
+	regexps, err := queryToRegexps(m.flags, m.quotemeta, q)
 	if err != nil {
 		return results
 	}
@@ -325,7 +325,7 @@ func (m *RegexpMatcher) Line(quit chan struct{}, q string, buffer []Line) []Line
 				continue
 			}
 
-			iter <- NewMatchedLine(match.Buffer(), m.enableSep, ms)
+			iter <- NewMatchedLine(match, ms)
 		}
 		iter <- nil
 	}()
@@ -450,7 +450,7 @@ func (m *CustomMatcher) Line(quit chan struct{}, q string, buffer []Line) []Line
 	results := []Line{}
 	if q == "" {
 		for _, match := range buffer {
-			results = append(results, NewMatchedLine(match.Buffer(), m.enableSep, nil))
+			results = append(results, NewMatchedLine(match, nil))
 		}
 		return results
 	}
@@ -497,7 +497,8 @@ func (m *CustomMatcher) Line(quit chan struct{}, q string, buffer []Line) []Line
 		for {
 			b, _, err := buf.ReadLine()
 			if len(b) > 0 {
-				iter <- NewMatchedLine(string(b), m.enableSep, nil)
+				// TODO: need to redo the spec for custom matchers
+				iter <- NewMatchedLine(nil, nil)
 			}
 			if err != nil {
 				break

@@ -8,6 +8,7 @@ import (
 	"runtime"
 	"sync"
 	"syscall"
+	"time"
 )
 
 const debug = false
@@ -113,6 +114,7 @@ type Ctx struct {
 	*Hub
 	*FilterQuery
 	*MatcherSet
+	filters             FilterSet
 	caretPosition       int
 	enableSep           bool
 	resultCh            chan Line
@@ -120,6 +122,8 @@ type Ctx struct {
 	currentLine         int
 	currentPage         *PageInfo
 	selection           *Selection
+	activeLineBuffer    LineBuffer
+	rawLineBuffer       *RawLineBuffer
 	lines               []Line
 	linesMutex          sync.Locker
 	current             []Line
@@ -163,11 +167,14 @@ func NewCtx(o CtxOptions) *Ctx {
 		Hub:                 NewHub(),
 		FilterQuery:         &FilterQuery{[]rune{}, []rune{}, newMutex()},
 		MatcherSet:          nil,
+		filters:             FilterSet{},
 		caretPosition:       0,
 		resultCh:            nil,
 		mutex:               newMutex(),
 		currentPage:         &PageInfo{0, 1, 0, 0, 0},
 		selection:           NewSelection(),
+		activeLineBuffer:    nil,
+		rawLineBuffer:       NewRawLineBuffer(),
 		lines:               []Line{},
 		linesMutex:          newMutex(),
 		current:             nil,
@@ -183,7 +190,8 @@ func NewCtx(o CtxOptions) *Ctx {
 		// XXX Pray this is really nil :)
 		c.enableSep = o.EnableNullSep()
 		c.currentLine = o.InitialIndex()
-		c.bufferSize = o.BufferSize()
+
+		c.rawLineBuffer.SetCapacity(o.BufferSize())
 
 		if v := o.LayoutType(); v != "" {
 			c.layoutType = v
@@ -192,15 +200,18 @@ func NewCtx(o CtxOptions) *Ctx {
 
 	matchers := []Matcher{
 		NewIgnoreCaseMatcher(c.enableSep),
-		NewCaseSensitiveMatcher(c.enableSep),
-		NewSmartCaseMatcher(c.enableSep),
-		NewRegexpMatcher(c.enableSep),
+		//		NewCaseSensitiveMatcher(c.enableSep),
+		//		NewSmartCaseMatcher(c.enableSep),
+		//		NewRegexpMatcher(c.enableSep),
 	}
 	matcherSet := NewMatcherSet()
 	for _, m := range matchers {
 		matcherSet.Add(m)
 	}
 	c.MatcherSet = matcherSet
+
+	c.filters = append(c.filters, NewIgnoreCaseFilter())
+	c.filters = append(c.filters, NewCaseSensitiveFilter())
 
 	return c
 }
@@ -305,6 +316,8 @@ func (c *Ctx) GetCurrentLen() int {
 }
 
 func (c *Ctx) SetCurrent(newMatches []Line) {
+	tracer.Printf("Ctx.SetCurrent: START")
+	defer tracer.Printf("Ctx.SetCurrent: END")
 	c.currentMutex.Lock()
 	defer c.currentMutex.Unlock()
 	c.current = newMatches
@@ -337,23 +350,21 @@ func (c *Ctx) WaitDone() {
 }
 
 func (c *Ctx) ExecQuery() bool {
-	if c.QueryLen() > 0 {
-		c.SendQuery(c.QueryString())
-		return true
-	}
-	return false
-}
+	tracer.Printf("Ctx.ExecQuery: START")
+	defer tracer.Printf("Ctx.ExecQuery: END")
 
-func (c *Ctx) DrawMatches(m []Line) {
-	c.SendDraw(m)
+	if c.QueryLen() <= 0 {
+		tracer.Printf("Ctx.ExecQuery: Nothing to do")
+		return false
+	}
+
+	tracer.Printf("Ctx.ExecQuery: SendQuery")
+	c.SendQuery(c.QueryString())
+	return true
 }
 
 func (c *Ctx) DrawPrompt() {
 	c.SendDrawPrompt()
-}
-
-func (c *Ctx) Refresh() {
-	c.DrawMatches(nil)
 }
 
 func (c *Ctx) Buffer() []Line {
@@ -379,7 +390,7 @@ func (c *Ctx) NewView() *View {
 }
 
 func (c *Ctx) NewFilter() *Filter {
-	return &Filter{c, make(chan string)}
+	return &Filter{c}
 }
 
 func (c *Ctx) NewInput() *Input {
@@ -396,7 +407,10 @@ func (c *Ctx) SetSavedQuery(q []rune) {
 }
 
 func (c *Ctx) SetQuery(q []rune) {
+	tracer.Printf("Ctx.SetQuery: START")
+	defer tracer.Printf("Ctx.SetQuery: END")
 	c.mutex.Lock()
+	tracer.Printf("Ctx.SetQuery: setting query to '%s'", q)
 	c.FilterQuery.query = q
 	c.mutex.Unlock()
 	c.SetCaretPos(c.QueryLen())
@@ -404,6 +418,10 @@ func (c *Ctx) SetQuery(q []rune) {
 
 func (c *Ctx) Matcher() Matcher {
 	return c.MatcherSet.GetCurrent()
+}
+
+func (c *Ctx) Filter() QueryFilterer {
+	return c.filters[0]
 }
 
 func (c *Ctx) LoadCustomMatcher() error {
@@ -462,4 +480,39 @@ func (c *Ctx) SetPrompt(p string) {
 // ExitStatus() returns the exit status that we think should be used
 func (c Ctx) ExitStatus() int {
 	return c.exitStatus
+}
+
+func (c *Ctx) AddRawLine(l *RawLine) {
+	c.rawLineBuffer.AppendLine(l)
+}
+
+func (c Ctx) GetRawLineBufferSize() int {
+	return c.rawLineBuffer.Size()
+}
+
+func (c *Ctx) ResetActiveLineBuffer() {
+	c.rawLineBuffer.Replay()
+	c.SetActiveLineBuffer(c.rawLineBuffer)
+}
+
+func (c *Ctx) SetActiveLineBuffer(l *RawLineBuffer) {
+	c.activeLineBuffer = l
+
+	go func(l *RawLineBuffer) {
+		prev := time.Time{}
+		for _ = range l.OutputCh() {
+			if time.Since(prev) > 500*time.Millisecond {
+				c.SendDraw(nil)
+				prev = time.Now()
+			}
+		}
+		c.SendDraw(nil)
+	}(l)
+}
+
+func (c Ctx) GetCurrentLineBuffer() LineBuffer {
+	if b := c.activeLineBuffer; b != nil {
+		return b
+	}
+	return c.rawLineBuffer
 }

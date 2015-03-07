@@ -35,7 +35,7 @@ func TestNewMatch(t *testing.T) {
 
 	nullsepCheck := func(buf string, m Line) {
 		if m.Buffer() != buf {
-			t.Errorf("m.Buffer() should return '%s', got %s", buf, m.Buffer())
+			t.Errorf("m.Buffer() should return '%s', got '%s'", buf, m.Buffer())
 		}
 
 		if sepLoc := strings.Index(buf, "\000"); sepLoc > -1 {
@@ -56,7 +56,7 @@ func TestNewMatch(t *testing.T) {
 	}
 
 	makeDidMatch := func(buf string) (string, Line) {
-		return buf, NewMatchedLine(buf, true, [][]int{{0, 5}})
+		return buf, NewMatchedLine(NewRawLine(buf, true), [][]int{{0, 5}})
 	}
 
 	makeNoMatch := func(buf string) (string, Line) {

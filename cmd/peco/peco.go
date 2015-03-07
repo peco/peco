@@ -80,10 +80,11 @@ func (o cmdOptions) LayoutType() string {
 }
 
 func main() {
-	var err error
-	var st int
+	os.Exit(_main())
+}
 
-	defer func() { os.Exit(st) }()
+func _main() (st int) {
+	var err error
 
 	if envvar := os.Getenv("GOMAXPROCS"); envvar == "" {
 		runtime.GOMAXPROCS(runtime.NumCPU())
@@ -94,26 +95,24 @@ func main() {
 	args, err := p.Parse()
 	if err != nil {
 		showHelp()
-		st = 1
-		return
+		return 1
 	}
 
 	if opts.OptLayout != "" {
 		if !peco.IsValidLayoutType(peco.LayoutType(opts.OptLayout)) {
 			fmt.Fprintf(os.Stderr, "Unknown layout: '%s'\n", opts.OptLayout)
-			st = 1
-			return
+			return 1
 		}
 	}
 
 	if opts.OptHelp {
 		showHelp()
-		return
+		return 0
 	}
 
 	if opts.OptVersion {
 		fmt.Fprintf(os.Stderr, "peco: %s\n", version)
-		return
+		return 0
 	}
 
 	var in *os.File
@@ -123,23 +122,23 @@ func main() {
 	case len(args) > 0:
 		in, err = os.Open(args[0])
 		if err != nil {
-			st = 1
 			fmt.Fprintln(os.Stderr, err)
-			return
+			return 1
 		}
 	case !peco.IsTty(os.Stdin.Fd()):
 		in = os.Stdin
 	default:
 		fmt.Fprintln(os.Stderr, "You must supply something to work with via filename or stdin")
-		st = 1
-		return
+		return 1
 	}
 
 	ctx := peco.NewCtx(opts)
 	defer func() {
 		if err := recover(); err != nil {
-			st = 1
 			fmt.Fprintf(os.Stderr, "Error:\n%s", err)
+			// XXX does this work?
+			st = 1
+			return
 		}
 
 		ch := ctx.ResultCh()
@@ -170,8 +169,7 @@ func main() {
 		err = ctx.ReadConfig(opts.OptRcfile)
 		if err != nil {
 			fmt.Fprintln(os.Stderr, err)
-			st = 1
-			return
+			return 1
 		}
 	}
 
@@ -187,8 +185,7 @@ func main() {
 	if len(opts.OptInitialMatcher) > 0 {
 		if !ctx.MatcherSet.SetCurrentByName(opts.OptInitialMatcher) {
 			fmt.Fprintf(os.Stderr, "Unknown matcher: '%s'\n", opts.OptInitialMatcher)
-			st = 1
-			return
+			return 1
 		}
 	}
 
@@ -204,16 +201,14 @@ func main() {
 	err = peco.TtyReady()
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
-		st = 1
-		return
+		return 1
 	}
 	defer peco.TtyTerm()
 
 	err = termbox.Init()
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
-		st = 1
-		return
+		return 1
 	}
 	defer termbox.Close()
 
@@ -244,10 +239,10 @@ func main() {
 		ctx.SetQuery([]rune(opts.OptQuery))
 		ctx.ExecQuery()
 	} else {
-		view.Refresh()
+		ctx.SendDraw(nil)
 	}
 
 	ctx.WaitDone()
 
-	st = ctx.ExitStatus()
+	return ctx.ExitStatus()
 }

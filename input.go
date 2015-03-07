@@ -19,6 +19,8 @@ type Input struct {
 // Loop watches for incoming events from termbox, and pass them
 // to the appropriate handler when something arrives.
 func (i *Input) Loop() {
+	tracer.Printf("Input.Loop: START")
+	defer tracer.Printf("Input.Loop: END")
 	defer i.ReleaseWaitGroup()
 
 	evCh := screen.PollEvent()
@@ -38,7 +40,7 @@ func (i *Input) handleInputEvent(ev termbox.Event) {
 	case termbox.EventError:
 		//update = false
 	case termbox.EventResize:
-		i.DrawMatches(nil)
+		i.SendDraw(nil)
 	case termbox.EventKey:
 		// ModAlt is a sequence of letters with a leading \x1b (=Esc).
 		// It would be nice if termbox differentiated this for us, but
@@ -54,6 +56,7 @@ func (i *Input) handleInputEvent(ev termbox.Event) {
 				i.mutex.Lock()
 				i.mod = nil
 				i.mutex.Unlock()
+				tracer.Printf("Input.handleInputEvent: Firing delayed input event")
 				i.handleKeyEvent(tmp)
 			})
 			i.mutex.Unlock()
@@ -67,13 +70,17 @@ func (i *Input) handleInputEvent(ev termbox.Event) {
 				ev.Mod |= termbox.ModAlt
 			}
 			i.mutex.Unlock()
+			tracer.Printf("Input.handleInputEvent: Firing event")
 			i.handleKeyEvent(ev)
 		}
 	}
 }
 
 func (i *Input) handleKeyEvent(ev termbox.Event) {
+	tracer.Printf("Input.handleKeyEvent: START")
+	defer tracer.Printf("Input.handleKeyEvent: END")
 	if h := i.keymap.Handler(ev); h != nil {
+		tracer.Printf("Input.handleKeyEvent: Event %#v maps to %s, firing action", ev, h)
 		h.Execute(i, ev)
 		return
 	}

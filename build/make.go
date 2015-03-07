@@ -8,12 +8,22 @@ import (
 	"strings"
 )
 
-/* This script evists because godep deprecated -copy=false, and I really
+/* This script exists because godep deprecated -copy=false, and I really
  * don't agree that importing the actual source code for peco is the
  * correct choice
+ *
+ * It's used by my own build script to release files to GitHub.
+ * You (the contributor) do not need to use it, but if you need a
+ * particular revision of the dependent packages, make sure to update
+ * the SHA1 below.
  */
 
 var pwd string
+var deps = map[string]string{
+	"github.com/jessevdk/go-flags":  "8ec9564882e7923e632f012761c81c46dcf5bec1",
+	"github.com/mattn/go-runewidth": "63c378b851290989b19ca955468386485f118c65",
+	"github.com/nsf/termbox-go":     "bb19a81afd4bc2729799d1fedb19f7bd7ee284cf",
+}
 
 func init() {
 	var err error
@@ -35,15 +45,13 @@ func main() {
 }
 
 func setupDeps() {
-	deps := map[string]string{
-		"github.com/jessevdk/go-flags":  "8ec9564882e7923e632f012761c81c46dcf5bec1",
-		"github.com/mattn/go-runewidth": "63c378b851290989b19ca955468386485f118c65",
-		"github.com/nsf/termbox-go":     "bb19a81afd4bc2729799d1fedb19f7bd7ee284cf",
-	}
-
 	var err error
 
 	baseDir := "/work/src"
+	if dir := os.Get("PECO_BUILD_DIR"); dir != "" {
+		baseDir = dir
+	}
+
 	for dir, hash := range deps {
 		repo := repoURL(dir)
 		dir = filepath.Join(baseDir, dir)

@@ -20,67 +20,57 @@ type Line interface {
 	Indices() [][]int      // If the type allows, indices into matched portions of the string
 }
 
-// baseLine is the common implementation between RawLine and MatchedLine
-type baseLine struct {
+// RawLine implements the Line interface. It represents a line with no matches,
+// which means that it can only be used in the initial unfiltered view
+type RawLine  struct {
 	buf           string
 	sepLoc        int
 	displayString string
 }
 
-func newBaseLine(v string, enableSep bool) *baseLine {
-	m := &baseLine{
+func NewRawLine(v string, enableSep bool) *RawLine {
+	rl := &RawLine{
 		v,
 		-1,
 		"",
 	}
 	if !enableSep {
-		return m
+		return rl
 	}
 
 	// XXX This may be silly, but we're avoiding using strings.IndexByte()
 	// here because it doesn't exist on go1.1. Let's remove support for
 	// 1.1 when 1.4 comes out (or something)
-	for i := 0; i < len(m.buf); i++ {
-		if m.buf[i] == '\000' {
-			m.sepLoc = i
+	for i := 0; i < len(rl.buf); i++ {
+		if rl.buf[i] == '\000' {
+			rl.sepLoc = i
 		}
 	}
-	return m
+	return rl
 }
 
-func (m baseLine) Buffer() string {
-	return m.buf
+func (rl RawLine) Buffer() string {
+	return rl.buf
 }
 
-func (m baseLine) DisplayString() string {
-	if m.displayString != "" {
-		return m.displayString
+func (rl RawLine) DisplayString() string {
+	if rl.displayString != "" {
+		return rl.displayString
 	}
 
-	if i := m.sepLoc; i > -1 {
-		m.displayString = stripANSISequence(m.buf[:i])
+	if i := rl.sepLoc; i > -1 {
+		rl.displayString = stripANSISequence(rl.buf[:i])
 	} else {
-		m.displayString = stripANSISequence(m.buf)
+		rl.displayString = stripANSISequence(rl.buf)
 	}
-	return m.displayString
+	return rl.displayString
 }
 
-func (m baseLine) Output() string {
-	if i := m.sepLoc; i > -1 {
-		return m.buf[i+1:]
+func (rl RawLine) Output() string {
+	if i := rl.sepLoc; i > -1 {
+		return rl.buf[i+1:]
 	}
-	return m.buf
-}
-
-// RawLine implements the Line interface. It represents a line with no matches,
-// which means that it can only be used in the initial unfiltered view
-type RawLine struct {
-	*baseLine
-}
-
-// NewRawLine creates a RawLine struct
-func NewRawLine(v string, enableSep bool) *RawLine {
-	return &RawLine{newBaseLine(v, enableSep)}
+	return rl.buf
 }
 
 // Indices always returns nil
@@ -89,15 +79,18 @@ func (m RawLine) Indices() [][]int {
 }
 
 // MatchedLine contains the actual match, and the indices to the matches
-// in the line
+// in the line. It also holds a reference to the orignal line
 type MatchedLine struct {
-	*baseLine
+	Line
 	matches [][]int
 }
 
 // NewMatchedLine creates a new MatchedLine struct
-func NewMatchedLine(v string, enableSep bool, m [][]int) *MatchedLine {
-	return &MatchedLine{newBaseLine(v, enableSep), m}
+func NewMatchedLine(l Line, m [][]int) *MatchedLine {
+	return &MatchedLine{
+		Line: l,
+		matches: m,
+	}
 }
 
 // Indices returns the indices in the buffer that matched

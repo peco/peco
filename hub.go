@@ -124,6 +124,8 @@ func (h *Hub) SendDrawPrompt() {
 
 // SendDraw sends a request to redraw the terminal display
 func (h *Hub) SendDraw(matches []Line) {
+	tracer.Printf("Hub.SendDraw: START")
+	defer tracer.Printf("Hub.SendDraw: END")
 	// to make sure interface is nil, I need to EXPLICITLY set nil
 	req := HubReq{nil, nil}
 	if matches != nil {
