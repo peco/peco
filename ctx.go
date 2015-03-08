@@ -130,11 +130,11 @@ type Ctx struct {
 	currentMutex        sync.Locker
 	bufferSize          int
 	config              *Config
-	exitStatus          int
 	selectionRangeStart int
 	layoutType          string
 
 	wait *sync.WaitGroup
+	err error
 }
 
 func newMutex() sync.Locker {
@@ -180,7 +180,6 @@ func NewCtx(o CtxOptions) *Ctx {
 		current:             nil,
 		currentMutex:        newMutex(),
 		config:              NewConfig(),
-		exitStatus:          0,
 		selectionRangeStart: invalidSelectionRange,
 		wait:                &sync.WaitGroup{},
 		layoutType:          "top-down",
@@ -437,11 +436,6 @@ func (c *Ctx) LoadCustomMatcher() error {
 	return nil
 }
 
-func (c *Ctx) ExitWith(i int) {
-	c.exitStatus = i
-	c.Stop()
-}
-
 type signalHandler struct {
 	*Ctx
 	sigCh chan os.Signal
@@ -467,19 +461,23 @@ func (s *signalHandler) Loop() {
 			//
 			// So if we called termbox.Close() here, and then in main()
 			// defer termbox.Close() blocks. Not cool.
-			s.ExitWith(1)
+			s.ExitWith(fmt.Errorf("received signal"))
 			return
 		}
 	}
 }
 
-func (c *Ctx) SetPrompt(p string) {
-	c.config.Prompt = p
+func (c *Ctx) Error() error {
+	return c.err
 }
 
-// ExitStatus() returns the exit status that we think should be used
-func (c Ctx) ExitStatus() int {
-	return c.exitStatus
+func (c *Ctx) ExitWith(err error) {
+	c.err = err
+	c.Stop()
+}
+
+func (c *Ctx) SetPrompt(p string) {
+	c.config.Prompt = p
 }
 
 func (c *Ctx) AddRawLine(l *RawLine) {

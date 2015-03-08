@@ -1,6 +1,7 @@
 package peco
 
 import (
+	"errors"
 	"unicode"
 
 	"github.com/nsf/termbox-go"
@@ -225,7 +226,7 @@ func doFinish(i *Input, _ termbox.Event) {
 		buf := i.GetCurrentLineBuffer()
 		max := buf.Size()
 		for x := 0; x < max; x++ {
-			if i.selection.Has(x+1) {
+			if i.selection.Has(x + 1) {
 				if l, err := buf.LineAt(x); err == nil {
 					i.resultCh <- l
 				}
@@ -234,7 +235,7 @@ func doFinish(i *Input, _ termbox.Event) {
 		close(i.resultCh)
 	}()
 
-	i.ExitWith(0)
+	i.ExitWith(nil)
 }
 
 func doCancel(i *Input, ev termbox.Event) {
@@ -249,7 +250,7 @@ func doCancel(i *Input, ev termbox.Event) {
 	}
 
 	// peco.Cancel -> end program, exit with failure
-	i.ExitWith(1)
+	i.ExitWith(errors.New("canceled"))
 }
 
 func doSelectDown(i *Input, ev termbox.Event) {

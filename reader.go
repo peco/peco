@@ -2,9 +2,8 @@ package peco
 
 import (
 	"bufio"
-	"fmt"
+	"errors"
 	"io"
-	"os"
 	"sync"
 	"time"
 )
@@ -33,12 +32,12 @@ func NewInputReader(src io.Reader) *InputReader {
 			cancelCh: make(chan struct{}),
 			outputCh: make(chan Line),
 		},
-		readyCh:  make(chan struct{}),
-		src:      src,
+		readyCh: make(chan struct{}),
+		src:     src,
 	}
 }
 
-func (ir InputReader) ReadyCh() chan struct{}  { return ir.readyCh }
+func (ir InputReader) ReadyCh() chan struct{} { return ir.readyCh }
 
 func (ir *InputReader) notifyReady() {
 	tracer.Printf("InputReader: Notifying arrival of data")
@@ -174,7 +173,6 @@ func (b *BufferReader) Loop() {
 	// Out of the reader loop. If at this point we have no buffer,
 	// that means we have no buffer, so we should quit.
 	if b.GetRawLineBufferSize() == 0 {
-		b.ExitWith(1)
-		fmt.Fprintf(os.Stderr, "No buffer to work with was available")
+		b.ExitWith(errors.New("no buffer to work with was available"))
 	}
 }

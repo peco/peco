@@ -6,6 +6,8 @@ import (
 	"strconv"
 )
 
+var version = "v0.2.12"
+
 type traceLogger interface {
 	Printf(string, ...interface{})
 }
