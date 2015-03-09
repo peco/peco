@@ -535,7 +535,7 @@ func doDeleteBackwardChar(i *Input, ev termbox.Event) {
 		if pos == qlen {
 			buf = q[:qlen-1 : qlen-1]
 		} else {
-			buf := make([]rune, qlen-1)
+			buf = make([]rune, qlen-1)
 			copy(buf, q[:pos])
 			copy(buf[pos-1:], q[pos:])
 		}
