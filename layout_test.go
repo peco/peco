@@ -12,6 +12,11 @@ type dummyScreen struct {
 	*interceptor
 	width  int
 	height int
+	pollCh chan termbox.Event
+}
+
+func (d *dummyScreen) SendEvent(e termbox.Event) {
+	d.pollCh <- e
 }
 
 func setDummyScreen() (*interceptor, func()) {
@@ -22,6 +27,7 @@ func setDummyScreen() (*interceptor, func()) {
 		i,
 		100,
 		100,
+		make(chan termbox.Event, 256), // chan has a biiiig buffer, so we avoid blocking
 	}
 	return i, guard
 }
@@ -34,7 +40,9 @@ func (d dummyScreen) Flush() error {
 	d.record("Flush", interceptorArgs{})
 	return nil
 }
-func (d dummyScreen) PollEvent() chan termbox.Event { return nil }
+func (d dummyScreen) PollEvent() chan termbox.Event {
+	return d.pollCh
+}
 func (d dummyScreen) Size() (int, int) {
 	return d.width, d.height
 }
