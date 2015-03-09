@@ -7,6 +7,17 @@ import (
 	"github.com/nsf/termbox-go"
 )
 
+func TestActionFunc(t *testing.T) {
+	called := 0
+	af := ActionFunc(func(_ *Input, _ termbox.Event) {
+		called++
+	})
+	af.Execute(nil, termbox.Event{})
+	if called != 1 {
+		t.Errorf("Expected ActionFunc to be called once, but it got called %d times", called)
+	}
+}
+
 func TestActionNames(t *testing.T) {
 	// These names MUST exist
 	names := []string{
