@@ -409,7 +409,7 @@ func (c *Ctx) SetQuery(q []rune) {
 	tracer.Printf("Ctx.SetQuery: START")
 	defer tracer.Printf("Ctx.SetQuery: END")
 	c.mutex.Lock()
-	tracer.Printf("Ctx.SetQuery: setting query to '%s'", q)
+	tracer.Printf("Ctx.SetQuery: setting query to '%s'", string(q))
 	c.FilterQuery.query = q
 	c.mutex.Unlock()
 	c.SetCaretPos(c.QueryLen())
