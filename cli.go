@@ -10,7 +10,7 @@ import (
 	"github.com/nsf/termbox-go"
 )
 
-type cmdOptions struct {
+type CLIOptions struct {
 	OptHelp           bool   `short:"h" long:"help" description:"show this help message and exit"`
 	OptTTY            string `long:"tty" description:"path to the TTY (usually, the value of $TTY)"`
 	OptQuery          string `long:"query" description:"initial value for query"`
@@ -35,7 +35,7 @@ Usage: peco [options] [FILE]
 Options:
 `)
 
-	t := reflect.TypeOf(cmdOptions{})
+	t := reflect.TypeOf(CLIOptions{})
 	for i := 0; i < t.NumField(); i++ {
 		tag := t.Field(i).Tag
 
@@ -56,42 +56,51 @@ Options:
 }
 
 // BufferSize returns the specified buffer size. Fulfills CtxOptions
-func (o cmdOptions) BufferSize() int {
+func (o CLIOptions) BufferSize() int {
 	return o.OptBufferSize
 }
 
 // EnableNullSep returns tru if --null was specified. Fulfills CtxOptions
-func (o cmdOptions) EnableNullSep() bool {
+func (o CLIOptions) EnableNullSep() bool {
 	return o.OptEnableNullSep
 }
 
-func (o cmdOptions) InitialIndex() int {
+func (o CLIOptions) InitialIndex() int {
 	if o.OptInitialIndex >= 0 {
 		return o.OptInitialIndex + 1
 	}
 	return 1
 }
 
-func (o cmdOptions) LayoutType() string {
+func (o CLIOptions) LayoutType() string {
 	return o.OptLayout
 }
 
 type CLI struct {
 }
 
-func (cli *CLI) Run() error {
-	opts := &cmdOptions{}
+func (cli *CLI) parseOptions() (*CLIOptions, []string, error) {
+	opts := &CLIOptions{}
 	p := flags.NewParser(opts, flags.PrintErrors)
 	args, err := p.Parse()
 	if err != nil {
 		showHelp()
-		return err
+		return nil, nil, err
 	}
 
 	if opts.OptLayout != "" {
 		if !IsValidLayoutType(LayoutType(opts.OptLayout)) {
-			return fmt.Errorf("unknown layout: '%s'\n", opts.OptLayout)
+			return nil, nil, fmt.Errorf("unknown layout: '%s'\n", opts.OptLayout)
 		}
+	}
+
+	return opts, args, nil
+}
+
+func (cli *CLI) Run() error {
+	opts, args, err := cli.parseOptions()
+	if err != nil {
+		return err
 	}
 
 	if opts.OptHelp {
