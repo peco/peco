@@ -196,7 +196,7 @@ func (u UserPrompt) Draw() {
 
 	width, _ := screen.Size()
 
-	pmsg := fmt.Sprintf("%s [%d (%d/%d)]", u.Filter().Name(), u.currentPage.total, u.currentPage.index, u.currentPage.maxPage)
+	pmsg := fmt.Sprintf("%s [%d (%d/%d)]", u.Filter().String(), u.currentPage.total, u.currentPage.index, u.currentPage.maxPage)
 	printScreen(width-runewidth.StringWidth(pmsg), location, u.config.Style.BasicFG(), u.config.Style.BasicBG(), pmsg, false)
 }
 
@@ -286,7 +286,7 @@ func (s *StatusBar) PrintStatus(msg string, clearDelay time.Duration) {
 type ListArea struct {
 	*Ctx
 	*AnchorSettings
-	sortTopDown bool
+	sortTopDown  bool
 	displayCache []Line
 }
 
@@ -302,6 +302,7 @@ func NewListArea(ctx *Ctx, anchor VerticalAnchor, anchorOffset int, sortTopDown 
 
 // Draw displays the ListArea on the screen
 var drawLock = make(chan struct{}, 1)
+
 func (l *ListArea) Draw(targets []Line, perPage int) {
 	// XXX FIX ME
 	drawLock <- struct{}{}
@@ -360,10 +361,10 @@ func (l *ListArea) Draw(targets []Line, perPage int) {
 			fgAttr = l.config.Style.BasicFG()
 			bgAttr = l.config.Style.BasicBG()
 			// Not a good place to put this, move it out later
-			if n + 1 < len(l.displayCache) &&
-			 n+currentPage.offset+1 == l.currentLine-1 {
+			if n+1 < len(l.displayCache) &&
+				n+currentPage.offset+1 == l.currentLine-1 {
 				l.displayCache[n+1] = nil
-			} else if n > 0 && n+currentPage.offset -1 == l.currentLine-1 {
+			} else if n > 0 && n+currentPage.offset-1 == l.currentLine-1 {
 				l.displayCache[n-1] = nil
 			}
 		}
@@ -498,9 +499,9 @@ func (l *BasicLayout) DrawPrompt() {
 
 // DrawScreen draws the entire screen
 func (l *BasicLayout) DrawScreen(targets []Line) {
-//	if err := screen.Clear(l.config.Style.BasicFG(), l.config.Style.BasicBG()); err != nil {
-//		return
-//	}
+	//	if err := screen.Clear(l.config.Style.BasicFG(), l.config.Style.BasicBG()); err != nil {
+	//		return
+	//	}
 	tracer.Printf("DrawScreen: START")
 	defer tracer.Printf("DrawScreen: END")
 
@@ -542,7 +543,7 @@ func (l *BasicLayout) MovePage(p PagingRequest) {
 			l.currentLine++
 		case ToScrollPageDown:
 			l.currentLine += linesPerPage()
-			if cp.index == cp.maxPage - 1 && lcur < l.currentLine && (lcur - lineBefore) < lpp {
+			if cp.index == cp.maxPage-1 && lcur < l.currentLine && (lcur-lineBefore) < lpp {
 				l.currentLine = lcur
 			}
 		case ToScrollPageUp:

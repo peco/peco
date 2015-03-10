@@ -87,19 +87,20 @@ func init() {
 	ActionFunc(doForwardWord).Register("ForwardWord")
 	ActionFunc(doKillEndOfLine).Register("KillEndOfLine", termbox.KeyCtrlK)
 	ActionFunc(doKillBeginningOfLine).Register("KillBeginningOfLine", termbox.KeyCtrlU)
-	ActionFunc(doRotateMatcher).Register("RotateMatcher", termbox.KeyCtrlR)
+	ActionFunc(doRotateFilter).Register("RotateFilter", termbox.KeyCtrlR)
+	wrapDeprecated(doRotateFilter, "RotateMatcher", "RotateFilter").Register("RotateMatcher")
 
 	ActionFunc(doSelectUp).Register("SelectUp", termbox.KeyArrowUp, termbox.KeyCtrlP)
-	ActionFunc(wrapDeprecated(doSelectDown, "SelectNext", "SelectUp/SelectDown")).Register("SelectNext")
+	wrapDeprecated(doSelectDown, "SelectNext", "SelectUp/SelectDown").Register("SelectNext")
 
 	ActionFunc(doScrollPageDown).Register("ScrollPageDown", termbox.KeyArrowRight)
-	ActionFunc(wrapDeprecated(doScrollPageDown, "SelectNextPage", "ScrollPageDown/ScrollPageUp")).Register("SelectNextPage")
+	wrapDeprecated(doScrollPageDown, "SelectNextPage", "ScrollPageDown/ScrollPageUp").Register("SelectNextPage")
 
 	ActionFunc(doSelectDown).Register("SelectDown", termbox.KeyArrowDown, termbox.KeyCtrlN)
-	ActionFunc(wrapDeprecated(doSelectUp, "SelectPrevious", "SelectUp/SelectDown")).Register("SelectPrevious")
+	wrapDeprecated(doSelectUp, "SelectPrevious", "SelectUp/SelectDown").Register("SelectPrevious")
 
 	ActionFunc(doScrollPageUp).Register("ScrollPageUp", termbox.KeyArrowLeft)
-	ActionFunc(wrapDeprecated(doScrollPageUp, "SelectPreviousPage", "ScrollPageDown/ScrollPageUp")).Register("SelectPreviousPage")
+	wrapDeprecated(doScrollPageUp, "SelectPreviousPage", "ScrollPageDown/ScrollPageUp").Register("SelectPreviousPage")
 
 	ActionFunc(doToggleSelection).Register("ToggleSelection")
 	ActionFunc(doToggleSelectionAndSelectNext).Register(
@@ -112,8 +113,8 @@ func init() {
 	)
 	ActionFunc(doSelectAll).Register("SelectAll")
 	ActionFunc(doSelectVisible).Register("SelectVisible")
-	ActionFunc(wrapDeprecated(doToggleRangeMode, "ToggleSelectMode", "ToggleRangeMode")).Register("ToggleSelectMode")
-	ActionFunc(wrapDeprecated(doCancelRangeMode, "CancelSelectMode", "CancelRangeMode")).Register("CancelSelectMode")
+	wrapDeprecated(doToggleRangeMode, "ToggleSelectMode", "ToggleRangeMode").Register("ToggleSelectMode")
+	wrapDeprecated(doCancelRangeMode, "CancelSelectMode", "CancelRangeMode").Register("CancelSelectMode")
 	ActionFunc(doToggleRangeMode).Register("ToggleRangeMode")
 	ActionFunc(doCancelRangeMode).Register("CancelRangeMode")
 	ActionFunc(doToggleQuery).Register("ToggleQuery", termbox.KeyCtrlT)
@@ -158,7 +159,9 @@ func doAcceptChar(i *Input, ev termbox.Event) {
 	}
 }
 
-func doRotateMatcher(i *Input, ev termbox.Event) {
+func doRotateFilter(i *Input, ev termbox.Event) {
+	tracer.Printf("doRotateFitler: START")
+	defer tracer.Printf("doRotateFitler: END")
 	i.RotateFilter()
 	if i.ExecQuery() {
 		return

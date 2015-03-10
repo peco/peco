@@ -78,7 +78,7 @@ type QueryFilterer interface {
 	Clone() QueryFilterer
 	Accept(Pipeliner)
 	SetQuery(string)
-	Name() string
+	String() string
 }
 
 type SelectionFilter struct {
@@ -205,7 +205,7 @@ func (rf *RegexpFilter) SetQuery(q string) {
 	rf.compiledQuery = nil
 }
 
-func (rf RegexpFilter) Name() string {
+func (rf RegexpFilter) String() string {
 	return rf.name
 }
 
@@ -275,12 +275,14 @@ func (fs *FilterSet) Rotate() {
 	if fs.current >= len(fs.filters) {
 		fs.current = 0
 	}
+	tracer.Printf("FilterSet.Rotate: now filter in effect is %s", fs.filters[fs.current])
 }
 
 var ErrFilterNotFound = errors.New("specified filter was not found")
+
 func (fs *FilterSet) SetCurrentByName(name string) error {
 	for i, f := range fs.filters {
-		if f.Name() == name {
+		if f.String() == name {
 			fs.current = i
 			return nil
 		}
