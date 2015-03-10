@@ -181,7 +181,7 @@ func doToggleRangeMode(i *Input, _ termbox.Event) {
 		i.selectionRangeStart = invalidSelectionRange
 	} else {
 		i.selectionRangeStart = i.currentLine
-		i.SelectionAdd(i.currentPage.offset + i.currentLine)
+		i.SelectionAdd(i.currentLine)
 	}
 }
 
