@@ -48,7 +48,7 @@ func setupDeps() {
 	var err error
 
 	baseDir := "/work/src"
-	if dir := os.Get("PECO_BUILD_DIR"); dir != "" {
+	if dir := os.Getenv("PECO_BUILD_DIR"); dir != "" {
 		baseDir = dir
 	}
 
