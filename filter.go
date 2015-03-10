@@ -121,7 +121,7 @@ func (rf *RegexpFilter) Accept(p Pipeliner) {
 	cancelCh, incomingCh := p.Pipeline()
 	rf.cancelCh = cancelCh
 	rf.outputCh = make(chan Line)
-	go acceptPipeline(cancelCh, incomingCh, rf.outputCh, 
+	go acceptPipeline(cancelCh, incomingCh, rf.outputCh,
 		&PipelineComponent{rf.filter, nil})
 }
 
@@ -276,5 +276,20 @@ func NewCaseSensitiveFilter() *RegexpFilter {
 		flags:     regexpFlagList(defaultFlags),
 		quotemeta: true,
 		name:      "CaseSensitive",
+	}
+}
+
+// SmartCaseFilter turns ON the ignore-case flag in the regexp
+// if the query contains a upper-case character
+func NewSmartCaseFilter() *RegexpFilter {
+	return &RegexpFilter{
+		flags: regexpFlagFunc(func(q string) []string {
+			if containsUpper(q) {
+				return defaultFlags
+			}
+			return []string{"i"}
+		}),
+		quotemeta: true,
+		name:      "SmartCase",
 	}
 }
