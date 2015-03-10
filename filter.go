@@ -93,38 +93,6 @@ func (sf SelectionFilter) Filter(in LineBuffer) LineBuffer {
 	return nil
 }
 
-// PagingFilter filters out a new LineBuffer based on entries
-// per page and the page number
-type PagingFilter struct {
-	perPage     int
-	currentPage int
-}
-
-func (pf PagingFilter) Name() string {
-	return "PagingFilter"
-}
-
-func (pf PagingFilter) Filter(in LineBuffer) LineBuffer {
-	out := &FilteredLineBuffer{
-		src:       in,
-		selection: []int{},
-	}
-
-	s := pf.perPage * (pf.currentPage - 1)
-	e := s + pf.perPage
-	if s > in.Size() {
-		return out
-	}
-	if e >= in.Size() {
-		e = in.Size()
-	}
-
-	for i := s; i < e; i++ {
-		out.SelectSourceLineAt(i)
-	}
-	return out
-}
-
 type RegexpFilter struct {
 	simplePipeline
 	compiledQuery []*regexp.Regexp

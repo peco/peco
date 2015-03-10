@@ -10,6 +10,34 @@ import (
 	"github.com/nsf/termbox-go"
 )
 
+// PageCrop filters out a new LineBuffer based on entries
+// per page and the page number
+type PageCrop struct {
+	perPage     int
+	currentPage int
+}
+
+func (pf PageCrop) Crop(in LineBuffer) LineBuffer {
+	out := &FilteredLineBuffer{
+		src:       in,
+		selection: []int{},
+	}
+
+	s := pf.perPage * (pf.currentPage - 1)
+	e := s + pf.perPage
+	if s > in.Size() {
+		return out
+	}
+	if e >= in.Size() {
+		e = in.Size()
+	}
+
+	for i := s; i < e; i++ {
+		out.SelectSourceLineAt(i)
+	}
+	return out
+}
+
 // LayoutType describes the types of layout that peco can take
 type LayoutType string
 
@@ -311,8 +339,8 @@ func (l *ListArea) Draw(targets []Line, perPage int) {
 	defer tracer.Printf("ListArea.Draw: END")
 	currentPage := l.currentPage
 
-	pf := PagingFilter{perPage: currentPage.perPage, currentPage: currentPage.index}
-	buf := pf.Filter(l.GetCurrentLineBuffer())
+	pf := PageCrop{perPage: currentPage.perPage, currentPage: currentPage.index}
+	buf := pf.Crop(l.GetCurrentLineBuffer())
 	bufsiz := buf.Size()
 
 	// previously drawn lines are cached. first, truncate the cache
