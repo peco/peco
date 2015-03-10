@@ -30,12 +30,12 @@ func (f *Filter) Work(cancel chan struct{}, q HubReq) {
 
 		filter.Accept(f.rawLineBuffer)
 		buf := NewRawLineBuffer()
+		buf.onEnd = func() { f.SendStatusMsg("") }
 		buf.Accept(filter)
 
 		f.SetActiveLineBuffer(buf)
 	}
 
-	f.SendStatusMsg("")
 	f.SelectionClear()
 }
 
@@ -121,7 +121,8 @@ func (rf *RegexpFilter) Accept(p Pipeliner) {
 	cancelCh, incomingCh := p.Pipeline()
 	rf.cancelCh = cancelCh
 	rf.outputCh = make(chan Line)
-	go acceptPipeline(cancelCh, incomingCh, rf.outputCh, rf.filter)
+	go acceptPipeline(cancelCh, incomingCh, rf.outputCh, 
+		&PipelineComponent{rf.filter, nil})
 }
 
 var ErrFilterDidNotMatch = errors.New("error: filter did not match against given line")

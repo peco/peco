@@ -11,6 +11,11 @@ type Pipeliner interface {
 	Pipeline() (chan struct{}, chan Line)
 }
 
+type PipelineComponent struct {
+	onIncomingLine func(Line) error
+	onEnd func()
+}
+
 type simplePipeline struct {
 	// Close this channel if you want to cancel the entire pipeline.
 	// InputReader is the generator for the pipeline, so this is the
@@ -27,7 +32,7 @@ func (sp simplePipeline) Pipeline() (chan struct{}, chan Line) {
 	return sp.cancelCh, sp.outputCh
 }
 
-func acceptPipeline(cancel chan struct{}, in chan Line, out chan Line, fn func(Line) error) {
+func acceptPipeline(cancel chan struct{}, in chan Line, out chan Line, pc *PipelineComponent) {
 	tracer.Printf("acceptPipeline: START")
 	defer tracer.Printf("acceptPipeline: END")
 	defer close(out)
@@ -39,10 +44,13 @@ func acceptPipeline(cancel chan struct{}, in chan Line, out chan Line, fn func(L
 		case l, ok := <-in:
 			if l == nil && !ok {
 				tracer.Printf("acceptPipeline: detected end of input. Bailing out")
+				if pc.onEnd != nil {
+					pc.onEnd()
+				}
 				return
 			}
 			tracer.Printf("acceptPipeline: forwarding to callback")
-			if err := fn(l); err == nil {
+			if err := pc.onIncomingLine(l); err == nil {
 				tracer.Printf("acceptPipeline: forwarding to out channel")
 				out <- l
 			}
@@ -106,6 +114,7 @@ type RawLineBuffer struct {
 	buffers  dependentBuffers
 	lines    []Line
 	capacity int // max numer of lines. 0 means unlimited
+	onEnd    func()
 }
 
 func NewRawLineBuffer() *RawLineBuffer {
@@ -136,7 +145,8 @@ func (rlb *RawLineBuffer) Accept(p Pipeliner) {
 	cancelCh, incomingCh := p.Pipeline()
 	rlb.cancelCh = cancelCh
 	rlb.outputCh = make(chan Line)
-	go acceptPipeline(cancelCh, incomingCh, rlb.outputCh, rlb.Append)
+	go acceptPipeline(cancelCh, incomingCh, rlb.outputCh,
+		&PipelineComponent{ rlb.Append, rlb.onEnd })
 }
 
 func (rlb *RawLineBuffer) Append(l Line) error {
@@ -223,7 +233,8 @@ func (flb *FilteredLineBuffer) Accept(p Pipeliner) {
 	cancelCh, incomingCh := p.Pipeline()
 	flb.cancelCh = cancelCh
 	flb.outputCh = make(chan Line)
-	go acceptPipeline(cancelCh, incomingCh, flb.outputCh, flb.Append)
+	go acceptPipeline(cancelCh, incomingCh, flb.outputCh,
+		&PipelineComponent{flb.Append, nil})
 }
 
 func (flb *FilteredLineBuffer) Append(l Line) error {
