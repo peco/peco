@@ -127,12 +127,12 @@ func (rf *RegexpFilter) Accept(p Pipeliner) {
 
 var ErrFilterDidNotMatch = errors.New("error: filter did not match against given line")
 
-func (rf *RegexpFilter) filter(l Line) error {
+func (rf *RegexpFilter) filter(l Line) (Line, error) {
 	tracer.Printf("RegexpFilter.filter: START")
 	defer tracer.Printf("RegexpFilter.filter: END")
 	regexps, err := rf.getQueryAsRegexps()
 	if err != nil {
-		return err
+		return nil, err
 	}
 	v := l.DisplayString()
 	allMatched := true
@@ -149,11 +149,11 @@ TryRegexps:
 	}
 
 	if !allMatched {
-		return ErrFilterDidNotMatch
+		return nil, ErrFilterDidNotMatch
 	}
 
 	tracer.Printf("RegexpFilter.filter: line matched pattern\n")
-	return nil
+	return NewMatchedLine(l, matches), nil
 }
 
 func (rf *RegexpFilter) getQueryAsRegexps() ([]*regexp.Regexp, error) {

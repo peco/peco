@@ -10,19 +10,16 @@ func stripANSISequence(s string) string {
 	return reANSIEscapeChars.ReplaceAllString(s, "")
 }
 
-// Line defines the interface for each of the line that peco uses to display
-// and match against queries. Note that to make drawing easier,
-// we have a RawLine and MatchedLine types
+// Line represents each of the line that peco uses to display
+// and match against queries. 
 type Line interface {
-	Buffer() string        // Raw buffer, may contain null
-	DisplayString() string // Line to be displayed
-	Output() string        // Output string to be displayed after peco is done
-	Indices() [][]int      // If the type allows, indices into matched portions of the string
+	Buffer() string
+	DisplayString() string
+	Indices() [][]int
+	Output() string
 }
 
-// RawLine implements the Line interface. It represents a line with no matches,
-// which means that it can only be used in the initial unfiltered view
-type RawLine  struct {
+type RawLine struct {
 	buf           string
 	sepLoc        int
 	displayString string
@@ -49,10 +46,12 @@ func NewRawLine(v string, enableSep bool) *RawLine {
 	return rl
 }
 
+// Buffer returns the raw buffer. May contain null
 func (rl RawLine) Buffer() string {
 	return rl.buf
 }
 
+// DisplayString returns the string to be displayed
 func (rl RawLine) DisplayString() string {
 	if rl.displayString != "" {
 		return rl.displayString
@@ -66,6 +65,8 @@ func (rl RawLine) DisplayString() string {
 	return rl.displayString
 }
 
+
+// Output returns the string to be displayed *after peco is done
 func (rl RawLine) Output() string {
 	if i := rl.sepLoc; i > -1 {
 		return rl.buf[i+1:]
@@ -73,27 +74,20 @@ func (rl RawLine) Output() string {
 	return rl.buf
 }
 
-// Indices always returns nil
-func (m RawLine) Indices() [][]int {
+func (rl RawLine) Indices() [][]int {
 	return nil
 }
 
-// MatchedLine contains the actual match, and the indices to the matches
-// in the line. It also holds a reference to the orignal line
 type MatchedLine struct {
 	Line
-	matches [][]int
+	indices [][]int
 }
 
-// NewMatchedLine creates a new MatchedLine struct
-func NewMatchedLine(l Line, m [][]int) *MatchedLine {
-	return &MatchedLine{
-		Line: l,
-		matches: m,
-	}
+func NewMatchedLine(rl Line, matches [][]int) *MatchedLine {
+	return &MatchedLine{rl, matches}
 }
 
 // Indices returns the indices in the buffer that matched
-func (d MatchedLine) Indices() [][]int {
-	return d.matches
+func (ml MatchedLine) Indices() [][]int {
+	return ml.indices
 }

@@ -12,7 +12,7 @@ type Pipeliner interface {
 }
 
 type PipelineComponent struct {
-	onIncomingLine func(Line) error
+	onIncomingLine func(Line) (Line, error)
 	onEnd func()
 }
 
@@ -50,9 +50,9 @@ func acceptPipeline(cancel chan struct{}, in chan Line, out chan Line, pc *Pipel
 				return
 			}
 			tracer.Printf("acceptPipeline: forwarding to callback")
-			if err := pc.onIncomingLine(l); err == nil {
+			if ll, err := pc.onIncomingLine(l); err == nil {
 				tracer.Printf("acceptPipeline: forwarding to out channel")
-				out <- l
+				out <- ll
 			}
 		}
 	}
@@ -149,7 +149,7 @@ func (rlb *RawLineBuffer) Accept(p Pipeliner) {
 		&PipelineComponent{ rlb.Append, rlb.onEnd })
 }
 
-func (rlb *RawLineBuffer) Append(l Line) error {
+func (rlb *RawLineBuffer) Append(l Line) (Line, error) {
 	if rlb.capacity > 0 && len(rlb.lines) > rlb.capacity {
 		diff := len(rlb.lines) - rlb.capacity
 		// TODO Notify that we're invalidating these lines
@@ -160,7 +160,7 @@ func (rlb *RawLineBuffer) Append(l Line) error {
 		rlb.lines = append(rlb.lines, l)
 	}
 
-	return nil
+	return l, nil
 }
 
 func (rlb *RawLineBuffer) Register(lb LineBuffer) {
@@ -199,7 +199,7 @@ func (r RawLineBuffer) InvalidateUpTo(_ int) {
 	// no op
 }
 
-func (r *RawLineBuffer) AppendLine(l Line) error {
+func (r *RawLineBuffer) AppendLine(l Line) (Line, error) {
 	return r.Append(l)
 }
 
@@ -237,8 +237,8 @@ func (flb *FilteredLineBuffer) Accept(p Pipeliner) {
 		&PipelineComponent{flb.Append, nil})
 }
 
-func (flb *FilteredLineBuffer) Append(l Line) error {
-	return nil
+func (flb *FilteredLineBuffer) Append(l Line) (Line, error) {
+	return l, nil
 }
 
 
