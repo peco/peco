@@ -2,6 +2,8 @@ package peco
 
 import (
 	"testing"
+	"time"
+	"unicode/utf8"
 
 	"github.com/mattn/go-runewidth"
 	"github.com/nsf/termbox-go"
@@ -174,4 +176,87 @@ func TestDoDeleteBackwardWord(t *testing.T) {
 
 	expectQueryString(t, ctx, "foo ")
 	expectCaretPos(t, ctx, 4)
+}
+
+func TestDoAcceptChar(t *testing.T) {
+	_, guard := setDummyScreen()
+	defer guard()
+
+	ctx := newCtx(nil, 25)
+	defer ctx.Stop()
+	ctx.startInput()
+
+	writeQueryToPrompt := func(message string) {
+		for str := message; true; {
+			r, size := utf8.DecodeRuneInString(str)
+			if r == utf8.RuneError {
+				if size == 0 {
+					t.Logf("End of string reached")
+					break
+				}
+				t.Errorf("Failed to decode run in string: %s", r)
+				return
+			}
+
+			if r == ' ' {
+				screen.SendEvent(termbox.Event{Key: termbox.KeySpace})
+			} else {
+				screen.SendEvent(termbox.Event{Ch: r})
+			}
+			str = str[size:]
+		}
+	}
+
+	message := "Hello, World!"
+	writeQueryToPrompt(message)
+	time.Sleep(500 * time.Millisecond)
+
+	if qs := ctx.QueryString(); qs != message {
+		t.Errorf("Expected query to be populated as '%s', but got '%s'", message, qs)
+	}
+
+	ctx.MoveCaretPos(-6)
+	writeQueryToPrompt("Cruel ")
+
+	time.Sleep(500 * time.Millisecond)
+
+	expected := "Hello, Cruel World!"
+	if qs := ctx.QueryString(); qs != expected {
+		t.Errorf("Expected query to be populated as '%s', but got '%s'", expected, qs)
+	}
+}
+
+func TestRotateFilter(t *testing.T) {
+	_, guard := setDummyScreen()
+	defer guard()
+
+	ctx := newCtx(nil, 25)
+	defer ctx.Stop()
+
+	size := ctx.filters.Size()
+	if size < 2 {
+		t.Errorf("Can't proceed testing, only have 1 filter registered")
+	}
+
+	ctx.startInput()
+
+	var prev QueryFilterer
+	first := ctx.Filter()
+	prev = first
+	for i := 0; i < size; i++ {
+		screen.SendEvent(termbox.Event{Key: termbox.KeyCtrlR})
+
+		time.Sleep(500 * time.Millisecond)
+		f := ctx.Filter()
+		if f == prev {
+			t.Errorf("failed to rotate")
+		}
+		prev = f
+	}
+
+	if first != prev {
+		t.Errorf("should have rotated back to first one, but didn't")
+	}
+
+	// TODO toggle ExecQuery()
 }

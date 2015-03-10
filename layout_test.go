@@ -15,7 +15,7 @@ type dummyScreen struct {
 	pollCh chan termbox.Event
 }
 
-func (d *dummyScreen) SendEvent(e termbox.Event) {
+func (d dummyScreen) SendEvent(e termbox.Event) {
 	d.pollCh <- e
 }
 

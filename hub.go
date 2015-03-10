@@ -53,15 +53,15 @@ func (hr HubReq) Done() {
 }
 
 // NewHub creates a new Hub struct
-func NewHub() *Hub {
+func NewHub(bufsiz int) *Hub {
 	return &Hub{
 		false,
 		newMutex(),
 		make(chan struct{}),  // loopCh. You never send messages to this. no point in buffering
-		make(chan HubReq, 5), // queryCh.
-		make(chan HubReq, 5), // drawCh.
-		make(chan HubReq, 5), // statusMsgCh
-		make(chan HubReq, 5), // pagingCh
+		make(chan HubReq, bufsiz), // queryCh.
+		make(chan HubReq, bufsiz), // drawCh.
+		make(chan HubReq, bufsiz), // statusMsgCh
+		make(chan HubReq, bufsiz), // pagingCh
 	}
 }
 

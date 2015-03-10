@@ -15,7 +15,6 @@ type CLIOptions struct {
 	OptTTY            string `long:"tty" description:"path to the TTY (usually, the value of $TTY)"`
 	OptQuery          string `long:"query" description:"initial value for query"`
 	OptRcfile         string `long:"rcfile" description:"path to the settings file"`
-	OptNoIgnoreCase   bool   `long:"no-ignore-case" description:"start in case-sensitive-mode (DEPRECATED)" default:"false"`
 	OptVersion        bool   `long:"version" description:"print the version and exit"`
 	OptBufferSize     int    `long:"buffer-size" short:"b" description:"number of lines to keep in search buffer"`
 	OptEnableNullSep  bool   `long:"null" description:"expect NUL (\\0) as separator for target/output"`
@@ -152,7 +151,7 @@ func (cli *CLI) Run() error {
 	}
 
 	// Default matcher is IgnoreCase
-	ctx.MatcherSet.SetCurrentByName(IgnoreCaseMatch)
+	ctx.SetCurrentFilterByName(IgnoreCaseMatch)
 
 	if opts.OptRcfile != "" {
 		err = ctx.ReadConfig(opts.OptRcfile)
@@ -165,13 +164,8 @@ func (cli *CLI) Run() error {
 		ctx.SetPrompt(opts.OptPrompt)
 	}
 
-	// Deprecated. --no-ignore-case options will be removed in later.
-	if opts.OptNoIgnoreCase {
-		ctx.MatcherSet.SetCurrentByName(CaseSensitiveMatch)
-	}
-
 	if len(opts.OptInitialMatcher) > 0 {
-		if !ctx.MatcherSet.SetCurrentByName(opts.OptInitialMatcher) {
+		if err := ctx.SetCurrentFilterByName(opts.OptInitialMatcher); err != nil {
 			return fmt.Errorf("unknown matcher: '%s'\n", opts.OptInitialMatcher)
 		}
 	}
@@ -202,9 +196,9 @@ func (cli *CLI) Run() error {
 		termbox.SetInputMode(termbox.InputEsc | termbox.InputAlt)
 	}
 
+	ctx.startInput()
 	view := ctx.NewView()
 	filter := ctx.NewFilter()
-	input := ctx.NewInput()
 	sig := ctx.NewSignalHandler()
 
 	loopers := []interface {
@@ -212,7 +206,6 @@ func (cli *CLI) Run() error {
 	}{
 		view,
 		filter,
-		input,
 		sig,
 	}
 	for _, looper := range loopers {

@@ -36,10 +36,13 @@ func (km Keymap) Handler(ev termbox.Event) Action {
 	switch err {
 	case nil:
 		// Found an action!
+		tracer.Printf("Keymap.Handler: Fetched action")
 		return wrapClearSequence(action.(Action))
 	case keyseq.ErrInSequence:
+		tracer.Printf("Keymap.Handler: Waiting for more commands...")
 		return wrapRememberSequence(ActionFunc(doNothing))
 	default:
+		tracer.Printf("Keymap.Handler: Defaulting to doAcceptChar")
 		return wrapClearSequence(ActionFunc(doAcceptChar))
 	}
 }

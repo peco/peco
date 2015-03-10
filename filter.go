@@ -78,10 +78,15 @@ type QueryFilterer interface {
 	Clone() QueryFilterer
 	Accept(Pipeliner)
 	SetQuery(string)
+	Name() string
 }
 
 type SelectionFilter struct {
 	sel *Selection
+}
+
+func (sf SelectionFilter) Name() string {
+	return "SelectionFilter"
 }
 
 func (sf SelectionFilter) Filter(in LineBuffer) LineBuffer {
@@ -93,6 +98,10 @@ func (sf SelectionFilter) Filter(in LineBuffer) LineBuffer {
 type PagingFilter struct {
 	perPage     int
 	currentPage int
+}
+
+func (pf PagingFilter) Name() string {
+	return "PagingFilter"
 }
 
 func (pf PagingFilter) Filter(in LineBuffer) LineBuffer {
@@ -118,10 +127,11 @@ func (pf PagingFilter) Filter(in LineBuffer) LineBuffer {
 
 type RegexpFilter struct {
 	simplePipeline
+	compiledQuery []*regexp.Regexp
 	flags         regexpFlags
 	quotemeta     bool
 	query         string
-	compiledQuery []*regexp.Regexp
+	name          string
 }
 
 func NewRegexpFilter() *RegexpFilter {
@@ -131,10 +141,11 @@ func NewRegexpFilter() *RegexpFilter {
 func (rf RegexpFilter) Clone() QueryFilterer {
 	return &RegexpFilter{
 		simplePipeline{},
+		nil,
 		rf.flags,
 		rf.quotemeta,
 		rf.query,
-		nil,
+		rf.name,
 	}
 }
 
@@ -194,6 +205,10 @@ func (rf *RegexpFilter) SetQuery(q string) {
 	rf.compiledQuery = nil
 }
 
+func (rf RegexpFilter) Name() string {
+	return rf.name
+}
+
 func (rf RegexpFilter) Filter(in LineBuffer) LineBuffer {
 	out := &MatchFilteredLineBuffer{
 		FilteredLineBuffer{
@@ -242,12 +257,46 @@ func (rf RegexpFilter) Filter(in LineBuffer) LineBuffer {
 	return out
 }
 
-type FilterSet []QueryFilterer
+type FilterSet struct {
+	filters []QueryFilterer
+	current int
+}
+
+func (fs *FilterSet) Size() int {
+	return len(fs.filters)
+}
+
+func (fs *FilterSet) Add(qf QueryFilterer) {
+	fs.filters = append(fs.filters, qf)
+}
+
+func (fs *FilterSet) Rotate() {
+	fs.current++
+	if fs.current >= len(fs.filters) {
+		fs.current = 0
+	}
+}
+
+var ErrFilterNotFound = errors.New("specified filter was not found")
+func (fs *FilterSet) SetCurrentByName(name string) error {
+	for i, f := range fs.filters {
+		if f.Name() == name {
+			fs.current = i
+			return nil
+		}
+	}
+	return ErrFilterNotFound
+}
+
+func (fs *FilterSet) GetCurrent() QueryFilterer {
+	return fs.filters[fs.current]
+}
 
 func NewIgnoreCaseFilter() *RegexpFilter {
 	return &RegexpFilter{
 		flags:     regexpFlagList(ignoreCaseFlags),
 		quotemeta: true,
+		name:      "IgnoreCase",
 	}
 }
 
@@ -255,5 +304,6 @@ func NewCaseSensitiveFilter() *RegexpFilter {
 	return &RegexpFilter{
 		flags:     regexpFlagList(defaultFlags),
 		quotemeta: true,
+		name:      "CaseSensitive",
 	}
 }

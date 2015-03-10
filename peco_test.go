@@ -34,3 +34,4 @@ func (i *interceptor) record(name string, args []interface{}) {
 
 	events[name] = append(v, interceptorArgs(args))
 }
+

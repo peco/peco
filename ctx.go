@@ -113,7 +113,6 @@ func (q *FilterQuery) InsertQueryAt(ch rune, where int) {
 type Ctx struct {
 	*Hub
 	*FilterQuery
-	*MatcherSet
 	filters             FilterSet
 	caretPosition       int
 	enableSep           bool
@@ -134,7 +133,7 @@ type Ctx struct {
 	layoutType          string
 
 	wait *sync.WaitGroup
-	err error
+	err  error
 }
 
 func newMutex() sync.Locker {
@@ -163,10 +162,13 @@ func (m *loggingMutex) Unlock() {
 }
 
 func NewCtx(o CtxOptions) *Ctx {
+	return newCtx(o, 5)
+}
+
+func newCtx(o CtxOptions, hubBufferSize int) *Ctx {
 	c := &Ctx{
-		Hub:                 NewHub(),
+		Hub:                 NewHub(hubBufferSize),
 		FilterQuery:         &FilterQuery{[]rune{}, []rune{}, newMutex()},
-		MatcherSet:          nil,
 		filters:             FilterSet{},
 		caretPosition:       0,
 		resultCh:            nil,
@@ -197,20 +199,8 @@ func NewCtx(o CtxOptions) *Ctx {
 		}
 	}
 
-	matchers := []Matcher{
-		NewIgnoreCaseMatcher(c.enableSep),
-		//		NewCaseSensitiveMatcher(c.enableSep),
-		//		NewSmartCaseMatcher(c.enableSep),
-		//		NewRegexpMatcher(c.enableSep),
-	}
-	matcherSet := NewMatcherSet()
-	for _, m := range matchers {
-		matcherSet.Add(m)
-	}
-	c.MatcherSet = matcherSet
-
-	c.filters = append(c.filters, NewIgnoreCaseFilter())
-	c.filters = append(c.filters, NewCaseSensitiveFilter())
+	c.filters.Add(NewIgnoreCaseFilter())
+	c.filters.Add(NewCaseSensitiveFilter())
 
 	return c
 }
@@ -231,7 +221,7 @@ func (c *Ctx) ReadConfig(file string) error {
 		c.config.InitialMatcher = c.config.Matcher
 	}
 
-	c.MatcherSet.SetCurrentByName(c.config.InitialMatcher)
+	c.SetCurrentFilterByName(c.config.InitialMatcher)
 
 	if c.layoutType == "" { // Not set yet
 		if c.config.Layout != "" {
@@ -415,12 +405,8 @@ func (c *Ctx) SetQuery(q []rune) {
 	c.SetCaretPos(c.QueryLen())
 }
 
-func (c *Ctx) Matcher() Matcher {
-	return c.MatcherSet.GetCurrent()
-}
-
 func (c *Ctx) Filter() QueryFilterer {
-	return c.filters[0]
+	return c.filters.GetCurrent()
 }
 
 func (c *Ctx) LoadCustomMatcher() error {
@@ -428,11 +414,14 @@ func (c *Ctx) LoadCustomMatcher() error {
 		return nil
 	}
 
+	panic("UNIMPLEMENTED")
+/*
 	for name, args := range c.config.CustomMatcher {
-		if err := c.MatcherSet.Add(NewCustomMatcher(c.enableSep, name, args)); err != nil {
+		if err := c.filters.Add(NewCustomMatcher(c.enableSep, name, args)); err != nil {
 			return err
 		}
 	}
+*/
 	return nil
 }
 
@@ -513,4 +502,17 @@ func (c Ctx) GetCurrentLineBuffer() LineBuffer {
 		return b
 	}
 	return c.rawLineBuffer
+}
+
+func (c *Ctx) RotateFilter() {
+	c.filters.Rotate()
+}
+
+func (c *Ctx) SetCurrentFilterByName(name string) error {
+	return c.filters.SetCurrentByName(name)
+}
+
+func (c *Ctx) startInput() {
+	c.AddWaitGroup(1)
+	go c.NewInput().Loop()
 }

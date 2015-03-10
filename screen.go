@@ -10,6 +10,7 @@ type Screen interface {
 	PollEvent() chan termbox.Event
 	SetCell(int, int, rune, termbox.Attribute, termbox.Attribute)
 	Size() (int, int)
+	SendEvent(termbox.Event)
 }
 
 // Termbox just hands out the processing to the termbox library
@@ -18,6 +19,10 @@ type Termbox struct{}
 // termbox always gives us some sort of warning when we run
 // go run -race cmd/peco/peco.go
 var termboxMutex = newMutex()
+
+func (t Termbox) SendEvent(_ termbox.Event) {
+	// no op
+}
 
 func (t Termbox) Clear(fg, bg termbox.Attribute) error {
 	termboxMutex.Lock()

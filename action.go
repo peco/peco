@@ -2,11 +2,14 @@ package peco
 
 import (
 	"errors"
+	"fmt"
 	"unicode"
 
 	"github.com/nsf/termbox-go"
 	"github.com/peco/peco/keyseq"
 )
+
+var ErrUserCanceled = errors.New("canceled")
 
 // Action describes an action that can be executed upon receiving user
 // input. It's an interface so you can create any kind of Action you need,
@@ -48,6 +51,13 @@ func (a ActionFunc) RegisterKeySequence(k keyseq.KeyList) {
 	defaultKeyBinding[k.String()] = a
 }
 
+func wrapDeprecated(fn func(*Input, termbox.Event), oldName, newName string) ActionFunc {
+	return ActionFunc(func(i *Input, e termbox.Event) {
+		i.SendStatusMsg(fmt.Sprintf("%s is deprecated. Use %s", oldName, newName))
+		fn(i, e)
+	})
+}
+
 func init() {
 	// Build the global maps
 	nameToActions = map[string]Action{}
@@ -80,28 +90,16 @@ func init() {
 	ActionFunc(doRotateMatcher).Register("RotateMatcher", termbox.KeyCtrlR)
 
 	ActionFunc(doSelectUp).Register("SelectUp", termbox.KeyArrowUp, termbox.KeyCtrlP)
-	ActionFunc(func(i *Input, ev termbox.Event) {
-		i.SendStatusMsg("SelectNext is deprecated. Use SelectUp/SelectDown")
-		doSelectDown(i, ev)
-	}).Register("SelectNext")
+	ActionFunc(wrapDeprecated(doSelectDown, "SelectNext", "SelectUp/SelectDown")).Register("SelectNext")
 
 	ActionFunc(doScrollPageDown).Register("ScrollPageDown", termbox.KeyArrowRight)
-	ActionFunc(func(i *Input, ev termbox.Event) {
-		i.SendStatusMsg("SelectNextPage is deprecated. Use ScrollPageDown/ScrollPageUp")
-		doScrollPageDown(i, ev)
-	}).Register("SelectNextPage")
+	ActionFunc(wrapDeprecated(doScrollPageDown, "SelectNextPage", "ScrollPageDown/ScrollPageUp")).Register("SelectNextPage")
 
 	ActionFunc(doSelectDown).Register("SelectDown", termbox.KeyArrowDown, termbox.KeyCtrlN)
-	ActionFunc(func(i *Input, ev termbox.Event) {
-		i.SendStatusMsg("SelectPrevious is deprecated. Use SelectUp/SelectDown")
-		doSelectUp(i, ev)
-	}).Register("SelectPrevious")
+	ActionFunc(wrapDeprecated(doSelectUp, "SelectPrevious", "SelectUp/SelectDown")).Register("SelectPrevious")
 
 	ActionFunc(doScrollPageUp).Register("ScrollPageUp", termbox.KeyArrowLeft)
-	ActionFunc(func(i *Input, ev termbox.Event) {
-		i.SendStatusMsg("SelectPreviousPage is deprecated. Uselect ScrollPageDown/ScrollPageUp")
-		doScrollPageUp(i, ev)
-	}).Register("SelectPreviousPage")
+	ActionFunc(wrapDeprecated(doScrollPageUp, "SelectPreviousPage", "ScrollPageDown/ScrollPageUp")).Register("SelectPreviousPage")
 
 	ActionFunc(doToggleSelection).Register("ToggleSelection")
 	ActionFunc(doToggleSelectionAndSelectNext).Register(
@@ -114,14 +112,8 @@ func init() {
 	)
 	ActionFunc(doSelectAll).Register("SelectAll")
 	ActionFunc(doSelectVisible).Register("SelectVisible")
-	ActionFunc(func(i *Input, ev termbox.Event) {
-		i.SendStatusMsg("ToggleSelectMode is deprecated. Use ToggleRangeMode")
-		doToggleRangeMode(i, ev)
-	}).Register("ToggleSelectMode")
-	ActionFunc(func(i *Input, ev termbox.Event) {
-		i.SendStatusMsg("CancelSelectMode is deprecated. Use CancelRangeMode")
-		doCancelRangeMode(i, ev)
-	}).Register("CancelSelectMode")
+	ActionFunc(wrapDeprecated(doToggleRangeMode, "ToggleSelectMode", "ToggleRangeMode")).Register("ToggleSelectMode")
+	ActionFunc(wrapDeprecated(doCancelRangeMode, "CancelSelectMode", "CancelRangeMode")).Register("CancelSelectMode")
 	ActionFunc(doToggleRangeMode).Register("ToggleRangeMode")
 	ActionFunc(doCancelRangeMode).Register("CancelRangeMode")
 	ActionFunc(doToggleQuery).Register("ToggleQuery", termbox.KeyCtrlT)
@@ -154,11 +146,11 @@ func doAcceptChar(i *Input, ev termbox.Event) {
 		ev.Ch = ' '
 	}
 
-	if ev.Ch > 0 {
+	if ch := ev.Ch; ch > 0 {
 		if i.QueryLen() == i.CaretPos() {
-			i.AppendQuery(ev.Ch)
+			i.AppendQuery(ch)
 		} else {
-			i.InsertQueryAt(ev.Ch, i.CaretPos())
+			i.InsertQueryAt(ch, i.CaretPos())
 		}
 		i.MoveCaretPos(1)
 		i.DrawPrompt() // Update prompt before running query
@@ -167,7 +159,7 @@ func doAcceptChar(i *Input, ev termbox.Event) {
 }
 
 func doRotateMatcher(i *Input, ev termbox.Event) {
-	i.MatcherSet.Rotate()
+	i.RotateFilter()
 	if i.ExecQuery() {
 		return
 	}
@@ -250,7 +242,7 @@ func doCancel(i *Input, ev termbox.Event) {
 	}
 
 	// peco.Cancel -> end program, exit with failure
-	i.ExitWith(errors.New("canceled"))
+	i.ExitWith(ErrUserCanceled)
 }
 
 func doSelectDown(i *Input, ev termbox.Event) {
@@ -579,11 +571,11 @@ func doKonamiCommand(i *Input, ev termbox.Event) {
 }
 
 func makeCombinedAction(actions ...Action) ActionFunc {
-	return func(i *Input, ev termbox.Event) {
+	return ActionFunc(func(i *Input, ev termbox.Event) {
 		i.Batch(func() {
 			for _, a := range actions {
 				a.Execute(i, ev)
 			}
 		})
-	}
+	})
 }

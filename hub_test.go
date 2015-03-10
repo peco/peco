@@ -6,7 +6,7 @@ import (
 )
 
 func TestHub(t *testing.T) {
-	h := NewHub()
+	h := NewHub(5)
 
 	done := make(map[string]time.Time)
 

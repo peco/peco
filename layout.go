@@ -196,7 +196,7 @@ func (u UserPrompt) Draw() {
 
 	width, _ := screen.Size()
 
-	pmsg := fmt.Sprintf("%s [%d (%d/%d)]", u.Matcher().String(), u.currentPage.total, u.currentPage.index, u.currentPage.maxPage)
+	pmsg := fmt.Sprintf("%s [%d (%d/%d)]", u.Filter().Name(), u.currentPage.total, u.currentPage.index, u.currentPage.maxPage)
 	printScreen(width-runewidth.StringWidth(pmsg), location, u.config.Style.BasicFG(), u.config.Style.BasicBG(), pmsg, false)
 }
 
