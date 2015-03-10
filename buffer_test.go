@@ -16,7 +16,7 @@ func ExampleBufferChain() {
 		rawbuf.AppendLine(NewRawLine(scanner.Text(), false))
 	}
 
-	pf := PagingFilter{perPage: 10, currentPage: 1}
+	pf := PageCrop{perPage: 10, currentPage: 1}
 	rf := RegexpFilter{
 		flags: regexpFlagList(defaultFlags),
 		query: `mattn is da king`,
@@ -129,7 +129,7 @@ func TestBufferPaging(t *testing.T) {
 		rawbuf.AppendLine(NewRawLine(l, false))
 	}
 
-	pf := PagingFilter{perPage: 4, currentPage: 2}
+	pf := PageCrop{perPage: 4, currentPage: 2}
 	pagebuf := pf.Filter(rawbuf)
 
 	for i, v := range []string{"Eve", "Frank", "George", "Hugh"} {
@@ -171,8 +171,8 @@ func TestGetRawLineIndexAt(t *testing.T) {
 		rawbuf.AppendLine(NewRawLine(l, false))
 	}
 
-	pf1 := PagingFilter{perPage: 4, currentPage: 1}
-	pf2 := PagingFilter{perPage: 2, currentPage: 2}
+	pf1 := PageCrop{perPage: 4, currentPage: 1}
+	pf2 := PageCrop{perPage: 2, currentPage: 2}
 	pagebuf := pf2.Filter(pf1.Filter(rawbuf))
 
 	if i, err := pagebuf.GetRawLineIndexAt(0); err != nil || i != 2 {
