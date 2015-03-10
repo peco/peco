@@ -16,13 +16,13 @@ func ExampleBufferChain() {
 		rawbuf.AppendLine(NewRawLine(scanner.Text(), false))
 	}
 
-	pf := PageCrop{perPage: 10, currentPage: 1}
+	pc := PageCrop{perPage: 10, currentPage: 1}
 	rf := RegexpFilter{
 		flags: regexpFlagList(defaultFlags),
 		query: `mattn is da king`,
 	}
 
-	result := pf.Filter(rf.Filter(rawbuf))
+	result := pc.Crop(rf.Filter(rawbuf))
 	for i := 0; i < result.Size(); i++ {
 		l, err := result.LineAt(i)
 		if err != nil {
@@ -129,8 +129,8 @@ func TestBufferPaging(t *testing.T) {
 		rawbuf.AppendLine(NewRawLine(l, false))
 	}
 
-	pf := PageCrop{perPage: 4, currentPage: 2}
-	pagebuf := pf.Filter(rawbuf)
+	pc := PageCrop{perPage: 4, currentPage: 2}
+	pagebuf := pc.Crop(rawbuf)
 
 	for i, v := range []string{"Eve", "Frank", "George", "Hugh"} {
 		l, err := pagebuf.LineAt(i)
@@ -149,8 +149,8 @@ func TestBufferPaging(t *testing.T) {
 		flags: regexpFlagList(ignoreCaseFlags),
 		query: `a`,
 	}
-	pf.perPage = 2
-	pagebuf = pf.Filter(rf.Filter(rawbuf))
+	pc.perPage = 2
+	pagebuf = pc.Crop(rf.Filter(rawbuf))
 
 	for i, v := range []string{"David", "Frank"} {
 		l, err := pagebuf.LineAt(i)
@@ -171,9 +171,9 @@ func TestGetRawLineIndexAt(t *testing.T) {
 		rawbuf.AppendLine(NewRawLine(l, false))
 	}
 
-	pf1 := PageCrop{perPage: 4, currentPage: 1}
-	pf2 := PageCrop{perPage: 2, currentPage: 2}
-	pagebuf := pf2.Filter(pf1.Filter(rawbuf))
+	pc1 := PageCrop{perPage: 4, currentPage: 1}
+	pc2 := PageCrop{perPage: 2, currentPage: 2}
+	pagebuf := pc2.Crop(pc1.Crop(rawbuf))
 
 	if i, err := pagebuf.GetRawLineIndexAt(0); err != nil || i != 2 {
 		t.Errorf("Expected raw index to be 2, got %d (%s)", i, err)
