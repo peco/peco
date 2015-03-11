@@ -7,7 +7,76 @@ import (
 	"fmt"
 	"os/exec"
 	"regexp"
+	"strings"
+	"unicode"
 )
+
+// These are used as keys in the config file
+const (
+	IgnoreCaseMatch    = "IgnoreCase"
+	CaseSensitiveMatch = "CaseSensitive"
+	SmartCaseMatch     = "SmartCase"
+	RegexpMatch        = "Regexp"
+)
+
+var ignoreCaseFlags = []string{"i"}
+var defaultFlags = []string{}
+
+type regexpFlags interface {
+	flags(string) []string
+}
+type regexpFlagList []string
+
+func (r regexpFlagList) flags(_ string) []string {
+	return []string(r)
+}
+
+type regexpFlagFunc func(string) []string
+
+func (r regexpFlagFunc) flags(s string) []string {
+	return r(s)
+}
+
+func containsUpper(query string) bool {
+	for _, c := range query {
+		if unicode.IsUpper(c) {
+			return true
+		}
+	}
+	return false
+}
+
+func regexpFor(q string, flags []string, quotemeta bool) (*regexp.Regexp, error) {
+	reTxt := q
+	if quotemeta {
+		reTxt = regexp.QuoteMeta(q)
+	}
+
+	if flags != nil && len(flags) > 0 {
+		reTxt = fmt.Sprintf("(?%s)%s", strings.Join(flags, ""), reTxt)
+	}
+
+	re, err := regexp.Compile(reTxt)
+	if err != nil {
+		return nil, err
+	}
+	return re, nil
+}
+
+func queryToRegexps(flags regexpFlags, quotemeta bool, query string) ([]*regexp.Regexp, error) {
+	queries := strings.Split(strings.TrimSpace(query), " ")
+	regexps := make([]*regexp.Regexp, 0)
+
+	for _, q := range queries {
+		re, err := regexpFor(q, flags.flags(query), quotemeta)
+		if err != nil {
+			return nil, err
+		}
+		regexps = append(regexps, re)
+	}
+
+	return regexps, nil
+}
 
 // Filter is responsible for the actual "grep" part of peco
 type Filter struct {
