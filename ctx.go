@@ -475,7 +475,7 @@ func (c *Ctx) SetActiveLineBuffer(l *RawLineBuffer) {
 	go func(l *RawLineBuffer) {
 		prev := time.Time{}
 		for _ = range l.OutputCh() {
-			if time.Since(prev) > 500*time.Millisecond {
+			if time.Since(prev) > time.Millisecond {
 				c.SendDraw()
 				prev = time.Now()
 			}
