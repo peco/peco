@@ -1,67 +1,6 @@
 package peco
 
-import (
-	"io/ioutil"
-	"strings"
-	"testing"
-)
-
-func TestInputReaderToRawLineBuffer(t *testing.T) {
-	buf := strings.NewReader(`
-1. Foo
-2. Bar
-3. Baz
-`)
-	rdr := NewInputReader(ioutil.NopCloser(buf))
-	rawbuf := NewRawLineBuffer()
-
-	go rdr.Loop()
-
-	<-rdr.ReadyCh()
-
-	rawbuf.Accept(rdr)
-
-	for l := range rawbuf.OutputCh() {
-		t.Logf("Received new line %#v", l)
-	}
-
-	if rawbuf.Size() != 3 {
-		t.Errorf("Expected 3 entries in RawLineBuffer, got %d", rawbuf.Size())
-	}
-}
-
-func TestInputReaderToRawLineBufferToRegexpFilter(t *testing.T) {
-	buf := strings.NewReader(`
-1. Foo
-2. Bar
-3. Baz
-`)
-	rdr := NewInputReader(ioutil.NopCloser(buf))
-	rawbuf := NewRawLineBuffer()
-
-	go rdr.Loop()
-
-	<-rdr.ReadyCh()
-
-	rawbuf.Accept(rdr)
-	rf := RegexpFilter{
-		flags: regexpFlagList(ignoreCaseFlags),
-		query: `\d\. b`,
-	}
-	rf.Accept(rawbuf)
-
-	flb := NewRawLineBuffer()
-
-	flb.Accept(rf)
-
-	for l := range flb.OutputCh() {
-		t.Logf("Received new line %#v", l)
-	}
-
-	if flb.Size() != 2 {
-		t.Errorf("Expected 2 entries in RawLineBuffer, got %d", flb.Size())
-	}
-}
+import "testing"
 
 func TestBuffer(t *testing.T) {
 	rawbuf := NewRawLineBuffer()
@@ -83,7 +22,7 @@ func TestBuffer(t *testing.T) {
 	f.Accept(rawbuf)
 
 	buf := NewRawLineBuffer()
-	buf.onEnd = func() { done<-struct{}{} }
+	buf.onEnd = func() { done <- struct{}{} }
 	buf.Accept(f)
 
 	for loop := true; loop; {
