@@ -73,7 +73,7 @@ func IsValidVerticalAnchor(anchor VerticalAnchor) bool {
 type Layout interface {
 	PrintStatus(string, time.Duration)
 	DrawPrompt()
-	DrawScreen([]Line)
+	DrawScreen()
 	MovePage(PagingRequest)
 }
 
@@ -334,7 +334,7 @@ func NewListArea(ctx *Ctx, anchor VerticalAnchor, anchorOffset int, sortTopDown 
 // Draw displays the ListArea on the screen
 var drawLock = make(chan struct{}, 1)
 
-func (l *ListArea) Draw(targets []Line, perPage int) {
+func (l *ListArea) Draw(perPage int) {
 	// XXX FIX ME
 	drawLock <- struct{}{}
 	defer func() { <-drawLock }()
@@ -495,7 +495,7 @@ func NewBottomUpLayout(ctx *Ctx) *BasicLayout {
 }
 
 // CalculatePage calculates which page we're displaying
-func (l *BasicLayout) CalculatePage(targets []Line, perPage int) error {
+func (l *BasicLayout) CalculatePage(perPage int) error {
 	buf := l.GetCurrentLineBuffer()
 CALCULATE_PAGE:
 	currentPage := l.currentPage
@@ -529,25 +529,21 @@ func (l *BasicLayout) DrawPrompt() {
 }
 
 // DrawScreen draws the entire screen
-func (l *BasicLayout) DrawScreen(targets []Line) {
+func (l *BasicLayout) DrawScreen() {
 	//	if err := screen.Clear(l.config.Style.BasicFG(), l.config.Style.BasicBG()); err != nil {
 	//		return
 	//	}
 	tracer.Printf("DrawScreen: START")
 	defer tracer.Printf("DrawScreen: END")
 
-	if l.currentLine > len(targets) && len(targets) > 0 {
-		l.currentLine = len(targets)
-	}
-
 	perPage := linesPerPage()
 
-	if err := l.CalculatePage(targets, perPage); err != nil {
+	if err := l.CalculatePage(perPage); err != nil {
 		return
 	}
 
 	l.DrawPrompt()
-	l.list.Draw(targets, perPage)
+	l.list.Draw(perPage)
 
 	if err := screen.Flush(); err != nil {
 		return
@@ -561,6 +557,8 @@ func linesPerPage() int {
 
 // MovePage moves the cursor
 func (l *BasicLayout) MovePage(p PagingRequest) {
+	prev := l.currentLine
+	defer func() { tracer.Printf("currentLine changed from %d -> %d", prev, l.currentLine) }()
 	cp := l.currentPage
 	lcur := l.GetCurrentLineBuffer().Size()
 	// Before we moved, on which line were we located?
@@ -573,12 +571,12 @@ func (l *BasicLayout) MovePage(p PagingRequest) {
 		case ToLineBelow:
 			l.currentLine++
 		case ToScrollPageDown:
-			l.currentLine += linesPerPage()
+			l.currentLine += lpp
 			if cp.index == cp.maxPage-1 && lcur < l.currentLine && (lcur-lineBefore) < lpp {
 				l.currentLine = lcur
 			}
 		case ToScrollPageUp:
-			l.currentLine -= linesPerPage()
+			l.currentLine -= lpp
 		}
 	} else {
 		switch p {
@@ -587,20 +585,20 @@ func (l *BasicLayout) MovePage(p PagingRequest) {
 		case ToLineBelow:
 			l.currentLine--
 		case ToScrollPageDown:
-			l.currentLine -= linesPerPage()
+			l.currentLine -= lpp
 		case ToScrollPageUp:
-			l.currentLine += linesPerPage()
+			l.currentLine += lpp
 		}
 	}
 
 	if l.currentLine < 1 {
-		if l.current != nil {
+		if lcur > 0 {
 			// Go to last page, if possible
 			l.currentLine = lcur
 		} else {
 			l.currentLine = 1
 		}
-	} else if l.current != nil && l.currentLine > lcur {
+	} else if lcur > 0 && l.currentLine > lcur {
 		l.currentLine = 1
 	}
 

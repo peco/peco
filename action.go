@@ -320,8 +320,6 @@ func doDeleteBackwardWord(i *Input, _ termbox.Event) {
 	if i.ExecQuery() {
 		return
 	}
-
-	i.SetCurrent(nil)
 }
 
 func doForwardWord(i *Input, _ termbox.Event) {
@@ -441,8 +439,6 @@ func doDeleteForwardWord(i *Input, _ termbox.Event) {
 	if i.ExecQuery() {
 		return
 	}
-
-	i.SetCurrent(nil)
 }
 
 func doBeginningOfLine(i *Input, _ termbox.Event) {
@@ -467,7 +463,6 @@ func doKillBeginningOfLine(i *Input, _ termbox.Event) {
 	if i.ExecQuery() {
 		return
 	}
-	i.SetCurrent(nil)
 }
 
 func doKillEndOfLine(i *Input, _ termbox.Event) {
@@ -479,12 +474,10 @@ func doKillEndOfLine(i *Input, _ termbox.Event) {
 	if i.ExecQuery() {
 		return
 	}
-	i.SetCurrent(nil)
 }
 
 func doDeleteAll(i *Input, _ termbox.Event) {
 	i.SetQuery(make([]rune, 0))
-	i.SetCurrent(nil)
 }
 
 func doDeleteForwardChar(i *Input, _ termbox.Event) {
@@ -502,8 +495,6 @@ func doDeleteForwardChar(i *Input, _ termbox.Event) {
 	if i.ExecQuery() {
 		return
 	}
-
-	i.SetCurrent(nil)
 }
 
 func doDeleteBackwardChar(i *Input, ev termbox.Event) {
@@ -568,7 +559,6 @@ func doToggleQuery(i *Input, _ termbox.Event) {
 	if i.ExecQuery() {
 		return
 	}
-	i.SetCurrent(nil)
 }
 
 func doKonamiCommand(i *Input, ev termbox.Event) {

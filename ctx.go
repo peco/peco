@@ -301,14 +301,6 @@ func (c *Ctx) GetCurrentLen() int {
 	return len(c.current)
 }
 
-func (c *Ctx) SetCurrent(newMatches []Line) {
-	tracer.Printf("Ctx.SetCurrent: START")
-	defer tracer.Printf("Ctx.SetCurrent: END")
-	c.currentMutex.Lock()
-	defer c.currentMutex.Unlock()
-	c.current = newMatches
-}
-
 func (c *Ctx) GetCurrentAt(i int) Line {
 	c.currentMutex.Lock()
 	defer c.currentMutex.Unlock()

@@ -76,8 +76,7 @@ func (v *View) drawScreenNoLock(targets []Line) {
 		}
 	}
 
-	v.layout.DrawScreen(targets)
-	v.SetCurrent(targets)
+	v.layout.DrawScreen()
 }
 
 func (v *View) drawScreen(targets []Line) {
