@@ -26,7 +26,7 @@ func _main() int {
 	cli := peco.CLI{}
 	if err := cli.Run(); err != nil {
 		if err != peco.ErrUserCanceled {
-			fmt.Fprintf(os.Stderr, "Error: %s", err)
+			fmt.Fprintf(os.Stderr, "Error: %s\n", err)
 		}
 		return 1
 	}
