@@ -316,6 +316,7 @@ func NewSmartCaseFilter() *RegexpFilter {
 
 type ExternalCmdFilter struct {
 	simplePipeline
+	enableSep       bool
 	cmd             string
 	args            []string
 	name            string
@@ -323,10 +324,11 @@ type ExternalCmdFilter struct {
 	thresholdBufsiz int
 }
 
-func NewExternalCmdFilter(name, cmd string, args []string, threshold int) *ExternalCmdFilter {
+func NewExternalCmdFilter(name, cmd string, args []string, threshold int, enableSep bool) *ExternalCmdFilter {
 	tracer.Printf("name = %s, cmd = %s, args = %#v", name, cmd, args)
 	return &ExternalCmdFilter{
 		simplePipeline:  simplePipeline{},
+		enableSep:       enableSep,
 		cmd:             cmd,
 		args:            args,
 		name:            name,
@@ -337,6 +339,7 @@ func NewExternalCmdFilter(name, cmd string, args []string, threshold int) *Exter
 func (ecf ExternalCmdFilter) Clone() QueryFilterer {
 	return &ExternalCmdFilter{
 		simplePipeline:  simplePipeline{},
+		enableSep:       ecf.enableSep,
 		cmd:             ecf.cmd,
 		args:            ecf.args,
 		name:            ecf.name,
@@ -432,9 +435,10 @@ func (ecf *ExternalCmdFilter) launchExternalCmd(buf []Line, cancelCh chan struct
 			b, _, err := rdr.ReadLine()
 			if len(b) > 0 {
 				// TODO: need to redo the spec for custom matchers
-				tracer.Printf("sending")
-				cmdCh <- NewMatchedLine(NewRawLine(string(b), false), nil)
-				tracer.Printf("sent")
+				// This is the ONLY location where we need to actually
+				// RECREATE a RawLine, and thus the only place where
+				// ctx.enableSep is required.
+				cmdCh <- NewMatchedLine(NewRawLine(string(b), ecf.enableSep), nil)
 			}
 			if err != nil {
 				break

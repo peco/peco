@@ -404,7 +404,7 @@ func (c *Ctx) LoadCustomFilter() error {
 	}
 
 	for name, cfg := range c.config.CustomFilter {
-		f := NewExternalCmdFilter(name, cfg.Cmd, cfg.Args, cfg.BufferThreshold)
+		f := NewExternalCmdFilter(name, cfg.Cmd, cfg.Args, cfg.BufferThreshold, c.enableSep)
 		if err := c.filters.Add(f); err != nil {
 			return err
 		}
