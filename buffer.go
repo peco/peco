@@ -128,14 +128,15 @@ func NewRawLineBuffer() *RawLineBuffer {
 func (rlb *RawLineBuffer) Replay() error {
 	rlb.outputCh = make(chan Line)
 	go func() {
+		replayed := 0
 		tracer.Printf("RawLineBuffer.Replay (goroutine): START")
-		defer tracer.Printf("RawLineBuffer.Replay (goroutine): END")
-		tracer.Printf("RawLineBuffer.Replay (goroutine): Going to replay %d lines", len(rlb.lines))
+		defer func() { tracer.Printf("RawLineBuffer.Replay (goroutine): END (Replayed %d lines)", replayed) }()
 
+		defer func() { recover() }() // It's okay if we fail to replay
 		defer close(rlb.outputCh)
 		for _, l := range rlb.lines {
-			tracer.Printf("RawLineBuffer: Replaying %#v\n", l)
 			rlb.outputCh <- l
+			replayed++
 		}
 	}()
 	return nil
@@ -150,6 +151,7 @@ func (rlb *RawLineBuffer) Accept(p Pipeliner) {
 }
 
 func (rlb *RawLineBuffer) Append(l Line) (Line, error) {
+	tracer.Printf("RawLineBuffer.Append: %s", l.DisplayString())
 	if rlb.capacity > 0 && len(rlb.lines) > rlb.capacity {
 		diff := len(rlb.lines) - rlb.capacity
 		// TODO Notify that we're invalidating these lines

@@ -26,6 +26,13 @@ type Config struct {
 	Prompt         string            `json:"Prompt"`
 	Layout         string            `json:"Layout"`
 	CustomMatcher  map[string][]string
+	CustomFilter   map[string]CustomFilterConfig
+}
+
+type CustomFilterConfig struct {
+	Cmd string
+	Args []string
+	BufferThreshold int
 }
 
 // NewConfig creates a new Config
@@ -55,6 +62,22 @@ func (c *Config) ReadFilename(filename string) error {
 
 	if !IsValidLayoutType(LayoutType(c.Layout)) {
 		return fmt.Errorf("invalid layout type: %s", c.Layout)
+	}
+
+	if len(c.CustomMatcher) > 0 {
+		fmt.Fprintf(os.Stderr, "'CustomMatcher' is deprecated. Use CustomFilter instead\n")
+
+		for n, cfg := range c.CustomMatcher {
+			if _, ok := c.CustomFilter[n]; ok {
+				return fmt.Errorf("CustomFilter '%s' already exists. Refusing to overwrite with deprecated CustomMatcher config", n)
+			}
+
+			c.CustomFilter[n] = CustomFilterConfig{
+				Cmd: cfg[0],
+				Args: cfg[1:],
+				BufferThreshold: DefaultCustomFilterBufferThreshold,
+			}
+		}
 	}
 
 	return nil

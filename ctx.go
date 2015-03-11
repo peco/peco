@@ -12,6 +12,7 @@ import (
 )
 
 const debug = false
+const DefaultCustomFilterBufferThreshold = 100
 
 var screen Screen = Termbox{}
 
@@ -411,18 +412,16 @@ func (c *Ctx) Filter() QueryFilterer {
 }
 
 func (c *Ctx) LoadCustomMatcher() error {
-	if len(c.config.CustomMatcher) == 0 {
+	if len(c.config.CustomFilter) == 0 {
 		return nil
 	}
 
-	panic("UNIMPLEMENTED")
-/*
-	for name, args := range c.config.CustomMatcher {
-		if err := c.filters.Add(NewCustomMatcher(c.enableSep, name, args)); err != nil {
+	for name, cfg := range c.config.CustomFilter {
+		f := NewExternalCmdFilter(name, cfg.Cmd, cfg.Args, cfg.BufferThreshold)
+		if err := c.filters.Add(f); err != nil {
 			return err
 		}
 	}
-*/
 	return nil
 }
 

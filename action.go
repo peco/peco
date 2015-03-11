@@ -155,6 +155,7 @@ func doAcceptChar(i *Input, ev termbox.Event) {
 		}
 		i.MoveCaretPos(1)
 		i.DrawPrompt() // Update prompt before running query
+
 		i.ExecQuery()
 	}
 }
@@ -166,6 +167,7 @@ func doRotateFilter(i *Input, ev termbox.Event) {
 	if i.ExecQuery() {
 		return
 	}
+	i.SendDrawPrompt()
 }
 
 func doToggleSelection(i *Input, _ termbox.Event) {

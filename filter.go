@@ -1,7 +1,11 @@
 package peco
 
 import (
+	"bufio"
+	"bytes"
 	"errors"
+	"fmt"
+	"os/exec"
 	"regexp"
 )
 
@@ -22,6 +26,7 @@ func (f *Filter) Work(cancel chan struct{}, q HubReq) {
 		tracer.Printf("Filter.Work: Resetting activingLineBuffer")
 		f.ResetActiveLineBuffer()
 	} else {
+		f.rawLineBuffer.cancelCh = cancel
 		f.rawLineBuffer.Replay()
 
 		filter := f.Filter().Clone()
@@ -235,8 +240,9 @@ func (fs *FilterSet) Size() int {
 	return len(fs.filters)
 }
 
-func (fs *FilterSet) Add(qf QueryFilterer) {
+func (fs *FilterSet) Add(qf QueryFilterer) error {
 	fs.filters = append(fs.filters, qf)
+	return nil
 }
 
 func (fs *FilterSet) Rotate() {
@@ -291,5 +297,156 @@ func NewSmartCaseFilter() *RegexpFilter {
 		}),
 		quotemeta: true,
 		name:      "SmartCase",
+	}
+}
+
+type ExternalCmdFilter struct {
+	simplePipeline
+	cmd             string
+	args            []string
+	name            string
+	query           string
+	thresholdBufsiz int
+}
+
+func NewExternalCmdFilter(name, cmd string, args []string, threshold int) *ExternalCmdFilter {
+	tracer.Printf("name = %s, cmd = %s, args = %#v", name, cmd, args)
+	return &ExternalCmdFilter{
+		simplePipeline:  simplePipeline{},
+		cmd:             cmd,
+		args:            args,
+		name:            name,
+		thresholdBufsiz: threshold,
+	}
+}
+
+func (ecf ExternalCmdFilter) Clone() QueryFilterer {
+	return &ExternalCmdFilter{
+		simplePipeline:  simplePipeline{},
+		cmd:             ecf.cmd,
+		args:            ecf.args,
+		name:            ecf.name,
+		thresholdBufsiz: ecf.thresholdBufsiz,
+	}
+}
+
+func (ecf *ExternalCmdFilter) Verify() error {
+	if ecf.cmd == "" {
+		return fmt.Errorf("no executable specified for custom matcher '%s'", ecf.name)
+	}
+
+	if _, err := exec.LookPath(ecf.cmd); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (ecf *ExternalCmdFilter) Accept(p Pipeliner) {
+	cancelCh, incomingCh := p.Pipeline()
+	outputCh := make(chan Line)
+	ecf.cancelCh = cancelCh
+	ecf.outputCh = outputCh
+
+	go func() {
+		defer close(outputCh)
+
+		defer tracer.Printf("ExternalCmdFilter.Accept: DONE")
+
+		// for every N lines, execute the external command
+		buf := []Line{}
+		for l := range incomingCh {
+			buf = append(buf, l)
+			if len(buf) < ecf.thresholdBufsiz {
+				continue
+			}
+
+			ecf.launchExternalCmd(buf, cancelCh, outputCh)
+			buf = []Line{} // drain
+		}
+
+		if len(buf) > 0 {
+			ecf.launchExternalCmd(buf, cancelCh, outputCh)
+		}
+	}()
+}
+
+func (ecf *ExternalCmdFilter) Filter(l LineBuffer) LineBuffer { return nil }
+func (ecf *ExternalCmdFilter) SetQuery(q string) {
+	ecf.query = q
+}
+
+func (ecf ExternalCmdFilter) String() string {
+	return ecf.name
+}
+
+func (ecf *ExternalCmdFilter) launchExternalCmd(buf []Line, cancelCh chan struct{}, outputCh chan Line) {
+	defer func() { recover() }() // ignore errors
+
+	tracer.Printf("ExternalCmdFilter.launchExternalCmd: START")
+	defer tracer.Printf("ExternalCmdFilter.launchExternalCmd: END")
+
+	tracer.Printf("buf = %v", buf)
+
+	args := append([]string{ecf.query}, ecf.args...)
+	cmd := exec.Command(ecf.cmd, args...)
+
+	inbuf := &bytes.Buffer{}
+	for _, l := range buf {
+		inbuf.WriteString(l.DisplayString() + "\n")
+	}
+
+	cmd.Stdin = inbuf
+	r, err := cmd.StdoutPipe()
+	if err != nil {
+		return
+	}
+
+	tracer.Printf("cmd = %#v", cmd)
+	err = cmd.Start()
+	if err != nil {
+		return
+	}
+
+	go cmd.Wait()
+
+	cmdCh := make(chan Line)
+	go func(cmdCh chan Line, rdr *bufio.Reader) {
+		defer tracer.Printf("Done reader")
+		defer func() { recover() }()
+		defer close(cmdCh)
+		for {
+			tracer.Printf("ReadLine")
+			b, _, err := rdr.ReadLine()
+			if len(b) > 0 {
+				// TODO: need to redo the spec for custom matchers
+				tracer.Printf("sending")
+				cmdCh <- NewMatchedLine(NewRawLine(string(b), false), nil)
+				tracer.Printf("sent")
+			}
+			if err != nil {
+				break
+			}
+		}
+	}(cmdCh, bufio.NewReader(r))
+
+	defer func() {
+		if p := cmd.Process; p != nil {
+			p.Kill()
+		}
+	}()
+
+	defer tracer.Printf("Done waiting for cancel or line")
+
+	for {
+		select {
+		case <-cancelCh:
+			return
+		case l, ok := <-cmdCh:
+			if l == nil || !ok {
+				return
+			}
+			tracer.Printf("Custom: l = %s", l.DisplayString())
+			outputCh <- l
+		}
 	}
 }

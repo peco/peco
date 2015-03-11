@@ -184,6 +184,9 @@ func NewUserPrompt(ctx *Ctx, anchor VerticalAnchor, anchorOffset int) *UserPromp
 
 // Draw draws the query prompt
 func (u UserPrompt) Draw() {
+	tracer.Printf("UserPrompt.Draw: START")
+	defer tracer.Printf("UserPrompt.Draw: END")
+
 	location := u.AnchorPosition()
 
 	// print "QUERY>"
