@@ -214,16 +214,11 @@ func (c *Ctx) ReadConfig(file string) error {
 		return err
 	}
 
-	if err := c.LoadCustomMatcher(); err != nil {
+	if err := c.LoadCustomFilter(); err != nil {
 		return err
 	}
 
-	if c.config.Matcher != "" {
-		fmt.Fprintln(os.Stderr, "'Matcher' option in config file is deprecated. Use InitialMatcher instead")
-		c.config.InitialMatcher = c.config.Matcher
-	}
-
-	c.SetCurrentFilterByName(c.config.InitialMatcher)
+	c.SetCurrentFilterByName(c.config.InitialFilter)
 
 	if c.layoutType == "" { // Not set yet
 		if c.config.Layout != "" {
@@ -411,7 +406,7 @@ func (c *Ctx) Filter() QueryFilterer {
 	return c.filters.GetCurrent()
 }
 
-func (c *Ctx) LoadCustomMatcher() error {
+func (c *Ctx) LoadCustomFilter() error {
 	if len(c.config.CustomFilter) == 0 {
 		return nil
 	}

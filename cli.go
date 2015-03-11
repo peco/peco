@@ -19,7 +19,8 @@ type CLIOptions struct {
 	OptBufferSize     int    `long:"buffer-size" short:"b" description:"number of lines to keep in search buffer"`
 	OptEnableNullSep  bool   `long:"null" description:"expect NUL (\\0) as separator for target/output"`
 	OptInitialIndex   int    `long:"initial-index" description:"position of the initial index of the selection (0 base)"`
-	OptInitialMatcher string `long:"initial-matcher" description:"specify the default matcher"`
+	OptInitialMatcher string `long:"initial-matcher" description:"specify the default matcher (deprecated)"`
+	OptInitialFilter string `long:"initial-filter" description:"specify the default filter"`
 	OptPrompt         string `long:"prompt" description:"specify the prompt string"`
 	OptLayout         string `long:"layout" description:"layout to be used 'top-down' (default) or 'bottom-up'" default:"top-down"`
 }
@@ -164,9 +165,15 @@ func (cli *CLI) Run() error {
 		ctx.SetPrompt(opts.OptPrompt)
 	}
 
-	if len(opts.OptInitialMatcher) > 0 {
-		if err := ctx.SetCurrentFilterByName(opts.OptInitialMatcher); err != nil {
-			return fmt.Errorf("unknown matcher: '%s'\n", opts.OptInitialMatcher)
+	initialFilter := ""
+	if len(opts.OptInitialFilter) <= 0 && len(opts.OptInitialMatcher) > 0 {
+		initialFilter = opts.OptInitialMatcher
+	} else if len(opts.OptInitialFilter) > 0 {
+		initialFilter = opts.OptInitialFilter
+	}
+	if initialFilter != "" {
+		if err := ctx.SetCurrentFilterByName(initialFilter); err != nil {
+			return fmt.Errorf("unknown matcher: '%s'\n", initialFilter)
 		}
 	}
 
