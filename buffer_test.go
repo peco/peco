@@ -164,18 +164,3 @@ func TestBufferPaging(t *testing.T) {
 		}
 	}
 }
-
-func TestGetRawLineIndexAt(t *testing.T) {
-	rawbuf := NewRawLineBuffer()
-	for _, l := range []string{"Alice", "Bob", "Charlie", "David", "Eve", "Frank", "George", "Hugh"} {
-		rawbuf.AppendLine(NewRawLine(l, false))
-	}
-
-	pc1 := PageCrop{perPage: 4, currentPage: 1}
-	pc2 := PageCrop{perPage: 2, currentPage: 2}
-	pagebuf := pc2.Crop(pc1.Crop(rawbuf))
-
-	if i, err := pagebuf.GetRawLineIndexAt(0); err != nil || i != 2 {
-		t.Errorf("Expected raw index to be 2, got %d (%s)", i, err)
-	}
-}

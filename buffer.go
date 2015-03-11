@@ -64,7 +64,6 @@ func acceptPipeline(cancel chan struct{}, in chan Line, out chan Line, pc *pipel
 //
 // Buffers should be immutable.
 type LineBuffer interface {
-	GetRawLineIndexAt(int) (int, error)
 	LineAt(int) (Line, error)
 	Size() int
 
@@ -173,10 +172,6 @@ func (rlb *RawLineBuffer) Unregister(lb LineBuffer) {
 	rlb.buffers.Unregister(lb)
 }
 
-func (r RawLineBuffer) GetRawLineIndexAt(i int) (int, error) {
-	return i, nil
-}
-
 // LineAt returns the line at index `i`
 func (r RawLineBuffer) LineAt(i int) (Line, error) {
 	if i < 0 || len(r.lines) <= i {
@@ -258,22 +253,6 @@ func (flb *FilteredLineBuffer) InvalidateUpTo(x int) {
 
 	for _, b := range flb.buffers {
 		b.InvalidateUpTo(p)
-	}
-}
-
-func (fb *FilteredLineBuffer) GetRawLineIndexAt(i int) (int, error) {
-	cur := fb
-	x := i
-	for {
-		switch cur.src.(type) {
-		case *RawLineBuffer:
-			return cur.selection[x], nil
-		case *FilteredLineBuffer:
-			x = cur.selection[x]
-			cur = fb.src.(*FilteredLineBuffer)
-		default:
-			return -1, ErrBufferOutOfRange
-		}
 	}
 }
 
