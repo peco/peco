@@ -1,37 +1,10 @@
 package peco
 
 import (
-	"bufio"
-	"fmt"
 	"io/ioutil"
-	"os"
 	"strings"
 	"testing"
 )
-
-func ExampleBufferChain() {
-	rawbuf := NewRawLineBuffer()
-	scanner := bufio.NewScanner(os.Stdin)
-	for scanner.Scan() {
-		rawbuf.AppendLine(NewRawLine(scanner.Text(), false))
-	}
-
-	pc := PageCrop{perPage: 10, currentPage: 1}
-	rf := RegexpFilter{
-		flags: regexpFlagList(defaultFlags),
-		query: `mattn is da king`,
-	}
-
-	result := pc.Crop(rf.Filter(rawbuf))
-	for i := 0; i < result.Size(); i++ {
-		l, err := result.LineAt(i)
-		if err != nil {
-			panic(err)
-		}
-
-		fmt.Printf("line = %s\n", l.DisplayString())
-	}
-}
 
 func TestInputReaderToRawLineBuffer(t *testing.T) {
 	buf := strings.NewReader(`
@@ -104,7 +77,22 @@ func TestBuffer(t *testing.T) {
 		flags: regexpFlagList(ignoreCaseFlags),
 		query: `c`,
 	}
-	buf := f.Filter(rawbuf)
+
+	rawbuf.Replay()
+	done := make(chan struct{})
+	f.Accept(rawbuf)
+
+	buf := NewRawLineBuffer()
+	buf.onEnd = func() { done<-struct{}{} }
+	buf.Accept(f)
+
+	for loop := true; loop; {
+		select {
+		case <-done:
+			loop = false
+		case <-buf.outputCh:
+		}
+	}
 
 	if buf.Size() != 2 {
 		t.Errorf("Expected to match 2 lines, got %d", buf.Size())
@@ -144,13 +132,31 @@ func TestBufferPaging(t *testing.T) {
 		}
 	}
 
+	rawbuf.Replay()
+
 	// Also test regexp filter + paging
 	rf := RegexpFilter{
 		flags: regexpFlagList(ignoreCaseFlags),
 		query: `a`,
 	}
 	pc.perPage = 2
-	pagebuf = pc.Crop(rf.Filter(rawbuf))
+
+	rf.Accept(rawbuf)
+
+	done := make(chan struct{})
+	buf := NewRawLineBuffer()
+	buf.onEnd = func() { done <- struct{}{} }
+	buf.Accept(rf)
+
+	for loop := true; loop; {
+		select {
+		case <-done:
+			loop = false
+		case <-buf.outputCh:
+		}
+	}
+
+	pagebuf = pc.Crop(buf)
 
 	for i, v := range []string{"David", "Frank"} {
 		l, err := pagebuf.LineAt(i)

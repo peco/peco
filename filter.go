@@ -141,14 +141,9 @@ func (f *Filter) Loop() {
 	}
 }
 
-type Filterer interface {
-	Filter(LineBuffer) LineBuffer
-	Cancel()
-}
-
 type QueryFilterer interface {
 	Pipeliner
-	Filterer
+	Cancel()
 	Clone() QueryFilterer
 	Accept(Pipeliner)
 	SetQuery(string)
@@ -163,10 +158,6 @@ func (sf SelectionFilter) Name() string {
 	return "SelectionFilter"
 }
 
-func (sf SelectionFilter) Filter(in LineBuffer) LineBuffer {
-	return nil
-}
-
 type RegexpFilter struct {
 	simplePipeline
 	compiledQuery []*regexp.Regexp
@@ -174,6 +165,7 @@ type RegexpFilter struct {
 	quotemeta     bool
 	query         string
 	name          string
+	onEnd         func()
 }
 
 func NewRegexpFilter() *RegexpFilter {
@@ -188,6 +180,7 @@ func (rf RegexpFilter) Clone() QueryFilterer {
 		rf.quotemeta,
 		rf.query,
 		rf.name,
+		nil,
 	}
 }
 
@@ -196,7 +189,7 @@ func (rf *RegexpFilter) Accept(p Pipeliner) {
 	rf.cancelCh = cancelCh
 	rf.outputCh = make(chan Line)
 	go acceptPipeline(cancelCh, incomingCh, rf.outputCh,
-		&pipelineCtx{rf.filter, nil})
+		&pipelineCtx{rf.filter, rf.onEnd})
 }
 
 var ErrFilterDidNotMatch = errors.New("error: filter did not match against given line")
@@ -250,54 +243,6 @@ func (rf *RegexpFilter) SetQuery(q string) {
 
 func (rf RegexpFilter) String() string {
 	return rf.name
-}
-
-func (rf RegexpFilter) Filter(in LineBuffer) LineBuffer {
-	out := &MatchFilteredLineBuffer{
-		FilteredLineBuffer{
-			src:       in,
-			selection: []int{},
-		},
-		[][][]int{},
-	}
-
-	regexps, err := queryToRegexps(rf.flags, rf.quotemeta, rf.query)
-	if err != nil {
-		return out
-	}
-
-	for i := 0; i < in.Size(); i++ {
-		// Process line by line, until we receive a quit request
-		// or until we're done
-		select {
-		case <-rf.cancelCh:
-			break
-		default:
-			l, err := in.LineAt(i)
-			if err != nil {
-				continue
-			}
-
-			v := l.DisplayString()
-			allMatched := true
-			matches := [][]int{}
-		TryRegexps:
-			for _, rx := range regexps {
-				match := rx.FindAllStringSubmatchIndex(v, -1)
-				if match == nil {
-					allMatched = false
-					break TryRegexps
-				}
-				matches = append(matches, match...)
-			}
-
-			if allMatched {
-				out.SelectMatchedSourceLineAt(i, matches)
-			}
-		}
-	}
-
-	return out
 }
 
 type FilterSet struct {
@@ -439,7 +384,6 @@ func (ecf *ExternalCmdFilter) Accept(p Pipeliner) {
 	}()
 }
 
-func (ecf *ExternalCmdFilter) Filter(l LineBuffer) LineBuffer { return nil }
 func (ecf *ExternalCmdFilter) SetQuery(q string) {
 	ecf.query = q
 }
