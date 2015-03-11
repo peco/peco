@@ -415,7 +415,9 @@ func (l *ListArea) Draw(perPage int) {
 			break
 		}
 
-		if l.displayCache[n] == target {
+		if target.IsDirty() {
+			target.SetDirty(false)
+		} else if l.displayCache[n] == target {
 			cached++
 			continue
 		}
@@ -557,12 +559,17 @@ func linesPerPage() int {
 
 // MovePage moves the cursor
 func (l *BasicLayout) MovePage(p PagingRequest) {
-	prev := l.currentLine
-	defer func() { tracer.Printf("currentLine changed from %d -> %d", prev, l.currentLine) }()
+	// Before we move, on which line were we located?
+	lineBefore := l.currentLine
+
+	defer func() { tracer.Printf("currentLine changed from %d -> %d", lineBefore, l.currentLine) }()
 	cp := l.currentPage
 	lcur := l.GetCurrentLineBuffer().Size()
-	// Before we moved, on which line were we located?
-	lineBefore := l.currentLine
+
+	if oldLine, err := l.GetCurrentLineBuffer().LineAt(lineBefore - cp.offset - 1); err == nil {
+		oldLine.SetDirty(true)
+	}
+
 	lpp := linesPerPage()
 	if l.list.sortTopDown {
 		switch p {

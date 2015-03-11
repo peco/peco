@@ -17,12 +17,15 @@ type Line interface {
 	DisplayString() string
 	Indices() [][]int
 	Output() string
+	IsDirty() bool
+	SetDirty(bool)
 }
 
 type RawLine struct {
 	buf           string
 	sepLoc        int
 	displayString string
+	dirty         bool
 }
 
 func NewRawLine(v string, enableSep bool) *RawLine {
@@ -30,6 +33,7 @@ func NewRawLine(v string, enableSep bool) *RawLine {
 		v,
 		-1,
 		"",
+		false,
 	}
 	if !enableSep {
 		return rl
@@ -44,6 +48,14 @@ func NewRawLine(v string, enableSep bool) *RawLine {
 		}
 	}
 	return rl
+}
+
+func (rl RawLine) IsDirty() bool {
+	return rl.dirty
+}
+
+func (rl *RawLine) SetDirty(b bool) {
+	rl.dirty = b
 }
 
 // Buffer returns the raw buffer. May contain null
