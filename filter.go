@@ -196,7 +196,7 @@ func (rf *RegexpFilter) Accept(p Pipeliner) {
 	rf.cancelCh = cancelCh
 	rf.outputCh = make(chan Line)
 	go acceptPipeline(cancelCh, incomingCh, rf.outputCh,
-		&PipelineComponent{rf.filter, nil})
+		&pipelineCtx{rf.filter, nil})
 }
 
 var ErrFilterDidNotMatch = errors.New("error: filter did not match against given line")

@@ -11,9 +11,9 @@ type Pipeliner interface {
 	Pipeline() (chan struct{}, chan Line)
 }
 
-type PipelineComponent struct {
+type pipelineCtx struct {
 	onIncomingLine func(Line) (Line, error)
-	onEnd func()
+	onEnd          func()
 }
 
 type simplePipeline struct {
@@ -25,14 +25,14 @@ type simplePipeline struct {
 	outputCh chan Line
 }
 
-func (sp simplePipeline) Cancel() { close(sp.cancelCh) }
+func (sp simplePipeline) Cancel()                 { close(sp.cancelCh) }
 func (sp simplePipeline) CancelCh() chan struct{} { return sp.cancelCh }
 func (sp simplePipeline) OutputCh() chan Line     { return sp.outputCh }
 func (sp simplePipeline) Pipeline() (chan struct{}, chan Line) {
 	return sp.cancelCh, sp.outputCh
 }
 
-func acceptPipeline(cancel chan struct{}, in chan Line, out chan Line, pc *PipelineComponent) {
+func acceptPipeline(cancel chan struct{}, in chan Line, out chan Line, pc *pipelineCtx) {
 	tracer.Printf("acceptPipeline: START")
 	defer tracer.Printf("acceptPipeline: END")
 	defer close(out)
@@ -147,7 +147,7 @@ func (rlb *RawLineBuffer) Accept(p Pipeliner) {
 	rlb.cancelCh = cancelCh
 	rlb.outputCh = make(chan Line)
 	go acceptPipeline(cancelCh, incomingCh, rlb.outputCh,
-		&PipelineComponent{ rlb.Append, rlb.onEnd })
+		&pipelineCtx{rlb.Append, rlb.onEnd})
 }
 
 func (rlb *RawLineBuffer) Append(l Line) (Line, error) {
@@ -219,8 +219,8 @@ type FilteredLineBuffer struct {
 func NewFilteredLineBuffer(src LineBuffer) *FilteredLineBuffer {
 	flb := &FilteredLineBuffer{
 		simplePipeline: simplePipeline{},
-		src:       src,
-		selection: []int{},
+		src:            src,
+		selection:      []int{},
 	}
 	src.Register(flb)
 
@@ -236,13 +236,12 @@ func (flb *FilteredLineBuffer) Accept(p Pipeliner) {
 	flb.cancelCh = cancelCh
 	flb.outputCh = make(chan Line)
 	go acceptPipeline(cancelCh, incomingCh, flb.outputCh,
-		&PipelineComponent{flb.Append, nil})
+		&pipelineCtx{flb.Append, nil})
 }
 
 func (flb *FilteredLineBuffer) Append(l Line) (Line, error) {
 	return l, nil
 }
-
 
 func (flb *FilteredLineBuffer) InvalidateUpTo(x int) {
 	p := -1
