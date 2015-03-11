@@ -157,7 +157,7 @@ func (b *BufferReader) Loop() {
 			if refresh == nil {
 				refresh = time.AfterFunc(100*time.Millisecond, func() {
 					if !b.ExecQuery() {
-						b.SendDraw(nil)
+						b.SendDraw()
 					}
 					m.Lock()
 					refresh = nil

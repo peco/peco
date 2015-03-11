@@ -224,7 +224,7 @@ func (cli *CLI) Run() error {
 		ctx.SetQuery([]rune(opts.OptQuery))
 		ctx.ExecQuery()
 	} else {
-		ctx.SendDraw(nil)
+		ctx.SendDraw()
 	}
 
 	ctx.WaitDone()

@@ -40,7 +40,7 @@ func (i *Input) handleInputEvent(ev termbox.Event) {
 	case termbox.EventError:
 		//update = false
 	case termbox.EventResize:
-		i.SendDraw(nil)
+		i.SendDraw()
 	case termbox.EventKey:
 		// ModAlt is a sequence of letters with a leading \x1b (=Esc).
 		// It would be nice if termbox differentiated this for us, but

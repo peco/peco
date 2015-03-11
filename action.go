@@ -400,7 +400,7 @@ func doBackwardChar(i *Input, _ termbox.Event) {
 		return
 	}
 	i.MoveCaretPos(-1)
-	i.SendDraw(nil)
+	i.SendDraw()
 }
 
 func doDeleteForwardWord(i *Input, _ termbox.Event) {
