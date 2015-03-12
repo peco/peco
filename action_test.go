@@ -178,6 +178,27 @@ func TestDoDeleteBackwardWord(t *testing.T) {
 	expectCaretPos(t, ctx, 4)
 }
 
+func writeQueryToPrompt(t *testing.T, message string) {
+	for str := message; true; {
+		r, size := utf8.DecodeRuneInString(str)
+		if r == utf8.RuneError {
+			if size == 0 {
+				t.Logf("End of string reached")
+				break
+			}
+			t.Errorf("Failed to decode run in string: %s", r)
+			return
+		}
+
+		if r == ' ' {
+			screen.SendEvent(termbox.Event{Key: termbox.KeySpace})
+		} else {
+			screen.SendEvent(termbox.Event{Ch: r})
+		}
+		str = str[size:]
+	}
+}
+
 func TestDoAcceptChar(t *testing.T) {
 	_, guard := setDummyScreen()
 	defer guard()
@@ -186,29 +207,8 @@ func TestDoAcceptChar(t *testing.T) {
 	defer ctx.Stop()
 	ctx.startInput()
 
-	writeQueryToPrompt := func(message string) {
-		for str := message; true; {
-			r, size := utf8.DecodeRuneInString(str)
-			if r == utf8.RuneError {
-				if size == 0 {
-					t.Logf("End of string reached")
-					break
-				}
-				t.Errorf("Failed to decode run in string: %s", r)
-				return
-			}
-
-			if r == ' ' {
-				screen.SendEvent(termbox.Event{Key: termbox.KeySpace})
-			} else {
-				screen.SendEvent(termbox.Event{Ch: r})
-			}
-			str = str[size:]
-		}
-	}
-
 	message := "Hello, World!"
-	writeQueryToPrompt(message)
+	writeQueryToPrompt(t, message)
 	time.Sleep(500 * time.Millisecond)
 
 	if qs := ctx.QueryString(); qs != message {
@@ -216,7 +216,7 @@ func TestDoAcceptChar(t *testing.T) {
 	}
 
 	ctx.MoveCaretPos(-6)
-	writeQueryToPrompt("Cruel ")
+	writeQueryToPrompt(t, "Cruel ")
 
 	time.Sleep(500 * time.Millisecond)
 
@@ -259,4 +259,28 @@ func TestRotateFilter(t *testing.T) {
 	}
 
 	// TODO toggle ExecQuery()
+}
+
+func TestBeginningOfLineAndEndOfLine(t *testing.T) {
+	_, guard := setDummyScreen()
+	defer guard()
+
+	ctx := newCtx(nil, 25)
+	defer ctx.Stop()
+
+	ctx.startInput()
+
+	message := "Hello, World!"
+	writeQueryToPrompt(t, message)
+	screen.SendEvent(termbox.Event{Key: termbox.KeyCtrlA})
+	if cp := ctx.CaretPos(); cp != 0 {
+		t.Errorf("Expected caret position to be 0, got %d", cp)
+	}
+
+	screen.SendEvent(termbox.Event{Key: termbox.KeyCtrlE})
+	time.Sleep(time.Second)
+	if cp := ctx.CaretPos(); cp != len(message) {
+		t.Errorf("Expected caret position to be %d, got %d", len(message), cp)
+	}
+
 }

@@ -223,6 +223,9 @@ func (u UserPrompt) Draw() {
 			screen.SetCell(u.prefixLen+1+prev, location, r, fg, bg)
 			prev += runewidth.RuneWidth(r)
 		}
+		fg := u.config.Style.QueryFG()
+		bg := u.config.Style.QueryBG()
+		printScreen(u.prefixLen+prev+1, location, fg, bg, "", true)
 	}
 
 	width, _ := screen.Size()

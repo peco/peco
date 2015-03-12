@@ -320,12 +320,14 @@ func doDeleteBackwardWord(i *Input, _ termbox.Event) {
 	if i.ExecQuery() {
 		return
 	}
+	i.DrawPrompt()
 }
 
 func doForwardWord(i *Input, _ termbox.Event) {
 	if i.CaretPos() >= i.QueryLen() {
 		return
 	}
+	defer i.DrawPrompt()
 
 	foundSpace := false
 	for pos := i.CaretPos(); pos < i.QueryLen(); pos++ {
@@ -344,13 +346,13 @@ func doForwardWord(i *Input, _ termbox.Event) {
 
 	// not found. just move to the end of the buffer
 	i.SetCaretPos(i.QueryLen())
-
 }
 
 func doBackwardWord(i *Input, _ termbox.Event) {
 	if i.CaretPos() == 0 {
 		return
 	}
+	defer i.DrawPrompt()
 
 	if i.CaretPos() >= i.QueryLen() {
 		i.MoveCaretPos(-1)
@@ -393,6 +395,7 @@ func doForwardChar(i *Input, _ termbox.Event) {
 		return
 	}
 	i.MoveCaretPos(1)
+	i.DrawPrompt()
 }
 
 func doBackwardChar(i *Input, _ termbox.Event) {
@@ -400,13 +403,14 @@ func doBackwardChar(i *Input, _ termbox.Event) {
 		return
 	}
 	i.MoveCaretPos(-1)
-	i.SendDraw()
+	i.DrawPrompt()
 }
 
 func doDeleteForwardWord(i *Input, _ termbox.Event) {
 	if i.QueryLen() <= i.CaretPos() {
 		return
 	}
+	defer i.DrawPrompt()
 
 	start := i.CaretPos()
 
@@ -443,10 +447,12 @@ func doDeleteForwardWord(i *Input, _ termbox.Event) {
 
 func doBeginningOfLine(i *Input, _ termbox.Event) {
 	i.SetCaretPos(0)
+	i.DrawPrompt()
 }
 
 func doEndOfLine(i *Input, _ termbox.Event) {
 	i.SetCaretPos(i.QueryLen())
+	i.DrawPrompt()
 }
 
 func doEndOfFile(i *Input, ev termbox.Event) {
@@ -463,6 +469,7 @@ func doKillBeginningOfLine(i *Input, _ termbox.Event) {
 	if i.ExecQuery() {
 		return
 	}
+	i.DrawPrompt()
 }
 
 func doKillEndOfLine(i *Input, _ termbox.Event) {
@@ -495,6 +502,7 @@ func doDeleteForwardChar(i *Input, _ termbox.Event) {
 	if i.ExecQuery() {
 		return
 	}
+	i.DrawPrompt()
 }
 
 func doDeleteBackwardChar(i *Input, ev termbox.Event) {
@@ -535,6 +543,7 @@ func doDeleteBackwardChar(i *Input, ev termbox.Event) {
 		return
 	}
 
+	i.DrawPrompt()
 	i.SetActiveLineBuffer(i.rawLineBuffer)
 }
 
