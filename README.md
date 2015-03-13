@@ -215,7 +215,7 @@ Note: `Matcher` key has been deprecated in favor of `InitialMatcher`. `Matcher` 
 
 ```json
 {
-    "StikeySelection": true
+    "StickySelection": true
 }
 ```
 
