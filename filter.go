@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os/exec"
 	"regexp"
+	"sort"
 	"strings"
 	"unicode"
 )
@@ -76,6 +77,57 @@ func queryToRegexps(flags regexpFlags, quotemeta bool, query string) ([]*regexp.
 	}
 
 	return regexps, nil
+}
+
+// sort related stuff
+type byMatchStart [][]int
+
+func (m byMatchStart) Len() int {
+	return len(m)
+}
+
+func (m byMatchStart) Swap(i, j int) {
+	m[i], m[j] = m[j], m[i]
+}
+
+func (m byMatchStart) Less(i, j int) bool {
+	if m[i][0] < m[j][0] {
+		return true
+	}
+
+	if m[i][0] == m[j][0] {
+		return m[i][1]-m[i][0] < m[i][1]-m[i][0]
+	}
+
+	return false
+}
+func matchContains(a []int, b []int) bool {
+	return a[0] <= b[0] && a[1] >= b[1]
+}
+
+func matchOverlaps(a []int, b []int) bool {
+	return a[0] <= b[0] && a[1] >= b[0] ||
+		a[0] <= b[1] && a[1] >= b[1]
+}
+
+func mergeMatches(a []int, b []int) []int {
+	ret := make([]int, 2)
+
+	// Note: In practice this should never happen
+	// because we're sorting by N[0] before calling
+	// this routine, but for completeness' sake...
+	if a[0] < b[0] {
+		ret[0] = a[0]
+	} else {
+		ret[0] = b[0]
+	}
+
+	if a[1] < b[1] {
+		ret[1] = b[1]
+	} else {
+		ret[1] = a[1]
+	}
+	return ret
 }
 
 // Filter is responsible for the actual "grep" part of peco
@@ -220,6 +272,34 @@ TryRegexps:
 	}
 
 	tracer.Printf("RegexpFilter.filter: line matched pattern\n")
+	sort.Sort(byMatchStart(matches))
+
+	// We need to "dedupe" the results. For example, if we matched the
+	// same region twice, we don't want that to be drawn
+
+	deduped := make([][]int, 0, len(matches))
+
+	for i, m := range matches {
+		// Always push the first one
+		if i == 0 {
+			deduped = append(deduped, m)
+			continue
+		}
+
+		prev := deduped[len(deduped)-1]
+		switch {
+		case matchContains(prev, m):
+			// If the previous match contains this one, then
+			// don't do anything
+			continue
+		case matchOverlaps(prev, m):
+			// If the previous match overlaps with this one,
+			// merge the results and make it a bigger one
+			deduped[len(deduped)-1] = mergeMatches(prev, m)
+		default:
+			deduped = append(deduped, m)
+		}
+	}
 	return NewMatchedLine(l, matches), nil
 }
 
