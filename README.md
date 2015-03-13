@@ -193,9 +193,31 @@ Below are configuration sections that you may specify in your config file:
 
 ## Global
 
-Global section includes configurations that change the global behavior.
+Global configurations that change the global behavior.
+
+### Prompt
+
+You can change the query line's prompt, which is `QUERY>` by default.
+
+```json
+{
+    "Prompt": "[peco]"
+}
+```
+
+### InitialMatcher
+
+Specifies the matcher name to start peco with. You should specify the name of the matcher, such as `IgnoreCase`, `CaseSensitive`, `SmartCase` and `Regexp`
+
+Note: `Matcher` key has been deprecated in favor of `InitialMatcher`. `Matcher` will be unavailable in peco 0.3.0
 
 ### StickySelection
+
+```json
+{
+    "StikeySelection": true
+}
+```
 
 StickySelection allows selections to persist even between changes to the query.
 For example, when you set this to true you can select a few lines, type in a 
@@ -458,22 +480,6 @@ You may specify as many matchers as you like.
 
 * [An example of a simple perl regexp matcher](https://gist.github.com/mattn/24712964da6e3112251c)
 * [An example using migemogrep Japanese grep using latin-1 chars](https://github.com/peco/peco/wiki/CustomMatcher)
-
-## Prompt
-
-You can change the query line's prompt, which is `QUERY>` by default.
-
-```json
-{
-    "Prompt": "[peco]"
-}
-```
-
-## InitialMatcher
-
-Specifies the matcher name to start peco with. You should specify the name of the matcher, such as `IgnoreCase`, `CaseSensitive`, `SmartCase` and `Regexp`
-
-Note: `Matcher` key has been deprecated in favor of `InitialMatcher`. `Matcher` will be unavailable in peco 0.3.0
 
 ## Layout
 
