@@ -19,20 +19,21 @@ type Config struct {
 	// Keymap used to be directly responsible for dispatching
 	// events against user input, but since then this has changed
 	// into something that just records the user's config input
-	Keymap         map[string]string `json:"Keymap"`
-	Matcher        string            `json:"Matcher"`        // Deprecated.
-	InitialMatcher string            `json:"InitialMatcher"` // Use this instead of Matcher
-	InitialFilter string             `json:"InitialFilter"`
-	Style          *StyleSet         `json:"Style"`
-	Prompt         string            `json:"Prompt"`
-	Layout         string            `json:"Layout"`
-	CustomMatcher  map[string][]string
-	CustomFilter   map[string]CustomFilterConfig
+	Keymap          map[string]string `json:"Keymap"`
+	Matcher         string            `json:"Matcher"`        // Deprecated.
+	InitialMatcher  string            `json:"InitialMatcher"` // Use this instead of Matcher
+	InitialFilter   string            `json:"InitialFilter"`
+	Style           *StyleSet         `json:"Style"`
+	Prompt          string            `json:"Prompt"`
+	Layout          string            `json:"Layout"`
+	CustomMatcher   map[string][]string
+	CustomFilter    map[string]CustomFilterConfig
+	StickySelection bool
 }
 
 type CustomFilterConfig struct {
-	Cmd string
-	Args []string
+	Cmd             string
+	Args            []string
 	BufferThreshold int
 }
 
@@ -74,8 +75,8 @@ func (c *Config) ReadFilename(filename string) error {
 			}
 
 			c.CustomFilter[n] = CustomFilterConfig{
-				Cmd: cfg[0],
-				Args: cfg[1:],
+				Cmd:             cfg[0],
+				Args:            cfg[1:],
 				BufferThreshold: DefaultCustomFilterBufferThreshold,
 			}
 		}

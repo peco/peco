@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"unicode"
 
+	"github.com/google/btree"
 	"github.com/nsf/termbox-go"
 	"github.com/peco/peco/keyseq"
 )
@@ -171,11 +172,16 @@ func doRotateFilter(i *Input, ev termbox.Event) {
 }
 
 func doToggleSelection(i *Input, _ termbox.Event) {
-	if i.selection.Has(i.currentLine) {
-		i.selection.Remove(i.currentLine)
+	l, err := i.GetCurrentLineBuffer().LineAt(i.currentLine)
+	if err != nil {
 		return
 	}
-	i.selection.Add(i.currentLine)
+
+	if i.selection.Has(l) {
+		i.selection.Remove(l)
+		return
+	}
+	i.selection.Add(l)
 }
 
 func doToggleRangeMode(i *Input, _ termbox.Event) {
@@ -192,21 +198,27 @@ func doCancelRangeMode(i *Input, _ termbox.Event) {
 }
 
 func doSelectNone(i *Input, _ termbox.Event) {
-	i.selection.Clear()
+	i.SelectionClear()
 }
 
 func doSelectAll(i *Input, _ termbox.Event) {
-	for lineno := 1; lineno <= len(i.current); lineno++ {
-		i.selection.Add(lineno)
+	b := i.GetCurrentLineBuffer()
+	for x := 0; x < b.Size(); x++ {
+		if l, err := b.LineAt(x); err == nil {
+			i.selection.Add(l)
+		}
 	}
 }
 
 func doSelectVisible(i *Input, _ termbox.Event) {
-	pageStart := i.currentPage.offset
-	pageEnd := pageStart + i.currentPage.perPage
-	for lineno := pageStart; lineno <= pageEnd; lineno++ {
-		i.selection.Add(lineno)
-	}
+	/*
+		// Grr, this needs fixing
+		pageStart := i.currentPage.offset
+		pageEnd := pageStart + i.currentPage.perPage
+		for lineno := pageStart; lineno <= pageEnd; lineno++ {
+			i.selection.Add(lineno)
+		}
+	*/
 }
 
 func doFinish(i *Input, _ termbox.Event) {
@@ -220,15 +232,10 @@ func doFinish(i *Input, _ termbox.Event) {
 
 	i.resultCh = make(chan Line)
 	go func() {
-		buf := i.GetCurrentLineBuffer()
-		max := buf.Size()
-		for x := 0; x < max; x++ {
-			if i.selection.Has(x + 1) {
-				if l, err := buf.LineAt(x); err == nil {
-					i.resultCh <- l
-				}
-			}
-		}
+		i.selection.Ascend(func(it btree.Item) bool {
+			i.resultCh <- it.(Line)
+			return true
+		})
 		close(i.resultCh)
 	}()
 
@@ -281,7 +288,20 @@ func doToggleSelectionAndSelectNext(i *Input, ev termbox.Event) {
 }
 
 func doInvertSelection(i *Input, _ termbox.Event) {
-	i.selection.Invert(i.GetCurrentLen())
+	old := i.selection
+	i.SelectionClear()
+	b := i.GetCurrentLineBuffer()
+
+	for x := 0; x < b.Size(); x++ {
+		if l, err := b.LineAt(x); err == nil {
+			i.selection.Add(l)
+		}
+	}
+
+	old.Ascend(func(it btree.Item) bool {
+		i.selection.Delete(it.(Line))
+		return true
+	})
 }
 
 func doDeleteBackwardWord(i *Input, _ termbox.Event) {

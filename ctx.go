@@ -259,34 +259,39 @@ func (c *Ctx) IsRangeMode() bool {
 	return c.selectionRangeStart != invalidSelectionRange
 }
 
-func (c *Ctx) SelectionLen() uint64 {
-	c.mutex.Lock()
-	defer c.mutex.Unlock()
+func (c *Ctx) SelectionLen() int {
 	return c.selection.Len()
 }
 
 func (c *Ctx) SelectionAdd(x int) {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
-	c.selection.Add(x)
+	if l, err := c.GetCurrentLineBuffer().LineAt(x); err == nil {
+		c.selection.Add(l)
+	}
 }
 
 func (c *Ctx) SelectionRemove(x int) {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
-	c.selection.Remove(x)
+	if l, err := c.GetCurrentLineBuffer().LineAt(x); err == nil {
+		c.selection.Delete(l)
+	}
 }
 
 func (c *Ctx) SelectionClear() {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
-	c.selection.Clear()
+	c.selection = NewSelection()
 }
 
 func (c *Ctx) SelectionContains(n int) bool {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
-	return c.selection.Has(n)
+	if l, err := c.GetCurrentLineBuffer().LineAt(n); err == nil {
+		return c.selection.Has(l)
+	}
+	return false
 }
 
 func (c *Ctx) GetCurrent() []Line {

@@ -5,19 +5,20 @@ import "testing"
 func TestSelection(t *testing.T) {
 	s := NewSelection()
 
-	s.Add(10)
+	alice := NewRawLine("Alice", false)
+	s.Add(alice)
 	if s.Len() != 1 {
 		t.Errorf("expected Len = 1, got %d", s.Len())
 	}
-	s.Add(1)
+	s.Add(NewRawLine("Bob", false))
 	if s.Len() != 2 {
 		t.Errorf("expected Len = 2, got %d", s.Len())
 	}
-	s.Add(1)
+	s.Add(alice)
 	if s.Len() != 2 {
 		t.Errorf("expected Len = 2, got %d", s.Len())
 	}
-	s.Remove(1)
+	s.Remove(alice)
 	if s.Len() != 1 {
 		t.Errorf("expected Len = 1, got %d", s.Len())
 	}

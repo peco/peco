@@ -335,12 +335,7 @@ func NewListArea(ctx *Ctx, anchor VerticalAnchor, anchorOffset int, sortTopDown 
 }
 
 // Draw displays the ListArea on the screen
-var drawLock = make(chan struct{}, 1)
-
 func (l *ListArea) Draw(perPage int) {
-	// XXX FIX ME
-	drawLock <- struct{}{}
-	defer func() { <-drawLock }()
 	tracer.Printf("ListArea.Draw: START")
 	defer tracer.Printf("ListArea.Draw: END")
 	currentPage := l.currentPage

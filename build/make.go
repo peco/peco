@@ -23,6 +23,7 @@ var deps = map[string]string{
 	"github.com/jessevdk/go-flags":  "8ec9564882e7923e632f012761c81c46dcf5bec1",
 	"github.com/mattn/go-runewidth": "63c378b851290989b19ca955468386485f118c65",
 	"github.com/nsf/termbox-go":     "bb19a81afd4bc2729799d1fedb19f7bd7ee284cf",
+	"github.com/google/btree":       "0c05920fc3d98100a5e3f7fd339865a6e2aaa671",
 }
 
 func init() {

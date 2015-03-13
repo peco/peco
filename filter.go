@@ -162,7 +162,9 @@ func (f *Filter) Work(cancel chan struct{}, q HubReq) {
 		f.SetActiveLineBuffer(buf)
 	}
 
-	f.SelectionClear()
+	if ! f.config.StickySelection {
+		f.SelectionClear()
+	}
 }
 
 // Loop keeps watching for incoming queries, and upon receiving

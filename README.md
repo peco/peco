@@ -184,11 +184,26 @@ peco by default consults a few locations for the config files.
 
 Below are configuration sections that you may specify in your config file:
 
+* [Global](#global)
 * [Keymaps](#keymaps)
 * [Styles](#styles)
 * [CustomMatcher](#custommatcher)
 * [Prompt](#prompt)
 * [InitialMatcher](#initialmatcher)
+
+## Global
+
+Global section includes configurations that change the global behavior.
+
+### StickySelection
+
+StickySelection allows selections to persist even between changes to the query.
+For example, when you set this to true you can select a few lines, type in a 
+new query, select those lines, and then delete the query. The result is all
+the lines that you selected before and after the modification to the query are
+left in tact.
+
+thatDefault is false.
 
 ## Keymaps
 

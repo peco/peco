@@ -1,90 +1,24 @@
 package peco
 
-import (
-	"math/big"
-	"sync"
-)
+import "github.com/google/btree"
 
-// Selection stores the line numbers that were selected by the user.
+// Selection stores the line ids that were selected by the user.
 // The contents of the Selection is always sorted from smallest to
-// largest line number
-type Selection struct {
-	selection *big.Int // bitmask
-	flipped   uint64
-	mutex     sync.Locker
-}
+// largest line ID
+type Selection struct{ *btree.BTree }
 
 // NewSelection creates a new empty Selection
 func NewSelection() *Selection {
-	return &Selection{&big.Int{}, 0, newMutex()}
+	return &Selection{btree.New(32)}
 }
 
-// Invert inverts the selection - if items 2 and 3 are selected out of
-// 10 items, then items 1 and items 4 to 10 are selected after call
-// to this method
-func (s *Selection) Invert(pad int) {
-	dst := (&big.Int{}).Set(s.selection)
-	for i := 0; i < pad; i++ {
-		b := dst.Bit(i)
-		if b == 1 {
-			b = 0
-		} else {
-			b = 1
-		}
-		dst.SetBit(dst, i, b)
-		if b == 1 {
-			s.flipped++
-		}
-	}
-
-	s.selection = dst
-}
-
-// Has returns true if line `v` is in the selection
-func (s Selection) Has(v int) bool {
-	s.mutex.Lock()
-	defer s.mutex.Unlock()
-
-	return s.selection.Bit(v) == 1
-}
-
-// Add adds a new line number to the selection. If the line already
+// Add adds a new line to the selection. If the line already
 // exists in the selection, it is silently ignored
-func (s *Selection) Add(v int) {
-	if s.Has(v) {
-		return
-	}
-
-	s.mutex.Lock()
-	defer s.mutex.Unlock()
-
-	s.flipped++
-	s.selection = s.selection.SetBit(s.selection, v, 1)
+func (s *Selection) Add(l Line) {
+	s.ReplaceOrInsert(l)
 }
 
-// Remove removes the specified line number from the selection
-func (s *Selection) Remove(v int) {
-	if ! s.Has(v) {
-		return
-	}
-
-	s.mutex.Lock()
-	defer s.mutex.Unlock()
-
-	s.flipped--
-	s.selection = s.selection.SetBit(s.selection, v, 0)
-}
-
-// Clear empties the selection
-func (s *Selection) Clear() {
-	s.mutex.Lock()
-	defer s.mutex.Unlock()
-
-	s.flipped = 0
-	s.selection = &big.Int{}
-}
-
-// Len returns the number of elements in the selection.
-func (s Selection) Len() uint64 {
-	return s.flipped
+// Remove removes the specified line from the selection
+func (s *Selection) Remove(l Line) {
+	s.Delete(l)
 }
