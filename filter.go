@@ -302,7 +302,7 @@ TryRegexps:
 			deduped = append(deduped, m)
 		}
 	}
-	return NewMatchedLine(l, matches), nil
+	return NewMatchedLine(l, deduped), nil
 }
 
 func (rf *RegexpFilter) getQueryAsRegexps() ([]*regexp.Regexp, error) {
