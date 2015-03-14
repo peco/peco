@@ -206,6 +206,8 @@ func doSelectAll(i *Input, _ termbox.Event) {
 	for x := 0; x < b.Size(); x++ {
 		if l, err := b.LineAt(x); err == nil {
 			i.selection.Add(l)
+		} else {
+			i.selection.Remove(l)
 		}
 	}
 }
@@ -295,6 +297,8 @@ func doInvertSelection(i *Input, _ termbox.Event) {
 	for x := 0; x < b.Size(); x++ {
 		if l, err := b.LineAt(x); err == nil {
 			i.selection.Add(l)
+		} else {
+			i.selection.Remove(l)
 		}
 	}
 

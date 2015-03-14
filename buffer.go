@@ -153,10 +153,9 @@ func (rlb *RawLineBuffer) Append(l Line) (Line, error) {
 	tracer.Printf("RawLineBuffer.Append: %s", l.DisplayString())
 	if rlb.capacity > 0 && len(rlb.lines) > rlb.capacity {
 		diff := len(rlb.lines) - rlb.capacity
-		// TODO Notify that we're invalidating these lines
 
 		// Golang's version of array realloc
-		rlb.lines = append(append([]Line(nil), rlb.lines[diff:]...), l)
+		rlb.lines = rlb.lines[diff:rlb.capacity:rlb.capacity]
 	} else {
 		rlb.lines = append(rlb.lines, l)
 	}

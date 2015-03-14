@@ -3,68 +3,32 @@ package peco
 import (
 	"regexp"
 	"strings"
-	"sync"
-	"time"
 
 	"github.com/google/btree"
 )
 
-const (
-	epochOffset = 946684800
-	hostIDBits  = 16
-	serialBits  = 12
-	serialShift = 16
-	timeBits    = 36
-	timeShift   = 28
-)
-
 type idGen struct {
-	seed     uint64
-	mutex    *sync.Mutex
-	serialID int64
-	timeID   int64
-	timeout  int64
+	genCh chan uint64
 }
 
-func newIDGen(seed uint64) *idGen {
+func newIDGen() *idGen {
+	ch := make(chan uint64)
+	go func() {
+		var i uint64
+		for ; ; i++ {
+			ch <- i
+			if i >= uint64(1<<63)-1 {
+				i = 0
+			}
+		}
+	}()
 	return &idGen{
-		seed:     seed,
-		mutex:    &sync.Mutex{},
-		serialID: 1,
-		timeID:   time.Now().Unix(),
+		genCh: ch,
 	}
 }
 
 func (ig *idGen) create() uint64 {
-	ig.mutex.Lock()
-	defer ig.mutex.Unlock()
-
-	timeID := time.Now().Unix()
-	serialID := ig.serialID
-	if ig.timeID == 0 {
-		ig.timeID = timeID
-	}
-
-	if ig.timeID == timeID {
-		serialID++
-	} else {
-		serialID = 1
-	}
-
-	if serialID >= (1<<serialBits)-1 {
-		// Overflow:/ we recieved more than serialBits
-		panic("Serial bits overflowed")
-	}
-
-	ig.serialID = serialID
-	ig.timeID = timeID
-
-	timeBits := (timeID - epochOffset) << timeShift
-	serialBits := serialID << serialShift
-
-	id := uint64(timeBits) | uint64(serialBits) | ig.seed
-
-	return id
+	return <-ig.genCh
 }
 
 // Global var used to strips ansi sequences
@@ -116,7 +80,7 @@ type RawLine struct {
 	dirty         bool
 }
 
-var idGenerator = newIDGen(uint64(time.Now().Unix()))
+var idGenerator = newIDGen()
 
 func NewRawLine(v string, enableSep bool) *RawLine {
 	id := idGenerator.create()
