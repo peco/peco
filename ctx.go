@@ -37,7 +37,7 @@ type CtxOptions interface {
 }
 
 type PageInfo struct {
-	index   int
+	page    int
 	offset  int
 	perPage int
 	total   int
@@ -174,7 +174,7 @@ func newCtx(o CtxOptions, hubBufferSize int) *Ctx {
 		caretPosition:       0,
 		resultCh:            nil,
 		mutex:               newMutex(),
-		currentPage:         &PageInfo{0, 1, 0, 0, 0},
+		currentPage:         &PageInfo{},
 		selection:           NewSelection(),
 		activeLineBuffer:    nil,
 		rawLineBuffer:       NewRawLineBuffer(),

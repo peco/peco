@@ -10,6 +10,8 @@ import (
 	"github.com/peco/peco/keyseq"
 )
 
+// ErrUserCanceled is used to ignal that the user deliverately 
+// canceled using peco
 var ErrUserCanceled = errors.New("canceled")
 
 // Action describes an action that can be executed upon receiving user

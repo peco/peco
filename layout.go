@@ -230,7 +230,7 @@ func (u UserPrompt) Draw() {
 
 	width, _ := screen.Size()
 
-	pmsg := fmt.Sprintf("%s [%d (%d/%d)]", u.Filter().String(), u.currentPage.total, u.currentPage.index, u.currentPage.maxPage)
+	pmsg := fmt.Sprintf("%s [%d (%d/%d)]", u.Filter().String(), u.currentPage.total, u.currentPage.page, u.currentPage.maxPage)
 	printScreen(width-runewidth.StringWidth(pmsg), location, u.config.Style.BasicFG(), u.config.Style.BasicBG(), pmsg, false)
 }
 
@@ -340,7 +340,7 @@ func (l *ListArea) Draw(perPage int) {
 	defer tracer.Printf("ListArea.Draw: END")
 	currentPage := l.currentPage
 
-	pf := PageCrop{perPage: currentPage.perPage, currentPage: currentPage.index}
+	pf := PageCrop{perPage: currentPage.perPage, currentPage: currentPage.page}
 	buf := pf.Crop(l.GetCurrentLineBuffer())
 	bufsiz := buf.Size()
 
@@ -377,8 +377,9 @@ func (l *ListArea) Draw(perPage int) {
 	var cached, written int
 	var fgAttr, bgAttr termbox.Attribute
 	for n := 0; n < perPage; n++ {
+tracer.Printf("n = %d, offset = %d, currentLine = %d", n, currentPage.offset, l.currentLine)
 		switch {
-		case n+currentPage.offset == l.currentLine-1:
+		case n+currentPage.offset == l.currentLine:
 			fgAttr = l.config.Style.SelectedFG()
 			bgAttr = l.config.Style.SelectedBG()
 			// Not a good place to put this, move it out later
@@ -391,9 +392,9 @@ func (l *ListArea) Draw(perPage int) {
 			bgAttr = l.config.Style.BasicBG()
 			// Not a good place to put this, move it out later
 			if n+1 < len(l.displayCache) &&
-				n+currentPage.offset+1 == l.currentLine-1 {
+				n+currentPage.offset+1 == l.currentLine {
 				l.displayCache[n+1] = nil
-			} else if n > 0 && n+currentPage.offset-1 == l.currentLine-1 {
+			} else if n > 0 && n+currentPage.offset-1 == l.currentLine {
 				l.displayCache[n-1] = nil
 			}
 		}
@@ -499,20 +500,19 @@ func (l *BasicLayout) CalculatePage(perPage int) error {
 	buf := l.GetCurrentLineBuffer()
 CALCULATE_PAGE:
 	currentPage := l.currentPage
-	currentPage.index = ((l.currentLine - 1) / perPage) + 1
-	if currentPage.index <= 0 {
-		currentPage.index = 1
-	}
-	currentPage.offset = (currentPage.index - 1) * perPage
+	currentPage.page = (l.currentLine / perPage) + 1
+	currentPage.offset = (currentPage.page - 1) * perPage
 	currentPage.perPage = perPage
 	currentPage.total = buf.Size()
+
+tracer.Printf("BasicLayout.CalculatePage: %#v", currentPage)
 	if currentPage.total == 0 {
 		currentPage.maxPage = 1
 	} else {
 		currentPage.maxPage = ((currentPage.total + perPage - 1) / perPage)
 	}
 
-	if currentPage.maxPage < currentPage.index {
+	if currentPage.maxPage < currentPage.page {
 		if buf.Size() == 0 && l.QueryLen() == 0 {
 			// wait for targets
 			return fmt.Errorf("no targets or query. nothing to do")
@@ -577,8 +577,8 @@ func (l *BasicLayout) MovePage(p PagingRequest) {
 			l.currentLine++
 		case ToScrollPageDown:
 			l.currentLine += lpp
-			if cp.index == cp.maxPage-1 && lcur < l.currentLine && (lcur-lineBefore) < lpp {
-				l.currentLine = lcur
+			if cp.page == cp.maxPage-1 && lcur < l.currentLine && (lcur-lineBefore) < lpp {
+				l.currentLine = lcur-1
 			}
 		case ToScrollPageUp:
 			l.currentLine -= lpp
@@ -596,15 +596,15 @@ func (l *BasicLayout) MovePage(p PagingRequest) {
 		}
 	}
 
-	if l.currentLine < 1 {
+	if l.currentLine < 0 {
 		if lcur > 0 {
 			// Go to last page, if possible
-			l.currentLine = lcur
+			l.currentLine = lcur-1
 		} else {
-			l.currentLine = 1
+			l.currentLine = 0
 		}
-	} else if lcur > 0 && l.currentLine > lcur {
-		l.currentLine = 1
+	} else if lcur > 0 && l.currentLine >= lcur {
+		l.currentLine = 0
 	}
 
 	// if we were in range mode, we need to do stuff. otherwise

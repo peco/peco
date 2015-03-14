@@ -66,10 +66,7 @@ func (o CLIOptions) EnableNullSep() bool {
 }
 
 func (o CLIOptions) InitialIndex() int {
-	if o.OptInitialIndex >= 0 {
-		return o.OptInitialIndex + 1
-	}
-	return 1
+	return o.OptInitialIndex
 }
 
 func (o CLIOptions) LayoutType() string {
