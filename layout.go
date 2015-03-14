@@ -162,8 +162,10 @@ func (as AnchorSettings) AnchorPosition() int {
 type UserPrompt struct {
 	*Ctx
 	*AnchorSettings
-	prefix    string
-	prefixLen int
+	prefix     string
+	prefixLen  int
+	basicStyle Style
+	queryStyle Style
 }
 
 // NewUserPrompt creates a new UserPrompt struct
@@ -179,6 +181,8 @@ func NewUserPrompt(ctx *Ctx, anchor VerticalAnchor, anchorOffset int) *UserPromp
 		AnchorSettings: &AnchorSettings{anchor, anchorOffset},
 		prefix:         prefix,
 		prefixLen:      prefixLen,
+		basicStyle:     ctx.config.Style.Basic,
+		queryStyle:     ctx.config.Style.Query,
 	}
 }
 
@@ -190,7 +194,7 @@ func (u UserPrompt) Draw() {
 	location := u.AnchorPosition()
 
 	// print "QUERY>"
-	printScreen(0, location, u.config.Style.BasicFG(), u.config.Style.BasicBG(), u.prefix, false)
+	printScreen(0, location, u.basicStyle.fg, u.basicStyle.bg, u.prefix, false)
 
 	pos := u.CaretPos()
 	if pos <= 0 { // XXX Do we really need this?
@@ -203,8 +207,8 @@ func (u UserPrompt) Draw() {
 
 	if u.CaretPos() == u.QueryLen() {
 		// the entire string + the caret after the string
-		fg := u.config.Style.QueryFG()
-		bg := u.config.Style.QueryBG()
+		fg := u.queryStyle.fg
+		bg := u.queryStyle.bg
 		qs := u.QueryString()
 		ql := runewidth.StringWidth(qs)
 		printScreen(u.prefixLen+1, location, fg, bg, qs, false)
@@ -214,8 +218,8 @@ func (u UserPrompt) Draw() {
 		// the caret is in the middle of the string
 		prev := 0
 		for i, r := range []rune(u.Query()) {
-			fg := u.config.Style.QueryFG()
-			bg := u.config.Style.QueryBG()
+			fg := u.queryStyle.fg
+			bg := u.queryStyle.bg
 			if i == u.CaretPos() {
 				fg |= termbox.AttrReverse
 				bg |= termbox.AttrReverse
@@ -223,15 +227,15 @@ func (u UserPrompt) Draw() {
 			screen.SetCell(u.prefixLen+1+prev, location, r, fg, bg)
 			prev += runewidth.RuneWidth(r)
 		}
-		fg := u.config.Style.QueryFG()
-		bg := u.config.Style.QueryBG()
+		fg := u.queryStyle.fg
+		bg := u.queryStyle.bg
 		printScreen(u.prefixLen+prev+1, location, fg, bg, "", true)
 	}
 
 	width, _ := screen.Size()
 
 	pmsg := fmt.Sprintf("%s [%d (%d/%d)]", u.Filter().String(), u.currentPage.total, u.currentPage.page, u.currentPage.maxPage)
-	printScreen(width-runewidth.StringWidth(pmsg), location, u.config.Style.BasicFG(), u.config.Style.BasicBG(), pmsg, false)
+	printScreen(width-runewidth.StringWidth(pmsg), location, u.basicStyle.fg, u.basicStyle.bg, pmsg, false)
 }
 
 // StatusBar draws the status message bar
@@ -240,15 +244,17 @@ type StatusBar struct {
 	*AnchorSettings
 	clearTimer *time.Timer
 	timerMutex sync.Locker
+	basicStyle Style
 }
 
 // NewStatusBar creates a new StatusBar struct
 func NewStatusBar(ctx *Ctx, anchor VerticalAnchor, anchorOffset int) *StatusBar {
 	return &StatusBar{
-		ctx,
-		NewAnchorSettings(anchor, anchorOffset),
-		nil,
-		newMutex(),
+		Ctx:            ctx,
+		AnchorSettings: NewAnchorSettings(anchor, anchorOffset),
+		clearTimer:     nil,
+		timerMutex:     newMutex(),
+		basicStyle:     ctx.config.Style.Basic,
 	}
 }
 
@@ -292,8 +298,8 @@ func (s *StatusBar) PrintStatus(msg string, clearDelay time.Duration) {
 		}
 	}
 
-	fgAttr := s.config.Style.BasicFG()
-	bgAttr := s.config.Style.BasicBG()
+	fgAttr := s.basicStyle.fg
+	bgAttr := s.basicStyle.bg
 
 	if w > width {
 		printScreen(0, location, fgAttr, bgAttr, string(pad), false)
@@ -320,17 +326,27 @@ func (s *StatusBar) PrintStatus(msg string, clearDelay time.Duration) {
 type ListArea struct {
 	*Ctx
 	*AnchorSettings
-	sortTopDown  bool
-	displayCache []Line
+	sortTopDown         bool
+	displayCache        []Line
+	basicStyle          Style
+	queryStyle          Style
+	matchedStyle        Style
+	selectedStyle       Style
+	savedSelectionStyle Style
 }
 
 // NewListArea creates a new ListArea struct
 func NewListArea(ctx *Ctx, anchor VerticalAnchor, anchorOffset int, sortTopDown bool) *ListArea {
 	return &ListArea{
-		ctx,
-		NewAnchorSettings(anchor, anchorOffset),
-		sortTopDown,
-		[]Line{},
+		Ctx:                 ctx,
+		AnchorSettings:      NewAnchorSettings(anchor, anchorOffset),
+		sortTopDown:         sortTopDown,
+		displayCache:        []Line{},
+		basicStyle:          ctx.config.Style.Basic,
+		queryStyle:          ctx.config.Style.Query,
+		matchedStyle:        ctx.config.Style.Matched,
+		selectedStyle:       ctx.config.Style.Selected,
+		savedSelectionStyle: ctx.config.Style.SavedSelection,
 	}
 }
 
@@ -371,7 +387,7 @@ func (l *ListArea) Draw(perPage int) {
 		}
 
 		trace("ListArea.Draw: clearing row %d", y)
-		printScreen(0, y, l.config.Style.BasicFG(), l.config.Style.BasicBG(), "", true)
+		printScreen(0, y, l.basicStyle.fg, l.basicStyle.bg, "", true)
 	}
 
 	var cached, written int
@@ -379,14 +395,14 @@ func (l *ListArea) Draw(perPage int) {
 	for n := 0; n < perPage; n++ {
 		switch {
 		case n+currentPage.offset == l.currentLine:
-			fgAttr = l.config.Style.SelectedFG()
-			bgAttr = l.config.Style.SelectedBG()
+			fgAttr = l.selectedStyle.fg
+			bgAttr = l.selectedStyle.bg
 		case l.SelectionContains(n + currentPage.offset):
-			fgAttr = l.config.Style.SavedSelectionFG()
-			bgAttr = l.config.Style.SavedSelectionBG()
+			fgAttr = l.savedSelectionStyle.fg
+			bgAttr = l.savedSelectionStyle.bg
 		default:
-			fgAttr = l.config.Style.BasicFG()
-			bgAttr = l.config.Style.BasicBG()
+			fgAttr = l.basicStyle.fg
+			bgAttr = l.basicStyle.bg
 		}
 
 		if n >= bufsiz {
@@ -433,14 +449,14 @@ func (l *ListArea) Draw(perPage int) {
 			}
 			c := line[m[0]:m[1]]
 
-			n := printScreen(prev, y, l.config.Style.MatchedFG(), mergeAttribute(bgAttr, l.config.Style.MatchedBG()), c, true)
+			n := printScreen(prev, y, l.matchedStyle.fg, mergeAttribute(bgAttr, l.matchedStyle.bg), c, true)
 			prev += n
 			index += len(c)
 		}
 
 		m := matches[len(matches)-1]
 		if m[0] > index {
-			printScreen(prev, y, l.config.Style.QueryFG(), mergeAttribute(bgAttr, l.config.Style.QueryBG()), line[m[0]:m[1]], true)
+			printScreen(prev, y, l.queryStyle.fg, mergeAttribute(bgAttr, l.queryStyle.bg), line[m[0]:m[1]], true)
 		} else if len(line) > m[1] {
 			printScreen(prev, y, fgAttr, bgAttr, line[m[1]:len(line)], true)
 		}
@@ -520,9 +536,6 @@ func (l *BasicLayout) DrawPrompt() {
 
 // DrawScreen draws the entire screen
 func (l *BasicLayout) DrawScreen() {
-	//	if err := screen.Clear(l.config.Style.BasicFG(), l.config.Style.BasicBG()); err != nil {
-	//		return
-	//	}
 	trace("DrawScreen: START")
 	defer trace("DrawScreen: END")
 

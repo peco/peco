@@ -153,46 +153,6 @@ func NewStyleSet() *StyleSet {
 	}
 }
 
-func (s StyleSet) BasicFG() termbox.Attribute {
-	return s.Basic.fg
-}
-
-func (s StyleSet) BasicBG() termbox.Attribute {
-	return s.Basic.bg
-}
-
-func (s StyleSet) QueryFG() termbox.Attribute {
-	return s.Query.fg
-}
-
-func (s StyleSet) QueryBG() termbox.Attribute {
-	return s.Query.bg
-}
-
-func (s StyleSet) MatchedFG() termbox.Attribute {
-	return s.Matched.fg
-}
-
-func (s StyleSet) MatchedBG() termbox.Attribute {
-	return s.Matched.bg
-}
-
-func (s StyleSet) SavedSelectionFG() termbox.Attribute {
-	return s.SavedSelection.fg
-}
-
-func (s StyleSet) SavedSelectionBG() termbox.Attribute {
-	return s.SavedSelection.bg
-}
-
-func (s StyleSet) SelectedFG() termbox.Attribute {
-	return s.Selected.fg
-}
-
-func (s StyleSet) SelectedBG() termbox.Attribute {
-	return s.Selected.bg
-}
-
 // Style describes termbox styles
 type Style struct {
 	fg termbox.Attribute
