@@ -282,13 +282,3 @@ func (flb *FilteredLineBuffer) Unregister(lb LineBuffer) {
 	flb.buffers.Unregister(lb)
 }
 
-type MatchFilteredLineBuffer struct {
-	FilteredLineBuffer
-	// Sheeeesh!
-	matches [][][]int
-}
-
-func (mflb *MatchFilteredLineBuffer) SelectMatchedSourceLineAt(i int, m [][]int) {
-	mflb.FilteredLineBuffer.SelectSourceLineAt(i)
-	mflb.matches = append(mflb.matches, m)
-}
