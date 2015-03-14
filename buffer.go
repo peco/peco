@@ -33,25 +33,25 @@ func (sp simplePipeline) Pipeline() (chan struct{}, chan Line) {
 }
 
 func acceptPipeline(cancel chan struct{}, in chan Line, out chan Line, pc *pipelineCtx) {
-	tracer.Printf("acceptPipeline: START")
-	defer tracer.Printf("acceptPipeline: END")
+	trace("acceptPipeline: START")
+	defer trace("acceptPipeline: END")
 	defer close(out)
 	for {
 		select {
 		case <-cancel:
-			tracer.Printf("acceptPipeline: detected cancel request. Bailing out")
+			trace("acceptPipeline: detected cancel request. Bailing out")
 			return
 		case l, ok := <-in:
 			if l == nil && !ok {
-				tracer.Printf("acceptPipeline: detected end of input. Bailing out")
+				trace("acceptPipeline: detected end of input. Bailing out")
 				if pc.onEnd != nil {
 					pc.onEnd()
 				}
 				return
 			}
-			tracer.Printf("acceptPipeline: forwarding to callback")
+			trace("acceptPipeline: forwarding to callback")
 			if ll, err := pc.onIncomingLine(l); err == nil {
-				tracer.Printf("acceptPipeline: forwarding to out channel")
+				trace("acceptPipeline: forwarding to out channel")
 				out <- ll
 			}
 		}
@@ -128,8 +128,8 @@ func (rlb *RawLineBuffer) Replay() error {
 	rlb.outputCh = make(chan Line)
 	go func() {
 		replayed := 0
-		tracer.Printf("RawLineBuffer.Replay (goroutine): START")
-		defer func() { tracer.Printf("RawLineBuffer.Replay (goroutine): END (Replayed %d lines)", replayed) }()
+		trace("RawLineBuffer.Replay (goroutine): START")
+		defer func() { trace("RawLineBuffer.Replay (goroutine): END (Replayed %d lines)", replayed) }()
 
 		defer func() { recover() }() // It's okay if we fail to replay
 		defer close(rlb.outputCh)
@@ -150,7 +150,7 @@ func (rlb *RawLineBuffer) Accept(p Pipeliner) {
 }
 
 func (rlb *RawLineBuffer) Append(l Line) (Line, error) {
-	tracer.Printf("RawLineBuffer.Append: %s", l.DisplayString())
+	trace("RawLineBuffer.Append: %s", l.DisplayString())
 	if rlb.capacity > 0 && len(rlb.lines) > rlb.capacity {
 		diff := len(rlb.lines) - rlb.capacity
 

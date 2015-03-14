@@ -138,13 +138,13 @@ type Filter struct {
 // Work is the actual work horse that that does the matching
 // in a goroutine of its own. It wraps Matcher.Match().
 func (f *Filter) Work(cancel chan struct{}, q HubReq) {
-	tracer.Printf("Filter.Work: START\n")
-	defer tracer.Printf("Filter.Work: END\n")
+	trace("Filter.Work: START\n")
+	defer trace("Filter.Work: END\n")
 	defer q.Done()
 
 	query := q.DataString()
 	if query == "" {
-		tracer.Printf("Filter.Work: Resetting activingLineBuffer")
+		trace("Filter.Work: Resetting activingLineBuffer")
 		f.ResetActiveLineBuffer()
 	} else {
 		f.rawLineBuffer.cancelCh = cancel
@@ -152,7 +152,7 @@ func (f *Filter) Work(cancel chan struct{}, q HubReq) {
 
 		filter := f.Filter().Clone()
 		filter.SetQuery(query)
-		tracer.Printf("Running %#v filter using query '%s'", filter, query)
+		trace("Running %#v filter using query '%s'", filter, query)
 
 		filter.Accept(f.rawLineBuffer)
 		buf := NewRawLineBuffer()
@@ -249,8 +249,8 @@ func (rf *RegexpFilter) Accept(p Pipeliner) {
 var ErrFilterDidNotMatch = errors.New("error: filter did not match against given line")
 
 func (rf *RegexpFilter) filter(l Line) (Line, error) {
-	tracer.Printf("RegexpFilter.filter: START")
-	defer tracer.Printf("RegexpFilter.filter: END")
+	trace("RegexpFilter.filter: START")
+	defer trace("RegexpFilter.filter: END")
 	regexps, err := rf.getQueryAsRegexps()
 	if err != nil {
 		return nil, err
@@ -260,7 +260,7 @@ func (rf *RegexpFilter) filter(l Line) (Line, error) {
 	matches := [][]int{}
 TryRegexps:
 	for _, rx := range regexps {
-		tracer.Printf("RegexpFilter.filter: matching '%s' against '%s'", v, rx)
+		trace("RegexpFilter.filter: matching '%s' against '%s'", v, rx)
 		match := rx.FindAllStringSubmatchIndex(v, -1)
 		if match == nil {
 			allMatched = false
@@ -273,7 +273,7 @@ TryRegexps:
 		return nil, ErrFilterDidNotMatch
 	}
 
-	tracer.Printf("RegexpFilter.filter: line matched pattern\n")
+	trace("RegexpFilter.filter: line matched pattern\n")
 	sort.Sort(byMatchStart(matches))
 
 	// We need to "dedupe" the results. For example, if we matched the
@@ -346,7 +346,7 @@ func (fs *FilterSet) Rotate() {
 	if fs.current >= len(fs.filters) {
 		fs.current = 0
 	}
-	tracer.Printf("FilterSet.Rotate: now filter in effect is %s", fs.filters[fs.current])
+	trace("FilterSet.Rotate: now filter in effect is %s", fs.filters[fs.current])
 }
 
 var ErrFilterNotFound = errors.New("specified filter was not found")
@@ -407,7 +407,7 @@ type ExternalCmdFilter struct {
 }
 
 func NewExternalCmdFilter(name, cmd string, args []string, threshold int, enableSep bool) *ExternalCmdFilter {
-	tracer.Printf("name = %s, cmd = %s, args = %#v", name, cmd, args)
+	trace("name = %s, cmd = %s, args = %#v", name, cmd, args)
 	return &ExternalCmdFilter{
 		simplePipeline:  simplePipeline{},
 		enableSep:       enableSep,
@@ -449,7 +449,7 @@ func (ecf *ExternalCmdFilter) Accept(p Pipeliner) {
 	go func() {
 		defer close(outputCh)
 
-		defer tracer.Printf("ExternalCmdFilter.Accept: DONE")
+		defer trace("ExternalCmdFilter.Accept: DONE")
 
 		// for every N lines, execute the external command
 		buf := []Line{}
@@ -480,10 +480,10 @@ func (ecf ExternalCmdFilter) String() string {
 func (ecf *ExternalCmdFilter) launchExternalCmd(buf []Line, cancelCh chan struct{}, outputCh chan Line) {
 	defer func() { recover() }() // ignore errors
 
-	tracer.Printf("ExternalCmdFilter.launchExternalCmd: START")
-	defer tracer.Printf("ExternalCmdFilter.launchExternalCmd: END")
+	trace("ExternalCmdFilter.launchExternalCmd: START")
+	defer trace("ExternalCmdFilter.launchExternalCmd: END")
 
-	tracer.Printf("buf = %v", buf)
+	trace("buf = %v", buf)
 
 	args := append([]string{ecf.query}, ecf.args...)
 	cmd := exec.Command(ecf.cmd, args...)
@@ -499,7 +499,7 @@ func (ecf *ExternalCmdFilter) launchExternalCmd(buf []Line, cancelCh chan struct
 		return
 	}
 
-	tracer.Printf("cmd = %#v", cmd)
+	trace("cmd = %#v", cmd)
 	err = cmd.Start()
 	if err != nil {
 		return
@@ -509,11 +509,11 @@ func (ecf *ExternalCmdFilter) launchExternalCmd(buf []Line, cancelCh chan struct
 
 	cmdCh := make(chan Line)
 	go func(cmdCh chan Line, rdr *bufio.Reader) {
-		defer tracer.Printf("Done reader")
+		defer trace("Done reader")
 		defer func() { recover() }()
 		defer close(cmdCh)
 		for {
-			tracer.Printf("ReadLine")
+			trace("ReadLine")
 			b, _, err := rdr.ReadLine()
 			if len(b) > 0 {
 				// TODO: need to redo the spec for custom matchers
@@ -534,7 +534,7 @@ func (ecf *ExternalCmdFilter) launchExternalCmd(buf []Line, cancelCh chan struct
 		}
 	}()
 
-	defer tracer.Printf("Done waiting for cancel or line")
+	defer trace("Done waiting for cancel or line")
 
 	for {
 		select {
@@ -544,7 +544,7 @@ func (ecf *ExternalCmdFilter) launchExternalCmd(buf []Line, cancelCh chan struct
 			if l == nil || !ok {
 				return
 			}
-			tracer.Printf("Custom: l = %s", l.DisplayString())
+			trace("Custom: l = %s", l.DisplayString())
 			outputCh <- l
 		}
 	}

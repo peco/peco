@@ -164,8 +164,8 @@ func doAcceptChar(i *Input, ev termbox.Event) {
 }
 
 func doRotateFilter(i *Input, ev termbox.Event) {
-	tracer.Printf("doRotateFitler: START")
-	defer tracer.Printf("doRotateFitler: END")
+	trace("doRotateFitler: START")
+	defer trace("doRotateFitler: END")
 	i.RotateFilter()
 	if i.ExecQuery() {
 		return
@@ -226,8 +226,8 @@ func doSelectVisible(i *Input, _ termbox.Event) {
 }
 
 func doFinish(i *Input, _ termbox.Event) {
-	tracer.Printf("doFinish: START")
-	defer tracer.Printf("doFinish: END")
+	trace("doFinish: START")
+	defer trace("doFinish: END")
 
 	// Must end with all the selected lines.
 	if i.SelectionLen() == 0 {
@@ -262,8 +262,8 @@ func doCancel(i *Input, ev termbox.Event) {
 }
 
 func doSelectDown(i *Input, ev termbox.Event) {
-	tracer.Printf("doSelectDown: START")
-	defer tracer.Printf("doSelectDown: END")
+	trace("doSelectDown: START")
+	defer trace("doSelectDown: END")
 	i.SendPaging(ToLineBelow)
 }
 
@@ -532,18 +532,18 @@ func doDeleteForwardChar(i *Input, _ termbox.Event) {
 }
 
 func doDeleteBackwardChar(i *Input, ev termbox.Event) {
-	tracer.Printf("doDeleteBackwardChar: START")
-	defer tracer.Printf("doDeleteBackwardChar: END")
+	trace("doDeleteBackwardChar: START")
+	defer trace("doDeleteBackwardChar: END")
 
 	qlen := i.QueryLen()
 	if qlen <= 0 {
-		tracer.Printf("doDeleteBackwardChar: QueryLen <= 0, do nothing")
+		trace("doDeleteBackwardChar: QueryLen <= 0, do nothing")
 		return
 	}
 
 	pos := i.CaretPos()
 	if pos == 0 {
-		tracer.Printf("doDeleteBackwardChar: Already at position 0")
+		trace("doDeleteBackwardChar: Already at position 0")
 		// No op
 		return
 	}

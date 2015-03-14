@@ -5,13 +5,11 @@ import (
 	"io"
 	"os"
 	"os/signal"
-	"runtime"
 	"sync"
 	"syscall"
 	"time"
 )
 
-const debug = false
 const DefaultCustomFilterBufferThreshold = 100
 
 var screen Screen = Termbox{}
@@ -135,31 +133,6 @@ type Ctx struct {
 
 	wait *sync.WaitGroup
 	err  error
-}
-
-func newMutex() sync.Locker {
-	if debug {
-		return &loggingMutex{&sync.Mutex{}}
-	}
-	return &sync.Mutex{}
-}
-
-type loggingMutex struct {
-	*sync.Mutex
-}
-
-func (m *loggingMutex) Lock() {
-	buf := make([]byte, 8092)
-	l := runtime.Stack(buf, false)
-	fmt.Printf("LOCK %s\n", buf[:l])
-	m.Mutex.Lock()
-}
-
-func (m *loggingMutex) Unlock() {
-	buf := make([]byte, 8092)
-	l := runtime.Stack(buf, false)
-	fmt.Printf("UNLOCK %s\n", buf[:l])
-	m.Mutex.Unlock()
 }
 
 func NewCtx(o CtxOptions) *Ctx {
@@ -333,15 +306,13 @@ func (c *Ctx) WaitDone() {
 }
 
 func (c *Ctx) ExecQuery() bool {
-	tracer.Printf("Ctx.ExecQuery: START")
-	defer tracer.Printf("Ctx.ExecQuery: END")
+	trace("Ctx.ExecQuery: START")
+	defer trace("Ctx.ExecQuery: END")
 
 	if c.QueryLen() <= 0 {
-		tracer.Printf("Ctx.ExecQuery: Nothing to do")
 		return false
 	}
 
-	tracer.Printf("Ctx.ExecQuery: SendQuery")
 	c.SendQuery(c.QueryString())
 	return true
 }
@@ -390,10 +361,10 @@ func (c *Ctx) SetSavedQuery(q []rune) {
 }
 
 func (c *Ctx) SetQuery(q []rune) {
-	tracer.Printf("Ctx.SetQuery: START")
-	defer tracer.Printf("Ctx.SetQuery: END")
+	trace("Ctx.SetQuery: START")
+	defer trace("Ctx.SetQuery: END")
 	c.mutex.Lock()
-	tracer.Printf("Ctx.SetQuery: setting query to '%s'", string(q))
+	trace("Ctx.SetQuery: setting query to '%s'", string(q))
 	c.FilterQuery.query = q
 	c.mutex.Unlock()
 	c.SetCaretPos(c.QueryLen())

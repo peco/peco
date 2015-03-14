@@ -184,8 +184,8 @@ func NewUserPrompt(ctx *Ctx, anchor VerticalAnchor, anchorOffset int) *UserPromp
 
 // Draw draws the query prompt
 func (u UserPrompt) Draw() {
-	tracer.Printf("UserPrompt.Draw: START")
-	defer tracer.Printf("UserPrompt.Draw: END")
+	trace("UserPrompt.Draw: START")
+	defer trace("UserPrompt.Draw: END")
 
 	location := u.AnchorPosition()
 
@@ -336,8 +336,8 @@ func NewListArea(ctx *Ctx, anchor VerticalAnchor, anchorOffset int, sortTopDown 
 
 // Draw displays the ListArea on the screen
 func (l *ListArea) Draw(perPage int) {
-	tracer.Printf("ListArea.Draw: START")
-	defer tracer.Printf("ListArea.Draw: END")
+	trace("ListArea.Draw: START")
+	defer trace("ListArea.Draw: END")
 	currentPage := l.currentPage
 
 	pf := PageCrop{perPage: currentPage.perPage, currentPage: currentPage.page}
@@ -361,7 +361,7 @@ func (l *ListArea) Draw(perPage int) {
 
 	// If our buffer is smaller than perPage, we may need to
 	// clear some lines
-	tracer.Printf("ListeArea.Draw: buffer size is %d, our view area is %d\n", bufsiz, perPage)
+	trace("ListeArea.Draw: buffer size is %d, our view area is %d\n", bufsiz, perPage)
 	for n := bufsiz; n < perPage; n++ {
 		l.displayCache[n] = nil
 		if l.sortTopDown {
@@ -370,7 +370,7 @@ func (l *ListArea) Draw(perPage int) {
 			y = start - n
 		}
 
-		tracer.Printf("ListArea.Draw: clearing row %d", y)
+		trace("ListArea.Draw: clearing row %d", y)
 		printScreen(0, y, l.config.Style.BasicFG(), l.config.Style.BasicBG(), "", true)
 	}
 
@@ -445,7 +445,7 @@ func (l *ListArea) Draw(perPage int) {
 			printScreen(prev, y, fgAttr, bgAttr, line[m[1]:len(line)], true)
 		}
 	}
-	tracer.Printf("ListArea.Draw: Written total of %d lines (%d cached)\n", written+cached, cached)
+	trace("ListArea.Draw: Written total of %d lines (%d cached)\n", written+cached, cached)
 }
 
 // BasicLayout is... the basic layout :) At this point this is the
@@ -495,7 +495,7 @@ CALCULATE_PAGE:
 	currentPage.perPage = perPage
 	currentPage.total = buf.Size()
 
-	tracer.Printf("BasicLayout.CalculatePage: %#v", currentPage)
+	trace("BasicLayout.CalculatePage: %#v", currentPage)
 	if currentPage.total == 0 {
 		currentPage.maxPage = 1
 	} else {
@@ -523,8 +523,8 @@ func (l *BasicLayout) DrawScreen() {
 	//	if err := screen.Clear(l.config.Style.BasicFG(), l.config.Style.BasicBG()); err != nil {
 	//		return
 	//	}
-	tracer.Printf("DrawScreen: START")
-	defer tracer.Printf("DrawScreen: END")
+	trace("DrawScreen: START")
+	defer trace("DrawScreen: END")
 
 	perPage := linesPerPage()
 
@@ -550,7 +550,7 @@ func (l *BasicLayout) MovePage(p PagingRequest) {
 	// Before we move, on which line were we located?
 	lineBefore := l.currentLine
 
-	defer func() { tracer.Printf("currentLine changed from %d -> %d", lineBefore, l.currentLine) }()
+	defer func() { trace("currentLine changed from %d -> %d", lineBefore, l.currentLine) }()
 	cp := l.currentPage
 	buf := l.GetCurrentLineBuffer()
 	lcur := buf.Size()
@@ -558,7 +558,7 @@ func (l *BasicLayout) MovePage(p PagingRequest) {
 	defer func() {
 		for _, lno := range []int{lineBefore, l.currentLine} {
 			if oldLine, err := buf.LineAt(lno); err == nil {
-				tracer.Printf("Setting line %d dirty", lno)
+				trace("Setting line %d dirty", lno)
 				oldLine.SetDirty(true)
 			}
 		}
