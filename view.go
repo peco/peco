@@ -199,17 +199,23 @@ CALCULATE_PAGE:
 		target := targets[targetIdx]
 		line := target.Line()
 		matches := target.Indices()
+		fgs, bgs := target.Attribs()
 		if matches == nil {
-			printTB(0, n, fgAttr, bgAttr, line)
+			prev := 0
+			for i, c := range line {
+				printTB(prev, n, fgAttr|fgs[i], bgAttr|bgs[i], string(c))
+				prev += runewidth.StringWidth(string(c))
+			}
 		} else {
 			prev := 0
 			index := 0
 			for _, m := range matches {
 				if m[0] > index {
-					c := line[index:m[0]]
-					printTB(prev, n, fgAttr, bgAttr, c)
-					prev += runewidth.StringWidth(c)
-					index += len(c)
+					for i, c := range line[index:m[0]] {
+						printTB(prev, n, fgAttr|fgs[index+i], bgAttr|bgs[index+i], string(c))
+						prev += runewidth.StringWidth(string(c))
+					}
+					index += m[0] - index
 				}
 				c := line[m[0]:m[1]]
 				printTB(prev, n, v.config.Style.Query.fg, bgAttr|v.config.Style.Query.bg, c)

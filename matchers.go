@@ -70,7 +70,7 @@ func parseAttrib(currfg, currbg termbox.Attribute, esc string) (fg, bg termbox.A
 		case "49":
 			bg &= 16 // zero color bits
 			bg |= termbox.ColorDefault
-		case "0": // reset all attribs
+		case "0", "": // reset all attribs
 			bg = termbox.ColorDefault
 			fg = termbox.ColorDefault
 		}
@@ -85,6 +85,7 @@ type Match interface {
 	Buffer() string // Raw buffer, may contain null
 	Line() string   // Line to be displayed
 	Output() string // Output string to be displayed after peco is done
+	Attribs() (fg, bg []termbox.Attribute)
 	Indices() [][]int
 }
 
@@ -118,13 +119,12 @@ func NewMatchString(v string, enableSep bool) *MatchString {
 			panic("unterminated escape sequence") // TODO: how to handle this?
 		}
 		end += start + 1
-		for i := range m.lbuf[end:] {
-			// TODO: parse out actual escape sequence colors, etc.
+		for i := end; i < len(m.lbuf); i++ {
 			m.fg[i], m.bg[i] = parseAttrib(m.fg[i], m.bg[i], m.lbuf[start+2:end-1])
 		}
 		m.lbuf = m.lbuf[:start] + m.lbuf[end:]
-		m.fg = append(m.fg[:start], m.fg[end:]...)
-		m.bg = append(m.bg[:start], m.bg[end:]...)
+		m.fg = append(append([]termbox.Attribute{}, m.fg[:start]...), m.fg[end:]...)
+		m.bg = append(append([]termbox.Attribute{}, m.bg[:start]...), m.bg[end:]...)
 	}
 
 	if !enableSep {
@@ -140,6 +140,10 @@ func NewMatchString(v string, enableSep bool) *MatchString {
 		}
 	}
 	return m
+}
+
+func (m MatchString) Attribs() (fgs, bgs []termbox.Attribute) {
+	return m.fg, m.bg
 }
 
 func (m MatchString) Buffer() string {
