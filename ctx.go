@@ -202,32 +202,6 @@ func (c *Ctx) ReadConfig(file string) error {
 	return nil
 }
 
-func (c *Ctx) SetLines(newLines []Line) {
-	c.linesMutex.Lock()
-	defer c.linesMutex.Unlock()
-	c.lines = newLines
-}
-
-func (c *Ctx) GetLines() []Line {
-	c.linesMutex.Lock()
-	defer c.linesMutex.Unlock()
-	return c.lines[:]
-}
-
-func (c *Ctx) GetLinesCount() int {
-	c.linesMutex.Lock()
-	defer c.linesMutex.Unlock()
-	return len(c.lines)
-}
-
-func (c *Ctx) IsBufferOverflowing() bool {
-	if c.bufferSize <= 0 {
-		return false
-	}
-
-	return len(c.lines) > c.bufferSize
-}
-
 func (c *Ctx) IsRangeMode() bool {
 	return c.selectionRangeStart != invalidSelectionRange
 }
@@ -267,28 +241,6 @@ func (c *Ctx) SelectionContains(n int) bool {
 	return false
 }
 
-func (c *Ctx) GetCurrent() []Line {
-	c.currentMutex.Lock()
-	defer c.currentMutex.Unlock()
-	return c.current[:]
-}
-
-func (c *Ctx) GetCurrentLen() int {
-	c.currentMutex.Lock()
-	defer c.currentMutex.Unlock()
-	return len(c.current)
-}
-
-func (c *Ctx) GetCurrentAt(i int) Line {
-	c.currentMutex.Lock()
-	defer c.currentMutex.Unlock()
-
-	if i < 0 || len(c.current) <= i {
-		panic(fmt.Sprintf("GetCurrentAt: index out of range (%d)", i))
-	}
-	return c.current[i]
-}
-
 func (c *Ctx) ResultCh() <-chan Line {
 	return c.resultCh
 }
@@ -319,13 +271,6 @@ func (c *Ctx) ExecQuery() bool {
 
 func (c *Ctx) DrawPrompt() {
 	c.SendDrawPrompt()
-}
-
-func (c *Ctx) Buffer() []Line {
-	// Copy lines so it's safe to read it
-	lcopy := make([]Line, len(c.lines))
-	copy(lcopy, c.lines)
-	return lcopy
 }
 
 func (c *Ctx) NewBufferReader(r io.ReadCloser) *BufferReader {

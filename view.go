@@ -49,14 +49,12 @@ func (v *View) Loop() {
 			r.Done()
 		case lines := <-v.DrawCh():
 			tmp := lines.DataInterface()
-			if tmp == nil {
-				v.drawScreen(nil)
-			} else if matches, ok := tmp.([]Line); ok {
-				v.drawScreen(matches)
-			} else if name, ok := tmp.(string); ok {
+			if name, ok := tmp.(string); ok {
 				if name == "prompt" {
 					v.drawPrompt()
 				}
+			} else {
+				v.drawScreen()
 			}
 			lines.Done()
 		}
@@ -67,22 +65,10 @@ func (v *View) printStatus(r StatusMsgRequest) {
 	v.layout.PrintStatus(r.message, r.clearDelay)
 }
 
-func (v *View) drawScreenNoLock(targets []Line) {
-	if targets == nil {
-		if current := v.GetCurrent(); current != nil {
-			targets = current
-		} else {
-			targets = v.GetLines()
-		}
-	}
-
-	v.layout.DrawScreen()
-}
-
-func (v *View) drawScreen(targets []Line) {
+func (v *View) drawScreen() {
 	v.mutex.Lock()
 	defer v.mutex.Unlock()
-	v.drawScreenNoLock(targets)
+	v.layout.DrawScreen()
 }
 
 func (v *View) drawPrompt() {
@@ -96,5 +82,5 @@ func (v *View) movePage(p PagingRequest) {
 	defer v.mutex.Unlock()
 
 	v.layout.MovePage(p)
-	v.drawScreenNoLock(nil)
+	v.layout.DrawScreen()
 }
