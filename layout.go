@@ -381,21 +381,12 @@ func (l *ListArea) Draw(perPage int) {
 		case n+currentPage.offset == l.currentLine:
 			fgAttr = l.config.Style.SelectedFG()
 			bgAttr = l.config.Style.SelectedBG()
-			// Not a good place to put this, move it out later
-			l.displayCache[n] = nil
 		case l.SelectionContains(n + currentPage.offset):
 			fgAttr = l.config.Style.SavedSelectionFG()
 			bgAttr = l.config.Style.SavedSelectionBG()
 		default:
 			fgAttr = l.config.Style.BasicFG()
 			bgAttr = l.config.Style.BasicBG()
-			// Not a good place to put this, move it out later
-			if n+1 < len(l.displayCache) &&
-				n+currentPage.offset+1 == l.currentLine {
-				l.displayCache[n+1] = nil
-			} else if n > 0 && n+currentPage.offset-1 == l.currentLine {
-				l.displayCache[n-1] = nil
-			}
 		}
 
 		if n >= bufsiz {
@@ -561,11 +552,17 @@ func (l *BasicLayout) MovePage(p PagingRequest) {
 
 	defer func() { tracer.Printf("currentLine changed from %d -> %d", lineBefore, l.currentLine) }()
 	cp := l.currentPage
-	lcur := l.GetCurrentLineBuffer().Size()
+	buf := l.GetCurrentLineBuffer()
+	lcur := buf.Size()
 
-	if oldLine, err := l.GetCurrentLineBuffer().LineAt(lineBefore - cp.offset - 1); err == nil {
-		oldLine.SetDirty(true)
-	}
+	defer func() {
+		for _, lno := range []int{lineBefore, l.currentLine} {
+			if oldLine, err := buf.LineAt(lno); err == nil {
+				tracer.Printf("Setting line %d dirty", lno)
+				oldLine.SetDirty(true)
+			}
+		}
+	}()
 
 	lpp := linesPerPage()
 	if l.list.sortTopDown {
