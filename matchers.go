@@ -10,6 +10,75 @@ import (
 	"github.com/nsf/termbox-go"
 )
 
+func parseAttrib(currfg, currbg termbox.Attribute, esc string) (fg, bg termbox.Attribute) {
+	fg, bg = currfg, currbg
+
+	codes := strings.Split(esc, ";")
+	for _, code := range codes {
+		switch code {
+		case "30":
+			fg &= 16 // zero color bits
+			fg |= termbox.ColorBlack
+		case "31":
+			fg &= 16 // zero color bits
+			fg |= termbox.ColorRed
+		case "32":
+			fg &= 16 // zero color bits
+			fg |= termbox.ColorGreen
+		case "33":
+			fg &= 16 // zero color bits
+			fg |= termbox.ColorYellow
+		case "34":
+			fg &= 16 // zero color bits
+			fg |= termbox.ColorBlue
+		case "35":
+			fg &= 16 // zero color bits
+			fg |= termbox.ColorMagenta
+		case "36":
+			fg &= 16 // zero color bits
+			fg |= termbox.ColorCyan
+		case "37":
+			fg &= 16 // zero color bits
+			fg |= termbox.ColorWhite
+		case "39":
+			fg &= 16 // zero color bits
+			fg |= termbox.ColorDefault
+		case "40":
+			bg &= 16 // zero color bits
+			bg |= termbox.ColorBlack
+		case "41":
+			bg &= 16 // zero color bits
+			bg |= termbox.ColorRed
+		case "42":
+			bg &= 16 // zero color bits
+			bg |= termbox.ColorGreen
+		case "43":
+			bg &= 16 // zero color bits
+			bg |= termbox.ColorYellow
+		case "44":
+			bg &= 16 // zero color bits
+			bg |= termbox.ColorBlue
+		case "45":
+			bg &= 16 // zero color bits
+			bg |= termbox.ColorMagenta
+		case "46":
+			bg &= 16 // zero color bits
+			bg |= termbox.ColorCyan
+		case "47":
+			bg &= 16 // zero color bits
+			bg |= termbox.ColorWhite
+		case "49":
+			bg &= 16 // zero color bits
+			bg |= termbox.ColorDefault
+		case "0": // reset all attribs
+			bg = termbox.ColorDefault
+			fg = termbox.ColorDefault
+		}
+	}
+
+	return fg, bg
+}
+
 // Match defines the interface for matches. Note that to make drawing easier,
 // we have a DidMatch and NoMatch types instead of using []Match and []string.
 type Match interface {
@@ -20,10 +89,11 @@ type Match interface {
 }
 
 type MatchString struct {
-	buf     string
-	lbuf    string // buf with escape sequences removed for Line() output
-	sepLoc  int
-	attribs []termbox.Attribute
+	buf    string
+	lbuf   string // buf with escape sequences removed for Line() output
+	sepLoc int
+	bg     []termbox.Attribute
+	fg     []termbox.Attribute
 }
 
 func NewMatchString(v string, enableSep bool) *MatchString {
@@ -32,12 +102,14 @@ func NewMatchString(v string, enableSep bool) *MatchString {
 		v,
 		-1,
 		nil,
+		nil,
 	}
 
 	// TODO: handle sepLoc correctly assuming lbuf != buf
-	m.attribs = make([]termbox.Attribute, len(m.lbuf))
+	m.bg = make([]termbox.Attribute, len(m.lbuf))
+	m.fg = make([]termbox.Attribute, len(m.lbuf))
 	for {
-		start := strings.IndexByte(m.lbuf, 0x1b)
+		start := strings.Index(m.lbuf, string(0x1b)+"[")
 		if start == -1 {
 			break
 		}
@@ -48,10 +120,11 @@ func NewMatchString(v string, enableSep bool) *MatchString {
 		end += start + 1
 		for i := range m.lbuf[end:] {
 			// TODO: parse out actual escape sequence colors, etc.
-			m.attribs[i] = termbox.ColorDefault
+			m.fg[i], m.bg[i] = parseAttrib(m.fg[i], m.bg[i], m.lbuf[start+2:end-1])
 		}
 		m.lbuf = m.lbuf[:start] + m.lbuf[end:]
-		m.attribs = append(m.attribs[:start], m.attribs[end:]...)
+		m.fg = append(m.fg[:start], m.fg[end:]...)
+		m.bg = append(m.bg[:start], m.bg[end:]...)
 	}
 
 	if !enableSep {
