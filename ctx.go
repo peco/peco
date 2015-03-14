@@ -88,7 +88,7 @@ func NewCtx(enableSep bool) *Ctx {
 		make(chan struct{}),         // loopCh. You never send messages to this. no point in buffering
 		make(chan string, 5),        // queryCh.
 		make(chan []Match, 5),       // drawCh.
-		make(chan string, 5),				 // statusMsgCh
+		make(chan string, 5),        // statusMsgCh
 		make(chan PagingRequest, 5), // pagingCh
 		sync.Mutex{},
 		[]rune{},

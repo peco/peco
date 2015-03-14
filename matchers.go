@@ -6,6 +6,8 @@ import (
 	"regexp"
 	"sort"
 	"strings"
+
+	"github.com/nsf/termbox-go"
 )
 
 // Match defines the interface for matches. Note that to make drawing easier,
@@ -18,15 +20,40 @@ type Match interface {
 }
 
 type MatchString struct {
-	buf    string
-	sepLoc int
+	buf     string
+	lbuf    string // buf with escape sequences removed for Line() output
+	sepLoc  int
+	attribs []termbox.Attribute
 }
 
 func NewMatchString(v string, enableSep bool) *MatchString {
 	m := &MatchString{
 		v,
+		v,
 		-1,
+		nil,
 	}
+
+	// TODO: handle sepLoc correctly assuming lbuf != buf
+	m.attribs = make([]termbox.Attribute, len(m.lbuf))
+	for {
+		start := strings.IndexByte(m.lbuf, 0x1b)
+		if start == -1 {
+			break
+		}
+		end := strings.Index(m.lbuf[start:], "m")
+		if end == -1 {
+			panic("unterminated escape sequence") // TODO: how to handle this?
+		}
+		end += start + 1
+		for i := range m.lbuf[end:] {
+			// TODO: parse out actual escape sequence colors, etc.
+			m.attribs[i] = termbox.ColorDefault
+		}
+		m.lbuf = m.lbuf[:start] + m.lbuf[end:]
+		m.attribs = append(m.attribs[:start], m.attribs[end:]...)
+	}
+
 	if !enableSep {
 		return m
 	}
@@ -48,9 +75,9 @@ func (m MatchString) Buffer() string {
 
 func (m MatchString) Line() string {
 	if i := m.sepLoc; i > -1 {
-		return m.buf[:i]
+		return m.lbuf[:i]
 	}
-	return m.buf
+	return m.lbuf
 }
 
 func (m MatchString) Output() string {
