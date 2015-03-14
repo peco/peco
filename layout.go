@@ -6,6 +6,7 @@ import (
 	"time"
 	"unicode/utf8"
 
+	"github.com/google/btree"
 	"github.com/mattn/go-runewidth"
 	"github.com/nsf/termbox-go"
 )
@@ -377,14 +378,13 @@ func (l *ListArea) Draw(perPage int) {
 	var cached, written int
 	var fgAttr, bgAttr termbox.Attribute
 	for n := 0; n < perPage; n++ {
-tracer.Printf("n = %d, offset = %d, currentLine = %d", n, currentPage.offset, l.currentLine)
 		switch {
 		case n+currentPage.offset == l.currentLine:
 			fgAttr = l.config.Style.SelectedFG()
 			bgAttr = l.config.Style.SelectedBG()
 			// Not a good place to put this, move it out later
 			l.displayCache[n] = nil
-		case l.SelectionContains(n + currentPage.offset + 1):
+		case l.SelectionContains(n + currentPage.offset):
 			fgAttr = l.config.Style.SavedSelectionFG()
 			bgAttr = l.config.Style.SavedSelectionBG()
 		default:
@@ -505,7 +505,7 @@ CALCULATE_PAGE:
 	currentPage.perPage = perPage
 	currentPage.total = buf.Size()
 
-tracer.Printf("BasicLayout.CalculatePage: %#v", currentPage)
+	tracer.Printf("BasicLayout.CalculatePage: %#v", currentPage)
 	if currentPage.total == 0 {
 		currentPage.maxPage = 1
 	} else {
@@ -578,7 +578,7 @@ func (l *BasicLayout) MovePage(p PagingRequest) {
 		case ToScrollPageDown:
 			l.currentLine += lpp
 			if cp.page == cp.maxPage-1 && lcur < l.currentLine && (lcur-lineBefore) < lpp {
-				l.currentLine = lcur-1
+				l.currentLine = lcur - 1
 			}
 		case ToScrollPageUp:
 			l.currentLine -= lpp
@@ -599,7 +599,7 @@ func (l *BasicLayout) MovePage(p PagingRequest) {
 	if l.currentLine < 0 {
 		if lcur > 0 {
 			// Go to last page, if possible
-			l.currentLine = lcur-1
+			l.currentLine = lcur - 1
 		} else {
 			l.currentLine = 0
 		}
@@ -620,7 +620,7 @@ func (l *BasicLayout) MovePage(p PagingRequest) {
 			}
 			switch {
 			case l.selectionRangeStart <= lineBefore:
-				for lineno := l.selectionRangeStart + 1; lineno <= lcur && lineno < lineBefore; lineno++ {
+				for lineno := l.selectionRangeStart; lineno <= lcur && lineno < lineBefore; lineno++ {
 					l.SelectionRemove(lineno)
 				}
 			case lineBefore < l.currentLine:
@@ -632,13 +632,17 @@ func (l *BasicLayout) MovePage(p PagingRequest) {
 			for lineno := l.selectionRangeStart; lineno <= lcur && lineno <= l.currentLine; lineno++ {
 				l.SelectionAdd(lineno)
 			}
+			l.selection.Ascend(func(it btree.Item) bool {
+				return true
+			})
+
 			switch {
 			case lineBefore <= l.selectionRangeStart:
 				for lineno := lineBefore; lineno < l.selectionRangeStart; lineno++ {
 					l.SelectionRemove(lineno)
 				}
 			case l.currentLine < lineBefore:
-				for lineno := l.currentLine + 1; lineno <= lineBefore; lineno++ {
+				for lineno := l.currentLine; lineno <= lineBefore; lineno++ {
 					l.SelectionRemove(lineno)
 				}
 			}
