@@ -6,7 +6,6 @@ import (
 	"time"
 	"unicode/utf8"
 
-	"github.com/google/btree"
 	"github.com/mattn/go-runewidth"
 	"github.com/nsf/termbox-go"
 )
@@ -632,9 +631,6 @@ func (l *BasicLayout) MovePage(p PagingRequest) {
 			for lineno := l.selectionRangeStart; lineno <= lcur && lineno <= l.currentLine; lineno++ {
 				l.SelectionAdd(lineno)
 			}
-			l.selection.Ascend(func(it btree.Item) bool {
-				return true
-			})
 
 			switch {
 			case lineBefore <= l.selectionRangeStart:
