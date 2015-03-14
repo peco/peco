@@ -10,8 +10,6 @@ import (
 	"time"
 )
 
-const DefaultCustomFilterBufferThreshold = 100
-
 var screen Screen = Termbox{}
 
 // CtxOptions is the interface that defines that options can be

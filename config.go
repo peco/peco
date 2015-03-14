@@ -10,6 +10,10 @@ import (
 	"github.com/nsf/termbox-go"
 )
 
+// DefaultCustomFilterBufferThreshold is the default value
+// for BufferThreshold setting on CustomFilters. 
+const DefaultCustomFilterBufferThreshold = 100
+
 var homedirFunc = homedir
 
 // Config holds all the data that can be configured in the
@@ -32,8 +36,19 @@ type Config struct {
 }
 
 type CustomFilterConfig struct {
+	// Cmd is the name of the command to invoke
 	Cmd             string
+
+	// TODO: need to check if how we use this is correct
 	Args            []string
+
+	// BufferThreshold defines how many lines peco buffers before
+	// invoking the external command. If this value is big, we
+	// will execute the external command fewer times, but the
+	// results will not be generated for longer periods of time.
+	// If this value is small, we will execute the external command
+	// more often, but you pay the penalty of invoking that command
+	// more times.
 	BufferThreshold int
 }
 
