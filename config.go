@@ -200,7 +200,9 @@ func stringsToStyle(raw []string) *Style {
 	return style
 }
 
-var _locateRcfileIn = locateRcfileIn
+// This is a variable because we want to change its behavior
+// when we run tests.
+var locateRcfileInFunc = locateRcfileIn
 
 func locateRcfileIn(dir string) (string, error) {
 	const basename = "config.json"
@@ -224,13 +226,13 @@ func LocateRcfile() (string, error) {
 
 	// Try dir supplied via env var
 	if dir := os.Getenv("XDG_CONFIG_HOME"); dir != "" {
-		file, err := _locateRcfileIn(filepath.Join(dir, "peco"))
+		file, err := locateRcfileInFunc(filepath.Join(dir, "peco"))
 		if err == nil {
 			return file, nil
 		}
 	} else if uErr == nil { // silently ignore failure for homedir()
 		// Try "default" XDG location, is user is available
-		file, err := _locateRcfileIn(filepath.Join(home, ".config", "peco"))
+		file, err := locateRcfileInFunc(filepath.Join(home, ".config", "peco"))
 		if err == nil {
 			return file, nil
 		}
@@ -241,7 +243,7 @@ func LocateRcfile() (string, error) {
 	// with filepath.ListSeparator, so use it
 	if dirs := os.Getenv("XDG_CONFIG_DIRS"); dirs != "" {
 		for _, dir := range strings.Split(dirs, fmt.Sprintf("%c", filepath.ListSeparator)) {
-			file, err := _locateRcfileIn(filepath.Join(dir, "peco"))
+			file, err := locateRcfileInFunc(filepath.Join(dir, "peco"))
 			if err == nil {
 				return file, nil
 			}
@@ -249,7 +251,7 @@ func LocateRcfile() (string, error) {
 	}
 
 	if uErr == nil { // silently ignore failure for homedir()
-		file, err := _locateRcfileIn(filepath.Join(home, ".peco"))
+		file, err := locateRcfileInFunc(filepath.Join(home, ".peco"))
 		if err == nil {
 			return file, nil
 		}

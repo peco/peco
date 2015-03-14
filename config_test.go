@@ -92,7 +92,7 @@ func TestLocateRcfile(t *testing.T) {
 	}
 
 	i := 0
-	_locateRcfileIn = func(dir string) (string, error) {
+	locateRcfileInFunc = func(dir string) (string, error) {
 		t.Logf("looking for file in %s", dir)
 		if i > len(expected)-1 {
 			t.Fatalf("Got %d directories, only have %d", i+1, len(expected))
