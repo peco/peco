@@ -5,6 +5,8 @@ import (
 	"runtime"
 )
 
+// ErrBufferOutOfRange is returned when the index within the buffer that
+// was queried was out of the containing buffer's range
 var ErrBufferOutOfRange = errors.New("error: Specified index is out of range")
 
 type Pipeliner interface {
@@ -64,6 +66,8 @@ func acceptPipeline(cancel chan struct{}, in chan Line, out chan Line, pc *pipel
 //
 // Buffers should be immutable.
 type LineBuffer interface {
+	Pipeliner
+
 	LineAt(int) (Line, error)
 	Size() int
 

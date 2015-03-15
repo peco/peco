@@ -122,7 +122,7 @@ func (cli *CLI) Run() error {
 	case !IsTty(os.Stdin.Fd()):
 		in = os.Stdin
 	default:
-		return fmt.Errorf("You must supply something to work with via filename or stdin")
+		return fmt.Errorf("error: You must supply something to work with via filename or stdin")
 	}
 
 	ctx := NewCtx(opts)

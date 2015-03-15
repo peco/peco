@@ -35,7 +35,6 @@ func setDummyScreen() (*interceptor, func()) {
 func (d dummyScreen) SetCell(x, y int, ch rune, fg, bg termbox.Attribute) {
 	d.record("SetCell", interceptorArgs{x, y, ch, fg, bg})
 }
-func (d dummyScreen) Clear(fg, bg termbox.Attribute) error { return nil }
 func (d dummyScreen) Flush() error {
 	d.record("Flush", interceptorArgs{})
 	return nil

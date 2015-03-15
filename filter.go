@@ -509,11 +509,9 @@ func (ecf *ExternalCmdFilter) launchExternalCmd(buf []Line, cancelCh chan struct
 
 	cmdCh := make(chan Line)
 	go func(cmdCh chan Line, rdr *bufio.Reader) {
-		defer trace("Done reader")
 		defer func() { recover() }()
 		defer close(cmdCh)
 		for {
-			trace("ReadLine")
 			b, _, err := rdr.ReadLine()
 			if len(b) > 0 {
 				// TODO: need to redo the spec for custom matchers

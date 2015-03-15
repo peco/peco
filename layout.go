@@ -87,7 +87,7 @@ func mergeAttribute(a, b termbox.Attribute) termbox.Attribute {
 
 // Utility function
 func printScreen(x, y int, fg, bg termbox.Attribute, msg string, fill bool) int {
-	var written int = 0
+	var written int
 
 	for len(msg) > 0 {
 		c, w := utf8.DecodeRuneInString(msg)
@@ -530,6 +530,7 @@ CALCULATE_PAGE:
 	return nil
 }
 
+//
 func (l *BasicLayout) DrawPrompt() {
 	l.prompt.Draw()
 }

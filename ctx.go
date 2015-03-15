@@ -10,7 +10,7 @@ import (
 	"time"
 )
 
-var screen Screen = Termbox{}
+var screen = Screen(Termbox{})
 
 // CtxOptions is the interface that defines that options can be
 // passed in from the command line
@@ -40,22 +40,22 @@ type PageInfo struct {
 	maxPage int
 }
 
-func (p *Ctx) CaretPos() int {
-	p.mutex.Lock()
-	defer p.mutex.Unlock()
-	return p.caretPosition
+func (c *Ctx) CaretPos() int {
+	c.mutex.Lock()
+	defer c.mutex.Unlock()
+	return c.caretPosition
 }
 
-func (p *Ctx) SetCaretPos(where int) {
-	p.mutex.Lock()
-	defer p.mutex.Unlock()
-	p.caretPosition = where
+func (c *Ctx) SetCaretPos(where int) {
+	c.mutex.Lock()
+	defer c.mutex.Unlock()
+	c.caretPosition = where
 }
 
-func (p *Ctx) MoveCaretPos(offset int) {
-	p.mutex.Lock()
-	defer p.mutex.Unlock()
-	p.caretPosition = p.caretPosition + offset
+func (c *Ctx) MoveCaretPos(offset int) {
+	c.mutex.Lock()
+	defer c.mutex.Unlock()
+	c.caretPosition = c.caretPosition + offset
 }
 
 type FilterQuery struct {

@@ -35,6 +35,8 @@ type Config struct {
 	StickySelection bool
 }
 
+// CustomFilterConfig is used to specify configuration parameters
+// to CustomFilters
 type CustomFilterConfig struct {
 	// Cmd is the name of the command to invoke
 	Cmd             string
@@ -86,7 +88,7 @@ func (c *Config) ReadFilename(filename string) error {
 
 		for n, cfg := range c.CustomMatcher {
 			if _, ok := c.CustomFilter[n]; ok {
-				return fmt.Errorf("CustomFilter '%s' already exists. Refusing to overwrite with deprecated CustomMatcher config", n)
+				return fmt.Errorf("error: CustomFilter '%s' already exists. Refusing to overwrite with deprecated CustomMatcher config", n)
 			}
 
 			c.CustomFilter[n] = CustomFilterConfig{
