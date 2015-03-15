@@ -8,6 +8,8 @@ import (
 	"time"
 )
 
+// BufferReader reads from either stdin or a file. In case of stdin,
+// it also handles possible infinite source.
 type BufferReader struct {
 	*Ctx
 	input        io.ReadCloser
@@ -25,11 +27,13 @@ func (b *BufferReader) Loop() {
 	defer b.ReleaseWaitGroup()
 	defer func() { recover() }()             // ignore errors
 	defer func() { close(b.inputReadyCh) }() // Make sure to close notifier
+	defer b.input.Close()
 
 	ch := make(chan string, 10)
 
-	// scanner.Scan() blocks until the next read or error. But we want to
-	// exit immediately, so we move it out to its own goroutine
+	// scanner.Scan() blocks until the next read or error. But we want our
+	// main loop to be able to exit without blocking, so we move this out
+	// to its own goroutine
 	go func() {
 		defer func() { recover() }()
 		defer func() { close(ch) }()
@@ -43,8 +47,27 @@ func (b *BufferReader) Loop() {
 	once := &sync.Once{}
 	var refresh *time.Timer
 
-	loop := true
-	for loop {
+	doDelayedDraw := func() {
+		m.Lock()
+		defer m.Unlock()
+
+		trace("doDelayedDraw")
+
+		if refresh != nil {
+			return
+		}
+
+		refresh = time.AfterFunc(100*time.Millisecond, func() {
+			if !b.ExecQuery() {
+				b.SendDraw()
+			}
+			m.Lock()
+			defer m.Unlock()
+			refresh = nil
+		})
+	}
+
+	for loop := true; loop; {
 		select {
 		case <-b.LoopCh():
 			loop = false
@@ -56,6 +79,7 @@ func (b *BufferReader) Loop() {
 
 			if line != "" {
 				// Notify once that we have received something from the file/stdin
+				// This is the cue to start initializing the terminal
 				once.Do(func() { b.inputReadyCh <- struct{}{} })
 
 				// Make sure we lock access to b.lines
@@ -64,22 +88,9 @@ func (b *BufferReader) Loop() {
 				m.Unlock()
 			}
 
-			m.Lock()
-			if refresh == nil {
-				refresh = time.AfterFunc(100*time.Millisecond, func() {
-					if !b.ExecQuery() {
-						b.SendDraw()
-					}
-					m.Lock()
-					refresh = nil
-					m.Unlock()
-				})
-			}
-			m.Unlock()
+			doDelayedDraw()
 		}
 	}
-
-	b.input.Close()
 
 	// Out of the reader loop. If at this point we have no buffer,
 	// that means we have no buffer, so we should quit.

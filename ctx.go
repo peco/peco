@@ -276,7 +276,7 @@ func (c *Ctx) DrawPrompt() {
 }
 
 func (c *Ctx) NewBufferReader(r io.ReadCloser) *BufferReader {
-	return &BufferReader{c, r, make(chan struct{})}
+	return &BufferReader{c, r, make(chan struct{}, 1)}
 }
 
 func (c *Ctx) NewView() *View {

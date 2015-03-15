@@ -3,7 +3,6 @@
 package peco
 
 import (
-	"fmt"
 	"log"
 	"os"
 	"runtime"
@@ -12,11 +11,18 @@ import (
 )
 
 const debug = true
+
 var tracer *log.Logger
+var mutexTracer *log.Logger
+
 func init() {
 	if v, err := strconv.ParseBool(os.Getenv("PECO_TRACE")); err == nil && v {
 		tracer = log.New(os.Stderr, "peco: ", log.LstdFlags)
 		tracer.Printf("==== INITIALIZED tracer ====")
+	}
+	if v, err := strconv.ParseBool(os.Getenv("PECO_LOCK_TRACE")); err == nil && v {
+		mutexTracer = log.New(os.Stderr, "mutex: ", log.LstdFlags)
+		mutexTracer.Printf("==== INITIALIZED mutext tracer ====")
 	}
 }
 
@@ -25,6 +31,13 @@ func trace(f string, args ...interface{}) {
 		return
 	}
 	tracer.Printf(f, args...)
+}
+
+func mutexTrace(f string, args ...interface{}) {
+	if mutexTracer == nil {
+		return
+	}
+	mutexTracer.Printf(f, args...)
 }
 
 func newMutex() sync.Locker {
@@ -38,13 +51,13 @@ type loggingMutex struct {
 func (m *loggingMutex) Lock() {
 	buf := make([]byte, 8092)
 	l := runtime.Stack(buf, false)
-	fmt.Printf("LOCK %s\n", buf[:l])
+	mutexTrace("LOCK %s\n", buf[:l])
 	m.Mutex.Lock()
 }
 
 func (m *loggingMutex) Unlock() {
 	buf := make([]byte, 8092)
 	l := runtime.Stack(buf, false)
-	fmt.Printf("UNLOCK %s\n", buf[:l])
+	mutexTrace("UNLOCK %s\n", buf[:l])
 	m.Mutex.Unlock()
 }
