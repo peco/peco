@@ -260,6 +260,10 @@ func (c *Ctx) ExecQuery() bool {
 	defer trace("Ctx.ExecQuery: END")
 
 	if c.QueryLen() <= 0 {
+		if c.activeLineBuffer != nil {
+			c.ResetActiveLineBuffer()
+			return true
+		}
 		return false
 	}
 
