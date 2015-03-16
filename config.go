@@ -33,6 +33,7 @@ type Config struct {
 	CustomMatcher   map[string][]string
 	CustomFilter    map[string]CustomFilterConfig
 	StickySelection bool
+	QueryExecutionDelay int
 }
 
 // CustomFilterConfig is used to specify configuration parameters

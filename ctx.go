@@ -255,6 +255,9 @@ func (c *Ctx) WaitDone() {
 	c.wait.Wait()
 }
 
+var execQueryLock = newMutex()
+var execQueryTimer *time.Timer
+
 func (c *Ctx) ExecQuery() bool {
 	trace("Ctx.ExecQuery: START")
 	defer trace("Ctx.ExecQuery: END")
@@ -267,7 +270,20 @@ func (c *Ctx) ExecQuery() bool {
 		return false
 	}
 
-	c.SendQuery(c.QueryString())
+	if delay := c.config.QueryExecutionDelay; delay > 0 {
+		// Wait $delay millisecs before sending the query
+		// if a new input comes in, batch them up
+		execQueryLock.Lock()
+		defer execQueryLock.Unlock()
+		if execQueryTimer == nil {
+			execQueryTimer = time.AfterFunc(time.Duration(delay)*time.Millisecond, func() {
+				c.SendQuery(c.QueryString())
+				execQueryTimer = nil
+			})
+		}
+	} else {
+		c.SendQuery(c.QueryString())
+	}
 	return true
 }
 
