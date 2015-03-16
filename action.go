@@ -10,7 +10,7 @@ import (
 	"github.com/peco/peco/keyseq"
 )
 
-// ErrUserCanceled is used to ignal that the user deliverately 
+// ErrUserCanceled is used to ignal that the user deliverately
 // canceled using peco
 var ErrUserCanceled = errors.New("canceled")
 
@@ -156,7 +156,7 @@ func doAcceptChar(i *Input, ev termbox.Event) {
 		} else {
 			i.InsertQueryAt(ch, i.CaretPos())
 		}
-		i.MoveCaretPos(1)
+		i.SetCaretPos(i.QueryDisplayLen())
 		i.DrawPrompt() // Update prompt before running query
 
 		i.ExecQuery()
@@ -477,7 +477,7 @@ func doBeginningOfLine(i *Input, _ termbox.Event) {
 }
 
 func doEndOfLine(i *Input, _ termbox.Event) {
-	i.SetCaretPos(i.QueryLen())
+	i.SetCaretPos(i.QueryDisplayLen())
 	i.DrawPrompt()
 }
 

@@ -201,7 +201,8 @@ func (u UserPrompt) Draw() {
 		u.SetCaretPos(0) // sanity
 	}
 
-	ql := u.QueryLen()
+	qs := u.QueryString()
+	ql := u.QueryDisplayLen()
 	if pos > ql { // XXX Do we really need this?
 		u.SetCaretPos(ql)
 	}
@@ -214,7 +215,6 @@ func (u UserPrompt) Draw() {
 		printScreen(u.prefixLen+1, location, fg|termbox.AttrReverse, bg|termbox.AttrReverse, " ", false)
 	case u.CaretPos():
 		// the entire string + the caret after the string
-		qs := u.QueryString()
 		printScreen(u.prefixLen, location, fg, bg, "", true)
 		printScreen(u.prefixLen+1, location, fg, bg, qs, false)
 		printScreen(u.prefixLen+ql+1, location, fg|termbox.AttrReverse, bg|termbox.AttrReverse, " ", false)

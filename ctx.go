@@ -8,6 +8,8 @@ import (
 	"sync"
 	"syscall"
 	"time"
+
+	"github.com/mattn/go-runewidth"
 )
 
 var screen = Screen(Termbox{})
@@ -79,6 +81,12 @@ func (q FilterQuery) SavedQuery() []rune {
 func (q FilterQuery) QueryString() string {
 	qbytes := q.Query()
 	return string(qbytes)
+}
+
+func (q FilterQuery) QueryDisplayLen() int {
+	q.mutex.Lock()
+	defer q.mutex.Unlock()
+	return runewidth.StringWidth(string(q.query))
 }
 
 func (q FilterQuery) QueryLen() int {
