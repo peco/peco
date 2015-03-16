@@ -278,6 +278,9 @@ func (c *Ctx) ExecQuery() bool {
 		if execQueryTimer == nil {
 			execQueryTimer = time.AfterFunc(time.Duration(delay)*time.Millisecond, func() {
 				c.SendQuery(c.QueryString())
+
+				execQueryLock.Lock()
+				defer execQueryLock.Unlock()
 				execQueryTimer = nil
 			})
 		}
