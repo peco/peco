@@ -408,6 +408,10 @@ type ExternalCmdFilter struct {
 
 func NewExternalCmdFilter(name, cmd string, args []string, threshold int, enableSep bool) *ExternalCmdFilter {
 	trace("name = %s, cmd = %s, args = %#v", name, cmd, args)
+	if len(args) == 0 {
+		args = []string{ "$QUERY" }
+	}
+
 	return &ExternalCmdFilter{
 		simplePipeline:  simplePipeline{},
 		enableSep:       enableSep,
@@ -485,7 +489,12 @@ func (ecf *ExternalCmdFilter) launchExternalCmd(buf []Line, cancelCh chan struct
 
 	trace("buf = %v", buf)
 
-	args := append([]string{ecf.query}, ecf.args...)
+	args := append([]string(nil), ecf.args...)
+	for i, v := range args {
+		if v == "$QUERY" {
+			args[i] = ecf.query
+		}
+	}
 	cmd := exec.Command(ecf.cmd, args...)
 
 	inbuf := &bytes.Buffer{}
