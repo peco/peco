@@ -505,8 +505,8 @@ func NewBottomUpLayout(ctx *Ctx) *BasicLayout {
 
 // CalculatePage calculates which page we're displaying
 func (l *BasicLayout) CalculatePage(perPage int) error {
-	buf := l.GetCurrentLineBuffer()
 CALCULATE_PAGE:
+	buf := l.GetCurrentLineBuffer()
 	currentPage := l.currentPage
 	currentPage.page = (l.currentLine / perPage) + 1
 	currentPage.offset = (currentPage.page - 1) * perPage
@@ -521,7 +521,7 @@ CALCULATE_PAGE:
 	}
 
 	if currentPage.maxPage < currentPage.page {
-		if buf.Size() == 0 && l.QueryLen() == 0 {
+		if buf.Size() == 0 {
 			// wait for targets
 			return fmt.Errorf("no targets or query. nothing to do")
 		}
