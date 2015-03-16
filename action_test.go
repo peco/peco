@@ -5,7 +5,6 @@ import (
 	"time"
 	"unicode/utf8"
 
-	"github.com/mattn/go-runewidth"
 	"github.com/nsf/termbox-go"
 )
 
@@ -84,11 +83,11 @@ func TestDoDeleteForwardChar(t *testing.T) {
 	expectQueryString(t, ctx, "Hello World!")
 	expectCaretPos(t, ctx, 5)
 
-	ctx.SetCaretPos(runewidth.StringWidth(ctx.QueryString()))
+	ctx.SetCaretPos(ctx.QueryLen())
 	doDeleteForwardChar(input, termbox.Event{})
 
 	expectQueryString(t, ctx, "Hello World!")
-	expectCaretPos(t, ctx, runewidth.StringWidth(ctx.QueryString()))
+	expectCaretPos(t, ctx, ctx.QueryLen())
 
 	ctx.SetCaretPos(0)
 	doDeleteForwardChar(input, termbox.Event{})
@@ -108,11 +107,11 @@ func TestDoDeleteForwardWord(t *testing.T) {
 	expectQueryString(t, ctx, "Hello World!")
 	expectCaretPos(t, ctx, 5)
 
-	ctx.SetCaretPos(runewidth.StringWidth(ctx.QueryString()))
+	ctx.SetCaretPos(ctx.QueryLen())
 	doDeleteForwardWord(input, termbox.Event{})
 
 	expectQueryString(t, ctx, "Hello World!")
-	expectCaretPos(t, ctx, runewidth.StringWidth(ctx.QueryString()))
+	expectCaretPos(t, ctx, ctx.QueryLen())
 
 	ctx.SetCaretPos(0)
 	doDeleteForwardWord(input, termbox.Event{})
@@ -137,11 +136,11 @@ func TestDoDeleteBackwardChar(t *testing.T) {
 	expectQueryString(t, ctx, "Hell, World!")
 	expectCaretPos(t, ctx, 4)
 
-	ctx.SetCaretPos(runewidth.StringWidth(ctx.QueryString()))
+	ctx.SetCaretPos(ctx.QueryLen())
 	doDeleteBackwardChar(input, termbox.Event{})
 
 	expectQueryString(t, ctx, "Hell, World")
-	expectCaretPos(t, ctx, runewidth.StringWidth(ctx.QueryString()))
+	expectCaretPos(t, ctx, ctx.QueryLen())
 
 	ctx.SetCaretPos(0)
 	doDeleteBackwardChar(input, termbox.Event{})
@@ -215,7 +214,7 @@ func TestDoAcceptChar(t *testing.T) {
 		t.Errorf("Expected query to be populated as '%s', but got '%s'", message, qs)
 	}
 
-	ctx.MoveCaretPos(-6)
+	ctx.MoveCaretPos(-1*len("World!"))
 	writeQueryToPrompt(t, "Cruel ")
 
 	time.Sleep(500 * time.Millisecond)

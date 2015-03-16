@@ -151,12 +151,13 @@ func doAcceptChar(i *Input, ev termbox.Event) {
 	}
 
 	if ch := ev.Ch; ch > 0 {
+fmt.Printf("QueryLen = %d, CaretPos = %d\n", i.QueryLen(), i.CaretPos())
 		if i.QueryLen() == i.CaretPos() {
 			i.AppendQuery(ch)
 		} else {
 			i.InsertQueryAt(ch, i.CaretPos())
 		}
-		i.SetCaretPos(i.QueryDisplayLen())
+		i.MoveCaretPos(1)
 		i.DrawPrompt() // Update prompt before running query
 
 		i.ExecQuery()
@@ -477,7 +478,7 @@ func doBeginningOfLine(i *Input, _ termbox.Event) {
 }
 
 func doEndOfLine(i *Input, _ termbox.Event) {
-	i.SetCaretPos(i.QueryDisplayLen())
+	i.SetCaretPos(i.QueryLen())
 	i.DrawPrompt()
 }
 

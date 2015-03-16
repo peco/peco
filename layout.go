@@ -174,7 +174,7 @@ func NewUserPrompt(ctx *Ctx, anchor VerticalAnchor, anchorOffset int) *UserPromp
 	if len(prefix) <= 0 { // default
 		prefix = "QUERY>"
 	}
-	prefixLen := runewidth.StringWidth(prefix)
+	prefixLen := len(prefix)
 
 	return &UserPrompt{
 		Ctx:            ctx,
@@ -202,7 +202,7 @@ func (u UserPrompt) Draw() {
 	}
 
 	qs := u.QueryString()
-	ql := u.QueryDisplayLen()
+	ql := u.QueryLen()
 	if pos > ql { // XXX Do we really need this?
 		u.SetCaretPos(ql)
 	}
@@ -217,7 +217,7 @@ func (u UserPrompt) Draw() {
 		// the entire string + the caret after the string
 		printScreen(u.prefixLen, location, fg, bg, "", true)
 		printScreen(u.prefixLen+1, location, fg, bg, qs, false)
-		printScreen(u.prefixLen+ql+1, location, fg|termbox.AttrReverse, bg|termbox.AttrReverse, " ", false)
+		printScreen(u.prefixLen+runewidth.StringWidth(qs)+1, location, fg|termbox.AttrReverse, bg|termbox.AttrReverse, " ", false)
 	default:
 		// the caret is in the middle of the string
 		prev := 0

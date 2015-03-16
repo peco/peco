@@ -8,8 +8,6 @@ import (
 	"sync"
 	"syscall"
 	"time"
-
-	"github.com/mattn/go-runewidth"
 )
 
 var screen = Screen(Termbox{})
@@ -83,12 +81,6 @@ func (q FilterQuery) QueryString() string {
 	return string(qbytes)
 }
 
-func (q FilterQuery) QueryDisplayLen() int {
-	q.mutex.Lock()
-	defer q.mutex.Unlock()
-	return runewidth.StringWidth(string(q.query))
-}
-
 func (q FilterQuery) QueryLen() int {
 	q.mutex.Lock()
 	defer q.mutex.Unlock()
@@ -104,6 +96,8 @@ func (q *FilterQuery) AppendQuery(r rune) {
 func (q *FilterQuery) InsertQueryAt(ch rune, where int) {
 	q.mutex.Lock()
 	defer q.mutex.Unlock()
+
+	fmt.Printf("FilterQuery.InsertQueryAt: ch = %c, where = %d, query = %s, len = %d\n", ch, where, string(q.query), len(q.query))
 
 	sq := q.query
 	buf := make([]rune, len(sq)+1)
