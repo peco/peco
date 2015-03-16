@@ -82,6 +82,10 @@ type RawLine struct {
 
 var idGenerator = newIDGen()
 
+// NewRawLine creates a new RawLine. The `enableSep` flag tells
+// it if we should search for a null character to split the
+// string to display and the string to emit upon selection of
+// of said line
 func NewRawLine(v string, enableSep bool) *RawLine {
 	id := idGenerator.create()
 	rl := &RawLine{
@@ -107,14 +111,17 @@ func (rl *RawLine) Less(b btree.Item) bool {
 	return rl.id < b.(Line).ID()
 }
 
+// ID returns the unique ID of this line
 func (rl *RawLine) ID() uint64 {
 	return rl.id
 }
 
+// IsDirty returns true if this line must be redrawn on the terminal
 func (rl RawLine) IsDirty() bool {
 	return rl.dirty
 }
 
+// SetDirty sets the dirty flag
 func (rl *RawLine) SetDirty(b bool) {
 	rl.dirty = b
 }
@@ -146,15 +153,19 @@ func (rl RawLine) Output() string {
 	return rl.buf
 }
 
+// Indices fulfills the Line interface, but for RawLine it always
+// returns nil
 func (rl RawLine) Indices() [][]int {
 	return nil
 }
 
+// MatchedLine contains the indices to the matches
 type MatchedLine struct {
 	Line
 	indices [][]int
 }
 
+// NewMatchedLine creates a new MatchedLine
 func NewMatchedLine(rl Line, matches [][]int) *MatchedLine {
 	return &MatchedLine{rl, matches}
 }

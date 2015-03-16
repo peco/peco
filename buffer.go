@@ -176,31 +176,31 @@ func (rlb *RawLineBuffer) Unregister(lb LineBuffer) {
 }
 
 // LineAt returns the line at index `i`
-func (r RawLineBuffer) LineAt(i int) (Line, error) {
-	if i < 0 || len(r.lines) <= i {
+func (rlb RawLineBuffer) LineAt(i int) (Line, error) {
+	if i < 0 || len(rlb.lines) <= i {
 		return nil, ErrBufferOutOfRange
 	}
-	return r.lines[i], nil
+	return rlb.lines[i], nil
 }
 
 // Size returns the number of lines in the buffer
-func (r RawLineBuffer) Size() int {
-	return len(r.lines)
+func (rlb RawLineBuffer) Size() int {
+	return len(rlb.lines)
 }
 
-func (r *RawLineBuffer) SetCapacity(capacity int) {
+func (rlb *RawLineBuffer) SetCapacity(capacity int) {
 	if capacity < 0 {
 		capacity = 0
 	}
-	r.capacity = capacity
+	rlb.capacity = capacity
 }
 
-func (r RawLineBuffer) InvalidateUpTo(_ int) {
+func (rlb RawLineBuffer) InvalidateUpTo(_ int) {
 	// no op
 }
 
-func (r *RawLineBuffer) AppendLine(l Line) (Line, error) {
-	return r.Append(l)
+func (rlb *RawLineBuffer) AppendLine(l Line) (Line, error) {
+	return rlb.Append(l)
 }
 
 // FilteredLineBuffer holds a "filtered" buffer. It holds a reference to
@@ -262,20 +262,20 @@ func (flb *FilteredLineBuffer) InvalidateUpTo(x int) {
 // LineAt returns the line at index `i`. Note that the i-th element
 // in this filtered buffer may actually correspond to a totally
 // different line number in the source buffer.
-func (fb FilteredLineBuffer) LineAt(i int) (Line, error) {
-	if i < 0 || i >= len(fb.selection) {
+func (flb FilteredLineBuffer) LineAt(i int) (Line, error) {
+	if i < 0 || i >= len(flb.selection) {
 		return nil, ErrBufferOutOfRange
 	}
-	return fb.src.LineAt(fb.selection[i])
+	return flb.src.LineAt(flb.selection[i])
 }
 
 // Size returns the number of lines in the buffer
-func (fb FilteredLineBuffer) Size() int {
-	return len(fb.selection)
+func (flb FilteredLineBuffer) Size() int {
+	return len(flb.selection)
 }
 
-func (fb *FilteredLineBuffer) SelectSourceLineAt(i int) {
-	fb.selection = append(fb.selection, i)
+func (flb *FilteredLineBuffer) SelectSourceLineAt(i int) {
+	flb.selection = append(flb.selection, i)
 }
 
 func (flb *FilteredLineBuffer) Register(lb LineBuffer) {

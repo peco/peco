@@ -141,6 +141,8 @@ func (h *Hub) SendStatusMsg(q string) {
 	h.SendStatusMsgAndClear(q, 0)
 }
 
+// SendStatusMsgAndClear sends a string to be displayed in the status message,
+// as well as a delay until the message should be cleared
 func (h *Hub) SendStatusMsgAndClear(q string, clearDelay time.Duration) {
 	send(h.StatusMsgCh(), HubReq{StatusMsgRequest{q, clearDelay}, nil}, h.isSync)
 }

@@ -17,6 +17,8 @@ type PageCrop struct {
 	currentPage int
 }
 
+// Crop returns a new LineBuffer whose contents are
+// bound within the given range
 func (pf PageCrop) Crop(in LineBuffer) LineBuffer {
 	out := &FilteredLineBuffer{
 		src:       in,
@@ -544,7 +546,7 @@ CALCULATE_PAGE:
 	return nil
 }
 
-//
+// DrawPrompt draws the prompt to the terminal
 func (l *BasicLayout) DrawPrompt() {
 	l.prompt.Draw()
 }
