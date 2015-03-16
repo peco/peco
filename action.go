@@ -151,7 +151,6 @@ func doAcceptChar(i *Input, ev termbox.Event) {
 	}
 
 	if ch := ev.Ch; ch > 0 {
-fmt.Printf("QueryLen = %d, CaretPos = %d\n", i.QueryLen(), i.CaretPos())
 		if i.QueryLen() == i.CaretPos() {
 			i.AppendQuery(ch)
 		} else {

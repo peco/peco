@@ -97,8 +97,6 @@ func (q *FilterQuery) InsertQueryAt(ch rune, where int) {
 	q.mutex.Lock()
 	defer q.mutex.Unlock()
 
-	fmt.Printf("FilterQuery.InsertQueryAt: ch = %c, where = %d, query = %s, len = %d\n", ch, where, string(q.query), len(q.query))
-
 	sq := q.query
 	buf := make([]rune, len(sq)+1)
 	copy(buf, sq[:where])
