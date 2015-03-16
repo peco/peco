@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"os"
 	"reflect"
-	"runtime"
 
 	"github.com/jessevdk/go-flags"
 	"github.com/nsf/termbox-go"
@@ -20,7 +19,7 @@ type CLIOptions struct {
 	OptEnableNullSep  bool   `long:"null" description:"expect NUL (\\0) as separator for target/output"`
 	OptInitialIndex   int    `long:"initial-index" description:"position of the initial index of the selection (0 base)"`
 	OptInitialMatcher string `long:"initial-matcher" description:"specify the default matcher (deprecated)"`
-	OptInitialFilter string `long:"initial-filter" description:"specify the default filter"`
+	OptInitialFilter  string `long:"initial-filter" description:"specify the default filter"`
 	OptPrompt         string `long:"prompt" description:"specify the prompt string"`
 	OptLayout         string `long:"layout" description:"layout to be used 'top-down' (default) or 'bottom-up'" default:"top-down"`
 }
@@ -196,7 +195,7 @@ func (cli *CLI) Run() error {
 	defer termbox.Close()
 
 	// Windows handle Esc/Alt self
-	if runtime.GOOS == "windows" {
+	if isWindows {
 		termbox.SetInputMode(termbox.InputEsc | termbox.InputAlt)
 	}
 

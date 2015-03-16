@@ -479,9 +479,13 @@ type BasicLayout struct {
 
 // NewDefaultLayout creates a new Layout in the default format (top-down)
 func NewDefaultLayout(ctx *Ctx) *BasicLayout {
+	extraOffset := 0
+	if isWindows {
+		extraOffset = 1
+	}
 	return &BasicLayout{
 		Ctx:       ctx,
-		StatusBar: NewStatusBar(ctx, AnchorBottom, 0),
+		StatusBar: NewStatusBar(ctx, AnchorBottom, 0+extraOffset),
 		// The prompt is at the top
 		prompt: NewUserPrompt(ctx, AnchorTop, 0),
 		// The list area is at the top, after the prompt
@@ -492,14 +496,18 @@ func NewDefaultLayout(ctx *Ctx) *BasicLayout {
 
 // NewBottomUpLayout creates a new Layout in bottom-up format
 func NewBottomUpLayout(ctx *Ctx) *BasicLayout {
+	extraOffset := 0
+	if isWindows {
+		extraOffset = 1
+	}
 	return &BasicLayout{
 		Ctx:       ctx,
-		StatusBar: NewStatusBar(ctx, AnchorBottom, 0),
+		StatusBar: NewStatusBar(ctx, AnchorBottom, 0+extraOffset),
 		// The prompt is at the bottom, above the status bar
-		prompt: NewUserPrompt(ctx, AnchorBottom, 1),
+		prompt: NewUserPrompt(ctx, AnchorBottom, 1+extraOffset),
 		// The list area is at the bottom, above the prompt
 		// IT's displayed in bottom-to-top order
-		list: NewListArea(ctx, AnchorBottom, 2, false),
+		list: NewListArea(ctx, AnchorBottom, 2+extraOffset, false),
 	}
 }
 
@@ -558,7 +566,14 @@ func (l *BasicLayout) DrawScreen() {
 
 func linesPerPage() int {
 	_, height := screen.Size()
-	return height - 2 // list area is always the display area - 2 lines for prompt and status
+
+	// list area is always the display area - 2 lines for prompt and status
+	reservedLines := 2
+	if isWindows {
+		// Of course, *except* for windows... :)
+		reservedLines = 3
+	}
+	return height - reservedLines
 }
 
 // MovePage moves the cursor
