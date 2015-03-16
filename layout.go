@@ -201,20 +201,24 @@ func (u UserPrompt) Draw() {
 		u.SetCaretPos(0) // sanity
 	}
 
-	if pos > u.QueryLen() { // XXX Do we really need this?
-		u.SetCaretPos(u.QueryLen())
+	ql := u.QueryLen()
+	if pos > ql { // XXX Do we really need this?
+		u.SetCaretPos(ql)
 	}
 
-	if u.CaretPos() == u.QueryLen() {
+	fg := u.queryStyle.fg
+	bg := u.queryStyle.bg
+	switch ql {
+	case 0:
+		printScreen(u.prefixLen, location, fg, bg, "", true)
+		printScreen(u.prefixLen+1, location, fg|termbox.AttrReverse, bg|termbox.AttrReverse, " ", false)
+	case u.CaretPos():
 		// the entire string + the caret after the string
-		fg := u.queryStyle.fg
-		bg := u.queryStyle.bg
 		qs := u.QueryString()
-		ql := runewidth.StringWidth(qs)
+		printScreen(u.prefixLen, location, fg, bg, "", true)
 		printScreen(u.prefixLen+1, location, fg, bg, qs, false)
-		printScreen(u.prefixLen+1+ql, location, fg|termbox.AttrReverse, bg|termbox.AttrReverse, " ", false)
-		printScreen(u.prefixLen+1+ql+1, location, fg, bg, "", true)
-	} else {
+		printScreen(u.prefixLen+ql+1, location, fg|termbox.AttrReverse, bg|termbox.AttrReverse, " ", false)
+	default:
 		// the caret is in the middle of the string
 		prev := 0
 		for i, r := range []rune(u.Query()) {
