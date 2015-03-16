@@ -54,13 +54,13 @@ Not only can you select multiple lines one by one, you can select a range of lin
 
 ![optimized](http://peco.github.io/images/peco-demo-range-mode.gif)
 
-## Select Matchers
+## Select Filters
 
-Different types of matchers are available. Default is case-insensitive matcher, so lines with any case will match. You can toggle between IgnoreCase, CaseSensitive, SmartCase and RegExp matchers. 
+Different types of filters are available. Default is case-insensitive filter, so lines with any case will match. You can toggle between IgnoreCase, CaseSensitive, SmartCase and RegExp filters. 
 
-The SmartCase matcher uses case-*insensitive* matching when all of the queries are lower case, and case-*sensitive* matching otherwise.
+The SmartCase filter uses case-*insensitive* matching when all of the queries are lower case, and case-*sensitive* matching otherwise.
 
-The RegExp matcher allows you to use any valid regular expression to match lines
+The RegExp filter allows you to use any valid regular expression to match lines
 
 ![optimized](http://peco.github.io/images/peco-demo-matcher.gif)
 
@@ -147,19 +147,13 @@ Changes how peco interprets incoming data. When this flag is set, you may insert
 
 [Here's a simple example of how to use this feature](https://gist.github.com/mattn/3c7a14c1677ecb193acd)
 
-### --no-ignore-case
-
-This option has been *DEPRECATED*. Use `--initial-matcher` instead.
-
-By default peco starts in case insensitive mode. When this option is specified, peco will start in case sensitive mode. This can be toggled while peco is still in session. 
-
 ### --initial-index
 
 Specifies the initial line position upon start up. E.g. If you want to start out with the second line selected, set it to "1" (because the index is 0 based)
 
-### --initial-matcher `IgnoreCase|CaseSensitive|SmartCase|Regexp`
+### --initial-filter `IgnoreCase|CaseSensitive|SmartCase|Regexp`
 
-Specifies the initial matcher to use upon start up. You should specify the name of the matcher like `IgnoreCase`, `CaseSensitive`, `SmartCase` and `Regexp`. Default is `IgnoreCase`.
+Specifies the initial fitler to use upon start up. You should specify the name of the filter like `IgnoreCase`, `CaseSensitive`, `SmartCase` and `Regexp`. Default is `IgnoreCase`.
 
 ### --prompt
 
@@ -187,6 +181,7 @@ Below are configuration sections that you may specify in your config file:
 * [Global](#global)
 * [Keymaps](#keymaps)
 * [Styles](#styles)
+* [CustomFilter](#customfilter)
 * [CustomMatcher](#custommatcher)
 * [Prompt](#prompt)
 * [InitialMatcher](#initialmatcher)
@@ -207,9 +202,11 @@ You can change the query line's prompt, which is `QUERY>` by default.
 
 ### InitialMatcher
 
-Specifies the matcher name to start peco with. You should specify the name of the matcher, such as `IgnoreCase`, `CaseSensitive`, `SmartCase` and `Regexp`
+*InitialMatcher* has been deprecated. Please use `InitialFilter` instead.
 
-Note: `Matcher` key has been deprecated in favor of `InitialMatcher`. `Matcher` will be unavailable in peco 0.3.0
+### InitialFilter
+
+Specifies the filter name to start peco with. You should specify the name of the filter, such as `IgnoreCase`, `CaseSensitive`, `SmartCase` and `Regexp`
 
 ### StickySelection
 
@@ -368,7 +365,8 @@ Some keys just... don't map correctly / too easily for various reasons. Here, we
 | peco.ToggleQuery        | Toggle list between filterd by query and not filterd. |
 | peco.ToggleRangeMode   | Start selecting by range, or append selecting range to selections |
 | peco.CancelRangeMode   | Finish selecting by range and cancel range selection |
-| peco.RotateMatcher      | Rotate between matchers (by default, ignore-case/no-ignore-case)|
+| peco.RotateMatcher     | (DEPRECATED) Use peco.RotateFilter |
+| peco.RotateFilter       | Rotate between filters (by default, ignore-case/no-ignore-case)|
 | peco.Finish             | Exits from peco with success status |
 | peco.Cancel             | Exits from peco with failure status, or cancel select mode |
 
@@ -454,27 +452,41 @@ For now, styles of following 5 items can be customized in `config.json`.
 - `"reverse"` for fg: `termbox.AttrReverse`
 - `"on_bold"` for bg: `termbox.AttrBold` (this attribute actually makes the background blink on some platforms/environments, e.g. linux console, xterm...)
 
-## CustomMatcher
+## CustomFilter
 
 This is an experimental feature. Please note that some details of this specification may change
 
-By default `peco` comes with `IgnoreCase`, `CaseSensitive`, `SmartCase` and `Regexp` matchers, but since v0.1.3, it is possible to create your own custom matcher.
+By default `peco` comes with `IgnoreCase`, `CaseSensitive`, `SmartCase` and `Regexp` filters, but since v0.1.3, it is possible to create your own custom filter.
 
-The matcher will be executed via  `Command.Run()` as an external process, and it will be passed the query values in the command line, and the original unaltered buffer is passed via `os.Stdin`. Your matcher must perform the matching, and print out to `os.Stdout` matched lines. Note that currently there is no way to specify where in the line the match occurred. Note that the matcher does not need to be a go program. It can be a perl/ruby/python/bash script, or anything else that is executable.
+The filter will be executed via  `Command.Run()` as an external process, and it will be passed the query values in the command line, and the original unaltered buffer is passed via `os.Stdin`. Your filter must perform the matching, and print out to `os.Stdout` matched lines. You filter MAY be called multiple times if the buffer
+given to peco is big enough. See `BufferThreshold` below.
 
-Once you have a matcher, you must specify how the matcher is spawned:
+Note that currently there is no way for the custom filter to specify where in the line the match occurred, so matched portions in the string WILL NOT BE HIGHLITED.
+
+The filter does not need to be a go program. It can be a perl/ruby/python/bash script, or anything else that is executable.
+
+Once you have a filter, you must specify how the matcher is spawned:
 
 ```json
 {
-    "CustomMatcher": {
-        "MyMatcher": [ "/path/to/my-matcher", "$QUERY" ]
+    "CustomFilter": {
+        "MyFilter": {
+            "Cmd": "/path/to/my-matcher",
+            "Args": [ "$QUERY" ],
+            "BufferThreshold": 100
+        }
     }
 }
 ```
 
-Elements in the `CustomMatcher` section are string keys to array of program arguments. The special token `$QUERY` will be replaced with the unaltered query as the user typed in (i.e. multiple-word queries will be passed as a single string). You may pass in any other arguments in this array.
+`Cmd` specifies the command name. This must be searcheable via `exec.LookPath`.
 
-You may specify as many matchers as you like. 
+Elements in the `Args` section are string keys to array of program arguments. The special token `$QUERY` will be replaced with the unaltered query as the user typed in (i.e. multiple-word queries will be passed as a single string). You may pass in any other arguments in this array. If you omit this in your config, a default value of `[]string{"$QUERY"}` will be used
+
+`BufferThreshold` specifies that the filter command should be invoked when peco has this many lines to process
+in the buffer. For example, if you are using peco against a 1000-line input, and your `BufferThreshold` is 100 (which is the default), then your filter will be invoked 10 times. For obvious reasons, the larger this threshold is, the faster the overall performance will be, but the longer you will have to wait to see the filter results.
+
+You may specify as many filters as you like in the `CustomFilter` section.
 
 ### Examples
 
