@@ -176,7 +176,7 @@ func NewUserPrompt(ctx *Ctx, anchor VerticalAnchor, anchorOffset int) *UserPromp
 	if len(prefix) <= 0 { // default
 		prefix = "QUERY>"
 	}
-	prefixLen := len(prefix)
+	prefixLen := runewidth.StringWidth(prefix)
 
 	return &UserPrompt{
 		Ctx:            ctx,
