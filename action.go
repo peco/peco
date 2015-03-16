@@ -515,10 +515,12 @@ func doKillEndOfLine(i *Input, _ termbox.Event) {
 	if i.ExecQuery() {
 		return
 	}
+	i.DrawPrompt()
 }
 
 func doDeleteAll(i *Input, _ termbox.Event) {
 	i.SetQuery(make([]rune, 0))
+	i.ExecQuery()
 }
 
 func doDeleteForwardChar(i *Input, _ termbox.Event) {
@@ -578,7 +580,6 @@ func doDeleteBackwardChar(i *Input, ev termbox.Event) {
 	}
 
 	i.DrawPrompt()
-	i.SetActiveLineBuffer(i.rawLineBuffer)
 }
 
 func doRefreshScreen(i *Input, _ termbox.Event) {
@@ -602,6 +603,7 @@ func doToggleQuery(i *Input, _ termbox.Event) {
 	if i.ExecQuery() {
 		return
 	}
+	i.DrawPrompt()
 }
 
 func doKonamiCommand(i *Input, ev termbox.Event) {
