@@ -187,6 +187,8 @@ func doToggleSelection(i *Input, _ termbox.Event) {
 }
 
 func doToggleRangeMode(i *Input, _ termbox.Event) {
+	trace("doToggleRangeMode: START")
+	defer trace("doToggleRangeMode: END")
 	if i.IsRangeMode() {
 		i.selectionRangeStart = invalidSelectionRange
 	} else {
@@ -292,12 +294,16 @@ func doToggleSelectionAndSelectNext(i *Input, ev termbox.Event) {
 }
 
 func doInvertSelection(i *Input, _ termbox.Event) {
+	trace("doInvertSelection: START")
+	defer trace("doInvertSelection: END")
+
 	old := i.selection
 	i.SelectionClear()
 	b := i.GetCurrentLineBuffer()
 
 	for x := 0; x < b.Size(); x++ {
 		if l, err := b.LineAt(x); err == nil {
+			l.SetDirty(true)
 			i.selection.Add(l)
 		} else {
 			i.selection.Remove(l)
@@ -308,6 +314,8 @@ func doInvertSelection(i *Input, _ termbox.Event) {
 		i.selection.Delete(it.(Line))
 		return true
 	})
+
+	i.SendDraw()
 }
 
 func doDeleteBackwardWord(i *Input, _ termbox.Event) {
