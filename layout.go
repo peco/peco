@@ -236,6 +236,8 @@ func (u UserPrompt) Draw() {
 
 	pmsg := fmt.Sprintf("%s [%d (%d/%d)]", u.Filter().String(), u.currentPage.total, u.currentPage.page, u.currentPage.maxPage)
 	printScreen(width-runewidth.StringWidth(pmsg), location, u.basicStyle.fg, u.basicStyle.bg, pmsg, false)
+
+	screen.Flush()
 }
 
 // StatusBar draws the status message bar
