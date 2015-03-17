@@ -217,14 +217,20 @@ func doSelectAll(i *Input, _ termbox.Event) {
 }
 
 func doSelectVisible(i *Input, _ termbox.Event) {
-	/*
-		// Grr, this needs fixing
-		pageStart := i.currentPage.offset
-		pageEnd := pageStart + i.currentPage.perPage
-		for lineno := pageStart; lineno <= pageEnd; lineno++ {
-			i.selection.Add(lineno)
+	trace("doSelectVisible: START")
+	defer trace("doSelectVisible: END")
+	b := i.GetCurrentLineBuffer()
+	pc := PageCrop{i.currentPage.perPage, i.currentPage.page}
+	lb := pc.Crop(b)
+	for x := 0; x < lb.Size(); x++ {
+		l, err := lb.LineAt(x)
+		if err != nil {
+			continue
 		}
-	*/
+		l.SetDirty(true)
+		i.selection.Add(l)
+	}
+	i.SendDraw()
 }
 
 func doFinish(i *Input, _ termbox.Event) {
