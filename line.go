@@ -1,6 +1,35 @@
 package peco
 
-import "regexp"
+import (
+	"regexp"
+	"strings"
+
+	"github.com/google/btree"
+)
+
+type idGen struct {
+	genCh chan uint64
+}
+
+func newIDGen() *idGen {
+	ch := make(chan uint64)
+	go func() {
+		var i uint64
+		for ; ; i++ {
+			ch <- i
+			if i >= uint64(1<<63)-1 {
+				i = 0
+			}
+		}
+	}()
+	return &idGen{
+		genCh: ch,
+	}
+}
+
+func (ig *idGen) create() uint64 {
+	return <-ig.genCh
+}
 
 // Global var used to strips ansi sequences
 var reANSIEscapeChars = regexp.MustCompile("\x1B\\[(?:[0-9]{1,2}(?:;[0-9]{1,2})?)*[a-zA-Z]")
@@ -10,97 +39,138 @@ func stripANSISequence(s string) string {
 	return reANSIEscapeChars.ReplaceAllString(s, "")
 }
 
-// Line defines the interface for each of the line that peco uses to display
-// and match against queries. Note that to make drawing easier,
-// we have a RawLine and MatchedLine types
+// Line represents each of the line that peco uses to display
+// and match against queries.
 type Line interface {
-	Buffer() string        // Raw buffer, may contain null
-	DisplayString() string // Line to be displayed
-	Output() string        // Output string to be displayed after peco is done
-	Indices() [][]int      // If the type allows, indices into matched portions of the string
+	btree.Item
+
+	ID() uint64
+
+	// Buffer returns the raw buffer
+	Buffer() string
+
+	// DisplayString returns the string to be displayed. This means if you have
+	// a null separator, the contents after the separator are not included
+	// in this string
+	DisplayString() string
+
+	// Indices return the matched portion(s) of a string after filtering.
+	// Note that while Indices may return nil, that just means that there are
+	// no substrings to be hilighted. It doesn't mean there were no matches
+	Indices() [][]int
+
+	// Output returns the string to be display as peco finishes up doing its
+	// thing. This means if you have null separator, the contents before the
+	// separater are not included in this string
+	Output() string
+
+	// IsDirty returns true if this line should be forcefully redrawn
+	IsDirty() bool
+
+	// SetDirty sets the dirty flag on or off
+	SetDirty(bool)
 }
 
-// baseLine is the common implementation between RawLine and MatchedLine
-type baseLine struct {
+// RawLine is the input line as sent to peco, before filtering and what not.
+type RawLine struct {
+	id            uint64
 	buf           string
 	sepLoc        int
 	displayString string
+	dirty         bool
 }
 
-func newBaseLine(v string, enableSep bool) *baseLine {
-	m := &baseLine{
-		v,
-		-1,
-		"",
-	}
-	if !enableSep {
-		return m
-	}
+var idGenerator = newIDGen()
 
-	// XXX This may be silly, but we're avoiding using strings.IndexByte()
-	// here because it doesn't exist on go1.1. Let's remove support for
-	// 1.1 when 1.4 comes out (or something)
-	for i := 0; i < len(m.buf); i++ {
-		if m.buf[i] == '\000' {
-			m.sepLoc = i
-		}
-	}
-	return m
-}
-
-func (m baseLine) Buffer() string {
-	return m.buf
-}
-
-func (m baseLine) DisplayString() string {
-	if m.displayString != "" {
-		return m.displayString
-	}
-
-	if i := m.sepLoc; i > -1 {
-		m.displayString = stripANSISequence(m.buf[:i])
-	} else {
-		m.displayString = stripANSISequence(m.buf)
-	}
-	return m.displayString
-}
-
-func (m baseLine) Output() string {
-	if i := m.sepLoc; i > -1 {
-		return m.buf[i+1:]
-	}
-	return m.buf
-}
-
-// RawLine implements the Line interface. It represents a line with no matches,
-// which means that it can only be used in the initial unfiltered view
-type RawLine struct {
-	*baseLine
-}
-
-// NewRawLine creates a RawLine struct
+// NewRawLine creates a new RawLine. The `enableSep` flag tells
+// it if we should search for a null character to split the
+// string to display and the string to emit upon selection of
+// of said line
 func NewRawLine(v string, enableSep bool) *RawLine {
-	return &RawLine{newBaseLine(v, enableSep)}
+	id := idGenerator.create()
+	rl := &RawLine{
+		id:            id,
+		buf:           v,
+		sepLoc:        -1,
+		displayString: "",
+		dirty:         false,
+	}
+
+	if !enableSep {
+		return rl
+	}
+
+	if i := strings.IndexByte(rl.buf, '\000'); i != -1 {
+		rl.sepLoc = i
+	}
+	return rl
 }
 
-// Indices always returns nil
-func (m RawLine) Indices() [][]int {
+// Less implements the btree.Item interface
+func (rl *RawLine) Less(b btree.Item) bool {
+	return rl.id < b.(Line).ID()
+}
+
+// ID returns the unique ID of this line
+func (rl *RawLine) ID() uint64 {
+	return rl.id
+}
+
+// IsDirty returns true if this line must be redrawn on the terminal
+func (rl RawLine) IsDirty() bool {
+	return rl.dirty
+}
+
+// SetDirty sets the dirty flag
+func (rl *RawLine) SetDirty(b bool) {
+	rl.dirty = b
+}
+
+// Buffer returns the raw buffer. May contain null
+func (rl RawLine) Buffer() string {
+	return rl.buf
+}
+
+// DisplayString returns the string to be displayed
+func (rl RawLine) DisplayString() string {
+	if rl.displayString != "" {
+		return rl.displayString
+	}
+
+	if i := rl.sepLoc; i > -1 {
+		rl.displayString = stripANSISequence(rl.buf[:i])
+	} else {
+		rl.displayString = stripANSISequence(rl.buf)
+	}
+	return rl.displayString
+}
+
+// Output returns the string to be displayed *after peco is done
+func (rl RawLine) Output() string {
+	if i := rl.sepLoc; i > -1 {
+		return rl.buf[i+1:]
+	}
+	return rl.buf
+}
+
+// Indices fulfills the Line interface, but for RawLine it always
+// returns nil
+func (rl RawLine) Indices() [][]int {
 	return nil
 }
 
-// MatchedLine contains the actual match, and the indices to the matches
-// in the line
+// MatchedLine contains the indices to the matches
 type MatchedLine struct {
-	*baseLine
-	matches [][]int
+	Line
+	indices [][]int
 }
 
-// NewMatchedLine creates a new MatchedLine struct
-func NewMatchedLine(v string, enableSep bool, m [][]int) *MatchedLine {
-	return &MatchedLine{newBaseLine(v, enableSep), m}
+// NewMatchedLine creates a new MatchedLine
+func NewMatchedLine(rl Line, matches [][]int) *MatchedLine {
+	return &MatchedLine{rl, matches}
 }
 
 // Indices returns the indices in the buffer that matched
-func (d MatchedLine) Indices() [][]int {
-	return d.matches
+func (ml MatchedLine) Indices() [][]int {
+	return ml.indices
 }

@@ -10,6 +10,10 @@ import (
 	"github.com/nsf/termbox-go"
 )
 
+// DefaultCustomFilterBufferThreshold is the default value
+// for BufferThreshold setting on CustomFilters. 
+const DefaultCustomFilterBufferThreshold = 100
+
 var homedirFunc = homedir
 
 // Config holds all the data that can be configured in the
@@ -19,13 +23,36 @@ type Config struct {
 	// Keymap used to be directly responsible for dispatching
 	// events against user input, but since then this has changed
 	// into something that just records the user's config input
-	Keymap         map[string]string `json:"Keymap"`
-	Matcher        string            `json:"Matcher"`        // Deprecated.
-	InitialMatcher string            `json:"InitialMatcher"` // Use this instead of Matcher
-	Style          *StyleSet         `json:"Style"`
-	Prompt         string            `json:"Prompt"`
-	Layout         string            `json:"Layout"`
-	CustomMatcher  map[string][]string
+	Keymap          map[string]string `json:"Keymap"`
+	Matcher         string            `json:"Matcher"`        // Deprecated.
+	InitialMatcher  string            `json:"InitialMatcher"` // Use this instead of Matcher
+	InitialFilter   string            `json:"InitialFilter"`
+	Style           *StyleSet         `json:"Style"`
+	Prompt          string            `json:"Prompt"`
+	Layout          string            `json:"Layout"`
+	CustomMatcher   map[string][]string
+	CustomFilter    map[string]CustomFilterConfig
+	StickySelection bool
+	QueryExecutionDelay int
+}
+
+// CustomFilterConfig is used to specify configuration parameters
+// to CustomFilters
+type CustomFilterConfig struct {
+	// Cmd is the name of the command to invoke
+	Cmd             string
+
+	// TODO: need to check if how we use this is correct
+	Args            []string
+
+	// BufferThreshold defines how many lines peco buffers before
+	// invoking the external command. If this value is big, we
+	// will execute the external command fewer times, but the
+	// results will not be generated for longer periods of time.
+	// If this value is small, we will execute the external command
+	// more often, but you pay the penalty of invoking that command
+	// more times.
+	BufferThreshold int
 }
 
 // NewConfig creates a new Config
@@ -55,6 +82,22 @@ func (c *Config) ReadFilename(filename string) error {
 
 	if !IsValidLayoutType(LayoutType(c.Layout)) {
 		return fmt.Errorf("invalid layout type: %s", c.Layout)
+	}
+
+	if len(c.CustomMatcher) > 0 {
+		fmt.Fprintf(os.Stderr, "'CustomMatcher' is deprecated. Use CustomFilter instead\n")
+
+		for n, cfg := range c.CustomMatcher {
+			if _, ok := c.CustomFilter[n]; ok {
+				return fmt.Errorf("error: CustomFilter '%s' already exists. Refusing to overwrite with deprecated CustomMatcher config", n)
+			}
+
+			c.CustomFilter[n] = CustomFilterConfig{
+				Cmd:             cfg[0],
+				Args:            cfg[1:],
+				BufferThreshold: DefaultCustomFilterBufferThreshold,
+			}
+		}
 	}
 
 	return nil
@@ -113,46 +156,6 @@ func NewStyleSet() *StyleSet {
 	}
 }
 
-func (s StyleSet) BasicFG() termbox.Attribute {
-	return s.Basic.fg
-}
-
-func (s StyleSet) BasicBG() termbox.Attribute {
-	return s.Basic.bg
-}
-
-func (s StyleSet) QueryFG() termbox.Attribute {
-	return s.Query.fg
-}
-
-func (s StyleSet) QueryBG() termbox.Attribute {
-	return s.Query.bg
-}
-
-func (s StyleSet) MatchedFG() termbox.Attribute {
-	return s.Matched.fg
-}
-
-func (s StyleSet) MatchedBG() termbox.Attribute {
-	return s.Matched.bg
-}
-
-func (s StyleSet) SavedSelectionFG() termbox.Attribute {
-	return s.SavedSelection.fg
-}
-
-func (s StyleSet) SavedSelectionBG() termbox.Attribute {
-	return s.SavedSelection.bg
-}
-
-func (s StyleSet) SelectedFG() termbox.Attribute {
-	return s.Selected.fg
-}
-
-func (s StyleSet) SelectedBG() termbox.Attribute {
-	return s.Selected.bg
-}
-
 // Style describes termbox styles
 type Style struct {
 	fg termbox.Attribute
@@ -200,7 +203,9 @@ func stringsToStyle(raw []string) *Style {
 	return style
 }
 
-var _locateRcfileIn = locateRcfileIn
+// This is a variable because we want to change its behavior
+// when we run tests.
+var locateRcfileInFunc = locateRcfileIn
 
 func locateRcfileIn(dir string) (string, error) {
 	const basename = "config.json"
@@ -224,13 +229,13 @@ func LocateRcfile() (string, error) {
 
 	// Try dir supplied via env var
 	if dir := os.Getenv("XDG_CONFIG_HOME"); dir != "" {
-		file, err := _locateRcfileIn(filepath.Join(dir, "peco"))
+		file, err := locateRcfileInFunc(filepath.Join(dir, "peco"))
 		if err == nil {
 			return file, nil
 		}
 	} else if uErr == nil { // silently ignore failure for homedir()
 		// Try "default" XDG location, is user is available
-		file, err := _locateRcfileIn(filepath.Join(home, ".config", "peco"))
+		file, err := locateRcfileInFunc(filepath.Join(home, ".config", "peco"))
 		if err == nil {
 			return file, nil
 		}
@@ -241,7 +246,7 @@ func LocateRcfile() (string, error) {
 	// with filepath.ListSeparator, so use it
 	if dirs := os.Getenv("XDG_CONFIG_DIRS"); dirs != "" {
 		for _, dir := range strings.Split(dirs, fmt.Sprintf("%c", filepath.ListSeparator)) {
-			file, err := _locateRcfileIn(filepath.Join(dir, "peco"))
+			file, err := locateRcfileInFunc(filepath.Join(dir, "peco"))
 			if err == nil {
 				return file, nil
 			}
@@ -249,7 +254,7 @@ func LocateRcfile() (string, error) {
 	}
 
 	if uErr == nil { // silently ignore failure for homedir()
-		file, err := _locateRcfileIn(filepath.Join(home, ".peco"))
+		file, err := locateRcfileInFunc(filepath.Join(home, ".peco"))
 		if err == nil {
 			return file, nil
 		}

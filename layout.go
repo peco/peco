@@ -10,6 +10,36 @@ import (
 	"github.com/nsf/termbox-go"
 )
 
+// PageCrop filters out a new LineBuffer based on entries
+// per page and the page number
+type PageCrop struct {
+	perPage     int
+	currentPage int
+}
+
+// Crop returns a new LineBuffer whose contents are
+// bound within the given range
+func (pf PageCrop) Crop(in LineBuffer) LineBuffer {
+	out := &FilteredLineBuffer{
+		src:       in,
+		selection: []int{},
+	}
+
+	s := pf.perPage * (pf.currentPage - 1)
+	e := s + pf.perPage
+	if s > in.Size() {
+		return out
+	}
+	if e >= in.Size() {
+		e = in.Size()
+	}
+
+	for i := s; i < e; i++ {
+		out.SelectSourceLineAt(i)
+	}
+	return out
+}
+
 // LayoutType describes the types of layout that peco can take
 type LayoutType string
 
@@ -45,7 +75,7 @@ func IsValidVerticalAnchor(anchor VerticalAnchor) bool {
 type Layout interface {
 	PrintStatus(string, time.Duration)
 	DrawPrompt()
-	DrawScreen([]Line)
+	DrawScreen()
 	MovePage(PagingRequest)
 }
 
@@ -59,7 +89,7 @@ func mergeAttribute(a, b termbox.Attribute) termbox.Attribute {
 
 // Utility function
 func printScreen(x, y int, fg, bg termbox.Attribute, msg string, fill bool) int {
-	var written int = 0
+	var written int
 
 	for len(msg) > 0 {
 		c, w := utf8.DecodeRuneInString(msg)
@@ -134,8 +164,10 @@ func (as AnchorSettings) AnchorPosition() int {
 type UserPrompt struct {
 	*Ctx
 	*AnchorSettings
-	prefix    string
-	prefixLen int
+	prefix     string
+	prefixLen  int
+	basicStyle Style
+	queryStyle Style
 }
 
 // NewUserPrompt creates a new UserPrompt struct
@@ -151,40 +183,49 @@ func NewUserPrompt(ctx *Ctx, anchor VerticalAnchor, anchorOffset int) *UserPromp
 		AnchorSettings: &AnchorSettings{anchor, anchorOffset},
 		prefix:         prefix,
 		prefixLen:      prefixLen,
+		basicStyle:     ctx.config.Style.Basic,
+		queryStyle:     ctx.config.Style.Query,
 	}
 }
 
 // Draw draws the query prompt
 func (u UserPrompt) Draw() {
+	trace("UserPrompt.Draw: START")
+	defer trace("UserPrompt.Draw: END")
+
 	location := u.AnchorPosition()
 
 	// print "QUERY>"
-	printScreen(0, location, u.config.Style.BasicFG(), u.config.Style.BasicBG(), u.prefix, false)
+	printScreen(0, location, u.basicStyle.fg, u.basicStyle.bg, u.prefix, false)
 
 	pos := u.CaretPos()
 	if pos <= 0 { // XXX Do we really need this?
 		u.SetCaretPos(0) // sanity
 	}
 
-	if pos > u.QueryLen() { // XXX Do we really need this?
-		u.SetCaretPos(u.QueryLen())
+	qs := u.QueryString()
+	ql := u.QueryLen()
+	if pos > ql { // XXX Do we really need this?
+		u.SetCaretPos(ql)
 	}
 
-	if u.CaretPos() == u.QueryLen() {
+	fg := u.queryStyle.fg
+	bg := u.queryStyle.bg
+	switch ql {
+	case 0:
+		printScreen(u.prefixLen, location, fg, bg, "", true)
+		printScreen(u.prefixLen+1, location, fg|termbox.AttrReverse, bg|termbox.AttrReverse, " ", false)
+	case u.CaretPos():
 		// the entire string + the caret after the string
-		fg := u.config.Style.QueryFG()
-		bg := u.config.Style.QueryBG()
-		qs := u.QueryString()
-		ql := runewidth.StringWidth(qs)
+		printScreen(u.prefixLen, location, fg, bg, "", true)
 		printScreen(u.prefixLen+1, location, fg, bg, qs, false)
-		printScreen(u.prefixLen+1+ql, location, fg|termbox.AttrReverse, bg|termbox.AttrReverse, " ", false)
-		printScreen(u.prefixLen+1+ql+1, location, fg, bg, "", true)
-	} else {
+		printScreen(u.prefixLen+runewidth.StringWidth(qs)+1, location, fg|termbox.AttrReverse, bg|termbox.AttrReverse, " ", false)
+	default:
 		// the caret is in the middle of the string
 		prev := 0
 		for i, r := range []rune(u.Query()) {
-			fg := u.config.Style.QueryFG()
-			bg := u.config.Style.QueryBG()
+			fg := u.queryStyle.fg
+			bg := u.queryStyle.bg
 			if i == u.CaretPos() {
 				fg |= termbox.AttrReverse
 				bg |= termbox.AttrReverse
@@ -192,12 +233,17 @@ func (u UserPrompt) Draw() {
 			screen.SetCell(u.prefixLen+1+prev, location, r, fg, bg)
 			prev += runewidth.RuneWidth(r)
 		}
+		fg := u.queryStyle.fg
+		bg := u.queryStyle.bg
+		printScreen(u.prefixLen+prev+1, location, fg, bg, "", true)
 	}
 
 	width, _ := screen.Size()
 
-	pmsg := fmt.Sprintf("%s [%d (%d/%d)]", u.Matcher().String(), u.currentPage.total, u.currentPage.index, u.currentPage.maxPage)
-	printScreen(width-runewidth.StringWidth(pmsg), location, u.config.Style.BasicFG(), u.config.Style.BasicBG(), pmsg, false)
+	pmsg := fmt.Sprintf("%s [%d (%d/%d)]", u.Filter().String(), u.currentPage.total, u.currentPage.page, u.currentPage.maxPage)
+	printScreen(width-runewidth.StringWidth(pmsg), location, u.basicStyle.fg, u.basicStyle.bg, pmsg, false)
+
+	screen.Flush()
 }
 
 // StatusBar draws the status message bar
@@ -206,15 +252,17 @@ type StatusBar struct {
 	*AnchorSettings
 	clearTimer *time.Timer
 	timerMutex sync.Locker
+	basicStyle Style
 }
 
 // NewStatusBar creates a new StatusBar struct
 func NewStatusBar(ctx *Ctx, anchor VerticalAnchor, anchorOffset int) *StatusBar {
 	return &StatusBar{
-		ctx,
-		NewAnchorSettings(anchor, anchorOffset),
-		nil,
-		newMutex(),
+		Ctx:            ctx,
+		AnchorSettings: NewAnchorSettings(anchor, anchorOffset),
+		clearTimer:     nil,
+		timerMutex:     newMutex(),
+		basicStyle:     ctx.config.Style.Basic,
 	}
 }
 
@@ -258,8 +306,8 @@ func (s *StatusBar) PrintStatus(msg string, clearDelay time.Duration) {
 		}
 	}
 
-	fgAttr := s.config.Style.BasicFG()
-	bgAttr := s.config.Style.BasicBG()
+	fgAttr := s.basicStyle.fg
+	bgAttr := s.basicStyle.bg
 
 	if w > width {
 		printScreen(0, location, fgAttr, bgAttr, string(pad), false)
@@ -286,41 +334,86 @@ func (s *StatusBar) PrintStatus(msg string, clearDelay time.Duration) {
 type ListArea struct {
 	*Ctx
 	*AnchorSettings
-	sortTopDown bool
+	sortTopDown         bool
+	displayCache        []Line
+	basicStyle          Style
+	queryStyle          Style
+	matchedStyle        Style
+	selectedStyle       Style
+	savedSelectionStyle Style
 }
 
 // NewListArea creates a new ListArea struct
 func NewListArea(ctx *Ctx, anchor VerticalAnchor, anchorOffset int, sortTopDown bool) *ListArea {
 	return &ListArea{
-		ctx,
-		NewAnchorSettings(anchor, anchorOffset),
-		sortTopDown,
+		Ctx:                 ctx,
+		AnchorSettings:      NewAnchorSettings(anchor, anchorOffset),
+		sortTopDown:         sortTopDown,
+		displayCache:        []Line{},
+		basicStyle:          ctx.config.Style.Basic,
+		queryStyle:          ctx.config.Style.Query,
+		matchedStyle:        ctx.config.Style.Matched,
+		selectedStyle:       ctx.config.Style.Selected,
+		savedSelectionStyle: ctx.config.Style.SavedSelection,
 	}
 }
 
 // Draw displays the ListArea on the screen
-func (l *ListArea) Draw(targets []Line, perPage int) {
+func (l *ListArea) Draw(perPage int) {
+	trace("ListArea.Draw: START")
+	defer trace("ListArea.Draw: END")
 	currentPage := l.currentPage
 
-	start := l.AnchorPosition()
+	pf := PageCrop{perPage: currentPage.perPage, currentPage: currentPage.page}
+	buf := pf.Crop(l.GetCurrentLineBuffer())
+	bufsiz := buf.Size()
+
+	// previously drawn lines are cached. first, truncate the cache
+	// to current size of the drawable area
+	switch ldc := len(l.displayCache); {
+	case ldc > perPage:
+		l.displayCache = append([]Line(nil), l.displayCache[:ldc]...)
+	case ldc < perPage:
+		// XXX Is there a more efficient way to grow the array?
+		for i := ldc; i < perPage; i++ {
+			l.displayCache = append(l.displayCache, nil)
+		}
+	}
 
 	var y int
+	start := l.AnchorPosition()
+
+	// If our buffer is smaller than perPage, we may need to
+	// clear some lines
+	trace("ListeArea.Draw: buffer size is %d, our view area is %d\n", bufsiz, perPage)
+	for n := bufsiz; n < perPage; n++ {
+		l.displayCache[n] = nil
+		if l.sortTopDown {
+			y = n + start
+		} else {
+			y = start - n
+		}
+
+		trace("ListArea.Draw: clearing row %d", y)
+		printScreen(0, y, l.basicStyle.fg, l.basicStyle.bg, "", true)
+	}
+
+	var cached, written int
 	var fgAttr, bgAttr termbox.Attribute
 	for n := 0; n < perPage; n++ {
 		switch {
-		case n+currentPage.offset == l.currentLine-1:
-			fgAttr = l.config.Style.SelectedFG()
-			bgAttr = l.config.Style.SelectedBG()
-		case l.SelectionContains(n + currentPage.offset + 1):
-			fgAttr = l.config.Style.SavedSelectionFG()
-			bgAttr = l.config.Style.SavedSelectionBG()
+		case n+currentPage.offset == l.currentLine:
+			fgAttr = l.selectedStyle.fg
+			bgAttr = l.selectedStyle.bg
+		case l.SelectionContains(n + currentPage.offset):
+			fgAttr = l.savedSelectionStyle.fg
+			bgAttr = l.savedSelectionStyle.bg
 		default:
-			fgAttr = l.config.Style.BasicFG()
-			bgAttr = l.config.Style.BasicBG()
+			fgAttr = l.basicStyle.fg
+			bgAttr = l.basicStyle.bg
 		}
 
-		targetIdx := currentPage.offset + n
-		if targetIdx >= len(targets) {
+		if n >= bufsiz {
 			break
 		}
 
@@ -330,7 +423,21 @@ func (l *ListArea) Draw(targets []Line, perPage int) {
 			y = start - n
 		}
 
-		target := targets[targetIdx]
+		target, err := buf.LineAt(n)
+		if err != nil {
+			break
+		}
+
+		if target.IsDirty() {
+			target.SetDirty(false)
+		} else if l.displayCache[n] == target {
+			cached++
+			continue
+		}
+
+		written++
+		l.displayCache[n] = target
+
 		line := target.DisplayString()
 		matches := target.Indices()
 		if matches == nil {
@@ -350,18 +457,19 @@ func (l *ListArea) Draw(targets []Line, perPage int) {
 			}
 			c := line[m[0]:m[1]]
 
-			n := printScreen(prev, y, l.config.Style.MatchedFG(), mergeAttribute(bgAttr, l.config.Style.MatchedBG()), c, true)
+			n := printScreen(prev, y, l.matchedStyle.fg, mergeAttribute(bgAttr, l.matchedStyle.bg), c, true)
 			prev += n
 			index += len(c)
 		}
 
 		m := matches[len(matches)-1]
 		if m[0] > index {
-			printScreen(prev, y, l.config.Style.QueryFG(), mergeAttribute(bgAttr, l.config.Style.QueryBG()), line[m[0]:m[1]], true)
+			printScreen(prev, y, l.queryStyle.fg, mergeAttribute(bgAttr, l.queryStyle.bg), line[m[0]:m[1]], true)
 		} else if len(line) > m[1] {
 			printScreen(prev, y, fgAttr, bgAttr, line[m[1]:len(line)], true)
 		}
 	}
+	trace("ListArea.Draw: Written total of %d lines (%d cached)\n", written+cached, cached)
 }
 
 // BasicLayout is... the basic layout :) At this point this is the
@@ -377,9 +485,13 @@ type BasicLayout struct {
 
 // NewDefaultLayout creates a new Layout in the default format (top-down)
 func NewDefaultLayout(ctx *Ctx) *BasicLayout {
+	extraOffset := 0
+	if isWindows {
+		extraOffset = 1
+	}
 	return &BasicLayout{
 		Ctx:       ctx,
-		StatusBar: NewStatusBar(ctx, AnchorBottom, 0),
+		StatusBar: NewStatusBar(ctx, AnchorBottom, 0+extraOffset),
 		// The prompt is at the top
 		prompt: NewUserPrompt(ctx, AnchorTop, 0),
 		// The list area is at the top, after the prompt
@@ -390,36 +502,40 @@ func NewDefaultLayout(ctx *Ctx) *BasicLayout {
 
 // NewBottomUpLayout creates a new Layout in bottom-up format
 func NewBottomUpLayout(ctx *Ctx) *BasicLayout {
+	extraOffset := 0
+	if isWindows {
+		extraOffset = 1
+	}
 	return &BasicLayout{
 		Ctx:       ctx,
-		StatusBar: NewStatusBar(ctx, AnchorBottom, 0),
+		StatusBar: NewStatusBar(ctx, AnchorBottom, 0+extraOffset),
 		// The prompt is at the bottom, above the status bar
-		prompt: NewUserPrompt(ctx, AnchorBottom, 1),
+		prompt: NewUserPrompt(ctx, AnchorBottom, 1+extraOffset),
 		// The list area is at the bottom, above the prompt
 		// IT's displayed in bottom-to-top order
-		list: NewListArea(ctx, AnchorBottom, 2, false),
+		list: NewListArea(ctx, AnchorBottom, 2+extraOffset, false),
 	}
 }
 
 // CalculatePage calculates which page we're displaying
-func (l *BasicLayout) CalculatePage(targets []Line, perPage int) error {
+func (l *BasicLayout) CalculatePage(perPage int) error {
 CALCULATE_PAGE:
+	buf := l.GetCurrentLineBuffer()
 	currentPage := l.currentPage
-	currentPage.index = ((l.currentLine - 1) / perPage) + 1
-	if currentPage.index <= 0 {
-		currentPage.index = 1
-	}
-	currentPage.offset = (currentPage.index - 1) * perPage
+	currentPage.page = (l.currentLine / perPage) + 1
+	currentPage.offset = (currentPage.page - 1) * perPage
 	currentPage.perPage = perPage
-	currentPage.total = len(targets)
+	currentPage.total = buf.Size()
+
+	trace("BasicLayout.CalculatePage: %#v", currentPage)
 	if currentPage.total == 0 {
 		currentPage.maxPage = 1
 	} else {
 		currentPage.maxPage = ((currentPage.total + perPage - 1) / perPage)
 	}
 
-	if currentPage.maxPage < currentPage.index {
-		if len(targets) == 0 && l.QueryLen() == 0 {
+	if currentPage.maxPage < currentPage.page {
+		if buf.Size() == 0 {
 			// wait for targets
 			return fmt.Errorf("no targets or query. nothing to do")
 		}
@@ -430,28 +546,24 @@ CALCULATE_PAGE:
 	return nil
 }
 
+// DrawPrompt draws the prompt to the terminal
 func (l *BasicLayout) DrawPrompt() {
 	l.prompt.Draw()
 }
 
 // DrawScreen draws the entire screen
-func (l *BasicLayout) DrawScreen(targets []Line) {
-	if err := screen.Clear(l.config.Style.BasicFG(), l.config.Style.BasicBG()); err != nil {
-		return
-	}
-
-	if l.currentLine > len(targets) && len(targets) > 0 {
-		l.currentLine = len(targets)
-	}
+func (l *BasicLayout) DrawScreen() {
+	trace("DrawScreen: START")
+	defer trace("DrawScreen: END")
 
 	perPage := linesPerPage()
 
-	if err := l.CalculatePage(targets, perPage); err != nil {
+	if err := l.CalculatePage(perPage); err != nil {
 		return
 	}
 
 	l.DrawPrompt()
-	l.list.Draw(targets, perPage)
+	l.list.Draw(perPage)
 
 	if err := screen.Flush(); err != nil {
 		return
@@ -460,13 +572,36 @@ func (l *BasicLayout) DrawScreen(targets []Line) {
 
 func linesPerPage() int {
 	_, height := screen.Size()
-	return height - 2 // list area is always the display area - 2 lines for prompt and status
+
+	// list area is always the display area - 2 lines for prompt and status
+	reservedLines := 2
+	if isWindows {
+		// Of course, *except* for windows... :)
+		reservedLines = 3
+	}
+	return height - reservedLines
 }
 
 // MovePage moves the cursor
 func (l *BasicLayout) MovePage(p PagingRequest) {
-	// Before we moved, on which line were we located?
+	// Before we move, on which line were we located?
 	lineBefore := l.currentLine
+
+	defer func() { trace("currentLine changed from %d -> %d", lineBefore, l.currentLine) }()
+	cp := l.currentPage
+	buf := l.GetCurrentLineBuffer()
+	lcur := buf.Size()
+
+	defer func() {
+		for _, lno := range []int{lineBefore, l.currentLine} {
+			if oldLine, err := buf.LineAt(lno); err == nil {
+				trace("Setting line %d dirty", lno)
+				oldLine.SetDirty(true)
+			}
+		}
+	}()
+
+	lpp := linesPerPage()
 	if l.list.sortTopDown {
 		switch p {
 		case ToLineAbove:
@@ -474,9 +609,12 @@ func (l *BasicLayout) MovePage(p PagingRequest) {
 		case ToLineBelow:
 			l.currentLine++
 		case ToScrollPageDown:
-			l.currentLine += linesPerPage()
+			l.currentLine += lpp
+			if cp.page == cp.maxPage-1 && lcur < l.currentLine && (lcur-lineBefore) < lpp {
+				l.currentLine = lcur - 1
+			}
 		case ToScrollPageUp:
-			l.currentLine -= linesPerPage()
+			l.currentLine -= lpp
 		}
 	} else {
 		switch p {
@@ -485,22 +623,21 @@ func (l *BasicLayout) MovePage(p PagingRequest) {
 		case ToLineBelow:
 			l.currentLine--
 		case ToScrollPageDown:
-			l.currentLine -= linesPerPage()
+			l.currentLine -= lpp
 		case ToScrollPageUp:
-			l.currentLine += linesPerPage()
+			l.currentLine += lpp
 		}
 	}
 
-	lcur := len(l.current)
-	if l.currentLine < 1 {
-		if l.current != nil {
+	if l.currentLine < 0 {
+		if lcur > 0 {
 			// Go to last page, if possible
-			l.currentLine = lcur
+			l.currentLine = lcur - 1
 		} else {
-			l.currentLine = 1
+			l.currentLine = 0
 		}
-	} else if l.current != nil && l.currentLine > lcur {
-		l.currentLine = 1
+	} else if lcur > 0 && l.currentLine >= lcur {
+		l.currentLine = 0
 	}
 
 	// if we were in range mode, we need to do stuff. otherwise
@@ -516,7 +653,7 @@ func (l *BasicLayout) MovePage(p PagingRequest) {
 			}
 			switch {
 			case l.selectionRangeStart <= lineBefore:
-				for lineno := l.selectionRangeStart + 1; lineno <= lcur && lineno < lineBefore; lineno++ {
+				for lineno := l.selectionRangeStart; lineno <= lcur && lineno < lineBefore; lineno++ {
 					l.SelectionRemove(lineno)
 				}
 			case lineBefore < l.currentLine:
@@ -528,13 +665,14 @@ func (l *BasicLayout) MovePage(p PagingRequest) {
 			for lineno := l.selectionRangeStart; lineno <= lcur && lineno <= l.currentLine; lineno++ {
 				l.SelectionAdd(lineno)
 			}
+
 			switch {
 			case lineBefore <= l.selectionRangeStart:
 				for lineno := lineBefore; lineno < l.selectionRangeStart; lineno++ {
 					l.SelectionRemove(lineno)
 				}
 			case l.currentLine < lineBefore:
-				for lineno := l.currentLine + 1; lineno <= lineBefore; lineno++ {
+				for lineno := l.currentLine; lineno <= lineBefore; lineno++ {
 					l.SelectionRemove(lineno)
 				}
 			}

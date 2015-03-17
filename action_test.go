@@ -2,10 +2,22 @@ package peco
 
 import (
 	"testing"
+	"time"
+	"unicode/utf8"
 
-	"github.com/mattn/go-runewidth"
 	"github.com/nsf/termbox-go"
 )
+
+func TestActionFunc(t *testing.T) {
+	called := 0
+	af := ActionFunc(func(_ *Input, _ termbox.Event) {
+		called++
+	})
+	af.Execute(nil, termbox.Event{})
+	if called != 1 {
+		t.Errorf("Expected ActionFunc to be called once, but it got called %d times", called)
+	}
+}
 
 func TestActionNames(t *testing.T) {
 	// These names MUST exist
@@ -71,11 +83,11 @@ func TestDoDeleteForwardChar(t *testing.T) {
 	expectQueryString(t, ctx, "Hello World!")
 	expectCaretPos(t, ctx, 5)
 
-	ctx.SetCaretPos(runewidth.StringWidth(ctx.QueryString()))
+	ctx.SetCaretPos(ctx.QueryLen())
 	doDeleteForwardChar(input, termbox.Event{})
 
 	expectQueryString(t, ctx, "Hello World!")
-	expectCaretPos(t, ctx, runewidth.StringWidth(ctx.QueryString()))
+	expectCaretPos(t, ctx, ctx.QueryLen())
 
 	ctx.SetCaretPos(0)
 	doDeleteForwardChar(input, termbox.Event{})
@@ -95,11 +107,11 @@ func TestDoDeleteForwardWord(t *testing.T) {
 	expectQueryString(t, ctx, "Hello World!")
 	expectCaretPos(t, ctx, 5)
 
-	ctx.SetCaretPos(runewidth.StringWidth(ctx.QueryString()))
+	ctx.SetCaretPos(ctx.QueryLen())
 	doDeleteForwardWord(input, termbox.Event{})
 
 	expectQueryString(t, ctx, "Hello World!")
-	expectCaretPos(t, ctx, runewidth.StringWidth(ctx.QueryString()))
+	expectCaretPos(t, ctx, ctx.QueryLen())
 
 	ctx.SetCaretPos(0)
 	doDeleteForwardWord(input, termbox.Event{})
@@ -124,11 +136,11 @@ func TestDoDeleteBackwardChar(t *testing.T) {
 	expectQueryString(t, ctx, "Hell, World!")
 	expectCaretPos(t, ctx, 4)
 
-	ctx.SetCaretPos(runewidth.StringWidth(ctx.QueryString()))
+	ctx.SetCaretPos(ctx.QueryLen())
 	doDeleteBackwardChar(input, termbox.Event{})
 
 	expectQueryString(t, ctx, "Hell, World")
-	expectCaretPos(t, ctx, runewidth.StringWidth(ctx.QueryString()))
+	expectCaretPos(t, ctx, ctx.QueryLen())
 
 	ctx.SetCaretPos(0)
 	doDeleteBackwardChar(input, termbox.Event{})
@@ -163,4 +175,111 @@ func TestDoDeleteBackwardWord(t *testing.T) {
 
 	expectQueryString(t, ctx, "foo ")
 	expectCaretPos(t, ctx, 4)
+}
+
+func writeQueryToPrompt(t *testing.T, message string) {
+	for str := message; true; {
+		r, size := utf8.DecodeRuneInString(str)
+		if r == utf8.RuneError {
+			if size == 0 {
+				t.Logf("End of string reached")
+				break
+			}
+			t.Errorf("Failed to decode run in string: %s", r)
+			return
+		}
+
+		if r == ' ' {
+			screen.SendEvent(termbox.Event{Key: termbox.KeySpace})
+		} else {
+			screen.SendEvent(termbox.Event{Ch: r})
+		}
+		str = str[size:]
+	}
+}
+
+func TestDoAcceptChar(t *testing.T) {
+	_, guard := setDummyScreen()
+	defer guard()
+
+	ctx := newCtx(nil, 25)
+	defer ctx.Stop()
+	ctx.startInput()
+
+	message := "Hello, World!"
+	writeQueryToPrompt(t, message)
+	time.Sleep(500 * time.Millisecond)
+
+	if qs := ctx.QueryString(); qs != message {
+		t.Errorf("Expected query to be populated as '%s', but got '%s'", message, qs)
+	}
+
+	ctx.MoveCaretPos(-1*len("World!"))
+	writeQueryToPrompt(t, "Cruel ")
+
+	time.Sleep(500 * time.Millisecond)
+
+	expected := "Hello, Cruel World!"
+	if qs := ctx.QueryString(); qs != expected {
+		t.Errorf("Expected query to be populated as '%s', but got '%s'", expected, qs)
+	}
+}
+
+func TestRotateFilter(t *testing.T) {
+	_, guard := setDummyScreen()
+	defer guard()
+
+	ctx := newCtx(nil, 25)
+	defer ctx.Stop()
+
+	size := ctx.filters.Size()
+	if size < 2 {
+		t.Errorf("Can't proceed testing, only have 1 filter registered")
+	}
+
+	ctx.startInput()
+
+	var prev QueryFilterer
+	first := ctx.Filter()
+	prev = first
+	for i := 0; i < size; i++ {
+		screen.SendEvent(termbox.Event{Key: termbox.KeyCtrlR})
+
+		time.Sleep(500 * time.Millisecond)
+		f := ctx.Filter()
+		if f == prev {
+			t.Errorf("failed to rotate")
+		}
+		prev = f
+	}
+
+	if first != prev {
+		t.Errorf("should have rotated back to first one, but didn't")
+	}
+
+	// TODO toggle ExecQuery()
+}
+
+func TestBeginningOfLineAndEndOfLine(t *testing.T) {
+	_, guard := setDummyScreen()
+	defer guard()
+
+	ctx := newCtx(nil, 25)
+	defer ctx.Stop()
+
+	ctx.startInput()
+
+	message := "Hello, World!"
+	writeQueryToPrompt(t, message)
+	screen.SendEvent(termbox.Event{Key: termbox.KeyCtrlA})
+	if cp := ctx.CaretPos(); cp != 0 {
+		t.Errorf("Expected caret position to be 0, got %d", cp)
+	}
+
+	screen.SendEvent(termbox.Event{Key: termbox.KeyCtrlE})
+	time.Sleep(time.Second)
+	if cp := ctx.CaretPos(); cp != len(message) {
+		t.Errorf("Expected caret position to be %d, got %d", len(message), cp)
+	}
+
 }

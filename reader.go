@@ -2,19 +2,14 @@ package peco
 
 import (
 	"bufio"
-	"fmt"
+	"errors"
 	"io"
-	"os"
 	"sync"
 	"time"
 )
 
-// BufferReader reads lines from the input, either Stdin or a file.
-// If the incoming data is endless, it keeps reading and adding to
-// the search buffer, as long as it can.
-//
-// If you would like to limit the number of lines to keep in the
-// buffer, you should set --buffer-size to a number > 0
+// BufferReader reads from either stdin or a file. In case of stdin,
+// it also handles possible infinite source.
 type BufferReader struct {
 	*Ctx
 	input        io.ReadCloser
@@ -32,11 +27,13 @@ func (b *BufferReader) Loop() {
 	defer b.ReleaseWaitGroup()
 	defer func() { recover() }()             // ignore errors
 	defer func() { close(b.inputReadyCh) }() // Make sure to close notifier
+	defer b.input.Close()
 
 	ch := make(chan string, 10)
 
-	// scanner.Scan() blocks until the next read or error. But we want to
-	// exit immediately, so we move it out to its own goroutine
+	// scanner.Scan() blocks until the next read or error. But we want our
+	// main loop to be able to exit without blocking, so we move this out
+	// to its own goroutine
 	go func() {
 		defer func() { recover() }()
 		defer func() { close(ch) }()
@@ -50,8 +47,27 @@ func (b *BufferReader) Loop() {
 	once := &sync.Once{}
 	var refresh *time.Timer
 
-	loop := true
-	for loop {
+	doDelayedDraw := func() {
+		m.Lock()
+		defer m.Unlock()
+
+		trace("doDelayedDraw")
+
+		if refresh != nil {
+			return
+		}
+
+		refresh = time.AfterFunc(100*time.Millisecond, func() {
+			if !b.ExecQuery() {
+				b.SendDraw()
+			}
+			m.Lock()
+			defer m.Unlock()
+			refresh = nil
+		})
+	}
+
+	for loop := true; loop; {
 		select {
 		case <-b.LoopCh():
 			loop = false
@@ -63,39 +79,22 @@ func (b *BufferReader) Loop() {
 
 			if line != "" {
 				// Notify once that we have received something from the file/stdin
+				// This is the cue to start initializing the terminal
 				once.Do(func() { b.inputReadyCh <- struct{}{} })
 
 				// Make sure we lock access to b.lines
 				m.Lock()
-				b.SetLines(append(b.GetLines(), NewRawLine(line, b.enableSep)))
-				if b.IsBufferOverflowing() {
-					lines := b.GetLines()
-					b.SetLines(lines[1:])
-				}
+				b.AddRawLine(NewRawLine(line, b.enableSep))
 				m.Unlock()
 			}
 
-			m.Lock()
-			if refresh == nil {
-				refresh = time.AfterFunc(100*time.Millisecond, func() {
-					if !b.ExecQuery() {
-						b.DrawMatches(b.GetLines())
-					}
-					m.Lock()
-					refresh = nil
-					m.Unlock()
-				})
-			}
-			m.Unlock()
+			doDelayedDraw()
 		}
 	}
 
-	b.input.Close()
-
 	// Out of the reader loop. If at this point we have no buffer,
 	// that means we have no buffer, so we should quit.
-	if b.GetLinesCount() == 0 {
-		b.ExitWith(1)
-		fmt.Fprintf(os.Stderr, "No buffer to work with was available")
+	if b.GetRawLineBufferSize() == 0 {
+		b.ExitWith(errors.New("no buffer to work with was available"))
 	}
 }

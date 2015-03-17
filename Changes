@@ -1,8 +1,26 @@
 Changes
 =======
 
+${{NEXT}}
+  * BEWARE! 50% of the code has been rewritten!
+  Features
+  * Matchers are now known as Filters
+  * Added StickySelection configuration option
+  * Added QueryExecutionDelay configuration option
+  * Added CustomFilter.BufferThreshold option
+  * For Windows, an extra space at the bottom has been added to facilitate
+    those users using an IM (which consumes an extra line)
+  Deprecations
+  * --no-ignore-case has been completely removed
+  * InitialMatcher configuration option has been deprecated. Use InitialFilter
+  * CustomMatcher configuration option has been deprecated. Use CustomFilter
+  * RotateMatcher action has been deprecated. Use RotateFilter
+  Miscellaneous
+  * To enable trace logs, compile with `-tags debug`, and enable the logs
+    via PECO_TRACE environment variable. e.g. `PECO_TRACE=1 peco ...`
+
 v0.2.12 - 27 Feb 2015
-  Bufs/Fixes
+  Bugs/Fixes
   * Lines with tabs didn't display properly.
   * Matches that would fail to hilight certain parts of the text
     depending on the term order

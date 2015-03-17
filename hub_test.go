@@ -6,7 +6,7 @@ import (
 )
 
 func TestHub(t *testing.T) {
-	h := NewHub()
+	h := NewHub(5)
 
 	done := make(map[string]time.Time)
 
@@ -44,7 +44,7 @@ func TestHub(t *testing.T) {
 
 	h.Batch(func() {
 		h.SendQuery("Hello World!")
-		h.SendDraw(nil)
+		h.SendDraw()
 		h.SendStatusMsg("Hello, World!")
 		h.SendPaging(ToLineAbove)
 	})

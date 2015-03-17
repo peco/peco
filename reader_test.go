@@ -35,7 +35,7 @@ func TestReader(t *testing.T) {
 	ctx.AddWaitGroup(1)
 	rdr.Loop()
 
-	if len(ctx.lines) != 3 {
-		t.Errorf("Expected 3 lines from input, only got %d", len(ctx.lines))
+	if ctx.GetRawLineBufferSize() != 3 {
+		t.Errorf("Expected 3 lines from input, only got %d", ctx.GetRawLineBufferSize())
 	}
 }

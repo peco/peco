@@ -53,15 +53,15 @@ func (hr HubReq) Done() {
 }
 
 // NewHub creates a new Hub struct
-func NewHub() *Hub {
+func NewHub(bufsiz int) *Hub {
 	return &Hub{
 		false,
 		newMutex(),
 		make(chan struct{}),  // loopCh. You never send messages to this. no point in buffering
-		make(chan HubReq, 5), // queryCh.
-		make(chan HubReq, 5), // drawCh.
-		make(chan HubReq, 5), // statusMsgCh
-		make(chan HubReq, 5), // pagingCh
+		make(chan HubReq, bufsiz), // queryCh.
+		make(chan HubReq, bufsiz), // drawCh.
+		make(chan HubReq, bufsiz), // statusMsgCh
+		make(chan HubReq, bufsiz), // pagingCh
 	}
 }
 
@@ -123,12 +123,11 @@ func (h *Hub) SendDrawPrompt() {
 }
 
 // SendDraw sends a request to redraw the terminal display
-func (h *Hub) SendDraw(matches []Line) {
+func (h *Hub) SendDraw() {
+	trace("Hub.SendDraw: START")
+	defer trace("Hub.SendDraw: END")
 	// to make sure interface is nil, I need to EXPLICITLY set nil
 	req := HubReq{nil, nil}
-	if matches != nil {
-		req.data = matches
-	}
 	send(h.DrawCh(), req, h.isSync)
 }
 
@@ -142,6 +141,8 @@ func (h *Hub) SendStatusMsg(q string) {
 	h.SendStatusMsgAndClear(q, 0)
 }
 
+// SendStatusMsgAndClear sends a string to be displayed in the status message,
+// as well as a delay until the message should be cleared
 func (h *Hub) SendStatusMsgAndClear(q string, clearDelay time.Duration) {
 	send(h.StatusMsgCh(), HubReq{StatusMsgRequest{q, clearDelay}, nil}, h.isSync)
 }

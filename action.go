@@ -1,11 +1,18 @@
 package peco
 
 import (
+	"errors"
+	"fmt"
 	"unicode"
 
+	"github.com/google/btree"
 	"github.com/nsf/termbox-go"
 	"github.com/peco/peco/keyseq"
 )
+
+// ErrUserCanceled is used to ignal that the user deliverately
+// canceled using peco
+var ErrUserCanceled = errors.New("canceled")
 
 // Action describes an action that can be executed upon receiving user
 // input. It's an interface so you can create any kind of Action you need,
@@ -47,6 +54,13 @@ func (a ActionFunc) RegisterKeySequence(k keyseq.KeyList) {
 	defaultKeyBinding[k.String()] = a
 }
 
+func wrapDeprecated(fn func(*Input, termbox.Event), oldName, newName string) ActionFunc {
+	return ActionFunc(func(i *Input, e termbox.Event) {
+		i.SendStatusMsg(fmt.Sprintf("%s is deprecated. Use %s", oldName, newName))
+		fn(i, e)
+	})
+}
+
 func init() {
 	// Build the global maps
 	nameToActions = map[string]Action{}
@@ -76,31 +90,20 @@ func init() {
 	ActionFunc(doForwardWord).Register("ForwardWord")
 	ActionFunc(doKillEndOfLine).Register("KillEndOfLine", termbox.KeyCtrlK)
 	ActionFunc(doKillBeginningOfLine).Register("KillBeginningOfLine", termbox.KeyCtrlU)
-	ActionFunc(doRotateMatcher).Register("RotateMatcher", termbox.KeyCtrlR)
+	ActionFunc(doRotateFilter).Register("RotateFilter", termbox.KeyCtrlR)
+	wrapDeprecated(doRotateFilter, "RotateMatcher", "RotateFilter").Register("RotateMatcher")
 
 	ActionFunc(doSelectUp).Register("SelectUp", termbox.KeyArrowUp, termbox.KeyCtrlP)
-	ActionFunc(func(i *Input, ev termbox.Event) {
-		i.SendStatusMsg("SelectNext is deprecated. Use SelectUp/SelectDown")
-		doSelectDown(i, ev)
-	}).Register("SelectNext")
+	wrapDeprecated(doSelectDown, "SelectNext", "SelectUp/SelectDown").Register("SelectNext")
 
 	ActionFunc(doScrollPageDown).Register("ScrollPageDown", termbox.KeyArrowRight)
-	ActionFunc(func(i *Input, ev termbox.Event) {
-		i.SendStatusMsg("SelectNextPage is deprecated. Use ScrollPageDown/ScrollPageUp")
-		doScrollPageDown(i, ev)
-	}).Register("SelectNextPage")
+	wrapDeprecated(doScrollPageDown, "SelectNextPage", "ScrollPageDown/ScrollPageUp").Register("SelectNextPage")
 
 	ActionFunc(doSelectDown).Register("SelectDown", termbox.KeyArrowDown, termbox.KeyCtrlN)
-	ActionFunc(func(i *Input, ev termbox.Event) {
-		i.SendStatusMsg("SelectPrevious is deprecated. Use SelectUp/SelectDown")
-		doSelectUp(i, ev)
-	}).Register("SelectPrevious")
+	wrapDeprecated(doSelectUp, "SelectPrevious", "SelectUp/SelectDown").Register("SelectPrevious")
 
 	ActionFunc(doScrollPageUp).Register("ScrollPageUp", termbox.KeyArrowLeft)
-	ActionFunc(func(i *Input, ev termbox.Event) {
-		i.SendStatusMsg("SelectPreviousPage is deprecated. Uselect ScrollPageDown/ScrollPageUp")
-		doScrollPageUp(i, ev)
-	}).Register("SelectPreviousPage")
+	wrapDeprecated(doScrollPageUp, "SelectPreviousPage", "ScrollPageDown/ScrollPageUp").Register("SelectPreviousPage")
 
 	ActionFunc(doToggleSelection).Register("ToggleSelection")
 	ActionFunc(doToggleSelectionAndSelectNext).Register(
@@ -113,14 +116,8 @@ func init() {
 	)
 	ActionFunc(doSelectAll).Register("SelectAll")
 	ActionFunc(doSelectVisible).Register("SelectVisible")
-	ActionFunc(func(i *Input, ev termbox.Event) {
-		i.SendStatusMsg("ToggleSelectMode is deprecated. Use ToggleRangeMode")
-		doToggleRangeMode(i, ev)
-	}).Register("ToggleSelectMode")
-	ActionFunc(func(i *Input, ev termbox.Event) {
-		i.SendStatusMsg("CancelSelectMode is deprecated. Use CancelRangeMode")
-		doCancelRangeMode(i, ev)
-	}).Register("CancelSelectMode")
+	wrapDeprecated(doToggleRangeMode, "ToggleSelectMode", "ToggleRangeMode").Register("ToggleSelectMode")
+	wrapDeprecated(doCancelRangeMode, "CancelSelectMode", "CancelRangeMode").Register("CancelSelectMode")
 	ActionFunc(doToggleRangeMode).Register("ToggleRangeMode")
 	ActionFunc(doCancelRangeMode).Register("CancelRangeMode")
 	ActionFunc(doToggleQuery).Register("ToggleQuery", termbox.KeyCtrlT)
@@ -153,71 +150,93 @@ func doAcceptChar(i *Input, ev termbox.Event) {
 		ev.Ch = ' '
 	}
 
-	if ev.Ch > 0 {
+	if ch := ev.Ch; ch > 0 {
 		if i.QueryLen() == i.CaretPos() {
-			i.AppendQuery(ev.Ch)
+			i.AppendQuery(ch)
 		} else {
-			i.InsertQueryAt(ev.Ch, i.CaretPos())
+			i.InsertQueryAt(ch, i.CaretPos())
 		}
 		i.MoveCaretPos(1)
 		i.DrawPrompt() // Update prompt before running query
+
 		i.ExecQuery()
 	}
 }
 
-func doRotateMatcher(i *Input, ev termbox.Event) {
-	i.MatcherSet.Rotate()
+func doRotateFilter(i *Input, ev termbox.Event) {
+	trace("doRotateFitler: START")
+	defer trace("doRotateFitler: END")
+	i.RotateFilter()
 	if i.ExecQuery() {
 		return
 	}
-	i.DrawMatches(nil)
+	i.SendDrawPrompt()
 }
 
 func doToggleSelection(i *Input, _ termbox.Event) {
-	if i.selection.Has(i.currentLine) {
-		i.selection.Remove(i.currentLine)
+	l, err := i.GetCurrentLineBuffer().LineAt(i.currentLine)
+	if err != nil {
 		return
 	}
-	i.selection.Add(i.currentLine)
+
+	if i.selection.Has(l) {
+		i.selection.Remove(l)
+		return
+	}
+	i.selection.Add(l)
 }
 
 func doToggleRangeMode(i *Input, _ termbox.Event) {
+	trace("doToggleRangeMode: START")
+	defer trace("doToggleRangeMode: END")
 	if i.IsRangeMode() {
 		i.selectionRangeStart = invalidSelectionRange
 	} else {
 		i.selectionRangeStart = i.currentLine
-		i.SelectionAdd(i.currentPage.offset + i.currentLine)
+		i.SelectionAdd(i.currentLine)
 	}
-	i.DrawMatches(nil)
 }
 
 func doCancelRangeMode(i *Input, _ termbox.Event) {
 	i.selectionRangeStart = invalidSelectionRange
-	i.DrawMatches(nil)
 }
 
 func doSelectNone(i *Input, _ termbox.Event) {
-	i.selection.Clear()
-	i.DrawMatches(nil)
+	i.SelectionClear()
 }
 
 func doSelectAll(i *Input, _ termbox.Event) {
-	for lineno := 1; lineno <= len(i.current); lineno++ {
-		i.selection.Add(lineno)
+	b := i.GetCurrentLineBuffer()
+	for x := 0; x < b.Size(); x++ {
+		if l, err := b.LineAt(x); err == nil {
+			i.selection.Add(l)
+		} else {
+			i.selection.Remove(l)
+		}
 	}
-	i.DrawMatches(nil)
 }
 
 func doSelectVisible(i *Input, _ termbox.Event) {
-	pageStart := i.currentPage.offset
-	pageEnd := pageStart + i.currentPage.perPage
-	for lineno := pageStart; lineno <= pageEnd; lineno++ {
-		i.selection.Add(lineno)
+	trace("doSelectVisible: START")
+	defer trace("doSelectVisible: END")
+	b := i.GetCurrentLineBuffer()
+	pc := PageCrop{i.currentPage.perPage, i.currentPage.page}
+	lb := pc.Crop(b)
+	for x := 0; x < lb.Size(); x++ {
+		l, err := lb.LineAt(x)
+		if err != nil {
+			continue
+		}
+		l.SetDirty(true)
+		i.selection.Add(l)
 	}
-	i.DrawMatches(nil)
+	i.SendDraw()
 }
 
 func doFinish(i *Input, _ termbox.Event) {
+	trace("doFinish: START")
+	defer trace("doFinish: END")
+
 	// Must end with all the selected lines.
 	if i.SelectionLen() == 0 {
 		i.SelectionAdd(i.currentLine)
@@ -225,20 +244,14 @@ func doFinish(i *Input, _ termbox.Event) {
 
 	i.resultCh = make(chan Line)
 	go func() {
-		max := i.GetCurrentLen()
-		for x := 1; x <= max; x++ {
-			if x > i.GetCurrentLen() {
-				break
-			}
-
-			if i.selection.Has(x) {
-				i.resultCh <- i.GetCurrentAt(x - 1)
-			}
-		}
+		i.selection.Ascend(func(it btree.Item) bool {
+			i.resultCh <- it.(Line)
+			return true
+		})
 		close(i.resultCh)
 	}()
 
-	i.ExitWith(0)
+	i.ExitWith(nil)
 }
 
 func doCancel(i *Input, ev termbox.Event) {
@@ -253,27 +266,25 @@ func doCancel(i *Input, ev termbox.Event) {
 	}
 
 	// peco.Cancel -> end program, exit with failure
-	i.ExitWith(1)
+	i.ExitWith(ErrUserCanceled)
 }
 
 func doSelectDown(i *Input, ev termbox.Event) {
+	trace("doSelectDown: START")
+	defer trace("doSelectDown: END")
 	i.SendPaging(ToLineBelow)
-	i.DrawMatches(nil)
 }
 
 func doSelectUp(i *Input, ev termbox.Event) {
 	i.SendPaging(ToLineAbove)
-	i.DrawMatches(nil)
 }
 
 func doScrollPageUp(i *Input, ev termbox.Event) {
 	i.SendPaging(ToScrollPageUp)
-	i.DrawMatches(nil)
 }
 
 func doScrollPageDown(i *Input, ev termbox.Event) {
 	i.SendPaging(ToScrollPageDown)
-	i.DrawMatches(nil)
 }
 
 func doToggleSelectionAndSelectNext(i *Input, ev termbox.Event) {
@@ -289,8 +300,28 @@ func doToggleSelectionAndSelectNext(i *Input, ev termbox.Event) {
 }
 
 func doInvertSelection(i *Input, _ termbox.Event) {
-	i.selection.Invert(i.GetCurrentLen())
-	i.DrawMatches(nil)
+	trace("doInvertSelection: START")
+	defer trace("doInvertSelection: END")
+
+	old := i.selection
+	i.SelectionClear()
+	b := i.GetCurrentLineBuffer()
+
+	for x := 0; x < b.Size(); x++ {
+		if l, err := b.LineAt(x); err == nil {
+			l.SetDirty(true)
+			i.selection.Add(l)
+		} else {
+			i.selection.Remove(l)
+		}
+	}
+
+	old.Ascend(func(it btree.Item) bool {
+		i.selection.Delete(it.(Line))
+		return true
+	})
+
+	i.SendDraw()
 }
 
 func doDeleteBackwardWord(i *Input, _ termbox.Event) {
@@ -329,15 +360,14 @@ func doDeleteBackwardWord(i *Input, _ termbox.Event) {
 	if i.ExecQuery() {
 		return
 	}
-
-	i.SetCurrent(nil)
-	i.DrawMatches(nil)
+	i.DrawPrompt()
 }
 
 func doForwardWord(i *Input, _ termbox.Event) {
 	if i.CaretPos() >= i.QueryLen() {
 		return
 	}
+	defer i.DrawPrompt()
 
 	foundSpace := false
 	for pos := i.CaretPos(); pos < i.QueryLen(); pos++ {
@@ -345,7 +375,6 @@ func doForwardWord(i *Input, _ termbox.Event) {
 		if foundSpace {
 			if !unicode.IsSpace(r) {
 				i.SetCaretPos(pos)
-				i.DrawMatches(nil)
 				return
 			}
 		} else {
@@ -357,14 +386,13 @@ func doForwardWord(i *Input, _ termbox.Event) {
 
 	// not found. just move to the end of the buffer
 	i.SetCaretPos(i.QueryLen())
-	i.DrawMatches(nil)
-
 }
 
 func doBackwardWord(i *Input, _ termbox.Event) {
 	if i.CaretPos() == 0 {
 		return
 	}
+	defer i.DrawPrompt()
 
 	if i.CaretPos() >= i.QueryLen() {
 		i.MoveCaretPos(-1)
@@ -394,14 +422,12 @@ SEARCH_PREV_WORD:
 	for pos := i.CaretPos(); pos > 0; pos-- {
 		if unicode.IsSpace(i.Query()[pos]) {
 			i.SetCaretPos(int(pos + 1))
-			i.DrawMatches(nil)
 			return
 		}
 	}
 
 	// not found. just move to the beginning of the buffer
 	i.SetCaretPos(0)
-	i.DrawMatches(nil)
 }
 
 func doForwardChar(i *Input, _ termbox.Event) {
@@ -409,7 +435,7 @@ func doForwardChar(i *Input, _ termbox.Event) {
 		return
 	}
 	i.MoveCaretPos(1)
-	i.DrawMatches(nil)
+	i.DrawPrompt()
 }
 
 func doBackwardChar(i *Input, _ termbox.Event) {
@@ -417,13 +443,14 @@ func doBackwardChar(i *Input, _ termbox.Event) {
 		return
 	}
 	i.MoveCaretPos(-1)
-	i.DrawMatches(nil)
+	i.DrawPrompt()
 }
 
 func doDeleteForwardWord(i *Input, _ termbox.Event) {
 	if i.QueryLen() <= i.CaretPos() {
 		return
 	}
+	defer i.DrawPrompt()
 
 	start := i.CaretPos()
 
@@ -456,19 +483,16 @@ func doDeleteForwardWord(i *Input, _ termbox.Event) {
 	if i.ExecQuery() {
 		return
 	}
-
-	i.SetCurrent(nil)
-	i.DrawMatches(nil)
 }
 
 func doBeginningOfLine(i *Input, _ termbox.Event) {
 	i.SetCaretPos(0)
-	i.DrawMatches(nil)
+	i.DrawPrompt()
 }
 
 func doEndOfLine(i *Input, _ termbox.Event) {
 	i.SetCaretPos(i.QueryLen())
-	i.DrawMatches(nil)
+	i.DrawPrompt()
 }
 
 func doEndOfFile(i *Input, ev termbox.Event) {
@@ -485,8 +509,7 @@ func doKillBeginningOfLine(i *Input, _ termbox.Event) {
 	if i.ExecQuery() {
 		return
 	}
-	i.SetCurrent(nil)
-	i.DrawMatches(nil)
+	i.DrawPrompt()
 }
 
 func doKillEndOfLine(i *Input, _ termbox.Event) {
@@ -498,14 +521,12 @@ func doKillEndOfLine(i *Input, _ termbox.Event) {
 	if i.ExecQuery() {
 		return
 	}
-	i.SetCurrent(nil)
-	i.DrawMatches(nil)
+	i.DrawPrompt()
 }
 
 func doDeleteAll(i *Input, _ termbox.Event) {
 	i.SetQuery(make([]rune, 0))
-	i.SetCurrent(nil)
-	i.DrawMatches(nil)
+	i.ExecQuery()
 }
 
 func doDeleteForwardChar(i *Input, _ termbox.Event) {
@@ -523,37 +544,48 @@ func doDeleteForwardChar(i *Input, _ termbox.Event) {
 	if i.ExecQuery() {
 		return
 	}
-
-	i.SetCurrent(nil)
-	i.DrawMatches(nil)
+	i.DrawPrompt()
 }
 
 func doDeleteBackwardChar(i *Input, ev termbox.Event) {
-	if i.QueryLen() <= 0 {
+	trace("doDeleteBackwardChar: START")
+	defer trace("doDeleteBackwardChar: END")
+
+	qlen := i.QueryLen()
+	if qlen <= 0 {
+		trace("doDeleteBackwardChar: QueryLen <= 0, do nothing")
 		return
 	}
 
 	pos := i.CaretPos()
-	switch pos {
-	case 0:
+	if pos == 0 {
+		trace("doDeleteBackwardChar: Already at position 0")
 		// No op
 		return
-	case i.QueryLen():
-		i.SetQuery(i.Query()[:i.QueryLen()-1])
-	default:
-		buf := make([]rune, i.QueryLen()-1)
-		copy(buf, i.Query()[:i.CaretPos()])
-		copy(buf[i.CaretPos()-1:], i.Query()[i.CaretPos():])
-		i.SetQuery(buf)
 	}
+
+	var buf []rune
+	if qlen == 1 {
+		// Micro optimization
+		buf = []rune{}
+	} else {
+		q := i.Query()
+		if pos == qlen {
+			buf = q[:qlen-1 : qlen-1]
+		} else {
+			buf = make([]rune, qlen-1)
+			copy(buf, q[:pos])
+			copy(buf[pos-1:], q[pos:])
+		}
+	}
+	i.SetQuery(buf)
 	i.SetCaretPos(pos - 1)
 
 	if i.ExecQuery() {
 		return
 	}
 
-	i.SetCurrent(nil)
-	i.DrawMatches(nil)
+	i.DrawPrompt()
 }
 
 func doRefreshScreen(i *Input, _ termbox.Event) {
@@ -577,8 +609,7 @@ func doToggleQuery(i *Input, _ termbox.Event) {
 	if i.ExecQuery() {
 		return
 	}
-	i.SetCurrent(nil)
-	i.DrawMatches(nil)
+	i.DrawPrompt()
 }
 
 func doKonamiCommand(i *Input, ev termbox.Event) {
@@ -586,11 +617,11 @@ func doKonamiCommand(i *Input, ev termbox.Event) {
 }
 
 func makeCombinedAction(actions ...Action) ActionFunc {
-	return func(i *Input, ev termbox.Event) {
+	return ActionFunc(func(i *Input, ev termbox.Event) {
 		i.Batch(func() {
 			for _, a := range actions {
 				a.Execute(i, ev)
 			}
 		})
-	}
+	})
 }
