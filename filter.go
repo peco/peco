@@ -185,9 +185,9 @@ func (f *Filter) Loop() {
 		case q := <-f.QueryCh():
 			if previous != nil {
 				// Tell the previous query to stop
-				previous <- struct{}{}
+				close(previous)
 			}
-			previous = make(chan struct{}, 1)
+			previous = make(chan struct{})
 
 			f.SendStatusMsg("Running query...")
 			go f.Work(previous, q)

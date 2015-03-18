@@ -138,8 +138,12 @@ func (rlb *RawLineBuffer) Replay() error {
 		defer func() { recover() }() // It's okay if we fail to replay
 		defer close(rlb.outputCh)
 		for _, l := range rlb.lines {
-			rlb.outputCh <- l
-			replayed++
+			select {
+			case rlb.outputCh <- l:
+				replayed++
+			case <-rlb.cancelCh:
+				return
+			}
 		}
 	}()
 	return nil
