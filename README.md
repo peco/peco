@@ -222,7 +222,7 @@ new query, select those lines, and then delete the query. The result is all
 the lines that you selected before and after the modification to the query are
 left in tact.
 
-thatDefault is false.
+Default value for StickySelection is false.
 
 ## Keymaps
 
