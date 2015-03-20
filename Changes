@@ -1,7 +1,7 @@
 Changes
 =======
 
-${{NEXT}}
+v0.3.0 - 20 Mar 2015
   * BEWARE! 50% of the code has been rewritten!
   Features
   * Matchers are now known as Filters
