@@ -270,23 +270,29 @@ func (c *Ctx) ExecQuery() bool {
 		return false
 	}
 
-	if delay := c.config.QueryExecutionDelay; delay > 0 {
+	delay := c.config.QueryExecutionDelay
+
+	if delay <= 0 {
+		c.SendQuery(c.QueryString())
+	}
+
+	go func() {
 		// Wait $delay millisecs before sending the query
 		// if a new input comes in, batch them up
 		execQueryLock.Lock()
 		defer execQueryLock.Unlock()
-		if execQueryTimer == nil {
-			execQueryTimer = time.AfterFunc(time.Duration(delay)*time.Millisecond, func() {
-				c.SendQuery(c.QueryString())
-
-				execQueryLock.Lock()
-				defer execQueryLock.Unlock()
-				execQueryTimer = nil
-			})
+		if execQueryTimer != nil {
+			return
 		}
-	} else {
-		c.SendQuery(c.QueryString())
-	}
+		execQueryTimer = time.AfterFunc(time.Duration(delay)*time.Millisecond, func() {
+			trace("Ctx.ExecQuery: Sending Query!")
+			c.SendQuery(c.QueryString())
+
+			execQueryLock.Lock()
+			defer execQueryLock.Unlock()
+			execQueryTimer = nil
+		})
+	}()
 	return true
 }
 
