@@ -174,6 +174,7 @@ func newCtx(o CtxOptions, hubBufferSize int) *Ctx {
 	c.filters.Add(NewIgnoreCaseFilter())
 	c.filters.Add(NewCaseSensitiveFilter())
 	c.filters.Add(NewSmartCaseFilter())
+	c.filters.Add(NewRegexpFilter())
 
 	return c
 }

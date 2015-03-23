@@ -223,7 +223,10 @@ type RegexpFilter struct {
 }
 
 func NewRegexpFilter() *RegexpFilter {
-	return &RegexpFilter{}
+	return &RegexpFilter{
+		flags: regexpFlagList(defaultFlags),
+		name:  "Regexp",
+	}
 }
 
 func (rf RegexpFilter) Clone() QueryFilterer {
