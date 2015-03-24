@@ -553,6 +553,7 @@ CONTRIBUTORS
 * Samuel Lemaitre
 * Yousuke Ushiki
 * Linda\_pp
+* Tomohiro Nishimura (Sixeight)
 
 Notes
 =====
