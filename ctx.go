@@ -275,6 +275,7 @@ func (c *Ctx) ExecQuery() bool {
 
 	if delay <= 0 {
 		c.SendQuery(c.QueryString())
+		return true
 	}
 
 	go func() {
