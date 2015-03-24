@@ -1,6 +1,10 @@
 Changes
 =======
 
+v0.3.2 - 24 Mar 2015
+  Bugs/Fixes
+  * Filtered results could be wrong when QueryExecutionDelay is set to 0 (#241)
+
 v0.3.1 - 24 Mar 2015
   Bugs/Fixes
   * Regexp filter was accidentally disabled (#239/#240). Now it's back
