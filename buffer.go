@@ -116,7 +116,7 @@ type RawLineBuffer struct {
 	simplePipeline
 	buffers  dependentBuffers
 	lines    []Line
-	capacity int // max numer of lines. 0 means unlimited
+	capacity int // max number of lines. 0 means unlimited
 	onEnd    func()
 }
 
@@ -289,4 +289,3 @@ func (flb *FilteredLineBuffer) Register(lb LineBuffer) {
 func (flb *FilteredLineBuffer) Unregister(lb LineBuffer) {
 	flb.buffers.Unregister(lb)
 }
-

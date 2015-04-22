@@ -56,12 +56,12 @@ type Line interface {
 
 	// Indices return the matched portion(s) of a string after filtering.
 	// Note that while Indices may return nil, that just means that there are
-	// no substrings to be hilighted. It doesn't mean there were no matches
+	// no substrings to be highlighted. It doesn't mean there were no matches
 	Indices() [][]int
 
 	// Output returns the string to be display as peco finishes up doing its
 	// thing. This means if you have null separator, the contents before the
-	// separater are not included in this string
+	// separator are not included in this string
 	Output() string
 
 	// IsDirty returns true if this line should be forcefully redrawn

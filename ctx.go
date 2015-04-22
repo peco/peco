@@ -106,7 +106,7 @@ func (q *FilterQuery) InsertQueryAt(ch rune, where int) {
 }
 
 // Ctx contains all the important data. while you can easily access
-// data in this struct from anwyehre, only do so via channels
+// data in this struct from anywhere, only do so via channels
 type Ctx struct {
 	*Hub
 	*FilterQuery

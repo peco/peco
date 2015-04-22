@@ -59,7 +59,7 @@ func (o CLIOptions) BufferSize() int {
 	return o.OptBufferSize
 }
 
-// EnableNullSep returns tru if --null was specified. Fulfills CtxOptions
+// EnableNullSep returns true if --null was specified. Fulfills CtxOptions
 func (o CLIOptions) EnableNullSep() bool {
 	return o.OptEnableNullSep
 }

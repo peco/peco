@@ -2,7 +2,7 @@ package peco
 
 import "github.com/nsf/termbox-go"
 
-// Screen hides termbox from tne consuming code so that
+// Screen hides termbox from the consuming code so that
 // it can be swapped out for testing
 type Screen interface {
 	Flush() error

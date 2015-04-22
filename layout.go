@@ -512,7 +512,7 @@ func NewBottomUpLayout(ctx *Ctx) *BasicLayout {
 		// The prompt is at the bottom, above the status bar
 		prompt: NewUserPrompt(ctx, AnchorBottom, 1+extraOffset),
 		// The list area is at the bottom, above the prompt
-		// IT's displayed in bottom-to-top order
+		// It's displayed in bottom-to-top order
 		list: NewListArea(ctx, AnchorBottom, 2+extraOffset, false),
 	}
 }
