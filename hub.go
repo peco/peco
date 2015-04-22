@@ -18,7 +18,7 @@ type Hub struct {
 	pagingCh    chan HubReq
 }
 
-// HubReq is a wrapper around the actual requst value that needs
+// HubReq is a wrapper around the actual request value that needs
 // to be passed. It contains an optional channel field which can
 // be filled to force synchronous communication between the
 // sender and receiver
@@ -157,7 +157,7 @@ func (h *Hub) SendPaging(x PagingRequest) {
 	send(h.PagingCh(), HubReq{x, nil}, h.isSync)
 }
 
-// Stop closes the LoopCh so that peco shutsdown
+// Stop closes the LoopCh so that peco shutdown
 func (h *Hub) Stop() {
 	close(h.LoopCh())
 }

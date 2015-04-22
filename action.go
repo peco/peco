@@ -10,7 +10,7 @@ import (
 	"github.com/peco/peco/keyseq"
 )
 
-// ErrUserCanceled is used to ignal that the user deliverately
+// ErrUserCanceled is used to signal that the user deliberately
 // canceled using peco
 var ErrUserCanceled = errors.New("canceled")
 
@@ -38,7 +38,7 @@ func (a ActionFunc) Execute(i *Input, e termbox.Event) {
 	a(i, e)
 }
 
-// Register fulfills the Actin interface for AfterFunc. Registers `a`
+// Register fulfills the Action interface for AfterFunc. Registers `a`
 // into the global action registry by the name `name`, and maps to
 // default keys via `defaultKeys`
 func (a ActionFunc) Register(name string, defaultKeys ...termbox.Key) {
@@ -48,7 +48,7 @@ func (a ActionFunc) Register(name string, defaultKeys ...termbox.Key) {
 	}
 }
 
-// RegisterKeySequence satisfies the Action interface for AfterFun.
+// RegisterKeySequence satisfies the Action interface for AfterFunc.
 // Registers the action to be mapped against a key sequence
 func (a ActionFunc) RegisterKeySequence(k keyseq.KeyList) {
 	defaultKeyBinding[k.String()] = a

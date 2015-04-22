@@ -153,7 +153,7 @@ Specifies the initial line position upon start up. E.g. If you want to start out
 
 ### --initial-filter `IgnoreCase|CaseSensitive|SmartCase|Regexp`
 
-Specifies the initial fitler to use upon start up. You should specify the name of the filter like `IgnoreCase`, `CaseSensitive`, `SmartCase` and `Regexp`. Default is `IgnoreCase`.
+Specifies the initial filter to use upon start up. You should specify the name of the filter like `IgnoreCase`, `CaseSensitive`, `SmartCase` and `Regexp`. Default is `IgnoreCase`.
 
 ### --prompt
 
@@ -461,7 +461,7 @@ By default `peco` comes with `IgnoreCase`, `CaseSensitive`, `SmartCase` and `Reg
 The filter will be executed via  `Command.Run()` as an external process, and it will be passed the query values in the command line, and the original unaltered buffer is passed via `os.Stdin`. Your filter must perform the matching, and print out to `os.Stdout` matched lines. You filter MAY be called multiple times if the buffer
 given to peco is big enough. See `BufferThreshold` below.
 
-Note that currently there is no way for the custom filter to specify where in the line the match occurred, so matched portions in the string WILL NOT BE HIGHLITED.
+Note that currently there is no way for the custom filter to specify where in the line the match occurred, so matched portions in the string WILL NOT BE HIGHLIGHTED.
 
 The filter does not need to be a go program. It can be a perl/ruby/python/bash script, or anything else that is executable.
 
