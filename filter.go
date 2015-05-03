@@ -18,6 +18,7 @@ const (
 	CaseSensitiveMatch = "CaseSensitive"
 	SmartCaseMatch     = "SmartCase"
 	RegexpMatch        = "Regexp"
+	FuzzyMatch         = "Fuzzy"
 )
 
 var ignoreCaseFlags = []string{"i"}
@@ -162,7 +163,7 @@ func (f *Filter) Work(cancel chan struct{}, q HubReq) {
 		f.SetActiveLineBuffer(buf)
 	}
 
-	if ! f.config.StickySelection {
+	if !f.config.StickySelection {
 		f.SelectionClear()
 	}
 }
@@ -412,7 +413,7 @@ type ExternalCmdFilter struct {
 func NewExternalCmdFilter(name, cmd string, args []string, threshold int, enableSep bool) *ExternalCmdFilter {
 	trace("name = %s, cmd = %s, args = %#v", name, cmd, args)
 	if len(args) == 0 {
-		args = []string{ "$QUERY" }
+		args = []string{"$QUERY"}
 	}
 
 	return &ExternalCmdFilter{
@@ -558,4 +559,88 @@ func (ecf *ExternalCmdFilter) launchExternalCmd(buf []Line, cancelCh chan struct
 			outputCh <- l
 		}
 	}
+}
+
+type FuzzyFilter struct {
+	simplePipeline
+	query         string
+	name          string
+	compiledQuery *regexp.Regexp
+	onEnd         func()
+}
+
+func NewFuzzyFilter() *FuzzyFilter {
+	return &FuzzyFilter{
+		name: "Fuzzy",
+	}
+}
+
+func (ff FuzzyFilter) Clone() QueryFilterer {
+	return &FuzzyFilter{}
+}
+
+func (ff *FuzzyFilter) Accept(p Pipeliner) {
+	cancelCh, incomingCh := p.Pipeline()
+	ff.cancelCh = cancelCh
+	ff.outputCh = make(chan Line)
+	go acceptPipeline(cancelCh, incomingCh, ff.outputCh,
+		&pipelineCtx{ff.filter, ff.onEnd})
+}
+
+func (ff *FuzzyFilter) SetQuery(q string) {
+	if ff.query != q {
+		ff.query = q
+		ff.compiledQuery = nil
+	}
+}
+
+func (ff *FuzzyFilter) String() string {
+	return ff.name
+}
+
+func (ff *FuzzyFilter) getFuzzyRegexp() (*regexp.Regexp, error) {
+
+	if ff.compiledQuery != nil {
+		return ff.compiledQuery, nil
+	}
+
+	q := strings.Replace(ff.query, " ", "", -1)
+
+	exp := ".*"
+	for _, c := range q {
+		exp += fmt.Sprintf("(%s).*", regexp.QuoteMeta(string(c)))
+	}
+
+	re, err := regexp.Compile(fmt.Sprintf("(?i)%s", exp))
+	if err != nil {
+		return nil, err
+	}
+
+	ff.compiledQuery = re
+
+	return re, nil
+}
+
+func (ff *FuzzyFilter) filter(l Line) (Line, error) {
+	rx, err := ff.getFuzzyRegexp()
+	if err != nil {
+		return nil, err
+	}
+
+	s := l.DisplayString()
+	match := rx.FindAllStringSubmatchIndex(s, -1)
+
+	if match == nil {
+		return nil, ErrFilterDidNotMatch
+	}
+
+	required := [][]int{}
+	for _, m := range match {
+		// ignore first two indices which matched whole string
+		for i := 2; i < len(m); i += 2 {
+			required = append(required, m[i:i+2])
+		}
+	}
+
+	return NewMatchedLine(l, required), nil
 }
