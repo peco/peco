@@ -1,4 +1,4 @@
-// +build !darwin,!windows,!freebsd,!openbsd
+// +build !darwin,!windows,!freebsd,!openbsd,!netbsd,!dragonfly
 
 package peco
 
