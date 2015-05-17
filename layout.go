@@ -76,7 +76,7 @@ type Layout interface {
 	PrintStatus(string, time.Duration)
 	DrawPrompt()
 	DrawScreen()
-	MovePage(PagingRequest)
+	MovePage(PagingRequest) (moved bool)
 }
 
 // Utility function
@@ -441,11 +441,11 @@ func (l *ListArea) Draw(perPage int) {
 		line := target.DisplayString()
 		matches := target.Indices()
 		if matches == nil {
-			printScreen(l.currentCol, y, fgAttr, bgAttr, line, true)
+			printScreen(-l.currentCol, y, fgAttr, bgAttr, line, true)
 			continue
 		}
 
-		prev := l.currentCol
+		prev := -l.currentCol
 		index := 0
 
 		for _, m := range matches {
@@ -580,14 +580,19 @@ func linesPerPage() int {
 	return height - reservedLines
 }
 
-// MovePage moves the cursor
-func (l *BasicLayout) MovePage(p PagingRequest) {
+// MovePage scrolls the screen
+func (l *BasicLayout) MovePage(p PagingRequest) (moved bool) {
 	switch p {
 	case ToScrollLeft, ToScrollRight:
-		l.HorizontalScroll(p)
-		return
+		moved = horizontalScroll(l, p)
+	default:
+		moved = verticalScroll(l, p)
 	}
+	return
+}
 
+// verticalScroll moves the cursor position vertically
+func verticalScroll(l *BasicLayout, p PagingRequest) bool {
 	// Before we move, on which line were we located?
 	lineBefore := l.currentLine
 
@@ -647,7 +652,7 @@ func (l *BasicLayout) MovePage(p PagingRequest) {
 	// if we were in range mode, we need to do stuff. otherwise
 	// just bail out
 	if !l.IsRangeMode() {
-		return
+		return true
 	}
 
 	if l.list.sortTopDown {
@@ -682,20 +687,40 @@ func (l *BasicLayout) MovePage(p PagingRequest) {
 			}
 		}
 	}
+
+	return true
 }
 
-// HorizontalScroll scrolls screen horizontal
-func (l *BasicLayout) HorizontalScroll(p PagingRequest) {
+// horizontalScroll scrolls screen horizontal
+func horizontalScroll(l *BasicLayout, p PagingRequest) (moved bool) {
+	moved = false
 	width, _ := screen.Size()
 
+	beforeCol := l.currentCol
+
 	if p == ToScrollRight {
-		l.currentCol -= width / 2
-	} else if l.currentCol < 0 {
 		l.currentCol += width / 2
+	} else if l.currentCol > 0 {
+		l.currentCol -= width / 2
+		if l.currentCol < 0 {
+			l.currentCol = 0
+		}
+	} else {
+		return
 	}
+
 	for _, line := range l.list.displayCache {
 		if line != nil {
-			line.SetDirty(true)
+			if p == ToScrollLeft || beforeCol <= len(line.DisplayString()) {
+				line.SetDirty(true)
+				moved = true
+			}
 		}
 	}
+
+	if !moved {
+		l.currentCol = beforeCol
+	}
+
+	return
 }
