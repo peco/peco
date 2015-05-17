@@ -684,7 +684,7 @@ func (l *BasicLayout) MovePage(p PagingRequest) {
 	}
 }
 
-// HorizontalScroll moves screen horizontal
+// HorizontalScroll scrolls screen horizontal
 func (l *BasicLayout) HorizontalScroll(p PagingRequest) {
 	width, _ := screen.Size()
 
