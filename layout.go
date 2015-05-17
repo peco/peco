@@ -441,11 +441,11 @@ func (l *ListArea) Draw(perPage int) {
 		line := target.DisplayString()
 		matches := target.Indices()
 		if matches == nil {
-			printScreen(0, y, fgAttr, bgAttr, line, true)
+			printScreen(l.currentCol, y, fgAttr, bgAttr, line, true)
 			continue
 		}
 
-		prev := 0
+		prev := l.currentCol
 		index := 0
 
 		for _, m := range matches {
@@ -582,6 +582,12 @@ func linesPerPage() int {
 
 // MovePage moves the cursor
 func (l *BasicLayout) MovePage(p PagingRequest) {
+	switch p {
+	case ToScrollLeft, ToScrollRight:
+		l.HorizontalScroll(p)
+		return
+	}
+
 	// Before we move, on which line were we located?
 	lineBefore := l.currentLine
 
@@ -674,6 +680,23 @@ func (l *BasicLayout) MovePage(p PagingRequest) {
 					l.SelectionRemove(lineno)
 				}
 			}
+		}
+	}
+}
+
+// HorizontalScroll moves screen horizontal
+func (l *BasicLayout) HorizontalScroll(p PagingRequest) {
+	width, _ := screen.Size()
+
+	if p == ToScrollRight {
+		l.currentCol -= width / 2
+	} else if l.currentCol < 0 {
+		l.currentCol += width / 2
+	}
+	buf := l.GetCurrentLineBuffer()
+	for n := 0; n < len(l.list.displayCache); n++ {
+		if line, err := buf.LineAt(n); err == nil {
+			line.SetDirty(true)
 		}
 	}
 }

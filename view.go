@@ -24,6 +24,10 @@ const (
 	ToLineBelow
 	// ToScrollPageUp moves the selection to the previous page
 	ToScrollPageUp
+	// ToScrollLeft moves screen to the left
+	ToScrollLeft
+	// ToScrollRight moves screen to the right
+	ToScrollRight
 )
 
 // StatusMsgRequest specifies the string to be drawn

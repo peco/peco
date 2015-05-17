@@ -116,6 +116,7 @@ type Ctx struct {
 	resultCh            chan Line
 	mutex               sync.Locker
 	currentLine         int
+	currentCol          int
 	currentPage         *PageInfo
 	selection           *Selection
 	activeLineBuffer    LineBuffer
@@ -145,6 +146,7 @@ func newCtx(o CtxOptions, hubBufferSize int) *Ctx {
 		caretPosition:       0,
 		resultCh:            nil,
 		mutex:               newMutex(),
+		currentCol:          0,
 		currentPage:         &PageInfo{},
 		selection:           NewSelection(),
 		activeLineBuffer:    nil,

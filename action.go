@@ -105,6 +105,9 @@ func init() {
 	ActionFunc(doScrollPageUp).Register("ScrollPageUp", termbox.KeyArrowLeft)
 	wrapDeprecated(doScrollPageUp, "SelectPreviousPage", "ScrollPageDown/ScrollPageUp").Register("SelectPreviousPage")
 
+	ActionFunc(doScrollLeft).Register("ScrollLeft")
+	ActionFunc(doScrollRight).Register("ScrollRight")
+
 	ActionFunc(doToggleSelection).Register("ToggleSelection")
 	ActionFunc(doToggleSelectionAndSelectNext).Register(
 		"ToggleSelectionAndSelectNext",
@@ -285,6 +288,14 @@ func doScrollPageUp(i *Input, ev termbox.Event) {
 
 func doScrollPageDown(i *Input, ev termbox.Event) {
 	i.SendPaging(ToScrollPageDown)
+}
+
+func doScrollLeft(i *Input, ev termbox.Event) {
+	i.SendPaging(ToScrollLeft)
+}
+
+func doScrollRight(i *Input, ev termbox.Event) {
+	i.SendPaging(ToScrollRight)
 }
 
 func doToggleSelectionAndSelectNext(i *Input, ev termbox.Event) {
