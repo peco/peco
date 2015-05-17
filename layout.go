@@ -336,6 +336,7 @@ type ListArea struct {
 	*AnchorSettings
 	sortTopDown         bool
 	displayCache        []Line
+	isAllDirty          bool
 	basicStyle          Style
 	queryStyle          Style
 	matchedStyle        Style
@@ -350,6 +351,7 @@ func NewListArea(ctx *Ctx, anchor VerticalAnchor, anchorOffset int, sortTopDown 
 		AnchorSettings:      NewAnchorSettings(anchor, anchorOffset),
 		sortTopDown:         sortTopDown,
 		displayCache:        []Line{},
+		isAllDirty:          false,
 		basicStyle:          ctx.config.Style.Basic,
 		queryStyle:          ctx.config.Style.Query,
 		matchedStyle:        ctx.config.Style.Matched,
@@ -428,7 +430,7 @@ func (l *ListArea) Draw(perPage int) {
 			break
 		}
 
-		if target.IsDirty() {
+		if l.isAllDirty || target.IsDirty() {
 			target.SetDirty(false)
 		} else if l.displayCache[n] == target {
 			cached++
@@ -469,6 +471,7 @@ func (l *ListArea) Draw(perPage int) {
 			printScreen(prev, y, fgAttr, bgAttr, line[m[1]:len(line)], true)
 		}
 	}
+	l.isAllDirty = false
 	trace("ListArea.Draw: Written total of %d lines (%d cached)\n", written+cached, cached)
 }
 
@@ -692,11 +695,8 @@ func verticalScroll(l *BasicLayout, p PagingRequest) bool {
 }
 
 // horizontalScroll scrolls screen horizontal
-func horizontalScroll(l *BasicLayout, p PagingRequest) (moved bool) {
-	moved = false
+func horizontalScroll(l *BasicLayout, p PagingRequest) bool {
 	width, _ := screen.Size()
-
-	beforeCol := l.currentCol
 
 	if p == ToScrollRight {
 		l.currentCol += width / 2
@@ -706,21 +706,10 @@ func horizontalScroll(l *BasicLayout, p PagingRequest) (moved bool) {
 			l.currentCol = 0
 		}
 	} else {
-		return
+		return false
 	}
 
-	for _, line := range l.list.displayCache {
-		if line != nil {
-			if p == ToScrollLeft || beforeCol <= len(line.DisplayString()) {
-				line.SetDirty(true)
-				moved = true
-			}
-		}
-	}
+	l.list.isAllDirty = true
 
-	if !moved {
-		l.currentCol = beforeCol
-	}
-
-	return
+	return true
 }
