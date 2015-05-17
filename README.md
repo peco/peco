@@ -355,6 +355,8 @@ Some keys just... don't map correctly / too easily for various reasons. Here, we
 | peco.SelectDown         | Moves the selected line cursor to one line below |
 | peco.SelectPrevious     | (DEPRECATED) Alias to SelectUp |
 | peco.SelectNext         | (DEPRECATED) Alias to SelectDown |
+| peco.ScrollLeft         | Scrolls the screen to the left |
+| peco.ScrollRight        | Scrolls the screen to the right |
 | peco.ToggleSelection    | Selects the current line, and saves it |
 | peco.ToggleSelectionAndSelectNext | Selects the current line, saves it, and proceeds to the next line |
 | peco.SelectNone         | Remove all saved selections |
