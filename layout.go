@@ -693,9 +693,8 @@ func (l *BasicLayout) HorizontalScroll(p PagingRequest) {
 	} else if l.currentCol < 0 {
 		l.currentCol += width / 2
 	}
-	buf := l.GetCurrentLineBuffer()
-	for n := 0; n < len(l.list.displayCache); n++ {
-		if line, err := buf.LineAt(n); err == nil {
+	for _, line := range l.list.displayCache {
+		if line != nil {
 			line.SetDirty(true)
 		}
 	}
