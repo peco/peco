@@ -340,7 +340,7 @@ type ListArea struct {
 	*AnchorSettings
 	sortTopDown         bool
 	displayCache        []Line
-	isAllDirty          bool
+	dirty               bool
 	basicStyle          Style
 	queryStyle          Style
 	matchedStyle        Style
@@ -355,13 +355,21 @@ func NewListArea(ctx *Ctx, anchor VerticalAnchor, anchorOffset int, sortTopDown 
 		AnchorSettings:      NewAnchorSettings(anchor, anchorOffset),
 		sortTopDown:         sortTopDown,
 		displayCache:        []Line{},
-		isAllDirty:          false,
+		dirty:               false,
 		basicStyle:          ctx.config.Style.Basic,
 		queryStyle:          ctx.config.Style.Query,
 		matchedStyle:        ctx.config.Style.Matched,
 		selectedStyle:       ctx.config.Style.Selected,
 		savedSelectionStyle: ctx.config.Style.SavedSelection,
 	}
+}
+
+func (l *ListArea) IsDirty() bool {
+	return l.dirty
+}
+
+func (l *ListArea) SetDirty(dirty bool) {
+	l.dirty = dirty
 }
 
 // Draw displays the ListArea on the screen
@@ -434,7 +442,7 @@ func (l *ListArea) Draw(perPage int) {
 			break
 		}
 
-		if l.isAllDirty || target.IsDirty() {
+		if l.IsDirty() || target.IsDirty() {
 			target.SetDirty(false)
 		} else if l.displayCache[n] == target {
 			cached++
@@ -478,7 +486,7 @@ func (l *ListArea) Draw(perPage int) {
 			printScreenWithOffset(prev, y, xOffset, fgAttr, bgAttr, line[m[1]:len(line)], true)
 		}
 	}
-	l.isAllDirty = false
+	l.SetDirty(false)
 	trace("ListArea.Draw: Written total of %d lines (%d cached)\n", written+cached, cached)
 }
 
@@ -716,7 +724,7 @@ func horizontalScroll(l *BasicLayout, p PagingRequest) bool {
 		return false
 	}
 
-	l.list.isAllDirty = true
+	l.list.SetDirty(true)
 
 	return true
 }
