@@ -89,6 +89,10 @@ func mergeAttribute(a, b termbox.Attribute) termbox.Attribute {
 
 // Utility function
 func printScreen(x, y int, fg, bg termbox.Attribute, msg string, fill bool) int {
+	return printScreenWithOffset(x, y, 0, fg, bg, msg, fill)
+}
+
+func printScreenWithOffset(x, y, xOffset int, fg, bg termbox.Attribute, msg string, fill bool) int {
 	var written int
 
 	for len(msg) > 0 {
@@ -100,7 +104,7 @@ func printScreen(x, y int, fg, bg termbox.Attribute, msg string, fill bool) int 
 		msg = msg[w:]
 		if c == '\t' {
 			// In case we found a tab, we draw it as 4 spaces
-			n := 4 - x%4
+			n := 4 - (x+xOffset)%4
 			for i := 0; i <= n; i++ {
 				screen.SetCell(x+i, y, ' ', fg, bg)
 			}
@@ -440,10 +444,13 @@ func (l *ListArea) Draw(perPage int) {
 		written++
 		l.displayCache[n] = target
 
+		x := -l.currentCol
+		xOffset := l.currentCol
+
 		line := target.DisplayString()
 		matches := target.Indices()
 		if matches == nil {
-			printScreen(-l.currentCol, y, fgAttr, bgAttr, line, true)
+			printScreenWithOffset(x, y, xOffset, fgAttr, bgAttr, line, true)
 			continue
 		}
 
@@ -453,22 +460,22 @@ func (l *ListArea) Draw(perPage int) {
 		for _, m := range matches {
 			if m[0] > index {
 				c := line[index:m[0]]
-				n := printScreen(prev, y, fgAttr, bgAttr, c, false)
+				n := printScreenWithOffset(prev, y, xOffset, fgAttr, bgAttr, c, false)
 				prev += n
 				index += len(c)
 			}
 			c := line[m[0]:m[1]]
 
-			n := printScreen(prev, y, l.matchedStyle.fg, mergeAttribute(bgAttr, l.matchedStyle.bg), c, true)
+			n := printScreenWithOffset(prev, y, xOffset, l.matchedStyle.fg, mergeAttribute(bgAttr, l.matchedStyle.bg), c, true)
 			prev += n
 			index += len(c)
 		}
 
 		m := matches[len(matches)-1]
 		if m[0] > index {
-			printScreen(prev, y, l.queryStyle.fg, mergeAttribute(bgAttr, l.queryStyle.bg), line[m[0]:m[1]], true)
+			printScreenWithOffset(prev, y, xOffset, l.queryStyle.fg, mergeAttribute(bgAttr, l.queryStyle.bg), line[m[0]:m[1]], true)
 		} else if len(line) > m[1] {
-			printScreen(prev, y, fgAttr, bgAttr, line[m[1]:len(line)], true)
+			printScreenWithOffset(prev, y, xOffset, fgAttr, bgAttr, line[m[1]:len(line)], true)
 		}
 	}
 	l.isAllDirty = false
