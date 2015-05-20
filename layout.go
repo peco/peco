@@ -76,7 +76,7 @@ type Layout interface {
 	PrintStatus(string, time.Duration)
 	DrawPrompt()
 	DrawScreen()
-	MovePage(PagingRequest)
+	MovePage(PagingRequest) (moved bool)
 }
 
 // Utility function
@@ -89,6 +89,10 @@ func mergeAttribute(a, b termbox.Attribute) termbox.Attribute {
 
 // Utility function
 func printScreen(x, y int, fg, bg termbox.Attribute, msg string, fill bool) int {
+	return printScreenWithOffset(x, y, 0, fg, bg, msg, fill)
+}
+
+func printScreenWithOffset(x, y, xOffset int, fg, bg termbox.Attribute, msg string, fill bool) int {
 	var written int
 
 	for len(msg) > 0 {
@@ -100,7 +104,7 @@ func printScreen(x, y int, fg, bg termbox.Attribute, msg string, fill bool) int 
 		msg = msg[w:]
 		if c == '\t' {
 			// In case we found a tab, we draw it as 4 spaces
-			n := 4 - x%4
+			n := 4 - (x+xOffset)%4
 			for i := 0; i <= n; i++ {
 				screen.SetCell(x+i, y, ' ', fg, bg)
 			}
@@ -336,6 +340,7 @@ type ListArea struct {
 	*AnchorSettings
 	sortTopDown         bool
 	displayCache        []Line
+	dirty               bool
 	basicStyle          Style
 	queryStyle          Style
 	matchedStyle        Style
@@ -350,12 +355,21 @@ func NewListArea(ctx *Ctx, anchor VerticalAnchor, anchorOffset int, sortTopDown 
 		AnchorSettings:      NewAnchorSettings(anchor, anchorOffset),
 		sortTopDown:         sortTopDown,
 		displayCache:        []Line{},
+		dirty:               false,
 		basicStyle:          ctx.config.Style.Basic,
 		queryStyle:          ctx.config.Style.Query,
 		matchedStyle:        ctx.config.Style.Matched,
 		selectedStyle:       ctx.config.Style.Selected,
 		savedSelectionStyle: ctx.config.Style.SavedSelection,
 	}
+}
+
+func (l *ListArea) IsDirty() bool {
+	return l.dirty
+}
+
+func (l *ListArea) SetDirty(dirty bool) {
+	l.dirty = dirty
 }
 
 // Draw displays the ListArea on the screen
@@ -428,7 +442,7 @@ func (l *ListArea) Draw(perPage int) {
 			break
 		}
 
-		if target.IsDirty() {
+		if l.IsDirty() || target.IsDirty() {
 			target.SetDirty(false)
 		} else if l.displayCache[n] == target {
 			cached++
@@ -438,37 +452,41 @@ func (l *ListArea) Draw(perPage int) {
 		written++
 		l.displayCache[n] = target
 
+		x := -l.currentCol
+		xOffset := l.currentCol
+
 		line := target.DisplayString()
 		matches := target.Indices()
 		if matches == nil {
-			printScreen(0, y, fgAttr, bgAttr, line, true)
+			printScreenWithOffset(x, y, xOffset, fgAttr, bgAttr, line, true)
 			continue
 		}
 
-		prev := 0
+		prev := -l.currentCol
 		index := 0
 
 		for _, m := range matches {
 			if m[0] > index {
 				c := line[index:m[0]]
-				n := printScreen(prev, y, fgAttr, bgAttr, c, false)
+				n := printScreenWithOffset(prev, y, xOffset, fgAttr, bgAttr, c, false)
 				prev += n
 				index += len(c)
 			}
 			c := line[m[0]:m[1]]
 
-			n := printScreen(prev, y, l.matchedStyle.fg, mergeAttribute(bgAttr, l.matchedStyle.bg), c, true)
+			n := printScreenWithOffset(prev, y, xOffset, l.matchedStyle.fg, mergeAttribute(bgAttr, l.matchedStyle.bg), c, true)
 			prev += n
 			index += len(c)
 		}
 
 		m := matches[len(matches)-1]
 		if m[0] > index {
-			printScreen(prev, y, l.queryStyle.fg, mergeAttribute(bgAttr, l.queryStyle.bg), line[m[0]:m[1]], true)
+			printScreenWithOffset(prev, y, xOffset, l.queryStyle.fg, mergeAttribute(bgAttr, l.queryStyle.bg), line[m[0]:m[1]], true)
 		} else if len(line) > m[1] {
-			printScreen(prev, y, fgAttr, bgAttr, line[m[1]:len(line)], true)
+			printScreenWithOffset(prev, y, xOffset, fgAttr, bgAttr, line[m[1]:len(line)], true)
 		}
 	}
+	l.SetDirty(false)
 	trace("ListArea.Draw: Written total of %d lines (%d cached)\n", written+cached, cached)
 }
 
@@ -580,8 +598,19 @@ func linesPerPage() int {
 	return height - reservedLines
 }
 
-// MovePage moves the cursor
-func (l *BasicLayout) MovePage(p PagingRequest) {
+// MovePage scrolls the screen
+func (l *BasicLayout) MovePage(p PagingRequest) (moved bool) {
+	switch p {
+	case ToScrollLeft, ToScrollRight:
+		moved = horizontalScroll(l, p)
+	default:
+		moved = verticalScroll(l, p)
+	}
+	return
+}
+
+// verticalScroll moves the cursor position vertically
+func verticalScroll(l *BasicLayout, p PagingRequest) bool {
 	// Before we move, on which line were we located?
 	lineBefore := l.currentLine
 
@@ -641,7 +670,7 @@ func (l *BasicLayout) MovePage(p PagingRequest) {
 	// if we were in range mode, we need to do stuff. otherwise
 	// just bail out
 	if !l.IsRangeMode() {
-		return
+		return true
 	}
 
 	if l.list.sortTopDown {
@@ -676,4 +705,26 @@ func (l *BasicLayout) MovePage(p PagingRequest) {
 			}
 		}
 	}
+
+	return true
+}
+
+// horizontalScroll scrolls screen horizontal
+func horizontalScroll(l *BasicLayout, p PagingRequest) bool {
+	width, _ := screen.Size()
+
+	if p == ToScrollRight {
+		l.currentCol += width / 2
+	} else if l.currentCol > 0 {
+		l.currentCol -= width / 2
+		if l.currentCol < 0 {
+			l.currentCol = 0
+		}
+	} else {
+		return false
+	}
+
+	l.list.SetDirty(true)
+
+	return true
 }

@@ -24,6 +24,10 @@ const (
 	ToLineBelow
 	// ToScrollPageUp moves the selection to the previous page
 	ToScrollPageUp
+	// ToScrollLeft scrolls screen to the left
+	ToScrollLeft
+	// ToScrollRight scrolls screen to the right
+	ToScrollRight
 )
 
 // StatusMsgRequest specifies the string to be drawn
@@ -81,6 +85,7 @@ func (v *View) movePage(p PagingRequest) {
 	v.mutex.Lock()
 	defer v.mutex.Unlock()
 
-	v.layout.MovePage(p)
-	v.layout.DrawScreen()
+	if moved := v.layout.MovePage(p); moved {
+		v.layout.DrawScreen()
+	}
 }
