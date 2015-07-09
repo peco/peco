@@ -56,9 +56,12 @@ Not only can you select multiple lines one by one, you can select a range of lin
 
 ## Select Filters
 
-Different types of filters are available. Default is case-insensitive filter, so lines with any case will match. You can toggle between IgnoreCase, CaseSensitive, SmartCase and RegExp filters. 
+Different types of filters are available. Default is case-insensitive filter, so lines with any case will match. You can toggle between IgnoreCase, CaseSensitive, SmartCase, Fuzzy and RegExp filters. 
 
 The SmartCase filter uses case-*insensitive* matching when all of the queries are lower case, and case-*sensitive* matching otherwise.
+
+The Fuzzy filter works like fuzzy search in Sublime. Query `fb` matches the `foobar` as *f*oo*b*ar.
+
 
 The RegExp filter allows you to use any valid regular expression to match lines
 
@@ -151,9 +154,9 @@ Changes how peco interprets incoming data. When this flag is set, you may insert
 
 Specifies the initial line position upon start up. E.g. If you want to start out with the second line selected, set it to "1" (because the index is 0 based)
 
-### --initial-filter `IgnoreCase|CaseSensitive|SmartCase|Regexp`
+### --initial-filter `IgnoreCase|CaseSensitive|SmartCase|Fuzzy|Regexp`
 
-Specifies the initial filter to use upon start up. You should specify the name of the filter like `IgnoreCase`, `CaseSensitive`, `SmartCase` and `Regexp`. Default is `IgnoreCase`.
+Specifies the initial filter to use upon start up. You should specify the name of the filter like `IgnoreCase`, `CaseSensitive`, `SmartCase`, `Fuzzy` and `Regexp`. Default is `IgnoreCase`.
 
 ### --prompt
 
@@ -206,7 +209,7 @@ You can change the query line's prompt, which is `QUERY>` by default.
 
 ### InitialFilter
 
-Specifies the filter name to start peco with. You should specify the name of the filter, such as `IgnoreCase`, `CaseSensitive`, `SmartCase` and `Regexp`
+Specifies the filter name to start peco with. You should specify the name of the filter, such as `IgnoreCase`, `CaseSensitive`, `SmartCase`, `Fuzzy` and `Regexp`
 
 ### StickySelection
 
@@ -458,7 +461,7 @@ For now, styles of following 5 items can be customized in `config.json`.
 
 This is an experimental feature. Please note that some details of this specification may change
 
-By default `peco` comes with `IgnoreCase`, `CaseSensitive`, `SmartCase` and `Regexp` filters, but since v0.1.3, it is possible to create your own custom filter.
+By default `peco` comes with `IgnoreCase`, `CaseSensitive`, `SmartCase`, `Fuzzy` and `Regexp` filters, but since v0.1.3, it is possible to create your own custom filter.
 
 The filter will be executed via  `Command.Run()` as an external process, and it will be passed the query values in the command line, and the original unaltered buffer is passed via `os.Stdin`. Your filter must perform the matching, and print out to `os.Stdout` matched lines. You filter MAY be called multiple times if the buffer
 given to peco is big enough. See `BufferThreshold` below.
