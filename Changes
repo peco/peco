@@ -1,6 +1,14 @@
 Changes
 =======
 
+v0.3.3 - 11 Jul 2015
+  Features:
+  * Implemented ScrollLeft/ScrollRight, to read long lines
+  * Implemented BackToInitialFilter, to make it easier to create combined actions
+    that change the filter type
+  Bugs/Fixes
+  * Build properly on *BSDs
+
 v0.3.2 - 24 Mar 2015
   Bugs/Fixes
   * Filtered results could be wrong when QueryExecutionDelay is set to 0 (#241)
