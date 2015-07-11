@@ -335,6 +335,10 @@ type FilterSet struct {
 	current int
 }
 
+func (fx *FilterSet) Reset() {
+	fx.current = 0
+}
+
 func (fs *FilterSet) Size() int {
 	return len(fs.filters)
 }

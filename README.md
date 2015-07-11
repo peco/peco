@@ -335,6 +335,7 @@ Some keys just... don't map correctly / too easily for various reasons. Here, we
 | peco.BackwardChar       | Move caret backward 1 character |
 | peco.ForwardWord        | Move caret forward 1 word |
 | peco.BackwardWord       | Move caret backward 1 word|
+| peco.BackToInitialFilter| Switch to first filter in the list |
 | peco.BeginningOfLine    | Move caret to the beginning of line |
 | peco.EndOfLine          | Move caret to the end of line |
 | peco.EndOfFile          | Delete one character forward, otherwise exit from peco with failure status |
