@@ -445,6 +445,10 @@ func (c *Ctx) RotateFilter() {
 	c.filters.Rotate()
 }
 
+func (c *Ctx) ResetSelectedFilter() {
+	c.filters.Reset()
+}
+
 func (c *Ctx) SetCurrentFilterByName(name string) error {
 	return c.filters.SetCurrentByName(name)
 }

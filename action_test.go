@@ -283,3 +283,32 @@ func TestBeginningOfLineAndEndOfLine(t *testing.T) {
 	}
 
 }
+
+func TestBackToInitialFilter(t *testing.T) {
+	_, guard := setDummyScreen()
+	defer guard()
+
+	ctx := newCtx(nil, 25)
+	defer ctx.Stop()
+
+	ctx.config.Keymap["C-q"] = "peco.BackToInitialFilter"
+	ctx.startInput()
+	if ctx.filters.current != 0 {
+		t.Errorf("Expected filter to be at position 0, got %d", ctx.filters.current)
+		return
+	}
+
+	screen.SendEvent(termbox.Event{Key: termbox.KeyCtrlR})
+	time.Sleep(time.Second)
+	if ctx.filters.current != 1 {
+		t.Errorf("Expected filter to be at position 1, got %d", ctx.filters.current)
+		return
+	}
+
+	screen.SendEvent(termbox.Event{Key: termbox.KeyCtrlQ})
+	time.Sleep(time.Second)
+	if ctx.filters.current != 0 {
+		t.Errorf("Expected filter to be at position 0, got %d", ctx.filters.current)
+		return
+	}
+}

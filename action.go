@@ -92,6 +92,7 @@ func init() {
 	ActionFunc(doKillBeginningOfLine).Register("KillBeginningOfLine", termbox.KeyCtrlU)
 	ActionFunc(doRotateFilter).Register("RotateFilter", termbox.KeyCtrlR)
 	wrapDeprecated(doRotateFilter, "RotateMatcher", "RotateFilter").Register("RotateMatcher")
+	ActionFunc(doBackToInitialFilter).Register("BackToInitialFilter")
 
 	ActionFunc(doSelectUp).Register("SelectUp", termbox.KeyArrowUp, termbox.KeyCtrlP)
 	wrapDeprecated(doSelectDown, "SelectNext", "SelectUp/SelectDown").Register("SelectNext")
@@ -167,6 +168,16 @@ func doRotateFilter(i *Input, ev termbox.Event) {
 	trace("doRotateFitler: START")
 	defer trace("doRotateFitler: END")
 	i.RotateFilter()
+	if i.ExecQuery() {
+		return
+	}
+	i.SendDrawPrompt()
+}
+
+func doBackToInitialFilter(i *Input, ev termbox.Event) {
+	trace("doBackToInitialFilter: START")
+	defer trace("doBackToInitialFilter: END")
+	i.ResetSelectedFilter()
 	if i.ExecQuery() {
 		return
 	}
