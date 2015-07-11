@@ -85,7 +85,7 @@ func (v *View) movePage(p PagingRequest) {
 	v.mutex.Lock()
 	defer v.mutex.Unlock()
 
-	if moved := v.layout.MovePage(p); moved {
+	if v.layout.MovePage(p) {
 		v.layout.DrawScreen()
 	}
 }
