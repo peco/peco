@@ -223,11 +223,13 @@ func doSelectAll(i *Input, _ termbox.Event) {
 	b := i.GetCurrentLineBuffer()
 	for x := 0; x < b.Size(); x++ {
 		if l, err := b.LineAt(x); err == nil {
+			l.SetDirty(true)
 			i.selection.Add(l)
 		} else {
 			i.selection.Remove(l)
 		}
 	}
+	i.SendDraw()
 }
 
 func doSelectVisible(i *Input, _ termbox.Event) {
