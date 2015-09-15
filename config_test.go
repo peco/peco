@@ -32,7 +32,7 @@ func TestReadRC(t *testing.T) {
 	if err := json.Unmarshal([]byte(txt), cfg); err != nil {
 		t.Fatalf("Error unmarshaling json: %s", err)
 	}
-	t.Logf("%#q", cfg)
+	t.Logf("%#v", cfg)
 }
 
 type stringsToStyleTest struct {

@@ -58,7 +58,7 @@ func TestLayoutType(t *testing.T) {
 	for _, l := range layouts {
 		valid := IsValidLayoutType(l.value)
 		if valid != l.expectOK {
-			t.Errorf("LayoutType %s, expected IsValidLayoutType to return %s, but got %s",
+			t.Errorf("LayoutType %s, expected IsValidLayoutType to return %t, but got %t",
 				l.value,
 				l.expectOK,
 				valid,
@@ -74,7 +74,7 @@ func TestPrintScreen(t *testing.T) {
 	makeVerifier := func(initX, initY int, fill bool) func(string) {
 		return func(msg string) {
 			i.reset()
-			t.Logf("Checking printScreen(%d, %d, %s, %s)", initX, initY, msg, fill)
+			t.Logf("Checking printScreen(%d, %d, %s, %t)", initX, initY, msg, fill)
 			width := utf8.RuneCountInString(msg)
 			printScreen(initX, initY, termbox.ColorDefault, termbox.ColorDefault, msg, fill)
 			events := i.events["SetCell"]

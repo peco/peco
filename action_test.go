@@ -185,7 +185,7 @@ func writeQueryToPrompt(t *testing.T, message string) {
 				t.Logf("End of string reached")
 				break
 			}
-			t.Errorf("Failed to decode run in string: %s", r)
+			t.Errorf("Failed to decode run in string: %#U", r)
 			return
 		}
 
