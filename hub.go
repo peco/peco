@@ -123,11 +123,11 @@ func (h *Hub) SendDrawPrompt() {
 }
 
 // SendDraw sends a request to redraw the terminal display
-func (h *Hub) SendDraw() {
+func (h *Hub) SendDraw(runningQuery bool) {
 	trace("Hub.SendDraw: START")
 	defer trace("Hub.SendDraw: END")
 	// to make sure interface is nil, I need to EXPLICITLY set nil
-	req := HubReq{nil, nil}
+	req := HubReq{runningQuery, nil}
 	send(h.DrawCh(), req, h.isSync)
 }
 

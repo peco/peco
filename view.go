@@ -53,12 +53,15 @@ func (v *View) Loop() {
 			r.Done()
 		case lines := <-v.DrawCh():
 			tmp := lines.DataInterface()
-			if name, ok := tmp.(string); ok {
-				if name == "prompt" {
+			switch tmp.(type) {
+			case string:
+				if tmp.(string) == "prompt" {
 					v.drawPrompt()
 				}
-			} else {
-				v.drawScreen()
+			case bool:
+				v.drawScreen(tmp.(bool))
+			default:
+				v.drawScreen(false)
 			}
 			lines.Done()
 		}
@@ -69,10 +72,10 @@ func (v *View) printStatus(r StatusMsgRequest) {
 	v.layout.PrintStatus(r.message, r.clearDelay)
 }
 
-func (v *View) drawScreen() {
+func (v *View) drawScreen(runningQuery bool) {
 	v.mutex.Lock()
 	defer v.mutex.Unlock()
-	v.layout.DrawScreen()
+	v.layout.DrawScreen(runningQuery)
 }
 
 func (v *View) drawPrompt() {
@@ -86,6 +89,6 @@ func (v *View) movePage(p PagingRequest) {
 	defer v.mutex.Unlock()
 
 	if v.layout.MovePage(p) {
-		v.layout.DrawScreen()
+		v.layout.DrawScreen(false)
 	}
 }

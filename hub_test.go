@@ -18,8 +18,11 @@ func TestHub(t *testing.T) {
 	}()
 	go func() {
 		hr := <-h.DrawCh()
-		if hr.DataInterface() != nil {
-			t.Errorf("Expected data to be nil, got %s", hr.DataInterface())
+		switch v := hr.DataInterface(); v.(type) {
+		case string, bool, nil:
+			// OK
+		default:
+			t.Errorf("Expected data to be nil, got %s", v)
 		}
 		time.Sleep(100 * time.Millisecond)
 		done["draw"] = time.Now()
@@ -44,7 +47,7 @@ func TestHub(t *testing.T) {
 
 	h.Batch(func() {
 		h.SendQuery("Hello World!")
-		h.SendDraw()
+		h.SendDraw(true)
 		h.SendStatusMsg("Hello, World!")
 		h.SendPaging(ToLineAbove)
 	})
