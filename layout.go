@@ -373,14 +373,30 @@ func (l *ListArea) SetDirty(dirty bool) {
 }
 
 // Draw displays the ListArea on the screen
-func (l *ListArea) Draw(perPage int) {
+func (l *ListArea) Draw(parent Layout, perPage int) {
 	trace("ListArea.Draw: START")
 	defer trace("ListArea.Draw: END")
 	currentPage := l.currentPage
 
+	linebuf := l.GetCurrentLineBuffer()
+	bufsiz := linebuf.Size()
+	page := currentPage.page
+	for ; page > 1; {
+		if (currentPage.perPage * (page - 1) < bufsiz) &&
+			 (currentPage.perPage * page) >= bufsiz {
+			break
+		}
+
+		page--;
+	}
+	if currentPage.page != page {
+		currentPage.page = page
+		parent.DrawPrompt()
+	}
+
 	pf := PageCrop{perPage: currentPage.perPage, currentPage: currentPage.page}
-	buf := pf.Crop(l.GetCurrentLineBuffer())
-	bufsiz := buf.Size()
+	buf := pf.Crop(linebuf)
+	bufsiz = buf.Size()
 
 	// previously drawn lines are cached. first, truncate the cache
 	// to current size of the drawable area
@@ -579,7 +595,7 @@ func (l *BasicLayout) DrawScreen() {
 	}
 
 	l.DrawPrompt()
-	l.list.Draw(perPage)
+	l.list.Draw(l, perPage)
 
 	if err := screen.Flush(); err != nil {
 		return
