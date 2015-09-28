@@ -381,7 +381,10 @@ func (l *ListArea) Draw(parent Layout, perPage int, runningQuery bool) {
 	linebuf := l.GetCurrentLineBuffer()
 
 	// Should only get into this clause if we are RUNNING A QUERY.
-	// regular paging shouldn't be affected.
+	// regular paging shouldn't be affected. This clause basically
+	// makes sure that we never have an empty screen when we are
+	// at a large enough page, but we don't have enough entries
+	// to fill that many pages in the buffer
 	if runningQuery {
 		bufsiz := linebuf.Size()
 		page := currentPage.page
@@ -403,6 +406,12 @@ func (l *ListArea) Draw(parent Layout, perPage int, runningQuery bool) {
 	pf := PageCrop{perPage: currentPage.perPage, currentPage: currentPage.page}
 	buf := pf.Crop(linebuf)
 	bufsiz := buf.Size()
+
+	// This protects us from losing the selected line in case our selected
+	// line is greater than the buffer
+	if l.currentLine >= bufsiz {
+		l.currentLine = bufsiz - 1
+	}
 
 	// previously drawn lines are cached. first, truncate the cache
 	// to current size of the drawable area
