@@ -1,20 +1,5 @@
 package peco
 
-import (
-	"sync"
-	"time"
-)
-
-// View handles the drawing/updating the screen
-type View struct {
-	*Ctx
-	mutex  sync.Locker
-	layout Layout
-}
-
-// PagingRequest can be sent to move the selection cursor
-type PagingRequest int
-
 const (
 	// ToLineAbove moves the selection to the line above
 	ToLineAbove PagingRequest = iota
@@ -29,14 +14,6 @@ const (
 	// ToScrollRight scrolls screen to the right
 	ToScrollRight
 )
-
-// StatusMsgRequest specifies the string to be drawn
-// on the status message bar and an optional delay that tells
-// the view to clear that message
-type StatusMsgRequest struct {
-	message    string
-	clearDelay time.Duration
-}
 
 // Loop receives requests to update the screen
 func (v *View) Loop() {

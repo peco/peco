@@ -2,22 +2,22 @@ package peco
 
 import "github.com/nsf/termbox-go"
 
-// Screen hides termbox from the consuming code so that
-// it can be swapped out for testing
-type Screen interface {
-	Flush() error
-	PollEvent() chan termbox.Event
-	SetCell(int, int, rune, termbox.Attribute, termbox.Attribute)
-	Size() (int, int)
-	SendEvent(termbox.Event)
-}
-
-// Termbox just hands out the processing to the termbox library
-type Termbox struct{}
-
 // termbox always gives us some sort of warning when we run
 // go run -race cmd/peco/peco.go
 var termboxMutex = newMutex()
+
+func (t Termbox) Init() error {
+	if err := termbox.Init(); err != nil {
+		return err
+	}
+
+	return t.PostInit()
+}
+
+func (t Termbox) Close() error {
+	termbox.Close()
+	return nil
+}
 
 // SendEvent is used to allow programmers generate random
 // events, but it's only useful for testing purposes.

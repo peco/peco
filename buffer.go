@@ -9,24 +9,6 @@ import (
 // was queried was out of the containing buffer's range
 var ErrBufferOutOfRange = errors.New("error: Specified index is out of range")
 
-type Pipeliner interface {
-	Pipeline() (chan struct{}, chan Line)
-}
-
-type pipelineCtx struct {
-	onIncomingLine func(Line) (Line, error)
-	onEnd          func()
-}
-
-type simplePipeline struct {
-	// Close this channel if you want to cancel the entire pipeline.
-	// InputReader is the generator for the pipeline, so this is the
-	// only object that can create the cancelCh
-	cancelCh chan struct{}
-	// Consumers of this generator read from this channel.
-	outputCh chan Line
-}
-
 func (sp simplePipeline) Cancel()                 { close(sp.cancelCh) }
 func (sp simplePipeline) CancelCh() chan struct{} { return sp.cancelCh }
 func (sp simplePipeline) OutputCh() chan Line     { return sp.outputCh }
@@ -60,31 +42,6 @@ func acceptPipeline(cancel chan struct{}, in chan Line, out chan Line, pc *pipel
 	}
 }
 
-// LineBuffer represents a set of lines. This could be the
-// raw data read in, or filtered data, such as result of
-// running a match, or applying a selection by the user
-//
-// Buffers should be immutable.
-type LineBuffer interface {
-	Pipeliner
-
-	LineAt(int) (Line, error)
-	Size() int
-
-	// Register registers another LineBuffer that is dependent on
-	// this buffer.
-	Register(LineBuffer)
-	Unregister(LineBuffer)
-
-	// InvalidateUpTo is called when a source buffer invalidates
-	// some lines. The argument is the largest line number that
-	// should be invalidated (so anything up to that line is no
-	// longer valid in the source)
-	InvalidateUpTo(int)
-}
-
-type dependentBuffers []LineBuffer
-
 func (buffers *dependentBuffers) Register(lb LineBuffer) {
 	*buffers = append(*buffers, lb)
 }
@@ -109,15 +66,6 @@ func (buffers dependentBuffers) InvalidateUpTo(i int) {
 	for _, b := range buffers {
 		b.InvalidateUpTo(i)
 	}
-}
-
-// RawLineBuffer holds the raw set of lines as read into peco.
-type RawLineBuffer struct {
-	simplePipeline
-	buffers  dependentBuffers
-	lines    []Line
-	capacity int // max number of lines. 0 means unlimited
-	onEnd    func()
 }
 
 func NewRawLineBuffer() *RawLineBuffer {
@@ -205,17 +153,6 @@ func (rlb RawLineBuffer) InvalidateUpTo(_ int) {
 
 func (rlb *RawLineBuffer) AppendLine(l Line) (Line, error) {
 	return rlb.Append(l)
-}
-
-// FilteredLineBuffer holds a "filtered" buffer. It holds a reference to
-// the source buffer (note: should be immutable) and a list of indices
-// into the source buffer
-type FilteredLineBuffer struct {
-	simplePipeline
-	buffers dependentBuffers
-	src     LineBuffer
-	// maps from our index to src's index
-	selection []int
 }
 
 func NewFilteredLineBuffer(src LineBuffer) *FilteredLineBuffer {

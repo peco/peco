@@ -15,6 +15,14 @@ type dummyScreen struct {
 	pollCh chan termbox.Event
 }
 
+func (d dummyScreen) Init() error {
+	return nil
+}
+
+func (d dummyScreen) Close() error {
+	return nil
+}
+
 func (d dummyScreen) SendEvent(e termbox.Event) {
 	d.pollCh <- e
 }

@@ -2,7 +2,6 @@ package peco
 
 import (
 	"fmt"
-	"sync"
 	"time"
 	"unicode/utf8"
 
@@ -10,12 +9,7 @@ import (
 	"github.com/nsf/termbox-go"
 )
 
-// PageCrop filters out a new LineBuffer based on entries
-// per page and the page number
-type PageCrop struct {
-	perPage     int
-	currentPage int
-}
+var extraOffset = 0
 
 // Crop returns a new LineBuffer whose contents are
 // bound within the given range
@@ -40,9 +34,6 @@ func (pf PageCrop) Crop(in LineBuffer) LineBuffer {
 	return out
 }
 
-// LayoutType describes the types of layout that peco can take
-type LayoutType string
-
 const (
 	// LayoutTypeTopDown is the default. All the items read from top to bottom
 	LayoutTypeTopDown = "top-down"
@@ -55,10 +46,6 @@ func IsValidLayoutType(v LayoutType) bool {
 	return v == LayoutTypeTopDown || v == LayoutTypeBottomUp
 }
 
-// VerticalAnchor describes the direction to which elements in the
-// layout are anchored to
-type VerticalAnchor int
-
 const (
 	// AnchorTop anchors elements towards the top of the screen
 	AnchorTop VerticalAnchor = iota + 1
@@ -69,14 +56,6 @@ const (
 // IsValidVerticalAnchor checks if the specified anchor is supported
 func IsValidVerticalAnchor(anchor VerticalAnchor) bool {
 	return anchor == AnchorTop || anchor == AnchorBottom
-}
-
-// Layout represents the component that controls where elements are placed on screen
-type Layout interface {
-	PrintStatus(string, time.Duration)
-	DrawPrompt()
-	DrawScreen(bool)
-	MovePage(PagingRequest) (moved bool)
 }
 
 // Utility function
@@ -130,13 +109,6 @@ func printScreenWithOffset(x, y, xOffset int, fg, bg termbox.Attribute, msg stri
 	return written
 }
 
-// AnchorSettings groups items that are required to control
-// where an anchored item is actually placed
-type AnchorSettings struct {
-	anchor       VerticalAnchor // AnchorTop or AnchorBottom
-	anchorOffset int            // offset this many lines from the anchor
-}
-
 // NewAnchorSettings creates a new AnchorSetting struct. Panics if
 // an unknown VerticalAnchor is sent
 func NewAnchorSettings(anchor VerticalAnchor, offset int) *AnchorSettings {
@@ -162,16 +134,6 @@ func (as AnchorSettings) AnchorPosition() int {
 	}
 
 	return pos
-}
-
-// UserPrompt draws the prompt line
-type UserPrompt struct {
-	*Ctx
-	*AnchorSettings
-	prefix     string
-	prefixLen  int
-	basicStyle Style
-	queryStyle Style
 }
 
 // NewUserPrompt creates a new UserPrompt struct
@@ -250,15 +212,6 @@ func (u UserPrompt) Draw() {
 	screen.Flush()
 }
 
-// StatusBar draws the status message bar
-type StatusBar struct {
-	*Ctx
-	*AnchorSettings
-	clearTimer *time.Timer
-	timerMutex sync.Locker
-	basicStyle Style
-}
-
 // NewStatusBar creates a new StatusBar struct
 func NewStatusBar(ctx *Ctx, anchor VerticalAnchor, anchorOffset int) *StatusBar {
 	return &StatusBar{
@@ -333,21 +286,6 @@ func (s *StatusBar) PrintStatus(msg string, clearDelay time.Duration) {
 	}
 }
 
-// ListArea represents the area where the actual line buffer is
-// displayed in the screen
-type ListArea struct {
-	*Ctx
-	*AnchorSettings
-	sortTopDown         bool
-	displayCache        []Line
-	dirty               bool
-	basicStyle          Style
-	queryStyle          Style
-	matchedStyle        Style
-	selectedStyle       Style
-	savedSelectionStyle Style
-}
-
 // NewListArea creates a new ListArea struct
 func NewListArea(ctx *Ctx, anchor VerticalAnchor, anchorOffset int, sortTopDown bool) *ListArea {
 	return &ListArea{
@@ -389,13 +327,13 @@ func (l *ListArea) Draw(parent Layout, perPage int, runningQuery bool) {
 		bufsiz := linebuf.Size()
 		page := currentPage.page
 
-		for ; page > 1; {
-			if (currentPage.perPage * (page - 1) < bufsiz) &&
-				 (currentPage.perPage * page) >= bufsiz {
+		for page > 1 {
+			if (currentPage.perPage*(page-1) < bufsiz) &&
+				(currentPage.perPage*page) >= bufsiz {
 				break
 			}
 
-			page--;
+			page--
 		}
 		if currentPage.page != page {
 			currentPage.page = page
@@ -521,23 +459,8 @@ func (l *ListArea) Draw(parent Layout, perPage int, runningQuery bool) {
 	trace("ListArea.Draw: Written total of %d lines (%d cached)\n", written+cached, cached)
 }
 
-// BasicLayout is... the basic layout :) At this point this is the
-// only struct for layouts, which means that while the position
-// of components may be configurable, the actual types of components
-// that are used are set and static
-type BasicLayout struct {
-	*Ctx
-	*StatusBar
-	prompt *UserPrompt
-	list   *ListArea
-}
-
 // NewDefaultLayout creates a new Layout in the default format (top-down)
 func NewDefaultLayout(ctx *Ctx) *BasicLayout {
-	extraOffset := 0
-	if isWindows {
-		extraOffset = 1
-	}
 	return &BasicLayout{
 		Ctx:       ctx,
 		StatusBar: NewStatusBar(ctx, AnchorBottom, 0+extraOffset),
@@ -551,10 +474,6 @@ func NewDefaultLayout(ctx *Ctx) *BasicLayout {
 
 // NewBottomUpLayout creates a new Layout in bottom-up format
 func NewBottomUpLayout(ctx *Ctx) *BasicLayout {
-	extraOffset := 0
-	if isWindows {
-		extraOffset = 1
-	}
 	return &BasicLayout{
 		Ctx:       ctx,
 		StatusBar: NewStatusBar(ctx, AnchorBottom, 0+extraOffset),
@@ -621,11 +540,7 @@ func linesPerPage() int {
 	_, height := screen.Size()
 
 	// list area is always the display area - 2 lines for prompt and status
-	reservedLines := 2
-	if isWindows {
-		// Of course, *except* for windows... :)
-		reservedLines = 3
-	}
+	reservedLines := 2 + extraOffset
 	return height - reservedLines
 }
 

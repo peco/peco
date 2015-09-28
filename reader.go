@@ -3,18 +3,9 @@ package peco
 import (
 	"bufio"
 	"errors"
-	"io"
 	"sync"
 	"time"
 )
-
-// BufferReader reads from either stdin or a file. In case of stdin,
-// it also handles possible infinite source.
-type BufferReader struct {
-	*Ctx
-	input        io.ReadCloser
-	inputReadyCh chan struct{}
-}
 
 // InputReadyCh returns a channel which, when the input starts coming
 // in, sends a struct{}{}

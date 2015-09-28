@@ -1,31 +1,6 @@
 package peco
 
-import (
-	"sync"
-	"time"
-)
-
-// Hub acts as the messaging hub between components -- that is,
-// it controls how the communication that goes through channels
-// are handled.
-type Hub struct {
-	isSync      bool
-	mutex       sync.Locker
-	loopCh      chan struct{}
-	queryCh     chan HubReq
-	drawCh      chan HubReq
-	statusMsgCh chan HubReq
-	pagingCh    chan HubReq
-}
-
-// HubReq is a wrapper around the actual request value that needs
-// to be passed. It contains an optional channel field which can
-// be filled to force synchronous communication between the
-// sender and receiver
-type HubReq struct {
-	data    interface{}
-	replyCh chan struct{}
-}
+import "time"
 
 // DataInterface returns the underlying data as interface{}
 func (hr HubReq) DataInterface() interface{} {
@@ -57,7 +32,7 @@ func NewHub(bufsiz int) *Hub {
 	return &Hub{
 		false,
 		newMutex(),
-		make(chan struct{}),  // loopCh. You never send messages to this. no point in buffering
+		make(chan struct{}),       // loopCh. You never send messages to this. no point in buffering
 		make(chan HubReq, bufsiz), // queryCh.
 		make(chan HubReq, bufsiz), // drawCh.
 		make(chan HubReq, bufsiz), // statusMsgCh

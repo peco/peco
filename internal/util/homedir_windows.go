@@ -2,7 +2,7 @@ package peco
 
 import "os/user"
 
-func homedir() (string, error) {
+func Homedir() (string, error) {
 	u, err := user.Current()
 	if err != nil {
 		return "", err

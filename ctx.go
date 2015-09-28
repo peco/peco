@@ -1,44 +1,10 @@
 package peco
 
 import (
-	"fmt"
 	"io"
-	"os"
-	"os/signal"
 	"sync"
-	"syscall"
 	"time"
 )
-
-var screen = Screen(Termbox{})
-
-// CtxOptions is the interface that defines that options can be
-// passed in from the command line
-type CtxOptions interface {
-	// EnableNullSep should return if the null separator is
-	// enabled (--null)
-	EnableNullSep() bool
-
-	// BufferSize should return the buffer size. By default (i.e.
-	// when it returns 0), the buffer size is unlimited.
-	// (--buffer-size)
-	BufferSize() int
-
-	// InitialIndex is the line number to put the cursor on
-	// when peco starts
-	InitialIndex() int
-
-	// LayoutType returns the name of the layout to use
-	LayoutType() string
-}
-
-type PageInfo struct {
-	page    int
-	offset  int
-	perPage int
-	total   int
-	maxPage int
-}
 
 func (c *Ctx) CaretPos() int {
 	c.mutex.Lock()
@@ -56,12 +22,6 @@ func (c *Ctx) MoveCaretPos(offset int) {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
 	c.caretPosition = c.caretPosition + offset
-}
-
-type FilterQuery struct {
-	query      []rune
-	savedQuery []rune
-	mutex      sync.Locker
 }
 
 func (q FilterQuery) Query() []rune {
@@ -103,35 +63,6 @@ func (q *FilterQuery) InsertQueryAt(ch rune, where int) {
 	buf[where] = ch
 	copy(buf[where+1:], sq[where:])
 	q.query = buf
-}
-
-// Ctx contains all the important data. while you can easily access
-// data in this struct from anywhere, only do so via channels
-type Ctx struct {
-	*Hub
-	*FilterQuery
-	filters             FilterSet
-	caretPosition       int
-	enableSep           bool
-	resultCh            chan Line
-	mutex               sync.Locker
-	currentLine         int
-	currentCol          int
-	currentPage         *PageInfo
-	selection           *Selection
-	activeLineBuffer    LineBuffer
-	rawLineBuffer       *RawLineBuffer
-	lines               []Line
-	linesMutex          sync.Locker
-	current             []Line
-	currentMutex        sync.Locker
-	bufferSize          int
-	config              *Config
-	selectionRangeStart int
-	layoutType          string
-
-	wait *sync.WaitGroup
-	err  error
 }
 
 func NewCtx(o CtxOptions) *Ctx {
@@ -362,37 +293,6 @@ func (c *Ctx) LoadCustomFilter() error {
 		}
 	}
 	return nil
-}
-
-type signalHandler struct {
-	*Ctx
-	sigCh chan os.Signal
-}
-
-func (c *Ctx) NewSignalHandler() *signalHandler {
-	sigCh := make(chan os.Signal, 1)
-	signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)
-	return &signalHandler{c, sigCh}
-}
-
-func (s *signalHandler) Loop() {
-	defer s.ReleaseWaitGroup()
-
-	for {
-		select {
-		case <-s.LoopCh():
-			return
-		case <-s.sigCh:
-			// XXX For future reference: DO NOT, and I mean DO NOT call
-			// termbox.Close() here. Calling termbox.Close() twice in our
-			// context actually BLOCKS. Can you believe it? IT BLOCKS.
-			//
-			// So if we called termbox.Close() here, and then in main()
-			// defer termbox.Close() blocks. Not cool.
-			s.ExitWith(fmt.Errorf("received signal"))
-			return
-		}
-	}
 }
 
 func (c *Ctx) Error() error {

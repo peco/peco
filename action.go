@@ -7,25 +7,12 @@ import (
 
 	"github.com/google/btree"
 	"github.com/nsf/termbox-go"
-	"github.com/peco/peco/keyseq"
+	"github.com/peco/peco/internal/keyseq"
 )
 
 // ErrUserCanceled is used to signal that the user deliberately
 // canceled using peco
 var ErrUserCanceled = errors.New("canceled")
-
-// Action describes an action that can be executed upon receiving user
-// input. It's an interface so you can create any kind of Action you need,
-// but most everything is implemented in terms of ActionFunc, which is
-// callback based Action
-type Action interface {
-	Register(string, ...termbox.Key)
-	RegisterKeySequence(keyseq.KeyList)
-	Execute(*Input, termbox.Event)
-}
-
-// ActionFunc is a type of Action that is basically just a callback.
-type ActionFunc func(*Input, termbox.Event)
 
 // This is the global map of canonical action name to actions
 var nameToActions map[string]Action
@@ -271,8 +258,8 @@ func doFinish(i *Input, _ termbox.Event) {
 }
 
 func doCancel(i *Input, ev termbox.Event) {
-	if i.keymap.Keyseq.InMiddleOfChain() {
-		i.keymap.Keyseq.CancelChain()
+	if i.keymap.seq.InMiddleOfChain() {
+		i.keymap.seq.CancelChain()
 		return
 	}
 
