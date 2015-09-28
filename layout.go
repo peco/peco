@@ -409,8 +409,8 @@ func (l *ListArea) Draw(parent Layout, perPage int, runningQuery bool) {
 
 	// This protects us from losing the selected line in case our selected
 	// line is greater than the buffer
-	if l.currentLine >= bufsiz {
-		l.currentLine = bufsiz - 1
+	if lbufsiz := linebuf.Size(); l.currentLine >= lbufsiz {
+		l.currentLine = lbufsiz - 1
 	}
 
 	// previously drawn lines are cached. first, truncate the cache
