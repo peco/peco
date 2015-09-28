@@ -129,6 +129,7 @@ type Ctx struct {
 	config              *Config
 	selectionRangeStart int
 	layoutType          string
+	singleKeyJumpMode   bool
 
 	wait *sync.WaitGroup
 	err  error
@@ -197,6 +198,14 @@ func (c *Ctx) ReadConfig(file string) error {
 	if c.layoutType == "" { // Not set yet
 		if c.config.Layout != "" {
 			c.layoutType = c.config.Layout
+		}
+	}
+
+	if len(c.config.SingleKeyJumpMap) == 0 {
+		c.config.SingleKeyJumpMap = make(map[rune]uint)
+		chrs := "asdfghjklzxcvbnmqwertyuiop"
+		for i := 0; i < len(chrs); i++ {
+			c.config.SingleKeyJumpMap[rune(chrs[i])] = uint(i)
 		}
 	}
 
@@ -459,3 +468,12 @@ func (c *Ctx) startInput() {
 	c.AddWaitGroup(1)
 	go c.NewInput().Loop()
 }
+
+func (c *Ctx) ToggleSingleKeyJumpMode() {
+	c.singleKeyJumpMode = !c.singleKeyJumpMode
+}
+
+func (c *Ctx) IsSingleKeyJumpMode() bool {
+	return c.singleKeyJumpMode
+}
+

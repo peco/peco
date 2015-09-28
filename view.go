@@ -13,11 +13,26 @@ type View struct {
 }
 
 // PagingRequest can be sent to move the selection cursor
-type PagingRequest int
+type PagingRequestType int
+type PagingRequest interface {
+	Type() PagingRequestType
+}
+
+func (prt PagingRequestType) Type() PagingRequestType {
+	return prt
+}
+
+type JumpToLineRequest uint
+func (jlr JumpToLineRequest) Type() PagingRequestType {
+	return ToLineInPage
+}
+func (jlr JumpToLineRequest) Line() int {
+	return int(jlr)
+}
 
 const (
 	// ToLineAbove moves the selection to the line above
-	ToLineAbove PagingRequest = iota
+	ToLineAbove PagingRequestType = iota
 	// ToScrollPageDown moves the selection to the next page
 	ToScrollPageDown
 	// ToLineBelow moves the selection to the line below
@@ -28,6 +43,8 @@ const (
 	ToScrollLeft
 	// ToScrollRight scrolls screen to the right
 	ToScrollRight
+
+	ToLineInPage
 )
 
 // StatusMsgRequest specifies the string to be drawn

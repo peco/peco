@@ -32,6 +32,7 @@ type Config struct {
 	Layout          string            `json:"Layout"`
 	CustomMatcher   map[string][]string
 	CustomFilter    map[string]CustomFilterConfig
+	SingleKeyJumpMap map[rune]uint
 	StickySelection bool
 	QueryExecutionDelay int
 }
@@ -61,6 +62,7 @@ func NewConfig() *Config {
 		Keymap:         make(map[string]string),
 		InitialMatcher: IgnoreCaseMatch,
 		Style:          NewStyleSet(),
+		SingleKeyJumpMap: make(map[rune]uint),
 		Prompt:         "QUERY>",
 		Layout:         "top-down",
 	}

@@ -661,7 +661,7 @@ func verticalScroll(l *BasicLayout, p PagingRequest) bool {
 
 	lpp := linesPerPage()
 	if l.list.sortTopDown {
-		switch p {
+		switch p.Type() {
 		case ToLineAbove:
 			l.currentLine--
 		case ToLineBelow:
@@ -673,6 +673,8 @@ func verticalScroll(l *BasicLayout, p PagingRequest) bool {
 			}
 		case ToScrollPageUp:
 			l.currentLine -= lpp
+		case ToLineInPage:
+			l.currentLine = cp.perPage * (cp.page - 1) + p.(JumpToLineRequest).Line()
 		}
 	} else {
 		switch p {
