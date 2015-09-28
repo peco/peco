@@ -6,8 +6,18 @@ import "github.com/nsf/termbox-go"
 // go run -race cmd/peco/peco.go
 var termboxMutex = newMutex()
 
+// These functions are here so that we can test
+var (
+	termboxClose     = termbox.Close
+	termboxFlush     = termbox.Flush
+	termboxInit      = termbox.Init
+	termboxPollEvent = termbox.PollEvent
+	termboxSetCell   = termbox.SetCell
+	termboxSize      = termbox.Size
+)
+
 func (t Termbox) Init() error {
-	if err := termbox.Init(); err != nil {
+	if err := termboxInit(); err != nil {
 		return err
 	}
 
@@ -15,7 +25,7 @@ func (t Termbox) Init() error {
 }
 
 func (t Termbox) Close() error {
-	termbox.Close()
+	termboxClose()
 	return nil
 }
 
@@ -30,11 +40,11 @@ func (t Termbox) SendEvent(_ termbox.Event) {
 func (t Termbox) Flush() error {
 	termboxMutex.Lock()
 	defer termboxMutex.Unlock()
-	return termbox.Flush()
+	return termboxFlush()
 }
 
 // PollEvent returns a channel that you can listen to for
-// termbox's events. The actual polling is done in a 
+// termbox's events. The actual polling is done in a
 // separate gouroutine
 func (t Termbox) PollEvent() chan termbox.Event {
 	// XXX termbox.PollEvent() can get stuck on unexpected signal
@@ -51,7 +61,7 @@ func (t Termbox) PollEvent() chan termbox.Event {
 		defer func() { recover() }()
 		defer func() { close(evCh) }()
 		for {
-			evCh <- termbox.PollEvent()
+			evCh <- termboxPollEvent()
 		}
 	}()
 	return evCh
@@ -62,12 +72,12 @@ func (t Termbox) PollEvent() chan termbox.Event {
 func (t Termbox) SetCell(x, y int, ch rune, fg, bg termbox.Attribute) {
 	termboxMutex.Lock()
 	defer termboxMutex.Unlock()
-	termbox.SetCell(x, y, ch, fg, bg)
+	termboxSetCell(x, y, ch, fg, bg)
 }
 
 // Size returns the dimensions of the current terminal
 func (t Termbox) Size() (int, int) {
 	termboxMutex.Lock()
 	defer termboxMutex.Unlock()
-	return termbox.Size()
+	return termboxSize()
 }
