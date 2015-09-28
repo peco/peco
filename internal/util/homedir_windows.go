@@ -1,4 +1,4 @@
-package peco
+package util
 
 import "os/user"
 
