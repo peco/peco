@@ -229,7 +229,7 @@ func doSelectAll(i *Input, _ termbox.Event) {
 			i.selection.Remove(l)
 		}
 	}
-	i.SendDraw()
+	i.SendDraw(false)
 }
 
 func doSelectVisible(i *Input, _ termbox.Event) {
@@ -246,7 +246,7 @@ func doSelectVisible(i *Input, _ termbox.Event) {
 		l.SetDirty(true)
 		i.selection.Add(l)
 	}
-	i.SendDraw()
+	i.SendDraw(false)
 }
 
 func doFinish(i *Input, _ termbox.Event) {
@@ -345,7 +345,7 @@ func doInvertSelection(i *Input, _ termbox.Event) {
 		return true
 	})
 
-	i.SendDraw()
+	i.SendDraw(false)
 }
 
 func doDeleteBackwardWord(i *Input, _ termbox.Event) {

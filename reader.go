@@ -59,7 +59,7 @@ func (b *BufferReader) Loop() {
 
 		refresh = time.AfterFunc(100*time.Millisecond, func() {
 			if !b.ExecQuery() {
-				b.SendDraw()
+				b.SendDraw(false)
 			}
 			m.Lock()
 			defer m.Unlock()

@@ -75,7 +75,7 @@ func IsValidVerticalAnchor(anchor VerticalAnchor) bool {
 type Layout interface {
 	PrintStatus(string, time.Duration)
 	DrawPrompt()
-	DrawScreen()
+	DrawScreen(bool)
 	MovePage(PagingRequest) (moved bool)
 }
 
@@ -373,30 +373,36 @@ func (l *ListArea) SetDirty(dirty bool) {
 }
 
 // Draw displays the ListArea on the screen
-func (l *ListArea) Draw(parent Layout, perPage int) {
+func (l *ListArea) Draw(parent Layout, perPage int, runningQuery bool) {
 	trace("ListArea.Draw: START")
 	defer trace("ListArea.Draw: END")
 	currentPage := l.currentPage
 
 	linebuf := l.GetCurrentLineBuffer()
-	bufsiz := linebuf.Size()
-	page := currentPage.page
-	for ; page > 1; {
-		if (currentPage.perPage * (page - 1) < bufsiz) &&
-			 (currentPage.perPage * page) >= bufsiz {
-			break
-		}
 
-		page--;
-	}
-	if currentPage.page != page {
-		currentPage.page = page
-		parent.DrawPrompt()
+	// Should only get into this clause if we are RUNNING A QUERY.
+	// regular paging shouldn't be affected.
+	if runningQuery {
+		bufsiz := linebuf.Size()
+		page := currentPage.page
+
+		for ; page > 1; {
+			if (currentPage.perPage * (page - 1) < bufsiz) &&
+				 (currentPage.perPage * page) >= bufsiz {
+				break
+			}
+
+			page--;
+		}
+		if currentPage.page != page {
+			currentPage.page = page
+			parent.DrawPrompt()
+		}
 	}
 
 	pf := PageCrop{perPage: currentPage.perPage, currentPage: currentPage.page}
 	buf := pf.Crop(linebuf)
-	bufsiz = buf.Size()
+	bufsiz := buf.Size()
 
 	// previously drawn lines are cached. first, truncate the cache
 	// to current size of the drawable area
@@ -584,7 +590,7 @@ func (l *BasicLayout) DrawPrompt() {
 }
 
 // DrawScreen draws the entire screen
-func (l *BasicLayout) DrawScreen() {
+func (l *BasicLayout) DrawScreen(runningQuery bool) {
 	trace("DrawScreen: START")
 	defer trace("DrawScreen: END")
 
@@ -595,7 +601,7 @@ func (l *BasicLayout) DrawScreen() {
 	}
 
 	l.DrawPrompt()
-	l.list.Draw(l, perPage)
+	l.list.Draw(l, perPage, runningQuery)
 
 	if err := screen.Flush(); err != nil {
 		return

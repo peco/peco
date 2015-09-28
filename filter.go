@@ -159,7 +159,7 @@ func (f *Filter) Work(cancel chan struct{}, q HubReq) {
 		buf.onEnd = func() { f.SendStatusMsg("") }
 		buf.Accept(filter)
 
-		f.SetActiveLineBuffer(buf)
+		f.SetActiveLineBuffer(buf, true)
 	}
 
 	if ! f.config.StickySelection {

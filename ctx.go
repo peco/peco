@@ -418,21 +418,21 @@ func (c Ctx) GetRawLineBufferSize() int {
 
 func (c *Ctx) ResetActiveLineBuffer() {
 	c.rawLineBuffer.Replay()
-	c.SetActiveLineBuffer(c.rawLineBuffer)
+	c.SetActiveLineBuffer(c.rawLineBuffer, false)
 }
 
-func (c *Ctx) SetActiveLineBuffer(l *RawLineBuffer) {
+func (c *Ctx) SetActiveLineBuffer(l *RawLineBuffer, runningQuery bool) {
 	c.activeLineBuffer = l
 
 	go func(l *RawLineBuffer) {
 		prev := time.Time{}
 		for _ = range l.OutputCh() {
 			if time.Since(prev) > time.Millisecond {
-				c.SendDraw()
+				c.SendDraw(runningQuery)
 				prev = time.Now()
 			}
 		}
-		c.SendDraw()
+		c.SendDraw(runningQuery)
 	}(l)
 }
 
