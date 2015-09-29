@@ -112,19 +112,14 @@ func setupDeps() {
 		}
 	}
 
+	setupPecoInGopath()
+
 	log.Println("dependencies have been checked out to under %s", buildDir)
 }
 
-func buildBinaries() {
-	wd, err := os.Getwd()
-	if err != nil {
-		panic(err)
-	}
-
-	buildDir := getBuildDir()
-	os.Setenv("GOPATH", buildDir)
-
+func setupPecoInGopath() {
 	// Make a symlink to current directory so that it's in GOPATH
+	buildDir := getBuildDir()
 	linkDest := filepath.Join(buildDir, "src", "github.com", "peco", "peco")
 	linkDestDir := filepath.Dir(linkDest)
 	if _, err := os.Stat(linkDestDir); err != nil {
@@ -134,11 +129,16 @@ func buildBinaries() {
 	}
 
 	if _, err := os.Stat(linkDest); err != nil {
-		log.Printf("Creating symlink from '%s' to '%s'", wd, linkDest)
-		if err := os.Symlink(wd, linkDest); err != nil {
+		log.Printf("Creating symlink from '%s' to '%s'", pwd, linkDest)
+		if err := os.Symlink(pwd, linkDest); err != nil {
 			panic(err)
 		}
 	}
+}
+
+func buildBinaries() {
+	buildDir := getBuildDir()
+	os.Setenv("GOPATH", buildDir)
 
 	for _, osname := range []string{"darwin", "linux", "windows"} {
 		for _, arch := range []string{"amd64", "386"} {
