@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"os"
 	"os/exec"
@@ -45,17 +46,39 @@ func main() {
 	}
 }
 
+func getBuildDir() string {
+	buildDir := ".build"
+	if dir := os.Getenv("PECO_BUILD_DIR"); dir != "" {
+		buildDir = dir
+	}
+
+	d, err := filepath.Abs(buildDir)
+	if err != nil {
+		panic(err)
+	}
+	buildDir = d
+
+	for _, subdir := range []string{"bin", "pkg", "src", "artifacts"} {
+		dir := filepath.Join(buildDir, subdir)
+
+		// Make sure this directory exists to avoid errors...
+		if _, err := os.Stat(dir); err != nil {
+			if err := os.MkdirAll(dir, 0777); err != nil {
+				panic(err)
+			}
+		}
+	}
+
+	return buildDir
+}
+
 func setupDeps() {
 	var err error
 
-	baseDir := "/work/src"
-	if dir := os.Getenv("PECO_BUILD_DIR"); dir != "" {
-		baseDir = dir
-	}
-
+	buildDir := getBuildDir()
 	for dir, hash := range deps {
 		repo := repoURL(dir)
-		dir = filepath.Join(baseDir, dir)
+		dir = filepath.Join(buildDir, "src", dir)
 		if _, err = os.Stat(dir); err != nil {
 			if err = run("git", "clone", repo, dir); err != nil {
 				panic(err)
@@ -86,26 +109,78 @@ func setupDeps() {
 			panic(err)
 		}
 	}
+
+	log.Println("dependencies have been checked out to under %s", buildDir)
 }
 
 func buildBinaries() {
-	goxcArgs := []string{
-		"-tasks", "xc archive",
-		"-bc", "linux windows darwin",
-		"-wd", "/work/src/github.com/peco/peco",
-		"-d", os.Args[2],
-		"-resources-include", "README*,Changes",
-		"-main-dirs-exclude", "_demos,examples,build",
-	}
-	if err := run("goxc", goxcArgs...); err != nil {
+	wd, err := os.Getwd()
+	if err != nil {
 		panic(err)
 	}
+
+	buildDir := getBuildDir()
+	os.Setenv("GOPATH", buildDir)
+
+	// Make a symlink to current directory so that it's in GOPATH
+	linkDest := filepath.Join(buildDir, "src", "github.com", "peco", "peco")
+	linkDestDir := filepath.Dir(linkDest)
+	if _, err := os.Stat(linkDestDir); err != nil {
+		if err := os.MkdirAll(linkDestDir, 0777); err != nil {
+			panic(err)
+		}
+	}
+
+	if _, err := os.Stat(linkDest); err != nil {
+		log.Printf("Creating symlink from '%s' to '%s'", wd, linkDest)
+		if err := os.Symlink(wd, linkDest); err != nil {
+			panic(err)
+		}
+	}
+
+	for _, osname := range []string{"darwin", "linux", "windows"} {
+		for _, arch := range []string{"amd64", "386"} {
+			buildBinaryFor(osname, arch)
+		}
+	}
+
+	buildBinaryFor("linux", "arm")
+}
+
+func buildBinaryFor(osname, arch string) {
+	os.Setenv("GOOS", osname)
+	os.Setenv("GOARCH", arch)
+
+	log.Printf("Building for %s/%s", osname, arch)
+
+	name := fmt.Sprintf("peco_%s_%s", osname, arch)
+
+	run("go", "build", "-o",
+		filepath.Join(name, "peco"),
+		filepath.Join("cmd", "peco", "peco.go"),
+	)
+
+	run("cp", "Changes", filepath.Join(name, "Changes"))
+	run("cp", "README.md", filepath.Join(name, "README.md"))
+
+	var file string
+	if osname == "linux" {
+		file = fmt.Sprintf("%s.tar.gz", name)
+		run("tar", "cvf", file, name)
+	} else {
+		file = fmt.Sprintf("%s.zip", name)
+		run("zip", "-r", file, name)
+	}
+
+	os.RemoveAll(name)
+	run("mv", file, filepath.Join(getBuildDir(), "artifacts"))
 }
 
 func run(name string, args ...string) error {
 	splat := []string{name}
 	splat = append(splat, args...)
 	log.Printf("---> Running %v...\n", splat)
+
 	cmd := exec.Command(name, args...)
 	out, err := cmd.CombinedOutput()
 	for _, line := range strings.Split(string(out), "\n") {

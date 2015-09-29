@@ -6,3 +6,5 @@ go:
   - 1.5
   - tip
 sudo: false
+after_success:
+  - go run build/make.go build
