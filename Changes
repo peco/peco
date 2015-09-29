@@ -1,6 +1,16 @@
 Changes
 =======
 
+v0.3.4
+  Bugs/Fixes:
+  * Fix a problem where lines were sometimes not highlighted
+  * Executing a query may sometimes result in a shorter list of entries
+    such that the page you were at before the query is no longer valid.
+    The cursor would now move to the closest page instead of an empty buffer
+  Miscellaneous:
+  * Only support go1.5 (we now use cross compilation and internal packages)
+  * `go run build/make.go build` will now build all of the peco release files
+
 v0.3.3 - 11 Jul 2015
   Features:
   * Implemented ScrollLeft/ScrollRight, to read long lines
