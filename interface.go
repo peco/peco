@@ -340,10 +340,18 @@ type Config struct {
 	Layout              string            `json:"Layout"`
 	CustomMatcher       map[string][]string
 	CustomFilter        map[string]CustomFilterConfig
-	SingleKeyJumpList   []rune
-	SingleKeyJumpMap    map[rune]uint
-	StickySelection     bool
 	QueryExecutionDelay int
+	StickySelection     bool
+
+	// If this is true, then the prefix for single key jump mode
+	// is displayed by default.
+	SingleKeyJump SingleKeyJumpConfig `json:"SingleKeyJump"`
+}
+
+type SingleKeyJumpConfig struct {
+	ShowPrefix bool          `json:"ShowPrefix"`
+	PrefixList []rune        `json:"-"`
+	PrefixMap  map[rune]uint `json:"-"`
 }
 
 // CustomFilterConfig is used to specify configuration parameters

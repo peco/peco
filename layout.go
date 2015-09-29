@@ -425,9 +425,9 @@ func (l *ListArea) Draw(parent Layout, perPage int, runningQuery bool) {
 		xOffset := l.currentCol
 		line := target.DisplayString()
 
-		if l.IsSingleKeyJumpMode() {
-			if n < len(l.config.SingleKeyJumpList) {
-				printScreenWithOffset(x, y, xOffset, fgAttr|termbox.AttrBold|termbox.AttrReverse, bgAttr, fmt.Sprintf("%c", l.config.SingleKeyJumpList[n]), false)
+		if l.IsSingleKeyJumpMode() || l.config.SingleKeyJump.ShowPrefix {
+			if n < len(l.config.SingleKeyJump.PrefixList) {
+				printScreenWithOffset(x, y, xOffset, fgAttr|termbox.AttrBold|termbox.AttrReverse, bgAttr, fmt.Sprintf("%c", l.config.SingleKeyJump.PrefixList[n]), false)
 				printScreenWithOffset(x + 1, y, xOffset, fgAttr, bgAttr, " ", false)
 			} else {
 				printScreenWithOffset(x, y, xOffset, fgAttr, bgAttr, "  ", false)

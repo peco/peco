@@ -115,16 +115,16 @@ func newCtx(o CtxOptions, hubBufferSize int) *Ctx {
 	for i := 0; i < len(chrs); i++ {
 		jumpMap[rune(chrs[i])] = uint(i)
 	}
-	c.config.SingleKeyJumpMap = jumpMap
-	c.populateSingleKeyJumpList()
+	c.config.SingleKeyJump.PrefixMap = jumpMap
+	c.populateSingleKeyJumpPrefixList()
 
 	return c
 }
 
-func (c *Ctx) populateSingleKeyJumpList() {
-	c.config.SingleKeyJumpList = make([]rune, len(c.config.SingleKeyJumpMap))
-	for k, v := range c.config.SingleKeyJumpMap {
-		c.config.SingleKeyJumpList[v] = k
+func (c *Ctx) populateSingleKeyJumpPrefixList() {
+	c.config.SingleKeyJump.PrefixList = make([]rune, len(c.config.SingleKeyJump.PrefixMap))
+	for k, v := range c.config.SingleKeyJump.PrefixMap {
+		c.config.SingleKeyJump.PrefixList[v] = k
 	}
 }
 
@@ -147,7 +147,7 @@ func (c *Ctx) ReadConfig(file string) error {
 		}
 	}
 
-	c.populateSingleKeyJumpList()
+	c.populateSingleKeyJumpPrefixList()
 
 	return nil
 }

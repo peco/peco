@@ -501,6 +501,16 @@ You may specify as many filters as you like in the `CustomFilter` section.
 
 See --layout.
 
+## SingleKeyJump
+
+```
+{
+  "SingleKeyJump": {
+    "ShowPrefix": true
+  }
+}
+```
+
 Hacking
 =======
 

@@ -20,12 +20,16 @@ var homedirFunc = util.Homedir
 // NewConfig creates a new Config
 func NewConfig() *Config {
 	return &Config{
-		Keymap:           make(map[string]string),
-		InitialMatcher:   IgnoreCaseMatch,
-		Style:            NewStyleSet(),
-		SingleKeyJumpMap: make(map[rune]uint),
-		Prompt:           "QUERY>",
-		Layout:           "top-down",
+		Keymap:         make(map[string]string),
+		InitialMatcher: IgnoreCaseMatch,
+		Style:          NewStyleSet(),
+		SingleKeyJump: SingleKeyJumpConfig{
+			ShowPrefix: false,
+			PrefixMap:  make(map[rune]uint),
+			PrefixList: []rune(nil),
+		},
+		Prompt: "QUERY>",
+		Layout: "top-down",
 	}
 }
 

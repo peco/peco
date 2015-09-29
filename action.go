@@ -649,7 +649,7 @@ func doToggleSingleKeyJump(i *Input, ev termbox.Event) {
 
 func doSingleKeyJump(i *Input, ev termbox.Event) {
 	trace("Doing single key jump for %c", ev.Ch)
-	index, ok := i.config.SingleKeyJumpMap[ev.Ch]
+	index, ok := i.config.SingleKeyJump.PrefixMap[ev.Ch]
 	if !ok {
 		// Couldn't find it? Do nothing
 		return
