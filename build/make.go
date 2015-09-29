@@ -37,7 +37,7 @@ func init() {
 func main() {
 	switch os.Args[1] {
 	case "gopath":
-		println(getBuildDir())
+		fmt.Printf("%s\n", getBuildDir())
 	case "deps":
 		setupDeps()
 	case "build":
