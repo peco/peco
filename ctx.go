@@ -110,7 +110,22 @@ func newCtx(o CtxOptions, hubBufferSize int) *Ctx {
 	c.filters.Add(NewSmartCaseFilter())
 	c.filters.Add(NewRegexpFilter())
 
+	jumpMap := make(map[rune]uint)
+	chrs := "asdfghjklzxcvbnmqwertyuiop"
+	for i := 0; i < len(chrs); i++ {
+		jumpMap[rune(chrs[i])] = uint(i)
+	}
+	c.config.SingleKeyJumpMap = jumpMap
+	c.populateSingleKeyJumpList()
+
 	return c
+}
+
+func (c *Ctx) populateSingleKeyJumpList() {
+	c.config.SingleKeyJumpList = make([]rune, len(c.config.SingleKeyJumpMap))
+	for k, v := range c.config.SingleKeyJumpMap {
+		c.config.SingleKeyJumpList[v] = k
+	}
 }
 
 const invalidSelectionRange = -1
@@ -132,15 +147,7 @@ func (c *Ctx) ReadConfig(file string) error {
 		}
 	}
 
-	c.config.SingleKeyJumpMap = make(map[rune]uint)
-	chrs := "asdfghjklzxcvbnmqwertyuiop"
-	for i := 0; i < len(chrs); i++ {
-		c.config.SingleKeyJumpMap[rune(chrs[i])] = uint(i)
-	}
-	c.config.SingleKeyJumpList = make([]rune, len(c.config.SingleKeyJumpMap))
-	for k, v := range c.config.SingleKeyJumpMap {
-		c.config.SingleKeyJumpList[v] = k
-	}
+	c.populateSingleKeyJumpList()
 
 	return nil
 }
