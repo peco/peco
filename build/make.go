@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strings"
 )
 
@@ -27,6 +28,16 @@ var deps = map[string]string{
 	"github.com/google/btree":       "0c05920fc3d98100a5e3f7fd339865a6e2aaa671",
 }
 
+func symlink(src, dest string) error {
+	if runtime.GOOS == "windows" {
+		if _, err := exec.Command("cmd", "/c", "mklink", "/J", dest, src).CombinedOutput(); err != nil {
+			return err
+		}
+		return nil
+	}
+	return os.Symlink(src, dest)
+}
+
 func init() {
 	var err error
 	if pwd, err = os.Getwd(); err != nil {
@@ -35,7 +46,12 @@ func init() {
 }
 
 func main() {
-	switch os.Args[1] {
+	action := ""
+	if len(os.Args) == 2 {
+		action = os.Args[1]
+	}
+
+	switch action {
 	case "gopath":
 		fmt.Printf("%s\n", getBuildDir())
 	case "deps":
@@ -44,7 +60,7 @@ func main() {
 		setupDeps()
 		buildBinaries()
 	default:
-		panic("Unknown action: " + os.Args[1])
+		panic("Unknown action: " + action)
 	}
 }
 
@@ -130,7 +146,7 @@ func setupPecoInGopath() {
 
 	if _, err := os.Stat(linkDest); err != nil {
 		log.Printf("Creating symlink from '%s' to '%s'", pwd, linkDest)
-		if err := os.Symlink(pwd, linkDest); err != nil {
+		if err := symlink(pwd, linkDest); err != nil {
 			panic(err)
 		}
 	}
