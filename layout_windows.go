@@ -5,4 +5,3 @@ func init() {
 	// on windows platform
 	extraOffset = 1
 }
-

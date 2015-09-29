@@ -5,6 +5,7 @@ package peco
 import "sync"
 
 const debug = true
+
 func newMutex() sync.Locker {
 	return &sync.Mutex{}
 }

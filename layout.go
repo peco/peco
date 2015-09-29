@@ -428,7 +428,7 @@ func (l *ListArea) Draw(parent Layout, perPage int, runningQuery bool) {
 		if l.IsSingleKeyJumpMode() || l.config.SingleKeyJump.ShowPrefix {
 			if n < len(l.config.SingleKeyJump.PrefixList) {
 				printScreenWithOffset(x, y, xOffset, fgAttr|termbox.AttrBold|termbox.AttrReverse, bgAttr, fmt.Sprintf("%c", l.config.SingleKeyJump.PrefixList[n]), false)
-				printScreenWithOffset(x + 1, y, xOffset, fgAttr, bgAttr, " ", false)
+				printScreenWithOffset(x+1, y, xOffset, fgAttr, bgAttr, " ", false)
 			} else {
 				printScreenWithOffset(x, y, xOffset, fgAttr, bgAttr, "  ", false)
 			}
@@ -604,7 +604,7 @@ func verticalScroll(l *BasicLayout, p PagingRequest) bool {
 		case ToScrollPageUp:
 			l.currentLine -= lpp
 		case ToLineInPage:
-			l.currentLine = cp.perPage * (cp.page - 1) + p.(JumpToLineRequest).Line()
+			l.currentLine = cp.perPage*(cp.page-1) + p.(JumpToLineRequest).Line()
 		}
 	} else {
 		switch p {
@@ -617,7 +617,7 @@ func verticalScroll(l *BasicLayout, p PagingRequest) bool {
 		case ToScrollPageUp:
 			l.currentLine += lpp
 		case ToLineInPage:
-			l.currentLine = cp.perPage * (cp.page - 1) - p.(JumpToLineRequest).Line()
+			l.currentLine = cp.perPage*(cp.page-1) - p.(JumpToLineRequest).Line()
 		}
 	}
 
