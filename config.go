@@ -23,8 +23,13 @@ func NewConfig() *Config {
 		Keymap:         make(map[string]string),
 		InitialMatcher: IgnoreCaseMatch,
 		Style:          NewStyleSet(),
-		Prompt:         "QUERY>",
-		Layout:         "top-down",
+		SingleKeyJump: SingleKeyJumpConfig{
+			ShowPrefix: false,
+			PrefixMap:  make(map[rune]uint),
+			PrefixList: []rune(nil),
+		},
+		Prompt: "QUERY>",
+		Layout: "top-down",
 	}
 }
 

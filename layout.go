@@ -271,7 +271,7 @@ func (s *StatusBar) PrintStatus(msg string, clearDelay time.Duration) {
 	}
 
 	if width > 0 {
-		printScreen(w-width, location, fgAttr|termbox.AttrReverse|termbox.AttrBold, bgAttr|termbox.AttrReverse, msg, false)
+		printScreen(w-width, location, fgAttr|termbox.AttrReverse|termbox.AttrBold|termbox.AttrReverse, bgAttr|termbox.AttrReverse, msg, false)
 	}
 	screen.Flush()
 
@@ -300,6 +300,10 @@ func NewListArea(ctx *Ctx, anchor VerticalAnchor, anchorOffset int, sortTopDown 
 		selectedStyle:       ctx.config.Style.Selected,
 		savedSelectionStyle: ctx.config.Style.SavedSelection,
 	}
+}
+
+func (l *ListArea) purgeDisplayCache() {
+	l.displayCache = []Line{}
 }
 
 func (l *ListArea) IsDirty() bool {
@@ -353,14 +357,10 @@ func (l *ListArea) Draw(parent Layout, perPage int, runningQuery bool) {
 
 	// previously drawn lines are cached. first, truncate the cache
 	// to current size of the drawable area
-	switch ldc := len(l.displayCache); {
-	case ldc > perPage:
-		l.displayCache = append([]Line(nil), l.displayCache[:ldc]...)
-	case ldc < perPage:
-		// XXX Is there a more efficient way to grow the array?
-		for i := ldc; i < perPage; i++ {
-			l.displayCache = append(l.displayCache, nil)
-		}
+	if ldc := len(l.displayCache); ldc != perPage {
+		newCache := make([]Line, perPage)
+		copy(newCache, l.displayCache)
+		l.displayCache = newCache
 	}
 
 	var y int
@@ -423,15 +423,26 @@ func (l *ListArea) Draw(parent Layout, perPage int, runningQuery bool) {
 
 		x := -l.currentCol
 		xOffset := l.currentCol
-
 		line := target.DisplayString()
+
+		if l.IsSingleKeyJumpMode() || l.config.SingleKeyJump.ShowPrefix {
+			if n < len(l.config.SingleKeyJump.PrefixList) {
+				printScreenWithOffset(x, y, xOffset, fgAttr|termbox.AttrBold|termbox.AttrReverse, bgAttr, fmt.Sprintf("%c", l.config.SingleKeyJump.PrefixList[n]), false)
+				printScreenWithOffset(x + 1, y, xOffset, fgAttr, bgAttr, " ", false)
+			} else {
+				printScreenWithOffset(x, y, xOffset, fgAttr, bgAttr, "  ", false)
+			}
+
+			x += 2
+		}
+
 		matches := target.Indices()
 		if matches == nil {
 			printScreenWithOffset(x, y, xOffset, fgAttr, bgAttr, line, true)
 			continue
 		}
 
-		prev := -l.currentCol
+		prev := x
 		index := 0
 
 		for _, m := range matches {
@@ -483,6 +494,10 @@ func NewBottomUpLayout(ctx *Ctx) *BasicLayout {
 		// It's displayed in bottom-to-top order
 		list: NewListArea(ctx, AnchorBottom, 2+extraOffset, false),
 	}
+}
+
+func (l *BasicLayout) PurgeDisplayCache() {
+	l.list.purgeDisplayCache()
 }
 
 // CalculatePage calculates which page we're displaying
@@ -576,7 +591,7 @@ func verticalScroll(l *BasicLayout, p PagingRequest) bool {
 
 	lpp := linesPerPage()
 	if l.list.sortTopDown {
-		switch p {
+		switch p.Type() {
 		case ToLineAbove:
 			l.currentLine--
 		case ToLineBelow:
@@ -588,6 +603,8 @@ func verticalScroll(l *BasicLayout, p PagingRequest) bool {
 			}
 		case ToScrollPageUp:
 			l.currentLine -= lpp
+		case ToLineInPage:
+			l.currentLine = cp.perPage * (cp.page - 1) + p.(JumpToLineRequest).Line()
 		}
 	} else {
 		switch p {
@@ -599,6 +616,8 @@ func verticalScroll(l *BasicLayout, p PagingRequest) bool {
 			l.currentLine -= lpp
 		case ToScrollPageUp:
 			l.currentLine += lpp
+		case ToLineInPage:
+			l.currentLine = cp.perPage * (cp.page - 1) - p.(JumpToLineRequest).Line()
 		}
 	}
 

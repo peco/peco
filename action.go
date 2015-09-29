@@ -25,20 +25,25 @@ func (a ActionFunc) Execute(i *Input, e termbox.Event) {
 	a(i, e)
 }
 
+func (a ActionFunc) registerKeySequence(k keyseq.KeyList) {
+	defaultKeyBinding[k.String()] = a
+}
+
 // Register fulfills the Action interface for AfterFunc. Registers `a`
 // into the global action registry by the name `name`, and maps to
 // default keys via `defaultKeys`
 func (a ActionFunc) Register(name string, defaultKeys ...termbox.Key) {
 	nameToActions["peco."+name] = a
 	for _, k := range defaultKeys {
-		a.RegisterKeySequence(keyseq.KeyList{keyseq.NewKeyFromKey(k)})
+		a.registerKeySequence(keyseq.KeyList{keyseq.NewKeyFromKey(k)})
 	}
 }
 
 // RegisterKeySequence satisfies the Action interface for AfterFunc.
 // Registers the action to be mapped against a key sequence
-func (a ActionFunc) RegisterKeySequence(k keyseq.KeyList) {
-	defaultKeyBinding[k.String()] = a
+func (a ActionFunc) RegisterKeySequence(name string, k keyseq.KeyList) {
+	nameToActions["peco."+name] = a
+	a.registerKeySequence(k)
 }
 
 func wrapDeprecated(fn func(*Input, termbox.Event), oldName, newName string) ActionFunc {
@@ -113,8 +118,10 @@ func init() {
 	ActionFunc(doCancelRangeMode).Register("CancelRangeMode")
 	ActionFunc(doToggleQuery).Register("ToggleQuery", termbox.KeyCtrlT)
 	ActionFunc(doRefreshScreen).Register("RefreshScreen", termbox.KeyCtrlL)
+	ActionFunc(doToggleSingleKeyJump).Register("ToggleSingleKeyJump")
 
 	ActionFunc(doKonamiCommand).RegisterKeySequence(
+		"KonamiCommand",
 		keyseq.KeyList{
 			keyseq.Key{Modifier: 0, Key: termbox.KeyCtrlX, Ch: 0},
 			keyseq.Key{Modifier: 0, Key: termbox.KeyArrowUp, Ch: 0},
@@ -141,17 +148,25 @@ func doAcceptChar(i *Input, ev termbox.Event) {
 		ev.Ch = ' '
 	}
 
-	if ch := ev.Ch; ch > 0 {
-		if i.QueryLen() == i.CaretPos() {
-			i.AppendQuery(ch)
-		} else {
-			i.InsertQueryAt(ch, i.CaretPos())
-		}
-		i.MoveCaretPos(1)
-		i.DrawPrompt() // Update prompt before running query
-
-		i.ExecQuery()
+	ch := ev.Ch
+	if ch <= 0 {
+		return
 	}
+
+	if i.IsSingleKeyJumpMode() {
+		doSingleKeyJump(i, ev)
+		return
+	}
+
+	if i.QueryLen() == i.CaretPos() {
+		i.AppendQuery(ch)
+	} else {
+		i.InsertQueryAt(ch, i.CaretPos())
+	}
+	i.MoveCaretPos(1)
+	i.DrawPrompt() // Update prompt before running query
+
+	i.ExecQuery()
 }
 
 func doRotateFilter(i *Input, ev termbox.Event) {
@@ -625,6 +640,25 @@ func doToggleQuery(i *Input, _ termbox.Event) {
 
 func doKonamiCommand(i *Input, ev termbox.Event) {
 	i.SendStatusMsg("All your filters are belongs to us")
+}
+
+func doToggleSingleKeyJump(i *Input, ev termbox.Event) {
+	trace("Toggling SingleKeyJump")
+	i.ToggleSingleKeyJumpMode()
+}
+
+func doSingleKeyJump(i *Input, ev termbox.Event) {
+	trace("Doing single key jump for %c", ev.Ch)
+	index, ok := i.config.SingleKeyJump.PrefixMap[ev.Ch]
+	if !ok {
+		// Couldn't find it? Do nothing
+		return
+	}
+
+	i.Batch(func() {
+		i.SendPaging(JumpToLineRequest(index))
+		doFinish(i, ev)
+	})
 }
 
 func makeCombinedAction(actions ...Action) ActionFunc {

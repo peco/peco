@@ -79,7 +79,13 @@ type Keyseq interface {
 }
 
 // PagingRequest can be sent to move the selection cursor
-type PagingRequest int
+type PagingRequestType int
+
+type PagingRequest interface {
+	Type() PagingRequestType
+}
+
+type JumpToLineRequest uint
 
 // Selection stores the line ids that were selected by the user.
 // The contents of the Selection is always sorted from smallest to
@@ -136,6 +142,7 @@ type Layout interface {
 	DrawPrompt()
 	DrawScreen(bool)
 	MovePage(PagingRequest) (moved bool)
+	PurgeDisplayCache()
 }
 
 // AnchorSettings groups items that are required to control
@@ -194,7 +201,7 @@ type BasicLayout struct {
 type Keymap struct {
 	Config map[string]string
 	Action map[string][]string // custom actions
-	seq Keyseq
+	seq    Keyseq
 }
 
 // internal stuff
@@ -216,7 +223,7 @@ type Filter struct {
 // callback based Action
 type Action interface {
 	Register(string, ...termbox.Key)
-	RegisterKeySequence(keyseq.KeyList)
+	RegisterKeySequence(string, keyseq.KeyList)
 	Execute(*Input, termbox.Event)
 }
 
@@ -324,27 +331,37 @@ type Config struct {
 	// Keymap used to be directly responsible for dispatching
 	// events against user input, but since then this has changed
 	// into something that just records the user's config input
-	Keymap          map[string]string `json:"Keymap"`
-	Matcher         string            `json:"Matcher"`        // Deprecated.
-	InitialMatcher  string            `json:"InitialMatcher"` // Use this instead of Matcher
-	InitialFilter   string            `json:"InitialFilter"`
-	Style           *StyleSet         `json:"Style"`
-	Prompt          string            `json:"Prompt"`
-	Layout          string            `json:"Layout"`
-	CustomMatcher   map[string][]string
-	CustomFilter    map[string]CustomFilterConfig
-	StickySelection bool
+	Keymap              map[string]string `json:"Keymap"`
+	Matcher             string            `json:"Matcher"`        // Deprecated.
+	InitialMatcher      string            `json:"InitialMatcher"` // Use this instead of Matcher
+	InitialFilter       string            `json:"InitialFilter"`
+	Style               *StyleSet         `json:"Style"`
+	Prompt              string            `json:"Prompt"`
+	Layout              string            `json:"Layout"`
+	CustomMatcher       map[string][]string
+	CustomFilter        map[string]CustomFilterConfig
 	QueryExecutionDelay int
+	StickySelection     bool
+
+	// If this is true, then the prefix for single key jump mode
+	// is displayed by default.
+	SingleKeyJump SingleKeyJumpConfig `json:"SingleKeyJump"`
+}
+
+type SingleKeyJumpConfig struct {
+	ShowPrefix bool          `json:"ShowPrefix"`
+	PrefixList []rune        `json:"-"`
+	PrefixMap  map[rune]uint `json:"-"`
 }
 
 // CustomFilterConfig is used to specify configuration parameters
 // to CustomFilters
 type CustomFilterConfig struct {
 	// Cmd is the name of the command to invoke
-	Cmd             string
+	Cmd string
 
 	// TODO: need to check if how we use this is correct
-	Args            []string
+	Args []string
 
 	// BufferThreshold defines how many lines peco buffers before
 	// invoking the external command. If this value is big, we
@@ -429,6 +446,7 @@ type Ctx struct {
 	config              *Config
 	selectionRangeStart int
 	layoutType          string
+	singleKeyJumpMode   bool
 
 	wait *sync.WaitGroup
 	err  error
@@ -451,5 +469,3 @@ type CLIOptions struct {
 
 type CLI struct {
 }
-
-
