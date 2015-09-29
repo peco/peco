@@ -122,6 +122,11 @@ func (h *Hub) SendStatusMsgAndClear(q string, clearDelay time.Duration) {
 	send(h.StatusMsgCh(), HubReq{StatusMsgRequest{q, clearDelay}, nil}, h.isSync)
 }
 
+func (h *Hub) SendPurgeDisplayCache() {
+	req := HubReq{"purgeCache", nil}
+	send(h.DrawCh(), req, h.isSync)
+}
+
 // PagingCh returns the channel to page through the results
 func (h *Hub) PagingCh() chan HubReq {
 	return h.pagingCh

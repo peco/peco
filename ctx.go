@@ -90,6 +90,7 @@ func newCtx(o CtxOptions, hubBufferSize int) *Ctx {
 		selectionRangeStart: invalidSelectionRange,
 		wait:                &sync.WaitGroup{},
 		layoutType:          "top-down",
+		singleKeyJumpMode:   false,
 	}
 
 	if o != nil {
@@ -129,6 +130,18 @@ func (c *Ctx) ReadConfig(file string) error {
 		if c.config.Layout != "" {
 			c.layoutType = c.config.Layout
 		}
+	}
+
+	if len(c.config.SingleKeyJumpMap) == 0 {
+		c.config.SingleKeyJumpMap = make(map[rune]uint)
+		chrs := "asdfghjklzxcvbnmqwertyuiop"
+		for i := 0; i < len(chrs); i++ {
+			c.config.SingleKeyJumpMap[rune(chrs[i])] = uint(i)
+		}
+	}
+	c.config.SingleKeyJumpList = make([]rune, len(c.config.SingleKeyJumpMap))
+	for k, v := range c.config.SingleKeyJumpMap {
+		c.config.SingleKeyJumpList[v] = k
 	}
 
 	return nil
@@ -358,4 +371,14 @@ func (c *Ctx) SetCurrentFilterByName(name string) error {
 func (c *Ctx) startInput() {
 	c.AddWaitGroup(1)
 	go c.NewInput().Loop()
+}
+
+func (c *Ctx) ToggleSingleKeyJumpMode() {
+	c.singleKeyJumpMode = !c.singleKeyJumpMode
+	c.SendPurgeDisplayCache()
+	c.SendDraw(false)
+}
+
+func (c *Ctx) IsSingleKeyJumpMode() bool {
+	return c.singleKeyJumpMode
 }

@@ -2,7 +2,7 @@ package peco
 
 const (
 	// ToLineAbove moves the selection to the line above
-	ToLineAbove PagingRequest = iota
+	ToLineAbove PagingRequestType = iota
 	// ToScrollPageDown moves the selection to the next page
 	ToScrollPageDown
 	// ToLineBelow moves the selection to the line below
@@ -13,7 +13,21 @@ const (
 	ToScrollLeft
 	// ToScrollRight scrolls screen to the right
 	ToScrollRight
+	// ToLineInPage jumps to a particular line on the page
+	ToLineInPage
 )
+
+func (prt PagingRequestType) Type() PagingRequestType {
+	return prt
+}
+
+func (jlr JumpToLineRequest) Type() PagingRequestType {
+	return ToLineInPage
+}
+
+func (jlr JumpToLineRequest) Line() int {
+	return int(jlr)
+}
 
 // Loop receives requests to update the screen
 func (v *View) Loop() {
@@ -32,8 +46,11 @@ func (v *View) Loop() {
 			tmp := lines.DataInterface()
 			switch tmp.(type) {
 			case string:
-				if tmp.(string) == "prompt" {
+				switch tmp.(string) {
+				case "prompt":
 					v.drawPrompt()
+				case "purgeCache":
+					v.purgeDisplayCache()
 				}
 			case bool:
 				v.drawScreen(tmp.(bool))
@@ -47,6 +64,12 @@ func (v *View) Loop() {
 
 func (v *View) printStatus(r StatusMsgRequest) {
 	v.layout.PrintStatus(r.message, r.clearDelay)
+}
+
+func (v *View) purgeDisplayCache() {
+	v.mutex.Lock()
+	defer v.mutex.Unlock()
+	v.layout.PurgeDisplayCache()
 }
 
 func (v *View) drawScreen(runningQuery bool) {
