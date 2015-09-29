@@ -132,12 +132,10 @@ func (c *Ctx) ReadConfig(file string) error {
 		}
 	}
 
-	if len(c.config.SingleKeyJumpMap) == 0 {
-		c.config.SingleKeyJumpMap = make(map[rune]uint)
-		chrs := "asdfghjklzxcvbnmqwertyuiop"
-		for i := 0; i < len(chrs); i++ {
-			c.config.SingleKeyJumpMap[rune(chrs[i])] = uint(i)
-		}
+	c.config.SingleKeyJumpMap = make(map[rune]uint)
+	chrs := "asdfghjklzxcvbnmqwertyuiop"
+	for i := 0; i < len(chrs); i++ {
+		c.config.SingleKeyJumpMap[rune(chrs[i])] = uint(i)
 	}
 	c.config.SingleKeyJumpList = make([]rune, len(c.config.SingleKeyJumpMap))
 	for k, v := range c.config.SingleKeyJumpMap {
