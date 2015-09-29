@@ -1,28 +1,16 @@
 package peco
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"reflect"
 
 	"github.com/jessevdk/go-flags"
-	"github.com/nsf/termbox-go"
+	"github.com/peco/peco/internal/util"
 )
 
-type CLIOptions struct {
-	OptHelp           bool   `short:"h" long:"help" description:"show this help message and exit"`
-	OptTTY            string `long:"tty" description:"path to the TTY (usually, the value of $TTY)"`
-	OptQuery          string `long:"query" description:"initial value for query"`
-	OptRcfile         string `long:"rcfile" description:"path to the settings file"`
-	OptVersion        bool   `long:"version" description:"print the version and exit"`
-	OptBufferSize     int    `long:"buffer-size" short:"b" description:"number of lines to keep in search buffer"`
-	OptEnableNullSep  bool   `long:"null" description:"expect NUL (\\0) as separator for target/output"`
-	OptInitialIndex   int    `long:"initial-index" description:"position of the initial index of the selection (0 base)"`
-	OptInitialMatcher string `long:"initial-matcher" description:"specify the default matcher (deprecated)"`
-	OptInitialFilter  string `long:"initial-filter" description:"specify the default filter"`
-	OptPrompt         string `long:"prompt" description:"specify the prompt string"`
-	OptLayout         string `long:"layout" description:"layout to be used 'top-down' (default) or 'bottom-up'" default:"top-down"`
-}
+var ErrSignalReceived = errors.New("received signal")
 
 func showHelp() {
 	// The ONLY reason we're not using go-flags' help option is
@@ -72,9 +60,6 @@ func (o CLIOptions) LayoutType() string {
 	return o.OptLayout
 }
 
-type CLI struct {
-}
-
 func (cli *CLI) parseOptions() (*CLIOptions, []string, error) {
 	opts := &CLIOptions{}
 	p := flags.NewParser(opts, flags.PrintErrors)
@@ -118,7 +103,7 @@ func (cli *CLI) Run() error {
 		if err != nil {
 			return err
 		}
-	case !IsTty(os.Stdin.Fd()):
+	case !util.IsTty(os.Stdin.Fd()):
 		in = os.Stdin
 	default:
 		return fmt.Errorf("error: You must supply something to work with via filename or stdin")
@@ -182,27 +167,34 @@ func (cli *CLI) Run() error {
 	// This channel blocks until we receive something from `in`
 	<-reader.InputReadyCh()
 
-	err = TtyReady()
-	if err != nil {
+	if err := util.TtyReady(); err != nil {
 		return err
 	}
-	defer TtyTerm()
+	defer util.TtyTerm()
 
-	err = termbox.Init()
-	if err != nil {
+	if err := screen.Init(); err != nil {
 		return err
 	}
-	defer termbox.Close()
-
-	// Windows handle Esc/Alt self
-	if isWindows {
-		termbox.SetInputMode(termbox.InputEsc | termbox.InputAlt)
-	}
+	defer screen.Close()
 
 	ctx.startInput()
 	view := ctx.NewView()
 	filter := ctx.NewFilter()
-	sig := ctx.NewSignalHandler()
+	sig := NewSignalHandler(
+		ctx.LoopCh(),
+		// onEnd
+		ctx.ReleaseWaitGroup,
+		// onSigReceived
+		// XXX For future reference: DO NOT, and I mean DO NOT call
+		// termbox.Close() here. Calling termbox.Close() twice in our
+		// context actually BLOCKS. Can you believe it? IT BLOCKS.
+		//
+		// So if we called termbox.Close() here, and then in main()
+		// defer termbox.Close() blocks. Not cool.
+		func() {
+			ctx.ExitWith(ErrSignalReceived)
+		},
+	)
 
 	loopers := []interface {
 		Loop()

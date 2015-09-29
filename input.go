@@ -1,20 +1,10 @@
 package peco
 
 import (
-	"sync"
 	"time"
 
 	"github.com/nsf/termbox-go"
 )
-
-// Input handles input events from termbox.
-type Input struct {
-	*Ctx
-	mutex         sync.Locker // Currently only used for protecting Alt/Esc workaround
-	mod           *time.Timer
-	keymap        Keymap
-	currentKeySeq []string
-}
 
 // Loop watches for incoming events from termbox, and pass them
 // to the appropriate handler when something arrives.
@@ -79,9 +69,9 @@ func (i *Input) handleInputEvent(ev termbox.Event) {
 func (i *Input) handleKeyEvent(ev termbox.Event) {
 	trace("Input.handleKeyEvent: START")
 	defer trace("Input.handleKeyEvent: END")
-	if h := i.keymap.Handler(ev); h != nil {
-		trace("Input.handleKeyEvent: Event %#v maps to %s, firing action", ev, h)
-		h.Execute(i, ev)
+	if a := i.keymap.LookupAction(ev); a != nil {
+		trace("Input.handleKeyEvent: Event %#v maps to %s, firing action", ev, a)
+		a.Execute(i, ev)
 		return
 	}
 }

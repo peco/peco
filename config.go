@@ -8,52 +8,14 @@ import (
 	"strings"
 
 	"github.com/nsf/termbox-go"
+	"github.com/peco/peco/internal/util"
 )
 
 // DefaultCustomFilterBufferThreshold is the default value
-// for BufferThreshold setting on CustomFilters. 
+// for BufferThreshold setting on CustomFilters.
 const DefaultCustomFilterBufferThreshold = 100
 
-var homedirFunc = homedir
-
-// Config holds all the data that can be configured in the
-// external configuran file
-type Config struct {
-	Action map[string][]string `json:"Action"`
-	// Keymap used to be directly responsible for dispatching
-	// events against user input, but since then this has changed
-	// into something that just records the user's config input
-	Keymap          map[string]string `json:"Keymap"`
-	Matcher         string            `json:"Matcher"`        // Deprecated.
-	InitialMatcher  string            `json:"InitialMatcher"` // Use this instead of Matcher
-	InitialFilter   string            `json:"InitialFilter"`
-	Style           *StyleSet         `json:"Style"`
-	Prompt          string            `json:"Prompt"`
-	Layout          string            `json:"Layout"`
-	CustomMatcher   map[string][]string
-	CustomFilter    map[string]CustomFilterConfig
-	StickySelection bool
-	QueryExecutionDelay int
-}
-
-// CustomFilterConfig is used to specify configuration parameters
-// to CustomFilters
-type CustomFilterConfig struct {
-	// Cmd is the name of the command to invoke
-	Cmd             string
-
-	// TODO: need to check if how we use this is correct
-	Args            []string
-
-	// BufferThreshold defines how many lines peco buffers before
-	// invoking the external command. If this value is big, we
-	// will execute the external command fewer times, but the
-	// results will not be generated for longer periods of time.
-	// If this value is small, we will execute the external command
-	// more often, but you pay the penalty of invoking that command
-	// more times.
-	BufferThreshold int
-}
+var homedirFunc = util.Homedir
 
 // NewConfig creates a new Config
 func NewConfig() *Config {
@@ -136,15 +98,6 @@ var (
 	}
 )
 
-// StyleSet holds styles for various sections
-type StyleSet struct {
-	Basic          Style `json:"Basic"`
-	SavedSelection Style `json:"SavedSelection"`
-	Selected       Style `json:"Selected"`
-	Query          Style `json:"Query"`
-	Matched        Style `json:"Matched"`
-}
-
 // NewStyleSet creates a new StyleSet struct
 func NewStyleSet() *StyleSet {
 	return &StyleSet{
@@ -154,12 +107,6 @@ func NewStyleSet() *StyleSet {
 		SavedSelection: Style{fg: termbox.ColorBlack | termbox.AttrBold, bg: termbox.ColorCyan},
 		Selected:       Style{fg: termbox.ColorDefault | termbox.AttrUnderline, bg: termbox.ColorMagenta},
 	}
-}
-
-// Style describes termbox styles
-type Style struct {
-	fg termbox.Attribute
-	bg termbox.Attribute
 }
 
 // UnmarshalJSON satisfies json.RawMessage.

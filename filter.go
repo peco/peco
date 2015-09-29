@@ -9,7 +9,8 @@ import (
 	"regexp"
 	"sort"
 	"strings"
-	"unicode"
+
+	"github.com/peco/peco/internal/util"
 )
 
 // These are used as keys in the config file
@@ -20,31 +21,15 @@ const (
 	RegexpMatch        = "Regexp"
 )
 
-var ignoreCaseFlags = []string{"i"}
-var defaultFlags = []string{}
-
-type regexpFlags interface {
-	flags(string) []string
-}
-type regexpFlagList []string
+var ignoreCaseFlags = regexpFlagList([]string{"i"})
+var defaultFlags = regexpFlagList{}
 
 func (r regexpFlagList) flags(_ string) []string {
 	return []string(r)
 }
 
-type regexpFlagFunc func(string) []string
-
 func (r regexpFlagFunc) flags(s string) []string {
 	return r(s)
-}
-
-func containsUpper(query string) bool {
-	for _, c := range query {
-		if unicode.IsUpper(c) {
-			return true
-		}
-	}
-	return false
 }
 
 func regexpFor(q string, flags []string, quotemeta bool) (*regexp.Regexp, error) {
@@ -130,11 +115,6 @@ func mergeMatches(a []int, b []int) []int {
 	return ret
 }
 
-// Filter is responsible for the actual "grep" part of peco
-type Filter struct {
-	*Ctx
-}
-
 // Work is the actual work horse that that does the matching
 // in a goroutine of its own. It wraps Matcher.Match().
 func (f *Filter) Work(cancel chan struct{}, q HubReq) {
@@ -162,7 +142,7 @@ func (f *Filter) Work(cancel chan struct{}, q HubReq) {
 		f.SetActiveLineBuffer(buf, true)
 	}
 
-	if ! f.config.StickySelection {
+	if !f.config.StickySelection {
 		f.SelectionClear()
 	}
 }
@@ -374,7 +354,7 @@ func (fs *FilterSet) GetCurrent() QueryFilterer {
 
 func NewIgnoreCaseFilter() *RegexpFilter {
 	return &RegexpFilter{
-		flags:     regexpFlagList(ignoreCaseFlags),
+		flags:     ignoreCaseFlags,
 		quotemeta: true,
 		name:      "IgnoreCase",
 	}
@@ -382,7 +362,7 @@ func NewIgnoreCaseFilter() *RegexpFilter {
 
 func NewCaseSensitiveFilter() *RegexpFilter {
 	return &RegexpFilter{
-		flags:     regexpFlagList(defaultFlags),
+		flags:     defaultFlags,
 		quotemeta: true,
 		name:      "CaseSensitive",
 	}
@@ -393,7 +373,7 @@ func NewCaseSensitiveFilter() *RegexpFilter {
 func NewSmartCaseFilter() *RegexpFilter {
 	return &RegexpFilter{
 		flags: regexpFlagFunc(func(q string) []string {
-			if containsUpper(q) {
+			if util.ContainsUpper(q) {
 				return defaultFlags
 			}
 			return []string{"i"}
@@ -416,7 +396,7 @@ type ExternalCmdFilter struct {
 func NewExternalCmdFilter(name, cmd string, args []string, threshold int, enableSep bool) *ExternalCmdFilter {
 	trace("name = %s, cmd = %s, args = %#v", name, cmd, args)
 	if len(args) == 0 {
-		args = []string{ "$QUERY" }
+		args = []string{"$QUERY"}
 	}
 
 	return &ExternalCmdFilter{

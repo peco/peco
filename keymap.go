@@ -7,15 +7,8 @@ import (
 	"time"
 
 	"github.com/nsf/termbox-go"
-	"github.com/peco/peco/keyseq"
+	"github.com/peco/peco/internal/keyseq"
 )
-
-// Keymap holds all the key sequence to action map
-type Keymap struct {
-	Config map[string]string
-	Action map[string][]string // custom actions
-	Keyseq *keyseq.Keyseq
-}
 
 // NewKeymap creates a new Keymap struct
 func NewKeymap(config map[string]string, actions map[string][]string) Keymap {
@@ -23,15 +16,15 @@ func NewKeymap(config map[string]string, actions map[string][]string) Keymap {
 
 }
 
-// Handler returns the appropriate action for the given termbox event
-func (km Keymap) Handler(ev termbox.Event) Action {
+// LookupAction returns the appropriate action for the given termbox event
+func (km Keymap) LookupAction(ev termbox.Event) Action {
 	modifier := keyseq.ModNone
 	if (ev.Mod & termbox.ModAlt) != 0 {
 		modifier = keyseq.ModAlt
 	}
 
 	key := keyseq.Key{modifier, ev.Key, ev.Ch}
-	action, err := km.Keyseq.AcceptKey(key)
+	action, err := km.seq.AcceptKey(key)
 
 	switch err {
 	case nil:
@@ -109,7 +102,7 @@ func (km Keymap) resolveActionName(name string, depth int) (Action, error) {
 // ApplyKeybinding applies all of the custom key bindings on top of
 // the default key bindings
 func (km Keymap) ApplyKeybinding() {
-	k := km.Keyseq
+	k := km.seq
 	k.Clear()
 
 	// Copy the map

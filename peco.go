@@ -1,6 +1,6 @@
 package peco
 
-import "runtime"
-
 const version = "v0.3.3"
-const isWindows = (runtime.GOOS == "windows")
+
+// Global variable that bridges the "screen", so testing is easier
+var screen Screen = Termbox{}

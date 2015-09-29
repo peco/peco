@@ -1,6 +1,6 @@
 // +build !darwin,!windows,!freebsd,!openbsd,!netbsd,!dragonfly
 
-package peco
+package util
 
 import (
 	"syscall"

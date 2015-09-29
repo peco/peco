@@ -1,8 +1,14 @@
 language: go
 go:
-  - 1.2
-  - 1.3
-  - 1.4
   - 1.5
   - tip
 sudo: false
+install:
+  - go run build/make.go deps
+script:
+  - export GOPATH=$(go run build/make.go gopath)
+  - pushd .build/src/github.com/peco/peco
+  - go test -v ./...
+  - popd
+after_success:
+  - go run build/make.go build
