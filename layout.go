@@ -424,22 +424,25 @@ func (l *ListArea) Draw(parent Layout, perPage int, runningQuery bool) {
 		x := -l.currentCol
 		xOffset := l.currentCol
 		line := target.DisplayString()
+
 		if l.IsSingleKeyJumpMode() {
 			if n < len(l.config.SingleKeyJumpList) {
-				printScreenWithOffset(x, y, xOffset, fgAttr|termbox.AttrBold|termbox.AttrReverse, bgAttr, fmt.Sprintf("%c", l.config.SingleKeyJumpList[n]), true)
-				printScreenWithOffset(x + 1, y, xOffset, fgAttr, bgAttr, " ", true)
-				x += 2
+				printScreenWithOffset(x, y, xOffset, fgAttr|termbox.AttrBold|termbox.AttrReverse, bgAttr, fmt.Sprintf("%c", l.config.SingleKeyJumpList[n]), false)
+				printScreenWithOffset(x + 1, y, xOffset, fgAttr, bgAttr, " ", false)
 			} else {
-				line = "  " + line
+				printScreenWithOffset(x, y, xOffset, fgAttr, bgAttr, "  ", false)
 			}
+
+			x += 2
 		}
+
 		matches := target.Indices()
 		if matches == nil {
 			printScreenWithOffset(x, y, xOffset, fgAttr, bgAttr, line, true)
 			continue
 		}
 
-		prev := -l.currentCol
+		prev := x
 		index := 0
 
 		for _, m := range matches {
