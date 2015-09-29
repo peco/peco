@@ -194,7 +194,7 @@ type BasicLayout struct {
 type Keymap struct {
 	Config map[string]string
 	Action map[string][]string // custom actions
-	seq Keyseq
+	seq    Keyseq
 }
 
 // internal stuff
@@ -324,16 +324,16 @@ type Config struct {
 	// Keymap used to be directly responsible for dispatching
 	// events against user input, but since then this has changed
 	// into something that just records the user's config input
-	Keymap          map[string]string `json:"Keymap"`
-	Matcher         string            `json:"Matcher"`        // Deprecated.
-	InitialMatcher  string            `json:"InitialMatcher"` // Use this instead of Matcher
-	InitialFilter   string            `json:"InitialFilter"`
-	Style           *StyleSet         `json:"Style"`
-	Prompt          string            `json:"Prompt"`
-	Layout          string            `json:"Layout"`
-	CustomMatcher   map[string][]string
-	CustomFilter    map[string]CustomFilterConfig
-	StickySelection bool
+	Keymap              map[string]string `json:"Keymap"`
+	Matcher             string            `json:"Matcher"`        // Deprecated.
+	InitialMatcher      string            `json:"InitialMatcher"` // Use this instead of Matcher
+	InitialFilter       string            `json:"InitialFilter"`
+	Style               *StyleSet         `json:"Style"`
+	Prompt              string            `json:"Prompt"`
+	Layout              string            `json:"Layout"`
+	CustomMatcher       map[string][]string
+	CustomFilter        map[string]CustomFilterConfig
+	StickySelection     bool
 	QueryExecutionDelay int
 }
 
@@ -341,10 +341,10 @@ type Config struct {
 // to CustomFilters
 type CustomFilterConfig struct {
 	// Cmd is the name of the command to invoke
-	Cmd             string
+	Cmd string
 
 	// TODO: need to check if how we use this is correct
-	Args            []string
+	Args []string
 
 	// BufferThreshold defines how many lines peco buffers before
 	// invoking the external command. If this value is big, we
@@ -451,5 +451,3 @@ type CLIOptions struct {
 
 type CLI struct {
 }
-
-

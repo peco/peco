@@ -214,7 +214,7 @@ func TestDoAcceptChar(t *testing.T) {
 		t.Errorf("Expected query to be populated as '%s', but got '%s'", message, qs)
 	}
 
-	ctx.MoveCaretPos(-1*len("World!"))
+	ctx.MoveCaretPos(-1 * len("World!"))
 	writeQueryToPrompt(t, "Cruel ")
 
 	time.Sleep(500 * time.Millisecond)
