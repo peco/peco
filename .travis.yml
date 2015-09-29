@@ -7,7 +7,7 @@ install:
   - go run build/make.go deps
 script:
   - export GOPATH=$(go run build/make.go gopath)
-  - pushd .build/github.com/peco/peco
+  - pushd .build/src/github.com/peco/peco
   - go test -v ./...
   - popd
 after_success:
