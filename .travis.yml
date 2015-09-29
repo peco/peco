@@ -3,8 +3,9 @@ go:
   - 1.5
   - tip
 sudo: false
-script:
+install:
   - go run build/make.go deps
+script:
   - GOPATH=$(go run build/make.go gopath) go test -v ./...
 after_success:
   - go run build/make.go build
