@@ -118,12 +118,7 @@ func init() {
 	ActionFunc(doCancelRangeMode).Register("CancelRangeMode")
 	ActionFunc(doToggleQuery).Register("ToggleQuery", termbox.KeyCtrlT)
 	ActionFunc(doRefreshScreen).Register("RefreshScreen", termbox.KeyCtrlL)
-	ActionFunc(doToggleSingleKeyJump).RegisterKeySequence(
-		"SingleKeyJump",
-		keyseq.KeyList{
-			keyseq.Key{Modifier: 0, Key: 0, Ch: '@'},
-		},
-	)
+	ActionFunc(doToggleSingleKeyJump).Register("ToggleSingleKeyJump")
 
 	ActionFunc(doKonamiCommand).RegisterKeySequence(
 		"KonamiCommand",

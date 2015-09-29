@@ -360,6 +360,7 @@ Some keys just... don't map correctly / too easily for various reasons. Here, we
 | peco.ScrollRight        | Scrolls the screen to the right |
 | peco.ToggleSelection    | Selects the current line, and saves it |
 | peco.ToggleSelectionAndSelectNext | Selects the current line, saves it, and proceeds to the next line |
+| peco.ToggleSingleKeyJump | Enables SingleKeyJump mode a.k.a. "hit-a-hint" |
 | peco.SelectNone         | Remove all saved selections |
 | peco.SelectAll          | Selects the all line, and save it  |
 | peco.SelectVisible      | Selects the all visible line, and save it |
