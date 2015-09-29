@@ -6,6 +6,9 @@ sudo: false
 install:
   - go run build/make.go deps
 script:
-  - env GOPATH=$(go run build/make.go gopath) go test -v ./...
+  - export GOPATH=$(go run build/make.go gopath)
+  - pushd .build/github.com/peco/peco
+  - go test -v ./...
+  - popd
 after_success:
   - go run build/make.go build
