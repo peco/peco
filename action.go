@@ -683,23 +683,25 @@ func makeCommandAction(cc *CommandConfig) ActionFunc {
 		i.selection.Ascend(func(it btree.Item) bool {
 			line := it.(Line)
 
-			f, err := ioutil.TempFile("", "peco")
-			if err != nil {
-				return false
-			}
-			f.WriteString(line.Buffer())
-			f.Close()
+			var f *os.File
+			var err error
 
 			args := append([]string{}, cc.Args...)
-			found := false
 			for i, v := range args {
-				if v == "$FILE" {
+				switch v {
+				case "$FILE":
+					if f == nil {
+						f, err = ioutil.TempFile("", "peco")
+						if err != nil {
+							return false
+						}
+						f.WriteString(line.Buffer())
+						f.Close()
+					}
 					args[i] = f.Name()
-					found = true
+				case "$LINE":
+					args[i] = line.Buffer()
 				}
-			}
-			if !found {
-				args = append(args, f.Name())
 			}
 			i.SendStatusMsg("Executing " + cc.Name)
 			cmd := exec.Command(args[0], args[1:]...)
@@ -707,14 +709,18 @@ func makeCommandAction(cc *CommandConfig) ActionFunc {
 				err = cmd.Start()
 				go func() {
 					cmd.Wait()
-					os.Remove(f.Name())
+					if f != nil {
+						os.Remove(f.Name())
+					}
 				}()
 			} else {
 				cmd.Stdin = os.Stdin
 				cmd.Stdout = os.Stdout
 				cmd.Stderr = os.Stderr
 				err = cmd.Run()
-				os.Remove(f.Name())
+				if f != nil {
+					os.Remove(f.Name())
+				}
 				i.ExecQuery()
 			}
 			if err != nil {
