@@ -511,6 +511,23 @@ See --layout.
 }
 ```
 
+## ExecuteCommand
+
+```
+{
+  "Keymap": {
+    "C-e": "peco.ExecuteCommand.Notepad"
+  },
+  "Command": [
+    {
+      "Name": "Notepad",
+      "Args": ["notepad", "$FILE"],
+      "Spawn": true
+    }
+  ]
+}
+```
+
 Hacking
 =======
 
