@@ -340,6 +340,7 @@ type Config struct {
 	Layout              string            `json:"Layout"`
 	CustomMatcher       map[string][]string
 	CustomFilter        map[string]CustomFilterConfig
+	Command             []CommandConfig
 	QueryExecutionDelay int
 	StickySelection     bool
 
@@ -352,6 +353,17 @@ type SingleKeyJumpConfig struct {
 	ShowPrefix bool          `json:"ShowPrefix"`
 	PrefixList []rune        `json:"-"`
 	PrefixMap  map[rune]uint `json:"-"`
+}
+
+type CommandConfig struct {
+	// Name is the name of the command to execute
+	Name string
+
+	// TODO: need to check if how we use this is correct
+	Args []string
+
+	// Spawn mean the command should be executed asynchronous.
+	Spawn bool
 }
 
 // CustomFilterConfig is used to specify configuration parameters
