@@ -703,9 +703,6 @@ func makeCommandAction(cc *CommandConfig) ActionFunc {
 			}
 			i.SendStatusMsg("Executing " + cc.Name)
 			cmd := exec.Command(args[0], args[1:]...)
-			cmd.Stdin = os.Stdin
-			cmd.Stdout = os.Stdout
-			cmd.Stderr = os.Stderr
 			if cc.Spawn {
 				err = cmd.Start()
 				go func() {
@@ -713,8 +710,12 @@ func makeCommandAction(cc *CommandConfig) ActionFunc {
 					os.Remove(f.Name())
 				}()
 			} else {
+				cmd.Stdin = os.Stdin
+				cmd.Stdout = os.Stdout
+				cmd.Stderr = os.Stderr
 				err = cmd.Run()
 				os.Remove(f.Name())
+				i.ExecQuery()
 			}
 			if err != nil {
 				return false
