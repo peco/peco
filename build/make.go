@@ -184,7 +184,7 @@ func buildBinaryFor(osname, arch string) {
 	var file string
 	if osname == "linux" {
 		file = fmt.Sprintf("%s.tar.gz", name)
-		run("tar", "cvf", file, name)
+		run("tar", "czvf", file, name)
 	} else {
 		file = fmt.Sprintf("%s.zip", name)
 		run("zip", "-r", file, name)
