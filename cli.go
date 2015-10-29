@@ -162,7 +162,17 @@ func (cli *CLI) Run() error {
 	// before doing any terminal initialization (also done by termbox)
 	reader := ctx.NewBufferReader(in)
 	ctx.AddWaitGroup(1)
-	go reader.Loop()
+	go func() {
+		reader.Loop()
+		if opts.OptSelect1 && reader.GetRawLineBufferSize() == 1 {
+			if l, err := reader.GetCurrentLineBuffer().LineAt(0); err == nil {
+				ctx.resultCh = make(chan Line)
+				ctx.ExitWith(nil)
+				ctx.resultCh <- l
+				close(ctx.resultCh)
+			}
+		}
+	}()
 
 	// This channel blocks until we receive something from `in`
 	<-reader.InputReadyCh()

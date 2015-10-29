@@ -447,6 +447,7 @@ type Ctx struct {
 	selectionRangeStart int
 	layoutType          string
 	singleKeyJumpMode   bool
+	select1             bool
 
 	wait *sync.WaitGroup
 	err  error
@@ -465,6 +466,7 @@ type CLIOptions struct {
 	OptInitialFilter  string `long:"initial-filter" description:"specify the default filter"`
 	OptPrompt         string `long:"prompt" description:"specify the prompt string"`
 	OptLayout         string `long:"layout" description:"layout to be used 'top-down' (default) or 'bottom-up'" default:"top-down"`
+	OptSelect1        bool   `long:"select-1" description:"select first item if given 1 item"`
 }
 
 type CLI struct {
