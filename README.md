@@ -165,6 +165,12 @@ Specifies the display layout. Default is `top-down`, where query prompt is at th
 
 For `percol` users, `--layout=bottom-up` is almost equivalent of `--prompt-bottom --result-bottom-up`.
 
+### --select-1
+
+When specified *and* the input contains exactly 1 line, peco skips prompting you for a choice, and selects the only line in the input and immediately exits.
+
+If there are multiple lines in the input, the usual selection view is displayed.
+
 Configuration File
 ==================
 
