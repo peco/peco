@@ -22,9 +22,9 @@ import (
 
 var pwd string
 var deps = map[string]string{
-	"github.com/jessevdk/go-flags":  "8ec9564882e7923e632f012761c81c46dcf5bec1",
-	"github.com/mattn/go-runewidth": "58a0da4ed7b321c9b5dfeffb7e03ee188fae1c60",
-	"github.com/nsf/termbox-go":     "10f14d7408b64a659b7c694a771f5006952d336c",
+	"github.com/jessevdk/go-flags":  "fc93116606d0a71d7e9de0ad5734fdb4b8eae834",
+	"github.com/mattn/go-runewidth": "12e0ff74603c9a3209d8bf84f8ab349fe1ad9477",
+	"github.com/nsf/termbox-go":     "62033d80b58736ea31beaf43348f5147913af30e",
 	"github.com/google/btree":       "0c05920fc3d98100a5e3f7fd339865a6e2aaa671",
 }
 
