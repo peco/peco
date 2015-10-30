@@ -1,6 +1,14 @@
 Changes
 =======
 
+v0.3.5 - 30 Oct 2015
+  Features:
+  * Implement --select-1 option (#278)
+  Bugs/Fixes:
+  * Do not switch lines when there's no output (#274)
+  Miscellaneous:
+  * Fix automatic gzip generation (#275)
+
 v0.3.4 - 29 Sep 2015
   Features:
   * Implemented SingleKeyJump mode, a.k.a. hit-a-hint
