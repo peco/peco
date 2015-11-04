@@ -128,6 +128,15 @@ func (c *Ctx) populateSingleKeyJumpPrefixList() {
 	}
 }
 
+func (c *Ctx) populateCommandList() {
+	for _, v := range c.config.Command {
+		if len(v.Args) == 0 {
+			continue
+		}
+		makeCommandAction(&v).Register("ExecuteCommand." + v.Name)
+	}
+}
+
 const invalidSelectionRange = -1
 
 func (c *Ctx) ReadConfig(file string) error {
@@ -148,6 +157,8 @@ func (c *Ctx) ReadConfig(file string) error {
 	}
 
 	c.populateSingleKeyJumpPrefixList()
+
+	c.populateCommandList()
 
 	return nil
 }

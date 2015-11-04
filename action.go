@@ -3,6 +3,9 @@ package peco
 import (
 	"errors"
 	"fmt"
+	"io/ioutil"
+	"os"
+	"os/exec"
 	"unicode"
 
 	"github.com/google/btree"
@@ -669,4 +672,62 @@ func makeCombinedAction(actions ...Action) ActionFunc {
 			}
 		})
 	})
+}
+
+func makeCommandAction(cc *CommandConfig) ActionFunc {
+	return func(i *Input, _ termbox.Event) {
+		if i.SelectionLen() == 0 {
+			i.SelectionAdd(i.currentLine)
+		}
+
+		i.selection.Ascend(func(it btree.Item) bool {
+			line := it.(Line)
+
+			var f *os.File
+			var err error
+
+			args := append([]string{}, cc.Args...)
+			for i, v := range args {
+				switch v {
+				case "$FILE":
+					if f == nil {
+						f, err = ioutil.TempFile("", "peco")
+						if err != nil {
+							return false
+						}
+						f.WriteString(line.Buffer())
+						f.Close()
+					}
+					args[i] = f.Name()
+				case "$LINE":
+					args[i] = line.Buffer()
+				}
+			}
+			i.SendStatusMsg("Executing " + cc.Name)
+			cmd := exec.Command(args[0], args[1:]...)
+			if cc.Spawn {
+				err = cmd.Start()
+				go func() {
+					cmd.Wait()
+					if f != nil {
+						os.Remove(f.Name())
+					}
+				}()
+			} else {
+				cmd.Stdin = os.Stdin
+				cmd.Stdout = os.Stdout
+				cmd.Stderr = os.Stderr
+				err = cmd.Run()
+				if f != nil {
+					os.Remove(f.Name())
+				}
+				i.ExecQuery()
+			}
+			if err != nil {
+				return false
+			}
+
+			return true
+		})
+	}
 }
