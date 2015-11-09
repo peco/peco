@@ -477,7 +477,7 @@ type CLIOptions struct {
 	OptInitialMatcher string `long:"initial-matcher" description:"specify the default matcher (deprecated)"`
 	OptInitialFilter  string `long:"initial-filter" description:"specify the default filter"`
 	OptPrompt         string `long:"prompt" description:"specify the prompt string"`
-	OptLayout         string `long:"layout" description:"layout to be used 'top-down' (default) or 'bottom-up'" default:"top-down"`
+	OptLayout         string `long:"layout" description:"layout to be used 'top-down' 'top-down' or 'bottom-up'. default is 'top-down'"`
 	OptSelect1        bool   `long:"select-1" description:"select first item and immediately exit if the input contains only 1 item"`
 }
 
