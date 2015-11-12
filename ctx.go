@@ -89,7 +89,7 @@ func newCtx(o CtxOptions, hubBufferSize int) *Ctx {
 		config:              NewConfig(),
 		selectionRangeStart: invalidSelectionRange,
 		wait:                &sync.WaitGroup{},
-		layoutType:          "top-down",
+		layoutType:          "",
 		singleKeyJumpMode:   false,
 	}
 

@@ -69,7 +69,7 @@ func (i issue212DummyConfig) EnableNullSep() bool { return false }
 func (i issue212DummyConfig) LayoutType() string  { return i.layout }
 func TestIssue212_ActualProblem(t *testing.T) {
 	ctx := NewCtx(issue212DummyConfig{layout: ""})
-	if ctx.layoutType != "top-down" {
-		t.Errorf("event if CtxOption returns an empty string, we should still get the default top-down layout")
+	if ctx.layoutType != "" {
+		t.Errorf("CtxOption should be return an empty string but '%s'", ctx.layoutType)
 	}
 }
