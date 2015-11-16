@@ -173,8 +173,15 @@ func buildBinaryFor(osname, arch string) {
 
 	name := fmt.Sprintf("peco_%s_%s", osname, arch)
 
+	var pecoBin string
+	if osname == "windows" {
+		pecoBin = "peco.exe"
+	} else {
+		pecoBin = "peco"
+	}
+
 	run("go", "build", "-o",
-		filepath.Join(name, "peco"),
+		filepath.Join(name, pecoBin),
 		filepath.Join("cmd", "peco", "peco.go"),
 	)
 
