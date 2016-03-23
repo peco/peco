@@ -134,13 +134,13 @@ func EventToString(ev termbox.Event) (string, error) {
 		// Special case for ArrowUp/Down/Left/Right
 		switch s {
 		case "ArrowUp":
-			s = "↑"
+			s = "^"
 		case "ArrowDown":
-			s = "↓"
+			s = "v"
 		case "ArrowLeft":
-			s = "←"
+			s = "<"
 		case "ArrowRight":
-			s = "→"
+			s = ">"
 		}
 	}
 
