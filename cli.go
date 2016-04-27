@@ -5,8 +5,10 @@ import (
 	"fmt"
 	"os"
 	"reflect"
+	"syscall"
 
 	"github.com/jessevdk/go-flags"
+	"github.com/peco/peco/internal/sighandler"
 	"github.com/peco/peco/internal/util"
 )
 
@@ -190,28 +192,20 @@ func (cli *CLI) Run() error {
 	ctx.startInput()
 	view := ctx.NewView()
 	filter := ctx.NewFilter()
-	sig := NewSignalHandler(
-		ctx.LoopCh(),
-		// onEnd
-		ctx.ReleaseWaitGroup,
-		// onSigReceived
-		// XXX For future reference: DO NOT, and I mean DO NOT call
-		// termbox.Close() here. Calling termbox.Close() twice in our
-		// context actually BLOCKS. Can you believe it? IT BLOCKS.
-		//
-		// So if we called termbox.Close() here, and then in main()
-		// defer termbox.Close() blocks. Not cool.
-		func() {
-			ctx.ExitWith(ErrSignalReceived)
-		},
-	)
+
+	sig := sighandler.New(syscall.SIGINT, syscall.SIGQUIT, syscall.SIGTERM)
+	sig.EndFunc = ctx.ReleaseWaitGroup
+	sig.SignalReceivedFunc = func(_ os.Signal) bool {
+		ctx.ExitWith(ErrSignalReceived)
+		return false
+	}
+	go sig.Loop(ctx.LoopCh())
 
 	loopers := []interface {
 		Loop()
 	}{
 		view,
 		filter,
-		sig,
 	}
 	for _, looper := range loopers {
 		ctx.AddWaitGroup(1)
