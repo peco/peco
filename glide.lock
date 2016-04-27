@@ -1,0 +1,12 @@
+hash: 5aecff4bc22f3000c8051a0dad5fc35f01221bb8b1b9e32aef937bef8f790f57
+updated: 2016-04-27T14:44:17.013336921+09:00
+imports:
+- name: github.com/google/btree
+  version: 00edb8c3163323f673bbe3c04afd9429eb12117d
+- name: github.com/jessevdk/go-flags
+  version: 6b9493b3cb60367edd942144879646604089e3f7
+- name: github.com/mattn/go-runewidth
+  version: d6bea18f789704b5f83375793155289da36a3c7f
+- name: github.com/nsf/termbox-go
+  version: 362329b0aa6447eadd52edd8d660ec1dff470295
+devImports: []

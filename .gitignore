@@ -30,3 +30,7 @@ c.out
 out
 
 .build
+
+_internal_bin
+vendor
+github_token
