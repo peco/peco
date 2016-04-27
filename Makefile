@@ -4,15 +4,18 @@ GOOS=$(word 1,$(subst /, ,$(lastword $(GOVERSION))))
 GOARCH=$(word 2,$(subst /, ,$(lastword $(GOVERSION))))
 RELEASE_DIR=releases
 SRC_FILES = $(wildcard *.go internal/*/*.go)
+HAVE_GLIDE:=$(shell which glide)
 
 .PHONY: build build-windows-amd64 build-windows-386 build-linux-amd64 $(RELEASE_DIR)/$(GOOS)/$(GOARCH)/peco$(SUFFIX)
 
 $(INTERNAL_BIN_DIR)/$(GOOS)/$(GOARCH)/glide:
+ifndef HAVE_GLIDE
 	@echo "Installing glide for $(GOOS)/$(GOARCH)..."
 	@mkdir -p $(INTERNAL_BIN_DIR)/$(GOOS)/$(GOARCH)
 	@wget -q -O - https://github.com/Masterminds/glide/releases/download/0.10.2/glide-0.10.2-$(GOOS)-$(GOARCH).tar.gz | tar xvz
 	@mv $(GOOS)-$(GOARCH)/glide $(INTERNAL_BIN_DIR)/$(GOOS)/$(GOARCH)/glide
 	@rm -rf $(GOOS)-$(GOARCH)
+endif
 
 glide: $(INTERNAL_BIN_DIR)/$(GOOS)/$(GOARCH)/glide
 
