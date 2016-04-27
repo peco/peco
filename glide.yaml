@@ -1,0 +1,6 @@
+package: github.com/peco/peco
+import:
+- package: github.com/google/btree
+- package: github.com/jessevdk/go-flags
+- package: github.com/mattn/go-runewidth
+- package: github.com/nsf/termbox-go

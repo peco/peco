@@ -4,11 +4,7 @@ go:
   - tip
 sudo: false
 install:
-  - go run build/make.go deps
+  - make installdeps
 script:
-  - export GOPATH=$(go run build/make.go gopath)
-  - pushd .build/src/github.com/peco/peco
-  - go test -v ./...
-  - popd
-after_success:
-  - go run build/make.go build
+  - make test
+  - make all
