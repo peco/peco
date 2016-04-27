@@ -33,7 +33,7 @@ build-linux-386:
 	@$(MAKE) build GOOS=linux GOARCH=386
 
 $(RELEASE_DIR)/$(GOOS)/$(GOARCH)/peco$(SUFFIX): $(SRC_FILES)
-	go build -o $(RELEASE_DIR)/$(GOOS)/$(GOARCH)/peco$(SUFFIX)
+	go build -o $(RELEASE_DIR)/$(GOOS)/$(GOARCH)/peco$(SUFFIX) cmd/peco/peco.go
 
 build: $(RELEASE_DIR)/$(GOOS)/$(GOARCH)/peco$(SUFFIX)
 
