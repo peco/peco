@@ -17,6 +17,7 @@ $(INTERNAL_BIN_DIR)/$(GOOS)/$(GOARCH)/glide:
 glide: $(INTERNAL_BIN_DIR)/$(GOOS)/$(GOARCH)/glide
 
 installdeps: glide $(SRC_FILES)
+	@echo "Installing dependencies..."
 	@PATH=$(INTERNAL_BIN_DIR)/$(GOOS)/$(GOARCH):$(PATH) glide install
 
 build-windows-amd64:
@@ -44,4 +45,5 @@ all:
 
 
 test: installdeps
-	go test -v $(shell glide nv)
+	@echo "Running tests..."
+	@PATH=$(INTERNAL_BIN_DIR)/$(GOOS)/$(GOARCH):$(PATH) go test -v $(shell glide nv)
