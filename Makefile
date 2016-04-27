@@ -1,7 +1,7 @@
 INTERNAL_BIN_DIR=_internal_bin
 GOVERSION=$(shell go version)
-GOOS=$(word 1,$(subst /, ,$(word 4, $(GOVERSION))))
-GOARCH=$(word 2,$(subst /, ,$(word 4, $(GOVERSION))))
+GOOS=$(word 1,$(subst /, ,$(lastword $(GOVERSION))))
+GOARCH=$(word 2,$(subst /, ,$(lastword $(GOVERSION))))
 RELEASE_DIR=releases
 SRC_FILES = $(wildcard *.go internal/*/*.go)
 
