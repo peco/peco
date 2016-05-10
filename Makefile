@@ -35,7 +35,13 @@ build-linux-amd64:
 build-linux-386:
 	@$(MAKE) build GOOS=linux GOARCH=386
 
-$(RELEASE_DIR)/$(GOOS)/$(GOARCH)/peco$(SUFFIX): $(SRC_FILES)
+build-darwin-amd64:
+	@$(MAKE) build GOOS=darwin GOARCH=amd64
+
+build-darwin-386:
+	@$(MAKE) build GOOS=darwin GOARCH=386
+
+$(RELEASE_DIR)/$(GOOS)/$(GOARCH)/peco$(SUFFIX):
 	go build -o $(RELEASE_DIR)/$(GOOS)/$(GOARCH)/peco$(SUFFIX) cmd/peco/peco.go
 
 build: $(RELEASE_DIR)/$(GOOS)/$(GOARCH)/peco$(SUFFIX)
@@ -45,6 +51,8 @@ all:
 	@$(MAKE) build-windows-386
 	@$(MAKE) build-linux-amd64
 	@$(MAKE) build-linux-386
+	@$(MAKE) build-darwin-amd64
+	@$(MAKE) build-darwin-386
 
 
 test: installdeps
