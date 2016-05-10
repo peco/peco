@@ -6,7 +6,7 @@ RELEASE_DIR=releases
 SRC_FILES = $(wildcard *.go internal/*/*.go)
 HAVE_GLIDE:=$(shell which glide)
 
-.PHONY: build build-windows-amd64 build-windows-386 build-linux-amd64 $(RELEASE_DIR)/$(GOOS)/$(GOARCH)/peco$(SUFFIX)
+.PHONY: clean build build-windows-amd64 build-windows-386 build-linux-amd64 $(RELEASE_DIR)/$(GOOS)/$(GOARCH)/peco$(SUFFIX)
 
 $(INTERNAL_BIN_DIR)/$(GOOS)/$(GOARCH)/glide:
 ifndef HAVE_GLIDE
@@ -58,3 +58,6 @@ all:
 test: installdeps
 	@echo "Running tests..."
 	@PATH=$(INTERNAL_BIN_DIR)/$(GOOS)/$(GOARCH):$(PATH) go test -v $(shell glide nv)
+
+clean:
+	-rm releases/*/*/*
