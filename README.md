@@ -3,6 +3,8 @@ peco
 
 Simplistic interactive filtering tool
 
+*NOTE*: If you are viewing this on Github, this document refers to the state of `peco` in whatever current branch you are viewing, _not_ necessarily the state of a currently released version. Please make sure to checkout the [Changes](./Changes) file for features and changes.
+
 Description
 ===========
 
