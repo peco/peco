@@ -1,6 +1,18 @@
 Changes
 =======
 
+v0.3.6 - 11 May 2016
+  Features:
+  * Implement way to execute arbitrary commands via ExecuteCommand config
+  Bugs/Fixes:
+  * Fixed wrong default value for LayoutType
+  * Fixed wrong (actually lack of) extension for Windows binary
+  Miscellaneous:
+  * Changed textual cursor representation
+  * Changed dependency manager to glide
+  * Changed build system to... make. Yes. Make.
+  * Compile with go1.6
+
 v0.3.5 - 30 Oct 2015
   Features:
   * Implement --select-1 option (#278)
