@@ -6,7 +6,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/davecgh/go-spew/spew"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -69,6 +68,4 @@ func TestPeco(t *testing.T) {
 	if !assert.NoError(t, p.Run(), "p.Run() succeeds") {
 		return
 	}
-
-	spew.Dump(p)
 }
