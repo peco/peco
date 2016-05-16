@@ -8,3 +8,6 @@ import:
 - package: golang.org/x/net
   subpackages:
   - context
+- package: github.com/stretchr/testify
+  subpackages:
+  - assert
