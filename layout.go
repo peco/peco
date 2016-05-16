@@ -35,7 +35,8 @@ func (pf PageCrop) Crop(in LineBuffer) LineBuffer {
 }
 
 const (
-	// LayoutTypeTopDown is the default. All the items read from top to bottom
+	DefaultLayoutType = LayoutTypeTopDown
+	// LayoutTypeTopDown makes the layout so the items read from top to bottom
 	LayoutTypeTopDown = "top-down"
 	// LayoutTypeBottomUp changes the layout to read from bottom to up
 	LayoutTypeBottomUp = "bottom-up"

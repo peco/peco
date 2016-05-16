@@ -1,10 +1,13 @@
 package peco
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"strings"
 	"time"
+
+	"golang.org/x/net/context"
 
 	"github.com/nsf/termbox-go"
 	"github.com/peco/peco/internal/keyseq"
@@ -14,6 +17,24 @@ import (
 func NewKeymap(config map[string]string, actions map[string][]string) Keymap {
 	return Keymap{config, actions, keyseq.New()}
 
+}
+
+type Action2 interface {
+	Execute2(context.Context, termbox.Event) error
+}
+
+func (km Keymap) ExecuteAction(ctx context.Context, ev termbox.Event) error {
+	a := km.LookupAction(ev)
+	if a == nil {
+		return errors.New("action not found")
+	}
+
+	return a.(Action2).Execute2(ctx, ev)
+}
+
+func (a ActionFunc) Execute2(ctx context.Context, ev termbox.Event) error {
+	a.Execute(nil, ev)
+	return nil
 }
 
 // LookupAction returns the appropriate action for the given termbox event

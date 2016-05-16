@@ -4,6 +4,10 @@ import (
 	"fmt"
 	"sync"
 	"testing"
+	"time"
+
+	"github.com/davecgh/go-spew/spew"
+	"github.com/stretchr/testify/assert"
 )
 
 type interceptorArgs []interface{}
@@ -52,4 +56,19 @@ func TestIDGen(t *testing.T) {
 		}
 		sel.Add(l)
 	}
+}
+
+func TestPeco(t *testing.T) {
+	p := Peco{
+		Args: []string{"peco_test.go"},
+	}
+
+	time.AfterFunc(time.Second, func() {
+		p.Exit(nil)
+	})
+	if !assert.NoError(t, p.Run(), "p.Run() succeeds") {
+		return
+	}
+
+	spew.Dump(p)
 }
