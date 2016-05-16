@@ -1,5 +1,5 @@
-hash: 5aecff4bc22f3000c8051a0dad5fc35f01221bb8b1b9e32aef937bef8f790f57
-updated: 2016-04-27T14:44:17.013336921+09:00
+hash: 6fb35ebcbcbb6a87251eafd017e00929f1ae55d3416d1c6995f4c7bc7942e03c
+updated: 2016-05-16T15:36:41.913105991+09:00
 imports:
 - name: github.com/google/btree
   version: 00edb8c3163323f673bbe3c04afd9429eb12117d
@@ -9,4 +9,10 @@ imports:
   version: d6bea18f789704b5f83375793155289da36a3c7f
 - name: github.com/nsf/termbox-go
   version: 362329b0aa6447eadd52edd8d660ec1dff470295
+- name: github.com/pkg/errors
+  version: d814416a46cbb066b728cfff58d30a986bc9ddbe
+- name: golang.org/x/net
+  version: ef00b378c73f107bf44d5c9b69875255ce89b79a
+  subpackages:
+  - context
 devImports: []
