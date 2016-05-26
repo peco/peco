@@ -202,7 +202,7 @@ func doBackToInitialFilter(ctx context.Context, state *Peco, e termbox.Event) {
 }
 
 func doToggleSelection(ctx context.Context, state *Peco, _ termbox.Event) {
-	l, err := state.CurrentLineBuffer().LineAt(state.CurrentLine())
+	l, err := state.CurrentLineBuffer().LineAt(state.Location().LineNumber())
 	if err != nil {
 		return
 	}
@@ -222,7 +222,7 @@ func doToggleRangeMode(ctx context.Context, state *Peco, _ termbox.Event) {
 	if state.RangeMode() {
 		state.SetSelectionRangeStart(invalidSelectionRange)
 	} else {
-		cl := state.CurrentLine()
+		cl := state.Location().LineNumber()
 		state.SetSelectionRangeStart(cl)
 		if l, err := state.CurrentLineBuffer().LineAt(cl); err == nil {
 			state.selection.Add(l)
@@ -258,8 +258,8 @@ func doSelectVisible(ctx context.Context, state *Peco, _ termbox.Event) {
 
 	b := state.CurrentLineBuffer()
 	selection := state.Selection()
-	pi := state.PageInfo()
-	pc := PageCrop{pi.PerPage(), pi.Page()}
+	loc := state.Location()
+	pc := loc.PageCrop()
 	lb := pc.Crop(b)
 	for x := 0; x < lb.Size(); x++ {
 		l, err := lb.LineAt(x)
@@ -279,7 +279,7 @@ func doFinish(ctx context.Context, state *Peco, _ termbox.Event) {
 	selection := state.Selection()
 	// Must end with all the selected lines.
 	if selection.Len() == 0 {
-		if l, err := state.CurrentLineBuffer().LineAt(state.CurrentLine()); err == nil {
+		if l, err := state.CurrentLineBuffer().LineAt(state.Location().LineNumber()); err == nil {
 			selection.Add(l)
 		}
 	}
@@ -682,7 +682,7 @@ func makeCommandAction(cc *CommandConfig) ActionFunc {
 	return func(ctx context.Context, state *Peco, _ termbox.Event) {
 		sel := state.Selection()
 		if sel.Len() == 0 {
-			if l, err := state.CurrentLineBuffer().LineAt(state.CurrentLine()); err == nil {
+			if l, err := state.CurrentLineBuffer().LineAt(state.Location().LineNumber()); err == nil {
 				sel.Add(l)
 			}
 		}

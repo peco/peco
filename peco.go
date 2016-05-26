@@ -49,23 +49,26 @@ type Peco struct {
 	args             []string
 	caret            Caret
 	// Config contains the values read in from config file
-	config              Config
-	ctx                 context.Context
-	currentLine         int
-	filters             FilterSet
-	keymap              Keymap
-	enableSep           bool     // Enable parsing on separators
-	inputseq            Inputseq // current key sequence (just the names)
-	layoutType          string
-	pageInfo            PageInfo
-	query               Query
-	queryExecDelay      time.Duration
-	queryExecMutex      sync.Mutex
-	queryExecTimer      *time.Timer
-	resultCh            chan Line
-	selection           *Selection
-	selectionRangeStart int
-	singleKeyJumpMode   bool
+	config                  Config
+	ctx                     context.Context
+	filters                 FilterSet
+	keymap                  Keymap
+	enableSep               bool     // Enable parsing on separators
+	inputseq                Inputseq // current key sequence (just the names)
+	layoutType              string
+	location                Location
+	prompt                  string
+	query                   Query
+	queryExecDelay          time.Duration
+	queryExecMutex          sync.Mutex
+	queryExecTimer          *time.Timer
+	resultCh                chan Line
+	selection               *Selection
+	selectionRangeStart     int
+	singleKeyJumpMode       bool
+	singleKeyJumpPrefixes   []rune
+	singleKeyJumpShowPrefix bool
+	styles                  StyleSet
 
 	Options CLIOptions
 
@@ -81,9 +84,18 @@ type Peco struct {
 
 func New() *Peco {
 	return &Peco{
+		activeLineBuffer:    &MemoryBuffer{}, // XXX revisit this
 		selection:           NewSelection(),
 		selectionRangeStart: invalidSelectionRange,
 	}
+}
+
+func (p Peco) Styles() *StyleSet {
+	return &p.styles
+}
+
+func (p Peco) Prompt() string {
+	return p.prompt
 }
 
 func (p Peco) Inputseq() *Inputseq {
@@ -94,14 +106,6 @@ func (p Peco) Context() context.Context {
 	return p.ctx
 }
 
-func (p *Peco) SetCurrentLine(n int) {
-	p.currentLine = n
-}
-
-func (p Peco) CurrentLine() int {
-	return p.currentLine
-}
-
 func (p Peco) CurrentLineBuffer() LineBuffer {
 	return nil // XXX DUMMY
 }
@@ -110,8 +114,8 @@ func (p Peco) LayoutType() string {
 	return p.layoutType
 }
 
-func (p *Peco) PageInfo() *PageInfo {
-	return &p.pageInfo
+func (p *Peco) Location() *Location {
+	return &p.location
 }
 
 func (p Peco) ResultCh() chan Line {
@@ -138,6 +142,14 @@ func (p Peco) SetSelectionRangeStart(s int) {
 
 func (p Peco) RangeMode() bool {
 	return p.selectionRangeStart != invalidSelectionRange
+}
+
+func (p Peco) SingleKeyJumpShowPrefix() bool {
+	return p.singleKeyJumpShowPrefix
+}
+
+func (p Peco) SingleKeyJumpPrefixes() []rune {
+	return p.singleKeyJumpPrefixes
 }
 
 func (p Peco) SingleKeyJumpMode() bool {
@@ -258,6 +270,7 @@ func (p *Peco) Run() error {
 		go l.Loop(ctx, cancel)
 	}
 
+	trace("peco is now ready, go go go!")
 	<-ctx.Done()
 
 	return p.Err()
@@ -291,7 +304,7 @@ func (p *Peco) SetupSource() (*Source, error) {
 
 	src := NewSource(in, p.enableSep)
 	// Block until we receive something from `in`
-	go src.Setup()
+	go src.Setup(p)
 	<-src.Ready()
 
 	return src, nil

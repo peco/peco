@@ -160,36 +160,28 @@ type AnchorSettings struct {
 
 // UserPrompt draws the prompt line
 type UserPrompt struct {
-	*Ctx
 	*AnchorSettings
-	prefix     string
-	prefixLen  int
-	basicStyle Style
-	queryStyle Style
+	prompt    string
+	promptLen int
+	styles    *StyleSet
 }
 
 // StatusBar draws the status message bar
 type StatusBar struct {
-	*Ctx
 	*AnchorSettings
 	clearTimer *time.Timer
+	styles     *StyleSet
 	timerMutex sync.Locker
-	basicStyle Style
 }
 
 // ListArea represents the area where the actual line buffer is
 // displayed in the screen
 type ListArea struct {
-	*Ctx
 	*AnchorSettings
-	sortTopDown         bool
-	displayCache        []Line
-	dirty               bool
-	basicStyle          Style
-	queryStyle          Style
-	matchedStyle        Style
-	selectedStyle       Style
-	savedSelectionStyle Style
+	sortTopDown  bool
+	displayCache []Line
+	dirty        bool
+	styles       *StyleSet
 }
 
 // BasicLayout is... the basic layout :) At this point this is the
@@ -197,7 +189,6 @@ type ListArea struct {
 // of components may be configurable, the actual types of components
 // that are used are set and static
 type BasicLayout struct {
-	*Ctx
 	*StatusBar
 	prompt *UserPrompt
 	list   *ListArea
@@ -416,12 +407,14 @@ type QueryFilterer interface {
 	String() string
 }
 
-type PageInfo struct {
-	page    int
-	offset  int
-	perPage int
-	total   int
+type Location struct {
+	col     int
+	lineno  int
 	maxPage int
+	page    int
+	perPage int
+	offset  int
+	total   int
 }
 
 type Query struct {
@@ -459,7 +452,6 @@ type Ctx struct {
 	mutex               sync.Locker
 	currentLine         int
 	currentCol          int
-	currentPage         *PageInfo
 	selection           *Selection
 	activeLineBuffer    LineBuffer
 	rawLineBuffer       *RawLineBuffer

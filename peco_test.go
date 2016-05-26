@@ -58,7 +58,7 @@ func TestIDGen(t *testing.T) {
 }
 
 func TestPeco(t *testing.T) {
-	p := Peco{}
+	p := New()
 	p.Argv = []string{"peco", "peco_test.go"}
 
 	time.AfterFunc(time.Second, func() {

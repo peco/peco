@@ -1,29 +1,65 @@
 package peco
 
-func (pi PageInfo) Offset() int {
-	return pi.offset
+func (l *Location) SetColumn(n int) {
+	l.col = n
 }
 
-func (pi PageInfo) PerPage() int {
-	return pi.perPage
+func (l Location) Column() int {
+	return l.col
 }
 
-func (pi PageInfo) Page() int {
-	return pi.page
+func (l *Location) SetLineNumber(n int) {
+	l.lineno = n
 }
 
-func (pi PageInfo) Total() int {
-	return pi.total
+func (l Location) LineNumber() int {
+	return l.lineno
 }
 
-func (pi PageInfo) MaxPage() int {
-	return pi.maxPage
+func (l *Location) SetOffset(n int) {
+	l.offset = n
 }
 
-func (pi PageInfo) PageCrop() PageCrop {
+func (l Location) Offset() int {
+	return l.offset
+}
+
+func (l *Location) SetPerPage(n int) {
+	l.perPage = n
+}
+
+func (l Location) PerPage() int {
+	return l.perPage
+}
+
+func (l *Location) SetPage(n int) {
+	l.page = n
+}
+
+func (l Location) Page() int {
+	return l.page
+}
+
+func (l *Location) SetTotal(n int) {
+	l.total = n
+}
+
+func (l Location) Total() int {
+	return l.total
+}
+
+func (l *Location) SetMaxPage(n int) {
+	l.maxPage = n
+}
+
+func (l Location) MaxPage() int {
+	return l.maxPage
+}
+
+func (l Location) PageCrop() PageCrop {
 	return PageCrop{
-		perPage:     pi.perPage,
-		currentPage: pi.page,
+		perPage:     l.perPage,
+		currentPage: l.page,
 	}
 }
 

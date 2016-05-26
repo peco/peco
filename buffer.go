@@ -5,6 +5,7 @@ import (
 	"io"
 	"runtime"
 	"sync"
+	"time"
 
 	"golang.org/x/net/context"
 
@@ -297,11 +298,37 @@ func NewSource(in io.Reader, enableSep bool) *Source {
 }
 
 // Setup reads from the input os.File.
-func (s *Source) Setup() {
+func (s *Source) Setup(state *Peco) {
 	s.setupOnce.Do(func() {
-	l := s.locker()
-	l.Lock()
-	defer l.Unlock()
+		l := s.locker()
+		l.Lock()
+		defer l.Unlock()
+
+		done := make(chan struct{})
+		refresh := make(chan struct{})
+		defer close(done)
+		defer close(refresh)
+
+		go func() {
+			ticker := time.NewTicker(100 * time.Millisecond)
+			defer ticker.Stop()
+
+			for {
+				select {
+				case <-ticker.C:
+					if _, ok := <-refresh; ok {
+						// Not a great thing to do, allowing nil to be passed
+						// as state, but for testing I couldn't come up with anything
+						// better for the moment
+						if state != nil && !state.ExecQuery() {
+							state.Hub().SendDraw(false)
+						}
+					}
+				case <-done:
+					return
+				}
+			}
+		}()
 
 		// This sync.Once var is used to receive the notification
 		// that there was at least 1 line read from the source
@@ -315,6 +342,8 @@ func (s *Source) Setup() {
 		for scanner.Scan() {
 			s.lines = append(s.lines, NewRawLine(scanner.Text(), s.enableSep))
 			notify.Do(notifycb)
+
+			refresh <- struct{}{}
 		}
 	})
 }

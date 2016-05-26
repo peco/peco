@@ -113,8 +113,17 @@ func (v *View) movePage(p PagingRequest) {
 */
 
 func NewView(state *Peco) *View {
+
+	var layout Layout
+	switch state.LayoutType() {
+	case LayoutTypeBottomUp:
+		layout = NewBottomUpLayout(state)
+	default:
+		layout = NewDefaultLayout(state)
+	}
 	return &View{
 		state: state,
+		layout: layout,
 	}
 }
 
