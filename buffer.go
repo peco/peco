@@ -305,9 +305,31 @@ func (s *Source) Setup(state *Peco) {
 		defer l.Unlock()
 
 		done := make(chan struct{})
-		refresh := make(chan struct{})
+		refresh := make(chan struct{}, 1)
 		defer close(done)
 		defer close(refresh)
+
+		draw := func(state *Peco, refresh chan struct{}) {
+			run := false
+			for loop := true; loop; {
+				select {
+				case _, ok := <-refresh:
+					run = true
+					loop = ok
+				default:
+					loop = false
+				}
+			}
+			if !run {
+				return
+			}
+			// Not a great thing to do, allowing nil to be passed
+			// as state, but for testing I couldn't come up with anything
+			// better for the moment
+			if state != nil && !state.ExecQuery() {
+				state.Hub().SendDraw(false)
+			}
+		}
 
 		go func() {
 			ticker := time.NewTicker(100 * time.Millisecond)
@@ -315,26 +337,11 @@ func (s *Source) Setup(state *Peco) {
 
 			for {
 				select {
-				case <-ticker.C:
-					run := false
-					for loop := true; loop; {
-						select {
-						case <-refresh:
-							run = true
-						default:
-							loop = false
-						}
-					}
-					if run {
-						// Not a great thing to do, allowing nil to be passed
-						// as state, but for testing I couldn't come up with anything
-						// better for the moment
-						if state != nil && !state.ExecQuery() {
-							state.Hub().SendDraw(false)
-						}
-					}
 				case <-done:
+					draw(state, refresh)
 					return
+				case <-ticker.C:
+					draw(state, refresh)
 				}
 			}
 		}()
