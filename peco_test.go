@@ -2,6 +2,7 @@ package peco
 
 import (
 	"fmt"
+	"runtime"
 	"sync"
 	"testing"
 	"time"
@@ -58,8 +59,9 @@ func TestIDGen(t *testing.T) {
 }
 
 func TestPeco(t *testing.T) {
+	_, file, _, _ := runtime.Caller(0)
 	p := New()
-	p.Argv = []string{"peco", "peco_test.go"}
+	p.Argv = []string{"peco", file}
 
 	time.AfterFunc(time.Second, func() {
 		p.Exit(nil)
