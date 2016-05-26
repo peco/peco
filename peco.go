@@ -290,8 +290,8 @@ func (p *Peco) SetupSource() (*Source, error) {
 	var in *os.File
 	var err error
 	switch {
-	case len(p.args) > 0:
-		in, err = os.Open(p.args[0])
+	case len(p.args) > 1:
+		in, err = os.Open(p.args[1])
 		if err != nil {
 			return nil, errors.Wrap(err, "failed to open file for input")
 		}
