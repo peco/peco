@@ -14,13 +14,17 @@ import (
 )
 
 // NewKeymap creates a new Keymap struct
-func NewKeymap(config map[string]string, actions map[string][]string) Keymap {
-	return Keymap{config, actions, keyseq.New()}
-
+func NewKeymap(state *Peco, config map[string]string, actions map[string][]string) Keymap {
+	return Keymap{
+		Config: config,
+		Action: actions,
+		seq:    keyseq.New(),
+		state:  state,
+	}
 }
 
-type Action2 interface {
-	Execute2(context.Context, termbox.Event) error
+func (km Keymap) Sequence() Keyseq {
+	return km.seq
 }
 
 func (km Keymap) ExecuteAction(ctx context.Context, ev termbox.Event) error {
@@ -29,11 +33,7 @@ func (km Keymap) ExecuteAction(ctx context.Context, ev termbox.Event) error {
 		return errors.New("action not found")
 	}
 
-	return a.(Action2).Execute2(ctx, ev)
-}
-
-func (a ActionFunc) Execute2(ctx context.Context, ev termbox.Event) error {
-	a.Execute(nil, ev)
+	a.(Action).Execute(ctx, km.state, ev)
 	return nil
 }
 
@@ -62,29 +62,30 @@ func (km Keymap) LookupAction(ev termbox.Event) Action {
 }
 
 func wrapRememberSequence(a Action) Action {
-	return ActionFunc(func(i *Input, ev termbox.Event) {
-		s, err := keyseq.EventToString(ev)
-		if err == nil {
-			i.currentKeySeq = append(i.currentKeySeq, s)
-			i.SendStatusMsg(strings.Join(i.currentKeySeq, " "))
+	return ActionFunc(func(ctx context.Context, state *Peco, ev termbox.Event) {
+		if s, err := keyseq.EventToString(ev); err == nil {
+			seq := state.Inputseq()
+			seq.Add(s)
+			state.Hub().SendStatusMsg(strings.Join(seq.KeyNames(), " "))
 		}
-		a.Execute(i, ev)
+		a.Execute(ctx, state, ev)
 	})
 }
 
 func wrapClearSequence(a Action) Action {
-	return ActionFunc(func(i *Input, ev termbox.Event) {
-		s, err := keyseq.EventToString(ev)
-		if err == nil {
-			i.currentKeySeq = append(i.currentKeySeq, s)
+	return ActionFunc(func(ctx context.Context, state *Peco, ev termbox.Event) {
+		seq := state.Inputseq()
+		if s, err := keyseq.EventToString(ev); err == nil {
+			seq.Add(s)
 		}
 
-		if len(i.currentKeySeq) > 0 {
-			i.SendStatusMsgAndClear(strings.Join(i.currentKeySeq, " "), 500*time.Millisecond)
-			i.currentKeySeq = []string{}
+		if seq.Len() > 0 {
+			msg := strings.Join(seq.KeyNames(), " ")
+			state.Hub().SendStatusMsgAndClear(msg, 500*time.Millisecond)
+			seq.Reset()
 		}
 
-		a.Execute(i, ev)
+		a.Execute(ctx, state, ev)
 	})
 }
 

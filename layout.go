@@ -11,29 +11,6 @@ import (
 
 var extraOffset = 0
 
-// Crop returns a new LineBuffer whose contents are
-// bound within the given range
-func (pf PageCrop) Crop(in LineBuffer) LineBuffer {
-	out := &FilteredLineBuffer{
-		src:       in,
-		selection: []int{},
-	}
-
-	s := pf.perPage * (pf.currentPage - 1)
-	e := s + pf.perPage
-	if s > in.Size() {
-		return out
-	}
-	if e >= in.Size() {
-		e = in.Size()
-	}
-
-	for i := s; i < e; i++ {
-		out.SelectSourceLineAt(i)
-	}
-	return out
-}
-
 const (
 	DefaultLayoutType = LayoutTypeTopDown
 	// LayoutTypeTopDown makes the layout so the items read from top to bottom
@@ -156,7 +133,7 @@ func NewUserPrompt(ctx *Ctx, anchor VerticalAnchor, anchorOffset int) *UserPromp
 }
 
 // Draw draws the query prompt
-func (u UserPrompt) Draw() {
+func (u UserPrompt) Draw(state *Peco) {
 	trace("UserPrompt.Draw: START")
 	defer trace("UserPrompt.Draw: END")
 
@@ -165,15 +142,16 @@ func (u UserPrompt) Draw() {
 	// print "QUERY>"
 	printScreen(0, location, u.basicStyle.fg, u.basicStyle.bg, u.prefix, false)
 
-	pos := u.CaretPos()
-	if pos <= 0 { // XXX Do we really need this?
-		u.SetCaretPos(0) // sanity
+	c := state.Caret()
+	if c.Pos() <= 0 { // XXX Do we really need this?
+		c.SetPos(0) // sanity
 	}
 
-	qs := u.QueryString()
-	ql := u.QueryLen()
-	if pos > ql { // XXX Do we really need this?
-		u.SetCaretPos(ql)
+	q := state.Query()
+	qs := q.String()
+	ql := q.Len()
+	if c.Pos() > ql { // XXX Do we really need this?
+		c.SetPos(ql)
 	}
 
 	fg := u.queryStyle.fg
@@ -182,7 +160,7 @@ func (u UserPrompt) Draw() {
 	case 0:
 		printScreen(u.prefixLen, location, fg, bg, "", true)
 		printScreen(u.prefixLen+1, location, fg|termbox.AttrReverse, bg|termbox.AttrReverse, " ", false)
-	case u.CaretPos():
+	case c.Pos():
 		// the entire string + the caret after the string
 		printScreen(u.prefixLen, location, fg, bg, "", true)
 		printScreen(u.prefixLen+1, location, fg, bg, qs, false)
@@ -190,10 +168,10 @@ func (u UserPrompt) Draw() {
 	default:
 		// the caret is in the middle of the string
 		prev := 0
-		for i, r := range []rune(u.Query()) {
+		for i, r := range q.Runes() {
 			fg := u.queryStyle.fg
 			bg := u.queryStyle.bg
-			if i == u.CaretPos() {
+			if i == c.Pos() {
 				fg |= termbox.AttrReverse
 				bg |= termbox.AttrReverse
 			}
@@ -207,7 +185,7 @@ func (u UserPrompt) Draw() {
 
 	width, _ := screen.Size()
 
-	pmsg := fmt.Sprintf("%s [%d (%d/%d)]", u.Filter().String(), u.currentPage.total, u.currentPage.page, u.currentPage.maxPage)
+	pmsg := fmt.Sprintf("%s [%d (%d/%d)]", state.Filters().GetCurrent().String(), u.currentPage.total, u.currentPage.page, u.currentPage.maxPage)
 	printScreen(width-runewidth.StringWidth(pmsg), location, u.basicStyle.fg, u.basicStyle.bg, pmsg, false)
 
 	screen.Flush()
@@ -315,13 +293,20 @@ func (l *ListArea) SetDirty(dirty bool) {
 	l.dirty = dirty
 }
 
+func selectionContains(state *Peco, n int) bool {
+	if l, err := state.CurrentLineBuffer().LineAt(n); err == nil {
+		return state.Selection().Has(l)
+	}
+	return false
+}
+
 // Draw displays the ListArea on the screen
-func (l *ListArea) Draw(parent Layout, perPage int, runningQuery bool) {
+func (l *ListArea) Draw(state *Peco, parent Layout, perPage int, runningQuery bool) {
 	trace("ListArea.Draw: START")
 	defer trace("ListArea.Draw: END")
 	currentPage := l.currentPage
 
-	linebuf := l.GetCurrentLineBuffer()
+	linebuf := state.CurrentLineBuffer()
 
 	// Should only get into this clause if we are RUNNING A QUERY.
 	// regular paging shouldn't be affected. This clause basically
@@ -342,7 +327,7 @@ func (l *ListArea) Draw(parent Layout, perPage int, runningQuery bool) {
 		}
 		if currentPage.page != page {
 			currentPage.page = page
-			parent.DrawPrompt()
+			parent.DrawPrompt(state)
 		}
 	}
 
@@ -353,7 +338,7 @@ func (l *ListArea) Draw(parent Layout, perPage int, runningQuery bool) {
 	// This protects us from losing the selected line in case our selected
 	// line is greater than the buffer
 	if lbufsiz := linebuf.Size(); lbufsiz > 0 && l.currentLine >= lbufsiz {
-		l.currentLine = lbufsiz - 1
+		state.SetCurrentLine(lbufsiz - 1)
 	}
 
 	// previously drawn lines are cached. first, truncate the cache
@@ -389,7 +374,7 @@ func (l *ListArea) Draw(parent Layout, perPage int, runningQuery bool) {
 		case n+currentPage.offset == l.currentLine:
 			fgAttr = l.selectedStyle.fg
 			bgAttr = l.selectedStyle.bg
-		case l.SelectionContains(n + currentPage.offset):
+		case selectionContains(state, n + currentPage.offset):
 			fgAttr = l.savedSelectionStyle.fg
 			bgAttr = l.savedSelectionStyle.bg
 		default:
@@ -426,7 +411,7 @@ func (l *ListArea) Draw(parent Layout, perPage int, runningQuery bool) {
 		xOffset := l.currentCol
 		line := target.DisplayString()
 
-		if l.IsSingleKeyJumpMode() || l.config.SingleKeyJump.ShowPrefix {
+		if state.SingleKeyJumpMode() || l.config.SingleKeyJump.ShowPrefix {
 			if n < len(l.config.SingleKeyJump.PrefixList) {
 				printScreenWithOffset(x, y, xOffset, fgAttr|termbox.AttrBold|termbox.AttrReverse, bgAttr, fmt.Sprintf("%c", l.config.SingleKeyJump.PrefixList[n]), false)
 				printScreenWithOffset(x+1, y, xOffset, fgAttr, bgAttr, " ", false)
@@ -502,8 +487,8 @@ func (l *BasicLayout) PurgeDisplayCache() {
 }
 
 // CalculatePage calculates which page we're displaying
-func (l *BasicLayout) CalculatePage(perPage int) error {
-	buf := l.GetCurrentLineBuffer()
+func (l *BasicLayout) CalculatePage(state *Peco, perPage int) error {
+	buf := state.CurrentLineBuffer()
 	currentPage := l.currentPage
 	currentPage.page = (l.currentLine / perPage) + 1
 	currentPage.offset = (currentPage.page - 1) * perPage
@@ -529,23 +514,23 @@ func (l *BasicLayout) CalculatePage(perPage int) error {
 }
 
 // DrawPrompt draws the prompt to the terminal
-func (l *BasicLayout) DrawPrompt() {
-	l.prompt.Draw()
+func (l *BasicLayout) DrawPrompt(state *Peco) {
+	l.prompt.Draw(state)
 }
 
 // DrawScreen draws the entire screen
-func (l *BasicLayout) DrawScreen(runningQuery bool) {
+func (l *BasicLayout) DrawScreen(state *Peco, runningQuery bool) {
 	trace("DrawScreen: START")
 	defer trace("DrawScreen: END")
 
 	perPage := linesPerPage()
 
-	if err := l.CalculatePage(perPage); err != nil {
+	if err := l.CalculatePage(state, perPage); err != nil {
 		return
 	}
 
-	l.DrawPrompt()
-	l.list.Draw(l, perPage, runningQuery)
+	l.DrawPrompt(state)
+	l.list.Draw(state, l, perPage, runningQuery)
 
 	if err := screen.Flush(); err != nil {
 		return
@@ -561,24 +546,24 @@ func linesPerPage() int {
 }
 
 // MovePage scrolls the screen
-func (l *BasicLayout) MovePage(p PagingRequest) (moved bool) {
-	switch p {
+func (l *BasicLayout) MovePage(state *Peco, p PagingRequest) (moved bool) {
+	switch p.Type() {
 	case ToScrollLeft, ToScrollRight:
-		moved = horizontalScroll(l, p)
+		moved = horizontalScroll(state, l, p)
 	default:
-		moved = verticalScroll(l, p)
+		moved = verticalScroll(state, l, p)
 	}
 	return
 }
 
 // verticalScroll moves the cursor position vertically
-func verticalScroll(l *BasicLayout, p PagingRequest) bool {
+func verticalScroll(state *Peco, l *BasicLayout, p PagingRequest) bool {
 	// Before we move, on which line were we located?
 	lineBefore := l.currentLine
 
 	defer func() { trace("currentLine changed from %d -> %d", lineBefore, l.currentLine) }()
-	cp := l.currentPage
-	buf := l.GetCurrentLineBuffer()
+	cp := state.PageInfo()
+	buf := state.CurrentLineBuffer()
 	lcur := buf.Size()
 
 	defer func() {
@@ -608,7 +593,7 @@ func verticalScroll(l *BasicLayout, p PagingRequest) bool {
 			l.currentLine = cp.perPage*(cp.page-1) + p.(JumpToLineRequest).Line()
 		}
 	} else {
-		switch p {
+		switch p.Type() {
 		case ToLineAbove:
 			l.currentLine++
 		case ToLineBelow:
@@ -635,38 +620,51 @@ func verticalScroll(l *BasicLayout, p PagingRequest) bool {
 
 	// if we were in range mode, we need to do stuff. otherwise
 	// just bail out
-	if !l.IsRangeMode() {
+	if !state.RangeMode() {
 		return true
 	}
 
+	sel := state.Selection()
 	if l.list.sortTopDown {
 		if l.currentLine < l.selectionRangeStart {
 			for lineno := l.currentLine; lineno <= l.selectionRangeStart; lineno++ {
-				l.SelectionAdd(lineno)
+				if line, err := buf.LineAt(lineno); err == nil {
+					sel.Add(line)
+				}
 			}
 			switch {
 			case l.selectionRangeStart <= lineBefore:
 				for lineno := l.selectionRangeStart; lineno <= lcur && lineno < lineBefore; lineno++ {
-					l.SelectionRemove(lineno)
+					if line, err := buf.LineAt(lineno); err == nil {
+						sel.Remove(line)
+					}
 				}
 			case lineBefore < l.currentLine:
 				for lineno := lineBefore; lineno < l.currentLine; lineno++ {
-					l.SelectionRemove(lineno)
+					if line, err := buf.LineAt(lineno); err == nil {
+						sel.Remove(line)
+					}
 				}
 			}
 		} else {
 			for lineno := l.selectionRangeStart; lineno <= lcur && lineno <= l.currentLine; lineno++ {
-				l.SelectionAdd(lineno)
+				if line, err := buf.LineAt(lineno); err == nil {
+					sel.Add(line)
+				}
 			}
 
 			switch {
 			case lineBefore <= l.selectionRangeStart:
 				for lineno := lineBefore; lineno < l.selectionRangeStart; lineno++ {
-					l.SelectionRemove(lineno)
+					if line, err := buf.LineAt(lineno); err == nil {
+						sel.Remove(line)
+					}
 				}
 			case l.currentLine < lineBefore:
 				for lineno := l.currentLine; lineno <= lineBefore; lineno++ {
-					l.SelectionRemove(lineno)
+					if line, err := buf.LineAt(lineno); err == nil {
+						sel.Remove(line)
+					}
 				}
 			}
 		}
@@ -676,10 +674,10 @@ func verticalScroll(l *BasicLayout, p PagingRequest) bool {
 }
 
 // horizontalScroll scrolls screen horizontal
-func horizontalScroll(l *BasicLayout, p PagingRequest) bool {
+func horizontalScroll(state *Peco, l *BasicLayout, p PagingRequest) bool {
 	width, _ := screen.Size()
 
-	if p == ToScrollRight {
+	if p.Type() == ToScrollRight {
 		l.currentCol += width / 2
 	} else if l.currentCol > 0 {
 		l.currentCol -= width / 2

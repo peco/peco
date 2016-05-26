@@ -1,3 +1,5 @@
+// +build no
+
 package peco
 
 import (
@@ -14,8 +16,7 @@ func (b *BufferReader) InputReadyCh() <-chan struct{} {
 }
 
 // Loop keeps reading from the input
-func (b *BufferReader) Loop() {
-	defer b.ReleaseWaitGroup()
+func (b *BufferReader) Loop(ctx context.Context, state *Peco) {
 	defer func() { recover() }()             // ignore errors
 	defer func() { close(b.inputReadyCh) }() // Make sure to close notifier
 	defer b.input.Close()

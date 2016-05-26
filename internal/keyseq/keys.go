@@ -120,6 +120,7 @@ func ToKeyList(ksk string) (KeyList, error) {
 	return list, nil
 }
 
+// EventToString returns human readable name for a given termbox.Event
 func EventToString(ev termbox.Event) (string, error) {
 	s := ""
 	if ev.Key == 0 {

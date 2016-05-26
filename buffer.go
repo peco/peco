@@ -1,8 +1,15 @@
 package peco
 
 import (
-	"errors"
+	"bufio"
+	"io"
 	"runtime"
+	"sync"
+
+	"golang.org/x/net/context"
+
+	"github.com/peco/peco/pipeline"
+	"github.com/pkg/errors"
 )
 
 // ErrBufferOutOfRange is returned when the index within the buffer that
@@ -225,4 +232,111 @@ func (flb *FilteredLineBuffer) Register(lb LineBuffer) {
 
 func (flb *FilteredLineBuffer) Unregister(lb LineBuffer) {
 	flb.buffers.Unregister(lb)
+}
+
+// Buffer interface is used for containers for lines to be
+// processed by peco.
+type Buffer interface {
+	LineAt(int) (Line, error)
+	Size() int
+}
+
+// MemoryBuffer is an implementation of Buffer
+type MemoryBuffer struct {
+	lines []Line
+	mutex sync.Mutex
+}
+
+// XXX go through an accessor that returns a reference so that
+// we are sure we are accessing/modifying the same mutex
+func (mb MemoryBuffer) locker() *sync.Mutex {
+	return &mb.mutex
+}
+
+func (mb MemoryBuffer) Size() int {
+	l := mb.locker()
+	l.Lock()
+	defer l.Unlock()
+
+	return len(mb.lines)
+}
+
+func (mb MemoryBuffer) LineAt(n int) (Line, error) {
+	l := mb.locker()
+	l.Lock()
+	defer l.Unlock()
+
+	if n > mb.Size() || n < 0 {
+		return nil, errors.New("empty buffer")
+	}
+
+	return mb.lines[n], nil
+}
+
+// Source implements pipline.Source, and is the buffer for the input
+type Source struct {
+	pipeline.OutputChannel
+	MemoryBuffer
+
+	in        io.Reader
+	enableSep bool
+	ready     chan struct{}
+	setupOnce sync.Once
+}
+
+// Creates a new Source. Does not start processing the input until you
+// call Setup()
+func NewSource(in io.Reader, enableSep bool) *Source {
+	return &Source{
+		in:            in, // Note that this may be closed, so do not rely on it
+		enableSep:     enableSep,
+		ready:         make(chan struct{}),
+		setupOnce:     sync.Once{},
+		OutputChannel: pipeline.OutputChannel(make(chan interface{})),
+	}
+}
+
+// Setup reads from the input os.File.
+func (s *Source) Setup() {
+	s.setupOnce.Do(func() {
+	l := s.locker()
+	l.Lock()
+	defer l.Unlock()
+
+		// This sync.Once var is used to receive the notification
+		// that there was at least 1 line read from the source
+		var notify sync.Once
+		notifycb := func() {
+			// close the ready channel so others can be notified
+			// that there's at least 1 line in the buffer
+			close(s.ready)
+		}
+		scanner := bufio.NewScanner(s.in)
+		for scanner.Scan() {
+			s.lines = append(s.lines, NewRawLine(scanner.Text(), s.enableSep))
+			notify.Do(notifycb)
+		}
+	})
+}
+
+// Start starts
+func (s *Source) Start(ctx context.Context) {
+	go func() {
+		defer s.OutputChannel.SendEndMark("end of input")
+
+		for i := 0; i < len(s.lines); i++ {
+			select {
+			case <-ctx.Done():
+				return
+			case s.OutputChannel <- s.lines[i]:
+				// no op
+			}
+		}
+	}()
+}
+
+// Ready returns the "input ready" channel. It will be closed as soon as
+// the first line of input is processed via Setup()
+func (s *Source) Ready() <-chan struct{} {
+	return s.ready
 }

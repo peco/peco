@@ -9,8 +9,13 @@ import (
 	"regexp"
 	"sort"
 	"strings"
+	"sync"
 
+	"golang.org/x/net/context"
+
+	"github.com/peco/peco/hub"
 	"github.com/peco/peco/internal/util"
+	"github.com/peco/peco/pipeline"
 )
 
 // These are used as keys in the config file
@@ -117,17 +122,27 @@ func mergeMatches(a []int, b []int) []int {
 
 // Work is the actual work horse that that does the matching
 // in a goroutine of its own. It wraps Matcher.Match().
-func (f *Filter) Work(cancel chan struct{}, q HubReq) {
+func (f *Filter) Work(ctx context.Context, state *Peco, q hub.Payload) {
 	trace("Filter.Work: START\n")
 	defer trace("Filter.Work: END\n")
 	defer q.Done()
 
-	query := q.DataString()
+	query, ok := q.Data().(string)
+	if !ok {
+		return
+	}
+
 	if query == "" {
 		trace("Filter.Work: Resetting activingLineBuffer")
-		f.ResetActiveLineBuffer()
+		state.ResetActiveLineBuffer()
 	} else {
-		f.rawLineBuffer.cancelCh = cancel
+		// Create a new pipeline
+		p := pipeline.New()
+		p.SetSource(state.Source())
+		//		p.Add(f.Filter())
+
+		go p.Run(ctx)
+/*
 		f.rawLineBuffer.Replay()
 
 		filter := f.Filter().Clone()
@@ -140,10 +155,11 @@ func (f *Filter) Work(cancel chan struct{}, q HubReq) {
 		buf.Accept(filter)
 
 		f.SetActiveLineBuffer(buf, true)
+*/
 	}
 
 	if !f.config.StickySelection {
-		f.SelectionClear()
+		state.Selection().Reset()
 	}
 }
 
@@ -151,37 +167,35 @@ func (f *Filter) Work(cancel chan struct{}, q HubReq) {
 // a query, spawns a goroutine to do the heavy work. It also
 // checks for previously running queries, so we can avoid
 // running many goroutines doing the grep at the same time
-func (f *Filter) Loop() {
-	defer f.ReleaseWaitGroup()
+func (f *Filter) Loop(ctx context.Context, state *Peco, cancel func()) {
+	defer cancel()
 
-	// previous holds a channel that can cancel the previous
+	// previous holds the function that can cancel the previous
 	// query. This is used when multiple queries come in succession
 	// and the previous query is discarded anyway
-	var previous chan struct{}
+	var mutex sync.Mutex
+	var previous func()
+	previous = func() {} // no op func
 	for {
 		select {
-		case <-f.LoopCh():
+		case <-ctx.Done():
 			return
-		case q := <-f.QueryCh():
-			if previous != nil {
-				// Tell the previous query to stop
-				close(previous)
-			}
-			previous = make(chan struct{})
+		case q := <-state.Hub().QueryCh():
+			workctx, workcancel := context.WithCancel(ctx)
 
-			f.SendStatusMsg("Running query...")
-			go f.Work(previous, q)
+			mutex.Lock()
+			previous()
+			previous = workcancel
+			mutex.Unlock()
+
+			state.Hub().SendStatusMsg("Running query...")
+
+			go func() {
+				defer workcancel()
+				f.Work(workctx, state, q)
+			}()
 		}
 	}
-}
-
-type QueryFilterer interface {
-	Pipeliner
-	Cancel()
-	Clone() QueryFilterer
-	Accept(Pipeliner)
-	SetQuery(string)
-	String() string
 }
 
 type SelectionFilter struct {
@@ -308,11 +322,6 @@ func (rf *RegexpFilter) SetQuery(q string) {
 
 func (rf RegexpFilter) String() string {
 	return rf.name
-}
-
-type FilterSet struct {
-	filters []QueryFilterer
-	current int
 }
 
 func (fx *FilterSet) Reset() {

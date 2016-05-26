@@ -1,4 +1,4 @@
-package peco
+package hub
 
 import (
 	"testing"
@@ -6,7 +6,7 @@ import (
 )
 
 func TestHub(t *testing.T) {
-	h := NewHub(5)
+	h := New(5)
 
 	done := make(map[string]time.Time)
 
@@ -18,7 +18,7 @@ func TestHub(t *testing.T) {
 	}()
 	go func() {
 		hr := <-h.DrawCh()
-		switch v := hr.DataInterface(); v.(type) {
+		switch v := hr.Data(); v.(type) {
 		case string, bool, nil:
 			// OK
 		default:
@@ -30,9 +30,9 @@ func TestHub(t *testing.T) {
 	}()
 	go func() {
 		hr := <-h.StatusMsgCh()
-		r := hr.DataInterface().(StatusMsgRequest)
-		if r.message != "Hello, World!" {
-			t.Errorf("Expected data to be 'Hello World!', got '%s'", r.message)
+		r := hr.Data().(*statusMsgReq)
+		if r.Message() != "Hello, World!" {
+			t.Errorf("Expected data to be 'Hello World!', got '%s'", r.Message())
 		}
 		time.Sleep(100 * time.Millisecond)
 		done["status"] = time.Now()
@@ -49,7 +49,7 @@ func TestHub(t *testing.T) {
 		h.SendQuery("Hello World!")
 		h.SendDraw(true)
 		h.SendStatusMsg("Hello, World!")
-		h.SendPaging(ToLineAbove)
+		h.SendPaging(1)
 	})
 
 	phases := []string{
@@ -72,12 +72,5 @@ func TestHub(t *testing.T) {
 		if done[next].Before(done[cur]) {
 			t.Errorf("%s executed before %s?!", next, cur)
 		}
-	}
-
-	h.Stop()
-
-	_, ok := <-h.LoopCh()
-	if ok {
-		t.Errorf("LoopCh should be closed, but it is not")
 	}
 }

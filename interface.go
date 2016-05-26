@@ -5,10 +5,14 @@ import (
 	"sync"
 	"time"
 
+	"golang.org/x/net/context"
+
 	"github.com/google/btree"
 	"github.com/nsf/termbox-go"
 	"github.com/peco/peco/internal/keyseq"
 )
+
+const invalidSelectionRange = -1
 
 type idGen struct {
 	genCh chan uint64
@@ -115,12 +119,14 @@ type Screen interface {
 // Termbox just hands out the processing to the termbox library
 type Termbox struct{}
 
+/*
 // View handles the drawing/updating the screen
 type View struct {
 	*Ctx
 	mutex  sync.Locker
 	layout Layout
 }
+*/
 
 // PageCrop filters out a new LineBuffer based on entries
 // per page and the page number
@@ -139,9 +145,9 @@ type VerticalAnchor int
 // Layout represents the component that controls where elements are placed on screen
 type Layout interface {
 	PrintStatus(string, time.Duration)
-	DrawPrompt()
-	DrawScreen(bool)
-	MovePage(PagingRequest) (moved bool)
+	DrawPrompt(*Peco)
+	DrawScreen(*Peco, bool)
+	MovePage(*Peco, PagingRequest) (moved bool)
 	PurgeDisplayCache()
 }
 
@@ -202,6 +208,7 @@ type Keymap struct {
 	Config map[string]string
 	Action map[string][]string // custom actions
 	seq    Keyseq
+	state  *Peco
 }
 
 // internal stuff
@@ -224,11 +231,11 @@ type Filter struct {
 type Action interface {
 	Register(string, ...termbox.Key)
 	RegisterKeySequence(string, keyseq.KeyList)
-	Execute(*Input, termbox.Event)
+	Execute(context.Context, *Peco, termbox.Event)
 }
 
 // ActionFunc is a type of Action that is basically just a callback.
-type ActionFunc func(*Input, termbox.Event)
+type ActionFunc func(context.Context, *Peco, termbox.Event)
 
 type Pipeliner interface {
 	Pipeline() (chan struct{}, chan Line)
@@ -293,6 +300,7 @@ type FilteredLineBuffer struct {
 	selection []int
 }
 
+/*
 // Input handles input events from termbox.
 type Input struct {
 	*Ctx
@@ -301,28 +309,7 @@ type Input struct {
 	keymap        Keymap
 	currentKeySeq []string
 }
-
-// Hub acts as the messaging hub between components -- that is,
-// it controls how the communication that goes through channels
-// are handled.
-type Hub struct {
-	isSync      bool
-	mutex       sync.Locker
-	loopCh      chan struct{}
-	queryCh     chan HubReq
-	drawCh      chan HubReq
-	statusMsgCh chan HubReq
-	pagingCh    chan HubReq
-}
-
-// HubReq is a wrapper around the actual request value that needs
-// to be passed. It contains an optional channel field which can
-// be filled to force synchronous communication between the
-// sender and receiver
-type HubReq struct {
-	data    interface{}
-	replyCh chan struct{}
-}
+*/
 
 // Config holds all the data that can be configured in the
 // external configuran file
@@ -420,6 +407,15 @@ type CtxOptions interface {
 	LayoutType() string
 }
 
+type QueryFilterer interface {
+	Pipeliner
+	Cancel()
+	Clone() QueryFilterer
+	Accept(Pipeliner)
+	SetQuery(string)
+	String() string
+}
+
 type PageInfo struct {
 	page    int
 	offset  int
@@ -428,16 +424,33 @@ type PageInfo struct {
 	maxPage int
 }
 
-type FilterQuery struct {
+type Query struct {
 	query      []rune
 	savedQuery []rune
-	mutex      sync.Locker
+	mutex      sync.Mutex
+}
+
+type FilterQuery Query
+
+type FilterSet struct {
+	filters []QueryFilterer
+	current int
+}
+
+type State interface {
+	Query() Query
+
+	SetCurrentCol(int)
+	CurrentCol() int
+	SetCurrentLine(int)
+	CurrentLine() int
+	SetSingleKeyJumpMode(bool)
+	SingleKeyJumpMode() bool
 }
 
 // Ctx contains all the important data. while you can easily access
 // data in this struct from anywhere, only do so via channels
 type Ctx struct {
-	*Hub
 	*FilterQuery
 	filters             FilterSet
 	caretPosition       int

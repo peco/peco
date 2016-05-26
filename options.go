@@ -34,7 +34,7 @@ func (options CLIOptions) Validate() error {
 	return nil
 }
 
-func (options *CLIOptions) help() []byte {
+func (options CLIOptions) help() []byte {
 	buf := bytes.Buffer{}
 
 	fmt.Fprintf(&buf, `

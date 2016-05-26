@@ -8,6 +8,8 @@ import (
 	"os/exec"
 	"unicode"
 
+	"golang.org/x/net/context"
+
 	"github.com/google/btree"
 	"github.com/nsf/termbox-go"
 	"github.com/peco/peco/internal/keyseq"
@@ -24,8 +26,8 @@ var nameToActions map[string]Action
 var defaultKeyBinding map[string]Action
 
 // Execute fulfills the Action interface for AfterFunc
-func (a ActionFunc) Execute(i *Input, e termbox.Event) {
-	a(i, e)
+func (a ActionFunc) Execute(ctx context.Context, state *Peco, e termbox.Event) {
+	a(ctx, state, e)
 }
 
 func (a ActionFunc) registerKeySequence(k keyseq.KeyList) {
@@ -49,10 +51,10 @@ func (a ActionFunc) RegisterKeySequence(name string, k keyseq.KeyList) {
 	a.registerKeySequence(k)
 }
 
-func wrapDeprecated(fn func(*Input, termbox.Event), oldName, newName string) ActionFunc {
-	return ActionFunc(func(i *Input, e termbox.Event) {
-		i.SendStatusMsg(fmt.Sprintf("%s is deprecated. Use %s", oldName, newName))
-		fn(i, e)
+func wrapDeprecated(fn func(context.Context, *Peco, termbox.Event), oldName, newName string) ActionFunc {
+	return ActionFunc(func(ctx context.Context, state *Peco, e termbox.Event) {
+		state.Hub().SendStatusMsg(fmt.Sprintf("%s is deprecated. Use %s", oldName, newName))
+		fn(ctx, state, e)
 	})
 }
 
@@ -142,106 +144,122 @@ func init() {
 }
 
 // This is a noop action
-func doNothing(_ *Input, _ termbox.Event) {}
+func doNothing(_ context.Context, _ *Peco, _ termbox.Event) {}
 
 // This is an exception to the rule. This does not get registered
 // anywhere. You just call it directly
-func doAcceptChar(i *Input, ev termbox.Event) {
-	if ev.Key == termbox.KeySpace {
-		ev.Ch = ' '
+func doAcceptChar(ctx context.Context, state *Peco, e termbox.Event) {
+	if e.Key == termbox.KeySpace {
+		e.Ch = ' '
 	}
 
-	ch := ev.Ch
+	ch := e.Ch
 	if ch <= 0 {
 		return
 	}
 
-	if i.IsSingleKeyJumpMode() {
-		doSingleKeyJump(i, ev)
+	if state.SingleKeyJumpMode() {
+		doSingleKeyJump(ctx, state, e)
 		return
 	}
 
-	if i.QueryLen() == i.CaretPos() {
-		i.AppendQuery(ch)
-	} else {
-		i.InsertQueryAt(ch, i.CaretPos())
-	}
-	i.MoveCaretPos(1)
-	i.DrawPrompt() // Update prompt before running query
+	q := state.Query()
+	c := state.Caret()
 
-	i.ExecQuery()
+	q.InsertAt(ch, c.Pos())
+	c.Move(1)
+
+	h := state.Hub()
+	h.SendDrawPrompt() // Update prompt before running query
+
+	state.ExecQuery()
 }
 
-func doRotateFilter(i *Input, ev termbox.Event) {
+func doRotateFilter(ctx context.Context, state *Peco, e termbox.Event) {
 	trace("doRotateFitler: START")
 	defer trace("doRotateFitler: END")
-	i.RotateFilter()
-	if i.ExecQuery() {
+
+	filters := state.Filters()
+	filters.Rotate()
+
+	if state.ExecQuery() {
 		return
 	}
-	i.SendDrawPrompt()
+	state.Hub().SendDrawPrompt()
 }
 
-func doBackToInitialFilter(i *Input, ev termbox.Event) {
+func doBackToInitialFilter(ctx context.Context, state *Peco, e termbox.Event) {
 	trace("doBackToInitialFilter: START")
 	defer trace("doBackToInitialFilter: END")
-	i.ResetSelectedFilter()
-	if i.ExecQuery() {
+
+	filters := state.Filters()
+	filters.Reset()
+
+	if state.ExecQuery() {
 		return
 	}
-	i.SendDrawPrompt()
+	state.Hub().SendDrawPrompt()
 }
 
-func doToggleSelection(i *Input, _ termbox.Event) {
-	l, err := i.GetCurrentLineBuffer().LineAt(i.currentLine)
+func doToggleSelection(ctx context.Context, state *Peco, _ termbox.Event) {
+	l, err := state.CurrentLineBuffer().LineAt(state.CurrentLine())
 	if err != nil {
 		return
 	}
 
-	if i.selection.Has(l) {
-		i.selection.Remove(l)
+	selection := state.Selection()
+	if selection.Has(l) {
+		selection.Remove(l)
 		return
 	}
-	i.selection.Add(l)
+	selection.Add(l)
 }
 
-func doToggleRangeMode(i *Input, _ termbox.Event) {
+func doToggleRangeMode(ctx context.Context, state *Peco, _ termbox.Event) {
 	trace("doToggleRangeMode: START")
 	defer trace("doToggleRangeMode: END")
-	if i.IsRangeMode() {
-		i.selectionRangeStart = invalidSelectionRange
+
+	if state.RangeMode() {
+		state.SetSelectionRangeStart(invalidSelectionRange)
 	} else {
-		i.selectionRangeStart = i.currentLine
-		i.SelectionAdd(i.currentLine)
+		cl := state.CurrentLine()
+		state.SetSelectionRangeStart(cl)
+		if l, err := state.CurrentLineBuffer().LineAt(cl); err == nil {
+			state.selection.Add(l)
+		}
 	}
 }
 
-func doCancelRangeMode(i *Input, _ termbox.Event) {
-	i.selectionRangeStart = invalidSelectionRange
+func doCancelRangeMode(ctx context.Context, state *Peco, _ termbox.Event) {
+	state.SetSelectionRangeStart(invalidSelectionRange)
 }
 
-func doSelectNone(i *Input, _ termbox.Event) {
-	i.SelectionClear()
+func doSelectNone(ctx context.Context, state *Peco, _ termbox.Event) {
+	state.Selection().Reset()
 }
 
-func doSelectAll(i *Input, _ termbox.Event) {
-	b := i.GetCurrentLineBuffer()
+func doSelectAll(ctx context.Context, state *Peco, _ termbox.Event) {
+	selection := state.Selection()
+	b := state.CurrentLineBuffer()
 	for x := 0; x < b.Size(); x++ {
 		if l, err := b.LineAt(x); err == nil {
 			l.SetDirty(true)
-			i.selection.Add(l)
+			selection.Add(l)
 		} else {
-			i.selection.Remove(l)
+			selection.Remove(l)
 		}
 	}
-	i.SendDraw(false)
+	state.Hub().SendDraw(false)
 }
 
-func doSelectVisible(i *Input, _ termbox.Event) {
+func doSelectVisible(ctx context.Context, state *Peco, _ termbox.Event) {
 	trace("doSelectVisible: START")
 	defer trace("doSelectVisible: END")
-	b := i.GetCurrentLineBuffer()
-	pc := PageCrop{i.currentPage.perPage, i.currentPage.page}
+
+	b := state.CurrentLineBuffer()
+	selection := state.Selection()
+	pi := state.PageInfo()
+	pc := PageCrop{pi.PerPage(), pi.Page()}
 	lb := pc.Crop(b)
 	for x := 0; x < lb.Size(); x++ {
 		l, err := lb.LineAt(x)
@@ -249,161 +267,155 @@ func doSelectVisible(i *Input, _ termbox.Event) {
 			continue
 		}
 		l.SetDirty(true)
-		i.selection.Add(l)
+		selection.Add(l)
 	}
-	i.SendDraw(false)
+	state.Hub().SendDraw(false)
 }
 
-func doFinish(i *Input, _ termbox.Event) {
+func doFinish(ctx context.Context, state *Peco, _ termbox.Event) {
 	trace("doFinish: START")
 	defer trace("doFinish: END")
 
+	selection := state.Selection()
 	// Must end with all the selected lines.
-	if i.SelectionLen() == 0 {
-		i.SelectionAdd(i.currentLine)
+	if selection.Len() == 0 {
+		if l, err := state.CurrentLineBuffer().LineAt(state.CurrentLine()); err == nil {
+			selection.Add(l)
+		}
 	}
 
-	i.resultCh = make(chan Line)
-	go func() {
-		i.selection.Ascend(func(it btree.Item) bool {
-			i.resultCh <- it.(Line)
-			return true
-		})
-		close(i.resultCh)
-	}()
+	state.SetResultCh(make(chan Line))
+	go state.collectResults()
 
-	i.ExitWith(nil)
+	state.Exit(nil)
 }
 
-func doCancel(i *Input, ev termbox.Event) {
-	if i.keymap.seq.InMiddleOfChain() {
-		i.keymap.seq.CancelChain()
+func doCancel(ctx context.Context, state *Peco, e termbox.Event) {
+	km := state.Keymap()
+
+	if seq := km.Sequence(); seq.InMiddleOfChain() {
+		seq.CancelChain()
 		return
 	}
 
-	if i.IsRangeMode() {
-		doCancelRangeMode(i, ev)
+	if state.RangeMode() {
+		doCancelRangeMode(ctx, state, e)
 		return
 	}
 
 	// peco.Cancel -> end program, exit with failure
-	i.ExitWith(ErrUserCanceled)
+	state.Exit(ErrUserCanceled)
 }
 
-func doSelectDown(i *Input, ev termbox.Event) {
+func doSelectDown(ctx context.Context, state *Peco, e termbox.Event) {
 	trace("doSelectDown: START")
 	defer trace("doSelectDown: END")
-	i.SendPaging(ToLineBelow)
+	state.Hub().SendPaging(ToLineBelow)
 }
 
-func doSelectUp(i *Input, ev termbox.Event) {
-	i.SendPaging(ToLineAbove)
+func doSelectUp(ctx context.Context, state *Peco, e termbox.Event) {
+	state.Hub().SendPaging(ToLineAbove)
 }
 
-func doScrollPageUp(i *Input, ev termbox.Event) {
-	i.SendPaging(ToScrollPageUp)
+func doScrollPageUp(ctx context.Context, state *Peco, e termbox.Event) {
+	state.Hub().SendPaging(ToScrollPageUp)
 }
 
-func doScrollPageDown(i *Input, ev termbox.Event) {
-	i.SendPaging(ToScrollPageDown)
+func doScrollPageDown(ctx context.Context, state *Peco, e termbox.Event) {
+	state.Hub().SendPaging(ToScrollPageDown)
 }
 
-func doScrollLeft(i *Input, ev termbox.Event) {
-	i.SendPaging(ToScrollLeft)
+func doScrollLeft(ctx context.Context, state *Peco, e termbox.Event) {
+	state.Hub().SendPaging(ToScrollLeft)
 }
 
-func doScrollRight(i *Input, ev termbox.Event) {
-	i.SendPaging(ToScrollRight)
+func doScrollRight(ctx context.Context, state *Peco, e termbox.Event) {
+	state.Hub().SendPaging(ToScrollRight)
 }
 
-func doToggleSelectionAndSelectNext(i *Input, ev termbox.Event) {
-	i.Batch(func() {
-		doToggleSelection(i, ev)
+func doToggleSelectionAndSelectNext(ctx context.Context, state *Peco, e termbox.Event) {
+	state.Hub().Batch(func() {
+		doToggleSelection(ctx, state, e)
 		// XXX This is sucky. Fix later
-		if i.layoutType == "top-down" {
-			doSelectDown(i, ev)
+		if state.LayoutType() == "top-down" {
+			doSelectDown(ctx, state, e)
 		} else {
-			doSelectUp(i, ev)
+			doSelectUp(ctx, state, e)
 		}
 	})
 }
 
-func doInvertSelection(i *Input, _ termbox.Event) {
+func doInvertSelection(ctx context.Context, state *Peco, _ termbox.Event) {
 	trace("doInvertSelection: START")
 	defer trace("doInvertSelection: END")
 
-	old := i.selection
-	i.SelectionClear()
-	b := i.GetCurrentLineBuffer()
+	selection := state.Selection()
+	selection.Reset()
+	b := state.CurrentLineBuffer()
 
 	for x := 0; x < b.Size(); x++ {
 		if l, err := b.LineAt(x); err == nil {
 			l.SetDirty(true)
-			i.selection.Add(l)
+			selection.Add(l)
 		} else {
-			i.selection.Remove(l)
+			selection.Remove(l)
 		}
 	}
 
-	old.Ascend(func(it btree.Item) bool {
-		i.selection.Delete(it.(Line))
-		return true
-	})
-
-	i.SendDraw(false)
+	state.Hub().SendDraw(false)
 }
 
-func doDeleteBackwardWord(i *Input, _ termbox.Event) {
-	if i.CaretPos() == 0 {
+func doDeleteBackwardWord(ctx context.Context, state *Peco, _ termbox.Event) {
+	pos := state.Caret().Pos()
+	if pos == 0 {
 		return
 	}
 
-	q := i.Query()
-	start := i.CaretPos()
-	if l := len(q); l <= start {
-		start = l
+	q := state.Query()
+	if l := q.Len(); l <= pos {
+		pos = l
 	}
 
 	sepFunc := unicode.IsSpace
-	if unicode.IsSpace(q[start-1]) {
+	if unicode.IsSpace(q.RuneAt(pos-1)) {
 		sepFunc = func(r rune) bool { return !unicode.IsSpace(r) }
 	}
 
 	found := false
-	for pos := start - 1; pos >= 0; pos-- {
-		if sepFunc(q[pos]) {
-			buf := make([]rune, len(q)-(start-pos-1))
-			copy(buf, q[:pos+1])
-			copy(buf[pos+1:], q[start:])
-			i.SetQuery(buf)
-			i.SetCaretPos(pos + 1)
+	start := pos
+	for pos = start - 1; pos >= 0; pos-- {
+		if sepFunc(q.RuneAt(pos)) {
+			q.DeleteRange(pos, start)
+			state.Caret().SetPos(pos + 1)
 			found = true
 			break
 		}
 	}
 
 	if !found {
-		i.SetQuery(q[start:])
-		i.SetCaretPos(0)
+		q.DeleteRange(0, start)
+		state.Caret().SetPos(0)
 	}
-	if i.ExecQuery() {
+	if state.ExecQuery() {
 		return
 	}
-	i.DrawPrompt()
+	state.Hub().SendDrawPrompt()
 }
 
-func doForwardWord(i *Input, _ termbox.Event) {
-	if i.CaretPos() >= i.QueryLen() {
+func doForwardWord(ctx context.Context, state *Peco, _ termbox.Event) {
+	if state.Caret().Pos() >= state.Query().Len() {
 		return
 	}
-	defer i.DrawPrompt()
+	defer state.Hub().SendDrawPrompt()
 
 	foundSpace := false
-	for pos := i.CaretPos(); pos < i.QueryLen(); pos++ {
-		r := i.Query()[pos]
+	q := state.Query()
+	c := state.Caret()
+	for pos := c.Pos(); pos < q.Len(); pos++ {
+		r := q.RuneAt(pos)
 		if foundSpace {
 			if !unicode.IsSpace(r) {
-				i.SetCaretPos(pos)
+				c.SetPos(pos)
 				return
 			}
 		} else {
@@ -414,27 +426,29 @@ func doForwardWord(i *Input, _ termbox.Event) {
 	}
 
 	// not found. just move to the end of the buffer
-	i.SetCaretPos(i.QueryLen())
+	c.SetPos(q.Len())
 }
 
-func doBackwardWord(i *Input, _ termbox.Event) {
-	if i.CaretPos() == 0 {
+func doBackwardWord(ctx context.Context, state *Peco, _ termbox.Event) {
+	c := state.Caret()
+	q := state.Query()
+	if c.Pos() == 0 {
 		return
 	}
-	defer i.DrawPrompt()
+	defer state.Hub().SendDrawPrompt()
 
-	if i.CaretPos() >= i.QueryLen() {
-		i.MoveCaretPos(-1)
+	if c.Pos() >= q.Len() {
+		c.Move(-1)
 	}
 
 	// if we start from a whitespace-ish position, we should
 	// rewind to the end of the previous word, and then do the
 	// search all over again
 SEARCH_PREV_WORD:
-	if unicode.IsSpace(i.Query()[i.CaretPos()]) {
-		for pos := i.CaretPos(); pos > 0; pos-- {
-			if !unicode.IsSpace(i.Query()[pos]) {
-				i.SetCaretPos(pos)
+	if unicode.IsSpace(q.RuneAt(c.Pos())) {
+		for pos := c.Pos(); pos > 0; pos-- {
+			if !unicode.IsSpace(q.RuneAt(pos)) {
+				c.SetPos(pos)
 				break
 			}
 		}
@@ -442,245 +456,238 @@ SEARCH_PREV_WORD:
 
 	// if we start from the first character of a word, we
 	// should attempt to move back and search for the previous word
-	if i.CaretPos() > 0 && unicode.IsSpace(i.Query()[i.CaretPos()-1]) {
-		i.MoveCaretPos(-1)
+	if c.Pos() > 0 && unicode.IsSpace(q.RuneAt(c.Pos()-1)) {
+		c.Move(-1)
 		goto SEARCH_PREV_WORD
 	}
 
 	// Now look for a space
-	for pos := i.CaretPos(); pos > 0; pos-- {
-		if unicode.IsSpace(i.Query()[pos]) {
-			i.SetCaretPos(int(pos + 1))
+	for pos := c.Pos(); pos > 0; pos-- {
+		if unicode.IsSpace(q.RuneAt(pos)) {
+			c.SetPos(int(pos + 1))
 			return
 		}
 	}
 
 	// not found. just move to the beginning of the buffer
-	i.SetCaretPos(0)
+	c.SetPos(0)
 }
 
-func doForwardChar(i *Input, _ termbox.Event) {
-	if i.CaretPos() >= i.QueryLen() {
+func doForwardChar(ctx context.Context, state *Peco, _ termbox.Event) {
+	c := state.Caret()
+	if c.Pos() >= state.Query().Len() {
 		return
 	}
-	i.MoveCaretPos(1)
-	i.DrawPrompt()
+	c.Move(1)
+	state.Hub().SendDrawPrompt()
 }
 
-func doBackwardChar(i *Input, _ termbox.Event) {
-	if i.CaretPos() <= 0 {
+func doBackwardChar(ctx context.Context, state *Peco, _ termbox.Event) {
+	c := state.Caret()
+	if c.Pos() <= 0 {
 		return
 	}
-	i.MoveCaretPos(-1)
-	i.DrawPrompt()
+	c.Move(-1)
+	state.Hub().SendDrawPrompt()
 }
 
-func doDeleteForwardWord(i *Input, _ termbox.Event) {
-	if i.QueryLen() <= i.CaretPos() {
+func doDeleteForwardWord(ctx context.Context, state *Peco, _ termbox.Event) {
+	c := state.Caret()
+	if state.Query().Len() <= c.Pos() {
 		return
 	}
-	defer i.DrawPrompt()
 
-	start := i.CaretPos()
+	start := c.Pos()
 
 	// If we are on a word (non-Space, delete till the end of the word.
 	// If we are on a space, delete till the end of space.
-
-	q := i.Query()
+	q := state.Query()
 	sepFunc := unicode.IsSpace
-	if unicode.IsSpace(q[start]) {
+	if unicode.IsSpace(q.RuneAt(start)) {
 		sepFunc = func(r rune) bool { return !unicode.IsSpace(r) }
 	}
 
-	for pos := start; pos < i.QueryLen(); pos++ {
-		if pos == i.QueryLen()-1 {
-			i.SetQuery(q[:start])
-			i.SetCaretPos(start)
+	for pos := start; pos < q.Len(); pos++ {
+		if pos == q.Len()-1 {
+			q.DeleteRange(pos, q.Len())
+			c.SetPos(start)
 			break
 		}
 
-		if sepFunc(q[pos]) {
-			buf := make([]rune, i.QueryLen()-(pos-start))
-			copy(buf, q[:start])
-			copy(buf[start:], q[pos:])
-			i.SetQuery(buf)
-			i.SetCaretPos(start)
+		if sepFunc(q.RuneAt(pos)) {
+			q.DeleteRange(pos, start)
+			c.SetPos(start)
 			break
 		}
 	}
 
-	if i.ExecQuery() {
+	if state.ExecQuery() {
 		return
 	}
+	state.Hub().SendDrawPrompt()
 }
 
-func doBeginningOfLine(i *Input, _ termbox.Event) {
-	i.SetCaretPos(0)
-	i.DrawPrompt()
+func doBeginningOfLine(ctx context.Context, state *Peco, _ termbox.Event) {
+	state.Caret().SetPos(0)
+	state.Hub().SendDrawPrompt()
 }
 
-func doEndOfLine(i *Input, _ termbox.Event) {
-	i.SetCaretPos(i.QueryLen())
-	i.DrawPrompt()
+func doEndOfLine(ctx context.Context, state *Peco, _ termbox.Event) {
+	state.Caret().SetPos(state.Query().Len())
+	state.Hub().SendDrawPrompt()
 }
 
-func doEndOfFile(i *Input, ev termbox.Event) {
-	if i.QueryLen() > 0 {
-		doDeleteForwardChar(i, ev)
+func doEndOfFile(ctx context.Context, state *Peco, e termbox.Event) {
+	if state.Query().Len() > 0 {
+		doDeleteForwardChar(ctx, state, e)
 	} else {
-		doCancel(i, ev)
+		doCancel(ctx, state, e)
 	}
 }
 
-func doKillBeginningOfLine(i *Input, _ termbox.Event) {
-	i.SetQuery(i.Query()[i.CaretPos():])
-	i.SetCaretPos(0)
-	if i.ExecQuery() {
+func doKillBeginningOfLine(ctx context.Context, state *Peco, _ termbox.Event) {
+	q := state.Query()
+	q.DeleteRange(0, state.Caret().Pos())
+	state.Caret().SetPos(0)
+	if state.ExecQuery() {
 		return
 	}
-	i.DrawPrompt()
+	state.Hub().SendDrawPrompt()
 }
 
-func doKillEndOfLine(i *Input, _ termbox.Event) {
-	if i.QueryLen() <= i.CaretPos() {
+func doKillEndOfLine(ctx context.Context, state *Peco, _ termbox.Event) {
+	if state.Query().Len() <= state.Caret().Pos() {
 		return
 	}
 
-	i.SetQuery(i.Query()[0:i.CaretPos()])
-	if i.ExecQuery() {
+	q := state.Query()
+	q.DeleteRange(state.Caret().Pos(), q.Len())
+	if state.ExecQuery() {
 		return
 	}
-	i.DrawPrompt()
+	state.Hub().SendDrawPrompt()
 }
 
-func doDeleteAll(i *Input, _ termbox.Event) {
-	i.SetQuery(make([]rune, 0))
-	i.ExecQuery()
+func doDeleteAll(ctx context.Context, state *Peco, _ termbox.Event) {
+	state.Query().Reset()
+	state.ExecQuery()
 }
 
-func doDeleteForwardChar(i *Input, _ termbox.Event) {
-	if i.QueryLen() <= i.CaretPos() {
+func doDeleteForwardChar(ctx context.Context, state *Peco, _ termbox.Event) {
+	q := state.Query()
+	c := state.Caret()
+	if q.Len() <= c.Pos() {
 		return
 	}
 
-	pos := i.CaretPos()
-	buf := make([]rune, i.QueryLen()-1)
-	copy(buf, i.Query()[:i.CaretPos()])
-	copy(buf[i.CaretPos():], i.Query()[i.CaretPos()+1:])
-	i.SetQuery(buf)
-	i.SetCaretPos(pos)
+	pos := c.Pos()
+	q.DeleteRange(pos, pos+1)
 
-	if i.ExecQuery() {
+	if state.ExecQuery() {
 		return
 	}
-	i.DrawPrompt()
+	state.Hub().SendDrawPrompt()
 }
 
-func doDeleteBackwardChar(i *Input, ev termbox.Event) {
+func doDeleteBackwardChar(ctx context.Context, state *Peco, e termbox.Event) {
 	trace("doDeleteBackwardChar: START")
 	defer trace("doDeleteBackwardChar: END")
 
-	qlen := i.QueryLen()
+	q := state.Query()
+	c := state.Caret()
+	qlen := q.Len()
 	if qlen <= 0 {
 		trace("doDeleteBackwardChar: QueryLen <= 0, do nothing")
 		return
 	}
 
-	pos := i.CaretPos()
+	pos := c.Pos()
 	if pos == 0 {
 		trace("doDeleteBackwardChar: Already at position 0")
 		// No op
 		return
 	}
 
-	var buf []rune
 	if qlen == 1 {
 		// Micro optimization
-		buf = []rune{}
+		q.Reset()
 	} else {
-		q := i.Query()
 		if pos == qlen {
-			buf = q[:qlen-1 : qlen-1]
+			q.DeleteRange(qlen-1, qlen)
 		} else {
-			buf = make([]rune, qlen-1)
-			copy(buf, q[:pos])
-			copy(buf[pos-1:], q[pos:])
+			q.DeleteRange(pos-1,pos)
 		}
 	}
-	i.SetQuery(buf)
-	i.SetCaretPos(pos - 1)
+	c.SetPos(pos - 1)
 
-	if i.ExecQuery() {
+	if state.ExecQuery() {
 		return
 	}
 
-	i.DrawPrompt()
+	state.Hub().SendDrawPrompt()
 }
 
-func doRefreshScreen(i *Input, _ termbox.Event) {
-	i.ExecQuery()
+func doRefreshScreen(ctx context.Context, state *Peco, _ termbox.Event) {
+	state.ExecQuery()
 }
 
-func doToggleQuery(i *Input, _ termbox.Event) {
-	q := i.Query()
-	if len(q) == 0 {
-		sq := i.SavedQuery()
-		if len(sq) == 0 {
-			return
-		}
-		i.SetQuery(sq)
-		i.SetSavedQuery([]rune{})
+func doToggleQuery(ctx context.Context, state *Peco, _ termbox.Event) {
+	q := state.Query()
+	if q.Len()== 0 {
+		q.RestoreSavedQuery()
 	} else {
-		i.SetSavedQuery(q)
-		i.SetQuery([]rune{})
+		q.SaveQuery()
 	}
 
-	if i.ExecQuery() {
+	if state.ExecQuery() {
 		return
 	}
-	i.DrawPrompt()
+	state.Hub().SendDrawPrompt()
 }
 
-func doKonamiCommand(i *Input, ev termbox.Event) {
-	i.SendStatusMsg("All your filters are belongs to us")
+func doKonamiCommand(ctx context.Context, state *Peco, e termbox.Event) {
+	state.Hub().SendStatusMsg("All your filters are belongs to us")
 }
 
-func doToggleSingleKeyJump(i *Input, ev termbox.Event) {
+func doToggleSingleKeyJump(ctx context.Context, state *Peco, e termbox.Event) {
 	trace("Toggling SingleKeyJump")
-	i.ToggleSingleKeyJumpMode()
+	state.ToggleSingleKeyJumpMode()
 }
 
-func doSingleKeyJump(i *Input, ev termbox.Event) {
-	trace("Doing single key jump for %c", ev.Ch)
-	index, ok := i.config.SingleKeyJump.PrefixMap[ev.Ch]
+func doSingleKeyJump(ctx context.Context, state *Peco, e termbox.Event) {
+	trace("Doing single key jump for %c", e.Ch)
+	index, ok := state.SingleKeyJumpIndex(e.Ch)
 	if !ok {
 		// Couldn't find it? Do nothing
 		return
 	}
 
-	i.Batch(func() {
-		i.SendPaging(JumpToLineRequest(index))
-		doFinish(i, ev)
+	state.Hub().Batch(func() {
+		state.Hub().SendPaging(JumpToLineRequest(index))
+		doFinish(ctx, state, e)
 	})
 }
 
 func makeCombinedAction(actions ...Action) ActionFunc {
-	return ActionFunc(func(i *Input, ev termbox.Event) {
-		i.Batch(func() {
+	return ActionFunc(func(ctx context.Context, state *Peco, e termbox.Event) {
+		state.Hub().Batch(func() {
 			for _, a := range actions {
-				a.Execute(i, ev)
+				a.Execute(ctx, state, e)
 			}
 		})
 	})
 }
 
 func makeCommandAction(cc *CommandConfig) ActionFunc {
-	return func(i *Input, _ termbox.Event) {
-		if i.SelectionLen() == 0 {
-			i.SelectionAdd(i.currentLine)
+	return func(ctx context.Context, state *Peco, _ termbox.Event) {
+		sel := state.Selection()
+		if sel.Len() == 0 {
+			if l, err := state.CurrentLineBuffer().LineAt(state.CurrentLine()); err == nil {
+				sel.Add(l)
+			}
 		}
 
-		i.selection.Ascend(func(it btree.Item) bool {
+		sel.Ascend(func(it btree.Item) bool {
 			line := it.(Line)
 
 			var f *os.File
@@ -703,7 +710,7 @@ func makeCommandAction(cc *CommandConfig) ActionFunc {
 					args[i] = line.Buffer()
 				}
 			}
-			i.SendStatusMsg("Executing " + cc.Name)
+			state.Hub().SendStatusMsg("Executing " + cc.Name)
 			cmd := exec.Command(args[0], args[1:]...)
 			if cc.Spawn {
 				err = cmd.Start()
@@ -721,7 +728,7 @@ func makeCommandAction(cc *CommandConfig) ActionFunc {
 				if f != nil {
 					os.Remove(f.Name())
 				}
-				i.ExecQuery()
+				state.ExecQuery()
 			}
 			if err != nil {
 				return false

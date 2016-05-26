@@ -1,5 +1,6 @@
 package peco
 
+/*
 import (
 	"io"
 	"sync"
@@ -137,7 +138,6 @@ func (c *Ctx) populateCommandList() {
 	}
 }
 
-const invalidSelectionRange = -1
 
 func (c *Ctx) ReadConfig(file string) error {
 	if err := c.config.ReadFilename(file); err != nil {
@@ -398,3 +398,5 @@ func (c *Ctx) ToggleSingleKeyJumpMode() {
 func (c *Ctx) IsSingleKeyJumpMode() bool {
 	return c.singleKeyJumpMode
 }
+*/
+

@@ -1,13 +1,14 @@
 package peco
 
 import (
-	"bufio"
 	"os"
 	"sync"
+	"time"
 
 	"golang.org/x/net/context"
 
-	"github.com/peco/peco/input"
+	"github.com/google/btree"
+	"github.com/peco/peco/hub"
 	"github.com/peco/peco/internal/util"
 	"github.com/peco/peco/pipeline"
 	"github.com/peco/peco/sig"
@@ -19,83 +20,166 @@ const version = "v0.3.6"
 // Global variable that bridges the "screen", so testing is easier
 var screen Screen = Termbox{}
 
-// Source implements pipline.Source, and is the buffer for the input
-type Source struct {
-	pipeline.OutputChannel
-	in        *os.File
-	lines     []string
-	ready     chan struct{}
-	setupOnce sync.Once
+// Inputseq is a list of keys that the user typed
+type Inputseq []string
+
+func (is *Inputseq) Add(s string) {
+	*is = append(*is, s)
 }
 
-// Creates a new Source. Does not start processing the input until you
-// call Setup()
-func NewSource(in *os.File) *Source {
-	return &Source{
-		in:            in, // Note that this may be closed, so do not rely on it
-		lines:         nil,
-		ready:         make(chan struct{}),
-		setupOnce:     sync.Once{},
-		OutputChannel: pipeline.OutputChannel(make(chan interface{})),
-	}
+func (is Inputseq) KeyNames() []string {
+	return is
 }
 
-// Setup reads from the input os.File.
-func (s *Source) Setup() {
-	s.setupOnce.Do(func() {
-		var notify sync.Once
-		notifycb := func() {
-			close(s.ready)
-		}
-		scanner := bufio.NewScanner(s.in)
-		for scanner.Scan() {
-			notify.Do(notifycb)
-			s.lines = append(s.lines, scanner.Text())
-		}
-	})
+func (is Inputseq) Len() int {
+	return len(is)
 }
 
-func (s *Source) Start(ctx context.Context) {
-	go func() {
-		defer s.OutputChannel.SendEndMark("end of input")
-
-		for i := 0; i < len(s.lines); i++ {
-			select {
-			case <-ctx.Done():
-				return
-			default:
-				s.OutputChannel <- s.lines[i]
-			}
-		}
-	}()
-}
-
-// Ready returns the "input ready" channel. It will be closed as soon as
-// the first line of input is processed via Setup()
-func (s *Source) Ready() <-chan struct{} {
-	return s.ready
+func (is *Inputseq) Reset() {
+	*is = []string(nil)
 }
 
 // Peco is the global object containing everything required to run peco.
+// It also contains the global state of the program.
 type Peco struct {
-	// Args (usually) has a copy of os.Args
-	Args []string
+	Argv []string
+	hub  *hub.Hub
 
+	activeLineBuffer Buffer
+	args             []string
+	caret            Caret
 	// Config contains the values read in from config file
-	Config Config
+	config              Config
+	ctx                 context.Context
+	currentLine         int
+	filters             FilterSet
+	keymap              Keymap
+	enableSep           bool     // Enable parsing on separators
+	inputseq            Inputseq // current key sequence (just the names)
+	layoutType          string
+	pageInfo            PageInfo
+	query               Query
+	queryExecDelay      time.Duration
+	queryExecMutex      sync.Mutex
+	queryExecTimer      *time.Timer
+	resultCh            chan Line
+	selection           *Selection
+	selectionRangeStart int
+	singleKeyJumpMode   bool
 
 	Options CLIOptions
 
 	// Source is where we buffer input. It gets reused when a new query is
 	// executed.
-	Source pipeline.Source
+	source *Source
 
 	// cancelFunc is called for Exit()
 	cancelFunc func()
 	// Errors are stored here
 	err error
+}
 
-	layoutType string
+func New() *Peco {
+	return &Peco{
+		selection:           NewSelection(),
+		selectionRangeStart: invalidSelectionRange,
+	}
+}
+
+func (p Peco) Inputseq() *Inputseq {
+	return &p.inputseq
+}
+
+func (p Peco) Context() context.Context {
+	return p.ctx
+}
+
+func (p *Peco) SetCurrentLine(n int) {
+	p.currentLine = n
+}
+
+func (p Peco) CurrentLine() int {
+	return p.currentLine
+}
+
+func (p Peco) CurrentLineBuffer() LineBuffer {
+	return nil // XXX DUMMY
+}
+
+func (p Peco) LayoutType() string {
+	return p.layoutType
+}
+
+func (p *Peco) PageInfo() *PageInfo {
+	return &p.pageInfo
+}
+
+func (p Peco) ResultCh() chan Line {
+	return p.resultCh
+}
+
+func (p *Peco) SetResultCh(ch chan Line) {
+	p.resultCh = ch
+}
+
+func (p Peco) Selection() *Selection {
+	return p.selection
+}
+
+func (p Peco) SelectionRangeStart() int {
+	return p.selectionRangeStart
+}
+
+func (p Peco) SetSelectionRangeStart(s int) {
+	if s >= invalidSelectionRange {
+		p.selectionRangeStart = s
+	}
+}
+
+func (p Peco) RangeMode() bool {
+	return p.selectionRangeStart != invalidSelectionRange
+}
+
+func (p Peco) SingleKeyJumpMode() bool {
+	return p.singleKeyJumpMode
+}
+
+func (p *Peco) SetSingleKeyJumpMode(b bool) {
+	p.singleKeyJumpMode = b
+}
+
+func (p *Peco) ToggleSingleKeyJumpMode() {
+	p.singleKeyJumpMode = !p.singleKeyJumpMode
+}
+
+func (p *Peco) SingleKeyJumpIndex(ch rune) (uint, bool) {
+	// FIXME: use p.keyjump or something instead of p.config
+	n, ok := p.config.SingleKeyJump.PrefixMap[ch]
+	return n, ok
+}
+
+func (p *Peco) Source() pipeline.Source {
+	return p.source
+}
+
+func (p *Peco) Filters() *FilterSet {
+	return &p.filters
+}
+
+func (p Peco) Query() *Query {
+	return &p.query
+}
+
+func (p Peco) QueryExecDelay() time.Duration {
+	return p.queryExecDelay
+}
+
+func (p Peco) Caret() *Caret {
+	return &p.caret
+}
+
+func (p *Peco) Hub() *hub.Hub {
+	return p.hub
 }
 
 func (p *Peco) Err() error {
@@ -109,41 +193,62 @@ func (p *Peco) Exit(err error) {
 	}
 }
 
-func (p *Peco) MergedKeymap() Keymap {
-	return Keymap{}
+func (p Peco) Keymap() Keymap {
+	return p.keymap
 }
 
-func (p *Peco) Run() error {
-	err := p.ParseCommandLine()
-	if err != nil {
+func (p *Peco) Setup() error {
+	if err := parseCommandLine(&p.Options, &p.args, p.Argv); err != nil {
 		return errors.Wrap(err, "failed to parse command line")
 	}
 
 	// Read config
-	if err := p.ReadConfig(p.Options.OptRcfile); err != nil {
+	if err := readConfig(&p.config, p.Options.OptRcfile); err != nil {
 		return errors.Wrap(err, "failed to setup configuration")
 	}
+
+	// Take Args, Config, Options, and apply the configuration to
+	// the peco object
+	if err := p.ApplyConfig(); err != nil {
+		return errors.Wrap(err, "failed to apply configuration")
+	}
+
+	// XXX p.Keymap et al should be initialized around here
 
 	// Setup source buffer
 	src, err := p.SetupSource()
 	if err != nil {
 		return errors.Wrap(err, "failed to setup input source")
 	}
-	p.Source = src
+	p.source = src
+
+	p.hub = hub.New(5)
+
+	return nil
+}
+
+func (p *Peco) Run() error {
+	if err := p.Setup(); err != nil {
+		return errors.Wrap(err, "failed to setup peco")
+	}
 
 	var ctx context.Context
 	var cancel func()
 
-	ctx = context.Background()
+	ctx, cancel = context.WithCancel(context.Background())
 
-	ctx, cancel = context.WithCancel(ctx)
+	// keep *this* ctx (not the Background one), as calling `cancel`
+	// only affects the wrapped context
+	p.ctx = ctx
+
 	// remember this cancel func so p.Exit works (XXX requires locking?)
 	p.cancelFunc = cancel
 
 	loopers := []interface {
 		Loop(ctx context.Context, cancel func()) error
 	}{
-		input.New(p.MergedKeymap(), screen.PollEvent()),
+		NewInput(p, p.Keymap(), screen.PollEvent()),
+		NewView(p),
 		sig.New(sig.SigReceivedHandlerFunc(func(sig os.Signal) {
 			p.Exit(errors.New("received signal: " + sig.String()))
 		})),
@@ -158,22 +263,22 @@ func (p *Peco) Run() error {
 	return p.Err()
 }
 
-func (p *Peco) ParseCommandLine() error {
-	args, err := p.Options.parse(p.Args)
+func parseCommandLine(opts *CLIOptions, args *[]string, argv []string) error {
+	remaining, err := opts.parse(argv)
 	if err != nil {
 		return errors.Wrap(err, "failed to parse command line options")
 	}
-	p.Args = args
+	*args = remaining
 
 	return nil
 }
 
-func (p *Peco) SetupSource() (pipeline.Source, error) {
+func (p *Peco) SetupSource() (*Source, error) {
 	var in *os.File
 	var err error
 	switch {
-	case len(p.Args) > 0:
-		in, err = os.Open(p.Args[0])
+	case len(p.args) > 0:
+		in, err = os.Open(p.args[0])
 		if err != nil {
 			return nil, errors.Wrap(err, "failed to open file for input")
 		}
@@ -184,7 +289,7 @@ func (p *Peco) SetupSource() (pipeline.Source, error) {
 	}
 	defer in.Close()
 
-	src := NewSource(in)
+	src := NewSource(in, p.enableSep)
 	// Block until we receive something from `in`
 	go src.Setup()
 	<-src.Ready()
@@ -192,28 +297,23 @@ func (p *Peco) SetupSource() (pipeline.Source, error) {
 	return src, nil
 }
 
-func (p *Peco) ReadConfig(filename string) error {
+func readConfig(cfg *Config, filename string) error {
 	if filename != "" {
-		if err := p.Config.ReadFilename(filename); err != nil {
+		if err := cfg.ReadFilename(filename); err != nil {
 			return errors.Wrap(err, "failed to read config file")
 		}
-	}
-
-	// Apply config values where applicable
-	if err := p.ApplyConfig(); err != nil {
-		return errors.Wrap(err, "failed to apply config valeus")
 	}
 
 	return nil
 }
 
 func (p *Peco) populateCommandList() error {
-  for _, v := range p.Config.Command {
-    if len(v.Args) == 0 {
-      continue
-    }
-    makeCommandAction(&v).Register("ExecuteCommand." + v.Name)
-  }
+	for _, v := range p.config.Command {
+		if len(v.Args) == 0 {
+			continue
+		}
+		makeCommandAction(&v).Register("ExecuteCommand." + v.Name)
+	}
 
 	return nil
 }
@@ -221,7 +321,7 @@ func (p *Peco) populateCommandList() error {
 func (p *Peco) ApplyConfig() error {
 	// If layoutType is not set and is set in the config, set it
 	if p.layoutType == "" {
-		if v := p.Config.Layout; v != "" {
+		if v := p.config.Layout; v != "" {
 			p.layoutType = v
 		} else {
 			p.layoutType = DefaultLayoutType
@@ -233,4 +333,68 @@ func (p *Peco) ApplyConfig() error {
 	}
 
 	return nil
+}
+
+func (p Peco) ActiveLineBuffer() Buffer {
+	return p.activeLineBuffer
+}
+
+func (p *Peco) ResetActiveLineBuffer() {
+	p.activeLineBuffer = p.source
+}
+
+func (p *Peco) ExecQuery() bool {
+	trace("Peco.ExecQuery: START")
+	defer trace("Peco.ExecQuery: END")
+
+	// If this is an empty query, reset the display to show
+	// the raw source buffer
+	q := p.Query()
+	if q.Len() <= 0 {
+		if p.ActiveLineBuffer() != nil {
+			p.ResetActiveLineBuffer()
+			return true
+		}
+		return false
+	}
+
+	delay := p.QueryExecDelay()
+	if delay <= 0 {
+		// No delay, execute immediately
+		p.Hub().SendQuery(q.String())
+		return true
+	}
+
+	p.queryExecMutex.Lock()
+	defer p.queryExecMutex.Unlock()
+
+	if p.queryExecTimer != nil {
+		return true
+	}
+
+	// Wait $delay millisecs before sending the query
+	// if a new input comes in, batch them up
+	p.queryExecTimer = time.AfterFunc(delay, func() {
+		p.Hub().SendQuery(q.String())
+
+		p.queryExecMutex.Lock()
+		defer p.queryExecMutex.Unlock()
+
+		p.queryExecTimer = nil
+	})
+	return true
+}
+
+func (p *Peco) collectResults() {
+	// In rare cases where the result channel is not setup
+	// prior to call to this method, bail out
+	if p.resultCh == nil {
+		return
+	}
+
+	p.selection.Ascend(func(it btree.Item) bool {
+		p.resultCh <- it.(Line)
+		return true
+	})
+	close(p.resultCh)
 }

@@ -23,7 +23,7 @@ func _main() int {
 		runtime.GOMAXPROCS(runtime.NumCPU())
 	}
 
-	cli := peco.CLI{}
+	cli := peco.New()
 	if err := cli.Run(); err != nil {
 		if err != peco.ErrUserCanceled {
 			fmt.Fprintf(os.Stderr, "Error: %s\n", err)
