@@ -316,7 +316,16 @@ func (s *Source) Setup(state *Peco) {
 			for {
 				select {
 				case <-ticker.C:
-					if _, ok := <-refresh; ok {
+					run := false
+					for loop := true; loop; {
+						select {
+						case <-refresh:
+							run = true
+						default:
+							loop = false
+						}
+					}
+					if run {
 						// Not a great thing to do, allowing nil to be passed
 						// as state, but for testing I couldn't come up with anything
 						// better for the moment
@@ -340,11 +349,16 @@ func (s *Source) Setup(state *Peco) {
 		}
 		scanner := bufio.NewScanner(s.in)
 		for scanner.Scan() {
-			s.lines = append(s.lines, NewRawLine(scanner.Text(), s.enableSep))
+			txt := scanner.Text()
+			s.lines = append(s.lines, NewRawLine(txt, s.enableSep))
 			notify.Do(notifycb)
 
-			refresh <- struct{}{}
+			go func() {
+				defer func() { recover() }()
+				refresh <- struct{}{}
+			}()
 		}
+		trace("Read all from source")
 	})
 }
 
