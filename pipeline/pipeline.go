@@ -1,4 +1,6 @@
+// Package pipeline implements the basic data processing pipeline used by peco
 package pipeline
+
 
 import (
 	"fmt"
@@ -8,21 +10,18 @@ import (
 	"golang.org/x/net/context"
 )
 
-type EndMark struct {
-}
-
+// EndMark returns true
 func (e EndMark) EndMark() bool {
 	return true
 }
 
+// Error returns the error string "end of input"
 func (e EndMark) Error() string {
 	return "end of input"
 }
 
-type EndMarker interface {
-	EndMark() bool
-}
-
+// IsEndMark is an utility function that checks if the given error
+// object is an EndMark
 func IsEndMark(err error) bool {
 	if em, ok := errors.Cause(err).(EndMarker); ok {
 		fmt.Printf("is end marker!\n")
@@ -31,69 +30,59 @@ func IsEndMark(err error) bool {
 	return false
 }
 
-type Source interface {
-	Producer
-	Start(context.Context)
-}
-
-type Destination interface {
-	Reset()
-	Done() <-chan struct{}
-	Acceptor
-}
-
-type Pipeline struct {
-	nodes []ProcNode
-	src   Source
-	dst   Destination
-}
-
-type OutputChannel chan interface{}
-
-func (oc OutputChannel) OutCh() chan interface{} {
+// OutCh returns the channel that acceptors can listen to
+func (oc OutputChannel) OutCh() <-chan interface{} {
 	return oc
 }
 
+// Send sends the data `v` through this channel
 func (oc OutputChannel) Send(v interface{}) {
-	fmt.Printf("Send: '%v'\n", v)
 	oc <- v
 }
 
+// SendEndMark sends an end mark
 func (oc OutputChannel) SendEndMark(s string) {
 	oc.Send(errors.Wrap(EndMark{}, s))
 }
 
-type Producer interface {
-	OutCh() chan interface{}
-}
-
-type Acceptor interface {
-	Accept(context.Context, Producer)
-}
-
-type ProcNode interface {
-	Producer
-	Acceptor
-}
-
+// New creates a new Pipeline
 func New() *Pipeline {
 	return &Pipeline{}
 }
 
-func (p *Pipeline) Source(s Source) {
+// SetSource sets the source.
+// If called during `Run`, this method will block.
+func (p *Pipeline) SetSource(s Source) {
+	p.mutex.Lock()
+	defer p.mutex.Unlock()
+
 	p.src = s
 }
 
 // Add adds new ProcNodes that work on data that goes through the Pipeline.
+// If called during `Run`, this method will block.
 func (p *Pipeline) Add(n ProcNode) {
+	p.mutex.Lock()
+	defer p.mutex.Unlock()
+
 	p.nodes = append(p.nodes, n)
 }
 
-func (p *Pipeline) Destination(d Destination) {
+// SetDestination sets the destination.
+// If called during `Run`, this method will block.
+func (p *Pipeline) SetDestination(d Destination) {
+	p.mutex.Lock()
+	defer p.mutex.Unlock()
+
 	p.dst = d
 }
 
+// Run starts the processing. Mutator methods for `Pipeline` cannot be
+// called while `Run` is running.
 func (p *Pipeline) Run(ctx context.Context) error {
+	p.mutex.Lock()
+	defer p.mutex.Unlock()
+
 	if p.src == nil {
 		return errors.New("source must be non-nil")
 	}
@@ -110,7 +99,8 @@ func (p *Pipeline) Run(ctx context.Context) error {
 	// Setup the ProcNodes, effectively chaining all nodes
 	// starting from the destination, working all the way
 	// up to the Source
-	var prev Acceptor = p.dst
+	var prev Acceptor // Explicit type here
+	prev = p.dst
 	for i := len(p.nodes) - 1; i >= 0; i-- {
 		cur := p.nodes[i]
 		go prev.Accept(ctx, cur)

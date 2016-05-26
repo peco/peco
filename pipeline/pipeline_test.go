@@ -126,10 +126,10 @@ barfoo
 	dst := NewReceiver()
 
 	p := New()
-	p.Source(src)
+	p.SetSource(src)
 	p.Add(n1)
 	p.Add(n2)
-	p.Destination(dst)
+	p.SetDestination(dst)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
