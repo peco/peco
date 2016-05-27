@@ -214,8 +214,15 @@ type Buffer interface {
 
 // MemoryBuffer is an implementation of Buffer
 type MemoryBuffer struct {
+	done  chan struct{}
 	lines []Line
 	mutex sync.Mutex
+}
+
+func NewMemoryBuffer() *MemoryBuffer {
+	return &MemoryBuffer{
+		done: make(chan struct{}),
+	}
 }
 
 // XXX go through an accessor that returns a reference so that
@@ -230,6 +237,34 @@ func (mb MemoryBuffer) Size() int {
 	defer l.Unlock()
 
 	return int(len(mb.lines))
+}
+
+func (mb *MemoryBuffer) Reset() {
+	mb.done = make(chan struct{})
+	mb.lines = []Line(nil)
+}
+
+func (mb MemoryBuffer) Done() <-chan struct{} {
+	return mb.done
+}
+
+func (mb *MemoryBuffer) Accept(ctx context.Context, p pipeline.Producer) {
+	defer close(mb.done)
+  for {
+    select {
+    case <-ctx.Done():
+      return
+    case v := <-p.OutCh():
+      if err, ok := v.(error); ok {
+        if pipeline.IsEndMark(err) {
+          return
+        }
+      }
+      if l, ok := v.(Line); ok {
+				mb.lines = append(mb.lines, l)
+			}
+    }
+  }
 }
 
 func (mb MemoryBuffer) LineAt(n int) (Line, error) {

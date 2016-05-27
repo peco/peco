@@ -45,12 +45,12 @@ type Peco struct {
 	Argv []string
 	hub  *hub.Hub
 
-	activeLineBuffer Buffer
 	args             []string
 	caret            Caret
 	// Config contains the values read in from config file
 	config                  Config
 	ctx                     context.Context
+	currentLineBuffer Buffer
 	filters                 FilterSet
 	keymap                  Keymap
 	enableSep               bool     // Enable parsing on separators
@@ -84,7 +84,7 @@ type Peco struct {
 
 func New() *Peco {
 	return &Peco{
-		activeLineBuffer: &MemoryBuffer{}, // XXX revisit this
+		currentLineBuffer: NewMemoryBuffer(), // XXX revisit this
 		selection:        NewSelection(),
 	}
 }
@@ -185,7 +185,7 @@ func (p *Peco) Filters() *FilterSet {
 	return &p.filters
 }
 
-func (p Peco) Query() *Query {
+func (p *Peco) Query() *Query {
 	return &p.query
 }
 
@@ -193,7 +193,7 @@ func (p Peco) QueryExecDelay() time.Duration {
 	return p.queryExecDelay
 }
 
-func (p Peco) Caret() *Caret {
+func (p *Peco) Caret() *Caret {
 	return &p.caret
 }
 
@@ -277,6 +277,7 @@ func (p *Peco) Run() error {
 	}{
 		NewInput(p, p.Keymap(), screen.PollEvent()),
 		NewView(p),
+		NewFilter(p),
 		sig.New(sig.SigReceivedHandlerFunc(func(sig os.Signal) {
 			p.Exit(errors.New("received signal: " + sig.String()))
 		})),
@@ -398,11 +399,16 @@ func (p *Peco) populateStyles() error {
 }
 
 func (p Peco) CurrentLineBuffer() Buffer {
-	return p.activeLineBuffer
+	return p.currentLineBuffer
 }
 
-func (p *Peco) ResetActiveLineBuffer() {
-	p.activeLineBuffer = p.source
+func (p *Peco) SetCurrentLineBuffer(b Buffer) {
+	p.currentLineBuffer = b
+	p.Hub().SendDraw(false)
+}
+
+func (p *Peco) ResetCurrentLineBuffer() {
+	p.currentLineBuffer = p.source
 	p.Hub().SendDraw(false)
 }
 
@@ -415,7 +421,7 @@ func (p *Peco) ExecQuery() bool {
 	q := p.Query()
 	if q.Len() <= 0 {
 		trace("empty query, reset buffer")
-		p.ResetActiveLineBuffer()
+		p.ResetCurrentLineBuffer()
 		return true
 	}
 

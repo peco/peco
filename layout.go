@@ -191,7 +191,7 @@ func (u UserPrompt) Draw(state *Peco) {
 	width, _ := screen.Size()
 
 	loc := state.Location()
-	pmsg := fmt.Sprintf("%s [%d (%d/%d)]", state.Filters().GetCurrent().String(), loc.Total(), loc.Page(), loc.MaxPage())
+	pmsg := fmt.Sprintf("%s [%d (%d/%d)]", state.Filters().Current().String(), loc.Total(), loc.Page(), loc.MaxPage())
 	printScreen(int(width-runewidth.StringWidth(pmsg)), location, u.styles.Basic.fg, u.styles.Basic.bg, pmsg, false)
 
 	screen.Flush()

@@ -212,7 +212,7 @@ type regexpFlagFunc func(string) []string
 
 // Filter is responsible for the actual "grep" part of peco
 type Filter struct {
-	*Ctx
+	state *Peco
 }
 
 // Action describes an action that can be executed upon receiving user
@@ -412,7 +412,7 @@ type Query struct {
 type FilterQuery Query
 
 type FilterSet struct {
-	filters []QueryFilterer
+	filters []LineFilter
 	current int
 }
 

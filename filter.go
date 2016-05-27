@@ -8,7 +8,6 @@ import (
 	"os/exec"
 	"regexp"
 	"sort"
-	"strings"
 	"sync"
 
 	"golang.org/x/net/context"
@@ -18,111 +17,58 @@ import (
 	"github.com/peco/peco/pipeline"
 )
 
-// These are used as keys in the config file
-const (
-	IgnoreCaseMatch    = "IgnoreCase"
-	CaseSensitiveMatch = "CaseSensitive"
-	SmartCaseMatch     = "SmartCase"
-	RegexpMatch        = "Regexp"
-)
+var ErrFilterDidNotMatch = errors.New("error: filter did not match against given line")
 
-var ignoreCaseFlags = regexpFlagList([]string{"i"})
-var defaultFlags = regexpFlagList{}
+type LineFilter interface {
+	pipeline.ProcNode
 
-func (r regexpFlagList) flags(_ string) []string {
-	return []string(r)
+	String() string
 }
 
-func (r regexpFlagFunc) flags(s string) []string {
-	return r(s)
+func (fx *FilterSet) Reset() {
+	fx.current = 0
 }
 
-func regexpFor(q string, flags []string, quotemeta bool) (*regexp.Regexp, error) {
-	reTxt := q
-	if quotemeta {
-		reTxt = regexp.QuoteMeta(q)
-	}
-
-	if flags != nil && len(flags) > 0 {
-		reTxt = fmt.Sprintf("(?%s)%s", strings.Join(flags, ""), reTxt)
-	}
-
-	re, err := regexp.Compile(reTxt)
-	if err != nil {
-		return nil, err
-	}
-	return re, nil
+func (fs *FilterSet) Size() int {
+	return len(fs.filters)
 }
 
-func queryToRegexps(flags regexpFlags, quotemeta bool, query string) ([]*regexp.Regexp, error) {
-	queries := strings.Split(strings.TrimSpace(query), " ")
-	regexps := make([]*regexp.Regexp, 0)
+func (fs *FilterSet) Add(lf LineFilter) error {
+	fs.filters = append(fs.filters, lf)
+	return nil
+}
 
-	for _, q := range queries {
-		re, err := regexpFor(q, flags.flags(query), quotemeta)
-		if err != nil {
-			return nil, err
+func (fs *FilterSet) Rotate() {
+	fs.current++
+	if fs.current >= len(fs.filters) {
+		fs.current = 0
+	}
+	trace("FilterSet.Rotate: now filter in effect is %s", fs.filters[fs.current])
+}
+
+func (fs *FilterSet) SetCurrentByName(name string) error {
+	for i, f := range fs.filters {
+		if f.String() == name {
+			fs.current = i
+			return nil
 		}
-		regexps = append(regexps, re)
 	}
-
-	return regexps, nil
+	return ErrFilterNotFound
 }
 
-// sort related stuff
-type byMatchStart [][]int
-
-func (m byMatchStart) Len() int {
-	return len(m)
+func (fs *FilterSet) Current() LineFilter {
+	return fs.filters[fs.current]
 }
 
-func (m byMatchStart) Swap(i, j int) {
-	m[i], m[j] = m[j], m[i]
-}
-
-func (m byMatchStart) Less(i, j int) bool {
-	if m[i][0] < m[j][0] {
-		return true
+func NewFilter(state *Peco) *Filter {
+	return &Filter{
+		state: state,
 	}
-
-	if m[i][0] == m[j][0] {
-		return m[i][1]-m[i][0] < m[j][1]-m[j][0]
-	}
-
-	return false
-}
-func matchContains(a []int, b []int) bool {
-	return a[0] <= b[0] && a[1] >= b[1]
-}
-
-func matchOverlaps(a []int, b []int) bool {
-	return a[0] <= b[0] && a[1] >= b[0] ||
-		a[0] <= b[1] && a[1] >= b[1]
-}
-
-func mergeMatches(a []int, b []int) []int {
-	ret := make([]int, 2)
-
-	// Note: In practice this should never happen
-	// because we're sorting by N[0] before calling
-	// this routine, but for completeness' sake...
-	if a[0] < b[0] {
-		ret[0] = a[0]
-	} else {
-		ret[0] = b[0]
-	}
-
-	if a[1] < b[1] {
-		ret[1] = b[1]
-	} else {
-		ret[1] = a[1]
-	}
-	return ret
 }
 
 // Work is the actual work horse that that does the matching
 // in a goroutine of its own. It wraps Matcher.Match().
-func (f *Filter) Work(ctx context.Context, state *Peco, q hub.Payload) {
+func (f *Filter) Work(ctx context.Context, q hub.Payload) {
 	trace("Filter.Work: START\n")
 	defer trace("Filter.Work: END\n")
 	defer q.Done()
@@ -132,33 +78,38 @@ func (f *Filter) Work(ctx context.Context, state *Peco, q hub.Payload) {
 		return
 	}
 
+	state := f.state
 	if query == "" {
 		trace("Filter.Work: Resetting activingLineBuffer")
-		state.ResetActiveLineBuffer()
+		state.ResetCurrentLineBuffer()
 	} else {
 		// Create a new pipeline
 		p := pipeline.New()
 		p.SetSource(state.Source())
-		//		p.Add(f.Filter())
+		p.Add(state.Filters().Current())
+
+		buf := NewMemoryBuffer()
+		p.SetDestination(buf)
+		state.SetCurrentLineBuffer(buf)
 
 		go p.Run(ctx)
-/*
-		f.rawLineBuffer.Replay()
+		/*
+			f.rawLineBuffer.Replay()
 
-		filter := f.Filter().Clone()
-		filter.SetQuery(query)
-		trace("Running %#v filter using query '%s'", filter, query)
+			filter := f.Filter().Clone()
+			filter.SetQuery(query)
+			trace("Running %#v filter using query '%s'", filter, query)
 
-		filter.Accept(f.rawLineBuffer)
-		buf := NewRawLineBuffer()
-		buf.onEnd = func() { f.SendStatusMsg("") }
-		buf.Accept(filter)
+			filter.Accept(f.rawLineBuffer)
+			buf := NewRawLineBuffer()
+			buf.onEnd = func() { f.SendStatusMsg("") }
+			buf.Accept(filter)
 
-		f.SetActiveLineBuffer(buf, true)
-*/
+			f.SetActiveLineBuffer(buf, true)
+		*/
 	}
 
-	if !f.config.StickySelection {
+	if !state.config.StickySelection {
 		state.Selection().Reset()
 	}
 }
@@ -167,7 +118,7 @@ func (f *Filter) Work(ctx context.Context, state *Peco, q hub.Payload) {
 // a query, spawns a goroutine to do the heavy work. It also
 // checks for previously running queries, so we can avoid
 // running many goroutines doing the grep at the same time
-func (f *Filter) Loop(ctx context.Context, state *Peco, cancel func()) {
+func (f *Filter) Loop(ctx context.Context, cancel func()) error {
 	defer cancel()
 
 	// previous holds the function that can cancel the previous
@@ -179,8 +130,8 @@ func (f *Filter) Loop(ctx context.Context, state *Peco, cancel func()) {
 	for {
 		select {
 		case <-ctx.Done():
-			return
-		case q := <-state.Hub().QueryCh():
+			return nil
+		case q := <-f.state.Hub().QueryCh():
 			workctx, workcancel := context.WithCancel(ctx)
 
 			mutex.Lock()
@@ -188,11 +139,11 @@ func (f *Filter) Loop(ctx context.Context, state *Peco, cancel func()) {
 			previous = workcancel
 			mutex.Unlock()
 
-			state.Hub().SendStatusMsg("Running query...")
+			f.state.Hub().SendStatusMsg("Running query...")
 
 			go func() {
 				defer workcancel()
-				f.Work(workctx, state, q)
+				f.Work(workctx, q)
 			}()
 		}
 	}
@@ -207,43 +158,58 @@ func (sf SelectionFilter) Name() string {
 }
 
 type RegexpFilter struct {
-	simplePipeline
 	compiledQuery []*regexp.Regexp
 	flags         regexpFlags
 	quotemeta     bool
 	query         string
 	name          string
 	onEnd         func()
+	outCh         pipeline.OutputChannel
 }
 
 func NewRegexpFilter() *RegexpFilter {
 	return &RegexpFilter{
 		flags: regexpFlagList(defaultFlags),
 		name:  "Regexp",
+		outCh: pipeline.OutputChannel(make(chan interface{})),
 	}
 }
 
-func (rf RegexpFilter) Clone() QueryFilterer {
+func (rf RegexpFilter) OutCh() <-chan interface{} {
+	return rf.outCh
+}
+
+func (rf RegexpFilter) Clone() LineFilter {
 	return &RegexpFilter{
-		simplePipeline{},
-		nil,
-		rf.flags,
-		rf.quotemeta,
-		rf.query,
-		rf.name,
-		nil,
+		flags:     rf.flags,
+		quotemeta: rf.quotemeta,
+		query:     rf.query,
+		name:      rf.name,
+		outCh:     pipeline.OutputChannel(make(chan interface{})),
 	}
 }
 
-func (rf *RegexpFilter) Accept(p Pipeliner) {
-	cancelCh, incomingCh := p.Pipeline()
-	rf.cancelCh = cancelCh
-	rf.outputCh = make(chan Line)
-	go acceptPipeline(cancelCh, incomingCh, rf.outputCh,
-		&pipelineCtx{rf.filter, rf.onEnd})
-}
+func (rf *RegexpFilter) Accept(ctx context.Context, p pipeline.Producer) {
+	defer rf.outCh.SendEndMark("end of RegexpFilter")
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case v := <-p.OutCh():
+			if err, ok := v.(error); ok {
+				if pipeline.IsEndMark(err) {
+					return
+				}
+			}
 
-var ErrFilterDidNotMatch = errors.New("error: filter did not match against given line")
+			if l, ok := v.(Line); ok {
+				if l, err := rf.filter(l); err == nil {
+					rf.outCh.Send(l)
+				}
+			}
+		}
+	}
+}
 
 func (rf *RegexpFilter) filter(l Line) (Line, error) {
 	trace("RegexpFilter.filter: START")
@@ -324,42 +290,7 @@ func (rf RegexpFilter) String() string {
 	return rf.name
 }
 
-func (fx *FilterSet) Reset() {
-	fx.current = 0
-}
-
-func (fs *FilterSet) Size() int {
-	return len(fs.filters)
-}
-
-func (fs *FilterSet) Add(qf QueryFilterer) error {
-	fs.filters = append(fs.filters, qf)
-	return nil
-}
-
-func (fs *FilterSet) Rotate() {
-	fs.current++
-	if fs.current >= len(fs.filters) {
-		fs.current = 0
-	}
-	trace("FilterSet.Rotate: now filter in effect is %s", fs.filters[fs.current])
-}
-
 var ErrFilterNotFound = errors.New("specified filter was not found")
-
-func (fs *FilterSet) SetCurrentByName(name string) error {
-	for i, f := range fs.filters {
-		if f.String() == name {
-			fs.current = i
-			return nil
-		}
-	}
-	return ErrFilterNotFound
-}
-
-func (fs *FilterSet) GetCurrent() QueryFilterer {
-	return fs.filters[fs.current]
-}
 
 func NewIgnoreCaseFilter() *RegexpFilter {
 	return &RegexpFilter{
