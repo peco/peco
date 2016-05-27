@@ -3,7 +3,6 @@ package peco
 import (
 	"bufio"
 	"io"
-	"runtime"
 	"sync"
 	"time"
 
@@ -163,76 +162,49 @@ func (rlb *RawLineBuffer) AppendLine(l Line) (Line, error) {
 	return rlb.Append(l)
 }
 
-func NewFilteredLineBuffer(src LineBuffer) *FilteredLineBuffer {
-	flb := &FilteredLineBuffer{
-		simplePipeline: simplePipeline{},
-		src:            src,
-		selection:      []int{},
+func NewFilteredBuffer(src Buffer, page, perPage int) *FilteredBuffer {
+	fb := FilteredBuffer{
+		src: src,
 	}
-	src.Register(flb)
 
-	runtime.SetFinalizer(flb, func(x *FilteredLineBuffer) {
-		x.src.Unregister(x)
-	})
+trace("src.Size = %d", src.Size())
+  s := perPage * (page - 1)
+trace("s = %d", s)
+  if s > src.Size() {
+    return &fb
+  }
 
-	return flb
+	selection := make([]int, 0, src.Size())
+  e := s + perPage
+  if e >= src.Size() {
+    e = src.Size()
+  }
+
+	for i := s; i < e; i++ {
+		selection = append(selection, i)
+	}
+	fb.selection = selection
+
+	return &fb
 }
 
-func (flb *FilteredLineBuffer) Accept(p Pipeliner) {
-	cancelCh, incomingCh := p.Pipeline()
-	flb.cancelCh = cancelCh
-	flb.outputCh = make(chan Line)
-	go acceptPipeline(cancelCh, incomingCh, flb.outputCh,
-		&pipelineCtx{flb.Append, nil})
-}
-
-func (flb *FilteredLineBuffer) Append(l Line) (Line, error) {
+func (flb *FilteredBuffer) Append(l Line) (Line, error) {
 	return l, nil
-}
-
-func (flb *FilteredLineBuffer) InvalidateUpTo(x int) {
-	p := -1
-	for i := 0; i < len(flb.selection); i++ {
-		if flb.selection[i] > x {
-			break
-		}
-		p = i
-	}
-
-	if p >= 0 {
-		flb.selection = append([]int(nil), flb.selection[p:]...)
-	}
-
-	for _, b := range flb.buffers {
-		b.InvalidateUpTo(p)
-	}
 }
 
 // LineAt returns the line at index `i`. Note that the i-th element
 // in this filtered buffer may actually correspond to a totally
 // different line number in the source buffer.
-func (flb FilteredLineBuffer) LineAt(i int) (Line, error) {
-	if i < 0 || i >= len(flb.selection) {
+func (flb FilteredBuffer) LineAt(i int) (Line, error) {
+	if i >= int(len(flb.selection)) {
 		return nil, ErrBufferOutOfRange
 	}
 	return flb.src.LineAt(flb.selection[i])
 }
 
 // Size returns the number of lines in the buffer
-func (flb FilteredLineBuffer) Size() int {
+func (flb FilteredBuffer) Size() int {
 	return len(flb.selection)
-}
-
-func (flb *FilteredLineBuffer) SelectSourceLineAt(i int) {
-	flb.selection = append(flb.selection, i)
-}
-
-func (flb *FilteredLineBuffer) Register(lb LineBuffer) {
-	flb.buffers.Register(lb)
-}
-
-func (flb *FilteredLineBuffer) Unregister(lb LineBuffer) {
-	flb.buffers.Unregister(lb)
 }
 
 // Buffer interface is used for containers for lines to be
@@ -259,7 +231,7 @@ func (mb MemoryBuffer) Size() int {
 	l.Lock()
 	defer l.Unlock()
 
-	return len(mb.lines)
+	return int(len(mb.lines))
 }
 
 func (mb MemoryBuffer) LineAt(n int) (Line, error) {
@@ -267,7 +239,7 @@ func (mb MemoryBuffer) LineAt(n int) (Line, error) {
 	l.Lock()
 	defer l.Unlock()
 
-	if n > mb.Size() || n < 0 {
+	if n > mb.Size() {
 		return nil, errors.New("empty buffer")
 	}
 

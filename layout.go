@@ -2,6 +2,7 @@ package peco
 
 import (
 	"fmt"
+	"strconv"
 	"time"
 	"unicode/utf8"
 
@@ -10,7 +11,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-var extraOffset = 0
+var extraOffset int = 0
 
 const (
 	DefaultLayoutType = LayoutTypeTopDown
@@ -63,14 +64,14 @@ func printScreenWithOffset(x, y, xOffset int, fg, bg termbox.Attribute, msg stri
 		if c == '\t' {
 			// In case we found a tab, we draw it as 4 spaces
 			n := 4 - (x+xOffset)%4
-			for i := 0; i <= n; i++ {
-				screen.SetCell(x+i, y, ' ', fg, bg)
+			for i := int(0); i <= n; i++ {
+				screen.SetCell(int(x+i), int(y), ' ', fg, bg)
 			}
 			written += n
 			x += n
 		} else {
-			screen.SetCell(x, y, c, fg, bg)
-			n := runewidth.RuneWidth(c)
+			screen.SetCell(int(x), int(y), c, fg, bg)
+			n := int(runewidth.RuneWidth(c))
 			x += n
 			written += n
 		}
@@ -81,10 +82,10 @@ func printScreenWithOffset(x, y, xOffset int, fg, bg termbox.Attribute, msg stri
 	}
 
 	width, _ := screen.Size()
-	for ; x < width; x++ {
-		screen.SetCell(x, y, ' ', fg, bg)
+	for ; x < int(width); x++ {
+		screen.SetCell(int(x), int(y), ' ', fg, bg)
 	}
-	written += width - x
+	written += int(width) - x
 	return written
 }
 
@@ -95,7 +96,10 @@ func NewAnchorSettings(anchor VerticalAnchor, offset int) *AnchorSettings {
 		panic("Invalid vertical anchor specified")
 	}
 
-	return &AnchorSettings{anchor, offset}
+	return &AnchorSettings{
+		anchor:       anchor,
+		anchorOffset: offset,
+	}
 }
 
 // AnchorPosition returns the starting y-offset, based on the
@@ -107,7 +111,7 @@ func (as AnchorSettings) AnchorPosition() int {
 		pos = as.anchorOffset
 	case AnchorBottom:
 		_, h := screen.Size()
-		pos = h - as.anchorOffset - 1 // -1 is required because y is 0 base, but h is 1 base
+		pos = int(h) - as.anchorOffset - 1 // -1 is required because y is 0 base, but h is 1 base
 	default:
 		panic("Unknown anchor type!")
 	}
@@ -125,8 +129,8 @@ func NewUserPrompt(anchor VerticalAnchor, anchorOffset int, prompt string, style
 	return &UserPrompt{
 		AnchorSettings: &AnchorSettings{anchor, anchorOffset},
 		prompt:         prompt,
-		promptLen:      promptLen,
-		styles:					styles,
+		promptLen:      int(promptLen),
+		styles:         styles,
 	}
 }
 
@@ -160,12 +164,15 @@ func (u UserPrompt) Draw(state *Peco) {
 		printScreen(u.promptLen+1, location, fg|termbox.AttrReverse, bg|termbox.AttrReverse, " ", false)
 	case c.Pos():
 		// the entire string + the caret after the string
-		printScreen(u.promptLen, location, fg, bg, "", true)
-		printScreen(u.promptLen+1, location, fg, bg, qs, false)
-		printScreen(u.promptLen+runewidth.StringWidth(qs)+1, location, fg|termbox.AttrReverse, bg|termbox.AttrReverse, " ", false)
+		pos := u.promptLen
+		printScreen(pos, location, fg, bg, "", true)
+		pos += 1
+		printScreen(pos, location, fg, bg, qs, false)
+		pos += int(runewidth.StringWidth(qs))
+		printScreen(pos, location, fg|termbox.AttrReverse, bg|termbox.AttrReverse, " ", false)
 	default:
 		// the caret is in the middle of the string
-		prev := 0
+		prev := int(0)
 		for i, r := range q.Runes() {
 			fg := u.styles.Query.fg
 			bg := u.styles.Query.bg
@@ -173,8 +180,8 @@ func (u UserPrompt) Draw(state *Peco) {
 				fg |= termbox.AttrReverse
 				bg |= termbox.AttrReverse
 			}
-			screen.SetCell(u.promptLen+1+prev, location, r, fg, bg)
-			prev += runewidth.RuneWidth(r)
+			screen.SetCell(int(u.promptLen+1+prev), int(location), r, fg, bg)
+			prev += int(runewidth.RuneWidth(r))
 		}
 		fg := u.styles.Query.fg
 		bg := u.styles.Query.bg
@@ -185,7 +192,7 @@ func (u UserPrompt) Draw(state *Peco) {
 
 	loc := state.Location()
 	pmsg := fmt.Sprintf("%s [%d (%d/%d)]", state.Filters().GetCurrent().String(), loc.Total(), loc.Page(), loc.MaxPage())
-	printScreen(width-runewidth.StringWidth(pmsg), location, u.styles.Basic.fg, u.styles.Basic.bg, pmsg, false)
+	printScreen(int(width-runewidth.StringWidth(pmsg)), location, u.styles.Basic.fg, u.styles.Basic.bg, pmsg, false)
 
 	screen.Flush()
 }
@@ -195,7 +202,7 @@ func NewStatusBar(anchor VerticalAnchor, anchorOffset int, styles *StyleSet) *St
 	return &StatusBar{
 		AnchorSettings: NewAnchorSettings(anchor, anchorOffset),
 		clearTimer:     nil,
-		styles:     styles,
+		styles:         styles,
 		timerMutex:     newMutex(),
 	}
 }
@@ -248,7 +255,7 @@ func (s *StatusBar) PrintStatus(msg string, clearDelay time.Duration) {
 	}
 
 	if width > 0 {
-		printScreen(w-width, location, fgAttr|termbox.AttrReverse|termbox.AttrBold|termbox.AttrReverse, bgAttr|termbox.AttrReverse, msg, false)
+		printScreen(int(w-width), location, fgAttr|termbox.AttrReverse|termbox.AttrBold|termbox.AttrReverse, bgAttr|termbox.AttrReverse, msg, false)
 	}
 	screen.Flush()
 
@@ -266,11 +273,11 @@ func (s *StatusBar) PrintStatus(msg string, clearDelay time.Duration) {
 // NewListArea creates a new ListArea struct
 func NewListArea(anchor VerticalAnchor, anchorOffset int, sortTopDown bool, styles *StyleSet) *ListArea {
 	return &ListArea{
-		AnchorSettings:      NewAnchorSettings(anchor, anchorOffset),
-		displayCache:        []Line{},
-		dirty:               false,
-		sortTopDown:         sortTopDown,
-		styles:              styles,
+		AnchorSettings: NewAnchorSettings(anchor, anchorOffset),
+		displayCache:   []Line{},
+		dirty:          false,
+		sortTopDown:    sortTopDown,
+		styles:         styles,
 	}
 }
 
@@ -295,8 +302,13 @@ func selectionContains(state *Peco, n int) bool {
 
 // Draw displays the ListArea on the screen
 func (l *ListArea) Draw(state *Peco, parent Layout, perPage int, runningQuery bool) {
-	trace("ListArea.Draw: START")
-	defer trace("ListArea.Draw: END")
+	trace("START ListArea.Draw perPage = %d, runningQuery = %t", perPage, runningQuery)
+	defer trace("END ListArea.Draw")
+
+	if perPage < 1 {
+		panic("perPage < 1 (was " + strconv.Itoa(perPage) + ")")
+	}
+
 	loc := state.Location()
 
 	linebuf := state.CurrentLineBuffer()
@@ -336,7 +348,7 @@ func (l *ListArea) Draw(state *Peco, parent Layout, perPage int, runningQuery bo
 
 	// previously drawn lines are cached. first, truncate the cache
 	// to current size of the drawable area
-	if ldc := len(l.displayCache); ldc != perPage {
+	if ldc := int(len(l.displayCache)); ldc != perPage {
 		newCache := make([]Line, perPage)
 		copy(newCache, l.displayCache)
 		l.displayCache = newCache
@@ -362,12 +374,12 @@ func (l *ListArea) Draw(state *Peco, parent Layout, perPage int, runningQuery bo
 
 	var cached, written int
 	var fgAttr, bgAttr termbox.Attribute
-	for n := 0; n < perPage; n++ {
+	for n := int(0); n < perPage; n++ {
 		switch {
 		case n+loc.Offset() == loc.LineNumber():
 			fgAttr = l.styles.Selected.fg
 			bgAttr = l.styles.Selected.bg
-		case selectionContains(state, n + loc.Offset()):
+		case selectionContains(state, n+loc.Offset()):
 			fgAttr = l.styles.SavedSelection.fg
 			bgAttr = l.styles.SavedSelection.bg
 		default:
@@ -400,13 +412,15 @@ func (l *ListArea) Draw(state *Peco, parent Layout, perPage int, runningQuery bo
 		written++
 		l.displayCache[n] = target
 
-		x := -1 * loc.Column()
+		// XXX https://github.com/peco/peco/pull/249 this used to be
+		// x := -loc.Column(), may need to look at it again
+		x := int(0)
 		xOffset := loc.Column()
 		line := target.DisplayString()
 
 		if state.SingleKeyJumpMode() || state.SingleKeyJumpShowPrefix() {
 			prefixes := state.SingleKeyJumpPrefixes()
-			if n < len(prefixes) {
+			if n < int(len(prefixes)) {
 				printScreenWithOffset(x, y, xOffset, fgAttr|termbox.AttrBold|termbox.AttrReverse, bgAttr, string(prefixes[n]), false)
 				printScreenWithOffset(x+1, y, xOffset, fgAttr, bgAttr, " ", false)
 			} else {
@@ -534,7 +548,11 @@ func linesPerPage() int {
 
 	// list area is always the display area - 2 lines for prompt and status
 	reservedLines := 2 + extraOffset
-	return height - reservedLines
+	pp := height - reservedLines
+	if pp < 1 {
+		panic("linesPerPage is < 1 (height = " +strconv.Itoa(height) +", reservedLines = " + strconv.Itoa(reservedLines) + ")")
+	}
+	return pp
 }
 
 // MovePage scrolls the screen
@@ -616,21 +634,22 @@ func verticalScroll(state *Peco, l *BasicLayout, p PagingRequest) bool {
 
 	// if we were in range mode, we need to do stuff. otherwise
 	// just bail out
-	if !state.RangeMode() {
+	r := state.SelectionRangeStart()
+	if !r.Valid() {
 		return true
 	}
 
 	sel := state.Selection()
 	if l.list.sortTopDown {
-		if loc.LineNumber() < state.SelectionRangeStart() {
-			for lineno := loc.LineNumber(); lineno <= state.SelectionRangeStart(); lineno++ {
+		if loc.LineNumber() < r.Value() {
+			for lineno := loc.LineNumber(); lineno <= r.Value(); lineno++ {
 				if line, err := buf.LineAt(lineno); err == nil {
 					sel.Add(line)
 				}
 			}
 			switch {
-			case state.SelectionRangeStart() <= lineBefore:
-				for lineno := state.SelectionRangeStart(); lineno <= lcur && lineno < lineBefore; lineno++ {
+			case r.Value() <= lineBefore:
+				for lineno := r.Value(); lineno <= lcur && lineno < lineBefore; lineno++ {
 					if line, err := buf.LineAt(lineno); err == nil {
 						sel.Remove(line)
 					}
@@ -643,15 +662,15 @@ func verticalScroll(state *Peco, l *BasicLayout, p PagingRequest) bool {
 				}
 			}
 		} else {
-			for lineno := state.SelectionRangeStart(); lineno <= lcur && lineno <= loc.LineNumber(); lineno++ {
+			for lineno := r.Value(); lineno <= lcur && lineno <= loc.LineNumber(); lineno++ {
 				if line, err := buf.LineAt(lineno); err == nil {
 					sel.Add(line)
 				}
 			}
 
 			switch {
-			case lineBefore <= state.SelectionRangeStart():
-				for lineno := lineBefore; lineno < state.SelectionRangeStart(); lineno++ {
+			case lineBefore <= r.Value():
+				for lineno := lineBefore; lineno < r.Value(); lineno++ {
 					if line, err := buf.LineAt(lineno); err == nil {
 						sel.Remove(line)
 					}
@@ -674,9 +693,9 @@ func horizontalScroll(state *Peco, l *BasicLayout, p PagingRequest) bool {
 	width, _ := screen.Size()
 	loc := state.Location()
 	if p.Type() == ToScrollRight {
-		loc.SetColumn(loc.Column() + width / 2)
+		loc.SetColumn(loc.Column() + width/2)
 	} else if loc.Column() > 0 {
-		loc.SetColumn(loc.Column() - width / 2)
+		loc.SetColumn(loc.Column() - width/2)
 		if loc.Column() < 0 {
 			loc.SetColumn(0)
 		}

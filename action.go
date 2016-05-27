@@ -219,11 +219,12 @@ func doToggleRangeMode(ctx context.Context, state *Peco, _ termbox.Event) {
 	trace("doToggleRangeMode: START")
 	defer trace("doToggleRangeMode: END")
 
-	if state.RangeMode() {
-		state.SetSelectionRangeStart(invalidSelectionRange)
+	r := state.SelectionRangeStart()
+	if r.Valid() {
+		r.Reset()
 	} else {
 		cl := state.Location().LineNumber()
-		state.SetSelectionRangeStart(cl)
+		r.SetValue(cl)
 		if l, err := state.CurrentLineBuffer().LineAt(cl); err == nil {
 			state.selection.Add(l)
 		}
@@ -231,7 +232,7 @@ func doToggleRangeMode(ctx context.Context, state *Peco, _ termbox.Event) {
 }
 
 func doCancelRangeMode(ctx context.Context, state *Peco, _ termbox.Event) {
-	state.SetSelectionRangeStart(invalidSelectionRange)
+	state.SelectionRangeStart().Reset()
 }
 
 func doSelectNone(ctx context.Context, state *Peco, _ termbox.Event) {
@@ -298,7 +299,7 @@ func doCancel(ctx context.Context, state *Peco, e termbox.Event) {
 		return
 	}
 
-	if state.RangeMode() {
+	if state.SelectionRangeStart().Valid() {
 		doCancelRangeMode(ctx, state, e)
 		return
 	}

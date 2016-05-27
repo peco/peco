@@ -63,25 +63,9 @@ func (l Location) PageCrop() PageCrop {
 	}
 }
 
-// Crop returns a new LineBuffer whose contents are
+// Crop returns a new Buffer whose contents are
 // bound within the given range
-func (pf PageCrop) Crop(in LineBuffer) LineBuffer {
-	out := &FilteredLineBuffer{
-		src:       in,
-		selection: []int{},
-	}
-
-	s := pf.perPage * (pf.currentPage - 1)
-	e := s + pf.perPage
-	if s > in.Size() {
-		return out
-	}
-	if e >= in.Size() {
-		e = in.Size()
-	}
-
-	for i := s; i < e; i++ {
-		out.SelectSourceLineAt(i)
-	}
-	return out
+func (pf PageCrop) Crop(in Buffer) Buffer {
+	trace("Cropping for page %d, %d entries per page", pf.currentPage, pf.perPage)
+	return NewFilteredBuffer(in, pf.currentPage, pf.perPage)
 }

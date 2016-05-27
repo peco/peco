@@ -64,7 +64,7 @@ type Peco struct {
 	queryExecTimer          *time.Timer
 	resultCh                chan Line
 	selection               *Selection
-	selectionRangeStart     int
+	selectionRangeStart     RangeStart
 	singleKeyJumpMode       bool
 	singleKeyJumpPrefixes   []rune
 	singleKeyJumpShowPrefix bool
@@ -84,9 +84,8 @@ type Peco struct {
 
 func New() *Peco {
 	return &Peco{
-		activeLineBuffer:    &MemoryBuffer{}, // XXX revisit this
-		selection:           NewSelection(),
-		selectionRangeStart: invalidSelectionRange,
+		activeLineBuffer: &MemoryBuffer{}, // XXX revisit this
+		selection:        NewSelection(),
 	}
 }
 
@@ -104,10 +103,6 @@ func (p Peco) Inputseq() *Inputseq {
 
 func (p Peco) Context() context.Context {
 	return p.ctx
-}
-
-func (p Peco) CurrentLineBuffer() LineBuffer {
-	return nil // XXX DUMMY
 }
 
 func (p Peco) LayoutType() string {
@@ -130,18 +125,30 @@ func (p Peco) Selection() *Selection {
 	return p.selection
 }
 
-func (p Peco) SelectionRangeStart() int {
-	return p.selectionRangeStart
+type RangeStart struct {
+	val   int
+	valid bool
 }
 
-func (p Peco) SetSelectionRangeStart(s int) {
-	if s >= invalidSelectionRange {
-		p.selectionRangeStart = s
-	}
+func (s RangeStart) Valid() bool {
+	return s.valid
 }
 
-func (p Peco) RangeMode() bool {
-	return p.selectionRangeStart != invalidSelectionRange
+func (s RangeStart) Value() int {
+	return s.val
+}
+
+func (s *RangeStart) SetValue(n int) {
+	s.val = n
+	s.valid = true
+}
+
+func (s *RangeStart) Reset() {
+	s.valid = false
+}
+
+func (p Peco) SelectionRangeStart() *RangeStart {
+	return &p.selectionRangeStart
 }
 
 func (p Peco) SingleKeyJumpShowPrefix() bool {
@@ -243,6 +250,11 @@ func (p *Peco) Run() error {
 	if err := p.Setup(); err != nil {
 		return errors.Wrap(err, "failed to setup peco")
 	}
+	// screen.Init must be called within Run() because we
+	// want to make sure to call screen.Close() after getting
+	// out of Run()
+	screen.Init()
+	defer screen.Close()
 
 	var ctx context.Context
 	var cancel func()
@@ -342,18 +354,43 @@ func (p *Peco) ApplyConfig() error {
 	}
 
 	if err := p.populateCommandList(); err != nil {
-		return err
+		return errors.Wrap(err, "failed to populate command list")
+	}
+
+	if err := p.populateFilters(); err != nil {
+		return errors.Wrap(err, "failed to populate filters")
+	}
+
+	if err := p.populateKeymap(); err != nil {
+		return errors.Wrap(err, "failed to populate keymap")
 	}
 
 	return nil
 }
 
-func (p Peco) ActiveLineBuffer() Buffer {
+func (p *Peco) populateFilters() error {
+	p.filters.Add(NewIgnoreCaseFilter())
+	p.filters.Add(NewCaseSensitiveFilter())
+	p.filters.Add(NewSmartCaseFilter())
+	p.filters.Add(NewRegexpFilter())
+	return nil
+}
+
+func (p *Peco) populateKeymap() error {
+	// Create a new keymap object
+	k := NewKeymap(p, p.config.Keymap, p.config.Action)
+	k.ApplyKeybinding()
+	p.keymap = k
+	return nil
+}
+
+func (p Peco) CurrentLineBuffer() Buffer {
 	return p.activeLineBuffer
 }
 
 func (p *Peco) ResetActiveLineBuffer() {
 	p.activeLineBuffer = p.source
+	p.Hub().SendDraw(false)
 }
 
 func (p *Peco) ExecQuery() bool {
@@ -364,11 +401,9 @@ func (p *Peco) ExecQuery() bool {
 	// the raw source buffer
 	q := p.Query()
 	if q.Len() <= 0 {
-		if p.ActiveLineBuffer() != nil {
-			p.ResetActiveLineBuffer()
-			return true
-		}
-		return false
+		trace("empty query, reset buffer")
+		p.ResetActiveLineBuffer()
+		return true
 	}
 
 	delay := p.QueryExecDelay()

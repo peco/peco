@@ -89,7 +89,7 @@ type PagingRequest interface {
 	Type() PagingRequestType
 }
 
-type JumpToLineRequest uint
+type JumpToLineRequest int
 
 // Selection stores the line ids that were selected by the user.
 // The contents of the Selection is always sorted from smallest to
@@ -280,27 +280,13 @@ type RawLineBuffer struct {
 	onEnd    func()
 }
 
-// FilteredLineBuffer holds a "filtered" buffer. It holds a reference to
+// FilteredBuffer holds a "filtered" buffer. It holds a reference to
 // the source buffer (note: should be immutable) and a list of indices
 // into the source buffer
-type FilteredLineBuffer struct {
-	simplePipeline
-	buffers dependentBuffers
-	src     LineBuffer
-	// maps from our index to src's index
-	selection []int
+type FilteredBuffer struct {
+	src     Buffer
+	selection []int // maps from our index to src's index
 }
-
-/*
-// Input handles input events from termbox.
-type Input struct {
-	*Ctx
-	mutex         sync.Locker // Currently only used for protecting Alt/Esc workaround
-	mod           *time.Timer
-	keymap        Keymap
-	currentKeySeq []string
-}
-*/
 
 // Config holds all the data that can be configured in the
 // external configuran file

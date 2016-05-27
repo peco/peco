@@ -17,6 +17,7 @@ var (
 )
 
 func (t Termbox) Init() error {
+	trace("initializing termbox")
 	if err := termboxInit(); err != nil {
 		return err
 	}
