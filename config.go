@@ -18,19 +18,18 @@ const DefaultCustomFilterBufferThreshold = 100
 var homedirFunc = util.Homedir
 
 // NewConfig creates a new Config
-func NewConfig() *Config {
-	return &Config{
-		Keymap:         make(map[string]string),
-		InitialMatcher: IgnoreCaseMatch,
-		Style:          NewStyleSet(),
-		SingleKeyJump: SingleKeyJumpConfig{
-			ShowPrefix: false,
-			PrefixMap:  make(map[rune]uint),
-			PrefixList: []rune(nil),
-		},
-		Prompt: "QUERY>",
-		Layout: "top-down",
+func (c *Config) Init() error {
+	c.Keymap = make(map[string]string)
+	c.InitialMatcher = IgnoreCaseMatch
+	c.Style = NewStyleSet()
+	c.SingleKeyJump = SingleKeyJumpConfig{
+		ShowPrefix: false,
+		PrefixMap:  make(map[rune]uint),
+		PrefixList: []rune(nil),
 	}
+	c.Prompt = "QUERY>"
+	c.Layout = LayoutTypeTopDown
+	return nil
 }
 
 // ReadFilename reads the config from the given file, and

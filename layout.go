@@ -374,7 +374,7 @@ func (l *ListArea) Draw(state *Peco, parent Layout, perPage int, runningQuery bo
 
 	var cached, written int
 	var fgAttr, bgAttr termbox.Attribute
-	for n := int(0); n < perPage; n++ {
+	for n := 0; n < perPage; n++ {
 		switch {
 		case n+loc.Offset() == loc.LineNumber():
 			fgAttr = l.styles.Selected.fg
@@ -412,9 +412,7 @@ func (l *ListArea) Draw(state *Peco, parent Layout, perPage int, runningQuery bo
 		written++
 		l.displayCache[n] = target
 
-		// XXX https://github.com/peco/peco/pull/249 this used to be
-		// x := -loc.Column(), may need to look at it again
-		x := int(0)
+		x := -1 * loc.Column()
 		xOffset := loc.Column()
 		line := target.DisplayString()
 

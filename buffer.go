@@ -167,9 +167,7 @@ func NewFilteredBuffer(src Buffer, page, perPage int) *FilteredBuffer {
 		src: src,
 	}
 
-trace("src.Size = %d", src.Size())
   s := perPage * (page - 1)
-trace("s = %d", s)
   if s > src.Size() {
     return &fb
   }
@@ -239,7 +237,7 @@ func (mb MemoryBuffer) LineAt(n int) (Line, error) {
 	l.Lock()
 	defer l.Unlock()
 
-	if n > mb.Size() {
+	if s := mb.Size(); s <= 0 || n >= s {
 		return nil, errors.New("empty buffer")
 	}
 

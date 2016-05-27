@@ -217,6 +217,10 @@ func (p Peco) Keymap() Keymap {
 }
 
 func (p *Peco) Setup() error {
+	if err := p.config.Init(); err != nil {
+		return errors.Wrap(err, "failed to initialize config")
+	}
+
 	if err := parseCommandLine(&p.Options, &p.args, p.Argv); err != nil {
 		return errors.Wrap(err, "failed to parse command line")
 	}
@@ -365,6 +369,10 @@ func (p *Peco) ApplyConfig() error {
 		return errors.Wrap(err, "failed to populate keymap")
 	}
 
+	if err := p.populateStyles(); err != nil {
+		return errors.Wrap(err, "failed to populate styles")
+	}
+
 	return nil
 }
 
@@ -381,6 +389,11 @@ func (p *Peco) populateKeymap() error {
 	k := NewKeymap(p, p.config.Keymap, p.config.Action)
 	k.ApplyKeybinding()
 	p.keymap = k
+	return nil
+}
+
+func (p *Peco) populateStyles() error {
+	p.styles = *(p.config.Style)
 	return nil
 }
 
