@@ -1,10 +1,7 @@
 // Package pipeline implements the basic data processing pipeline used by peco
 package pipeline
 
-
 import (
-	"fmt"
-
 	"github.com/pkg/errors"
 
 	"golang.org/x/net/context"
@@ -24,7 +21,6 @@ func (e EndMark) Error() string {
 // object is an EndMark
 func IsEndMark(err error) bool {
 	if em, ok := errors.Cause(err).(EndMarker); ok {
-		fmt.Printf("is end marker!\n")
 		return em.EndMark()
 	}
 	return false
@@ -118,4 +114,8 @@ func (p *Pipeline) Run(ctx context.Context) error {
 	<-p.dst.Done()
 
 	return nil
+}
+
+func (p Pipeline) Done() <-chan struct{} {
+	return p.dst.Done()
 }
