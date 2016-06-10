@@ -28,7 +28,8 @@ func TestReadRC(t *testing.T) {
 	"Prompt": "[peco]"
 }
 `
-	cfg := NewConfig()
+	cfg := Config{}
+	cfg.Init()
 	if err := json.Unmarshal([]byte(txt), cfg); err != nil {
 		t.Fatalf("Error unmarshaling json: %s", err)
 	}
