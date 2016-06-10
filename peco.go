@@ -2,6 +2,7 @@ package peco
 
 import (
 	"os"
+	"reflect"
 	"sync"
 	"time"
 
@@ -45,12 +46,12 @@ type Peco struct {
 	Argv []string
 	hub  *hub.Hub
 
-	args             []string
-	caret            Caret
+	args  []string
+	caret Caret
 	// Config contains the values read in from config file
 	config                  Config
 	ctx                     context.Context
-	currentLineBuffer Buffer
+	currentLineBuffer       Buffer
 	filters                 FilterSet
 	keymap                  Keymap
 	enableSep               bool     // Enable parsing on separators
@@ -85,7 +86,7 @@ type Peco struct {
 func New() *Peco {
 	return &Peco{
 		currentLineBuffer: NewMemoryBuffer(), // XXX revisit this
-		selection:        NewSelection(),
+		selection:         NewSelection(),
 	}
 }
 
@@ -261,9 +262,13 @@ func (p *Peco) Run() error {
 	defer screen.Close()
 
 	var ctx context.Context
-	var cancel func()
+	var _cancel func()
 
-	ctx, cancel = context.WithCancel(context.Background())
+	ctx, _cancel = context.WithCancel(context.Background())
+	cancel := func() {
+		trace("cancel function called!")
+		_cancel()
+	}
 
 	// keep *this* ctx (not the Background one), as calling `cancel`
 	// only affects the wrapped context
@@ -403,6 +408,7 @@ func (p Peco) CurrentLineBuffer() Buffer {
 }
 
 func (p *Peco) SetCurrentLineBuffer(b Buffer) {
+	trace("Peco.SetCurrentLineBuffer %s", reflect.TypeOf(b).String())
 	p.currentLineBuffer = b
 	p.Hub().SendDraw(false)
 }

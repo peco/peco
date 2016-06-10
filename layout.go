@@ -2,6 +2,7 @@ package peco
 
 import (
 	"fmt"
+	"reflect"
 	"strconv"
 	"time"
 	"unicode/utf8"
@@ -359,7 +360,7 @@ func (l *ListArea) Draw(state *Peco, parent Layout, perPage int, runningQuery bo
 
 	// If our buffer is smaller than perPage, we may need to
 	// clear some lines
-	trace("ListeArea.Draw: buffer size is %d, our view area is %d\n", bufsiz, perPage)
+	trace("ListArea.Draw: buffer size is %d, our view area is %d\n", bufsiz, perPage)
 	for n := bufsiz; n < perPage; n++ {
 		l.displayCache[n] = nil
 		if l.sortTopDown {
@@ -415,6 +416,7 @@ func (l *ListArea) Draw(state *Peco, parent Layout, perPage int, runningQuery bo
 		x := -1 * loc.Column()
 		xOffset := loc.Column()
 		line := target.DisplayString()
+trace("on line %d target line = '%s'", y, line)
 
 		if state.SingleKeyJumpMode() || state.SingleKeyJumpShowPrefix() {
 			prefixes := state.SingleKeyJumpPrefixes()
@@ -494,12 +496,13 @@ func (l *BasicLayout) PurgeDisplayCache() {
 func (l *BasicLayout) CalculatePage(state *Peco, perPage int) error {
 	buf := state.CurrentLineBuffer()
 	loc := state.Location()
+	trace("BasicLayout.CalculatePage buf = %s", reflect.TypeOf(buf).String())
+	defer trace("BasicLayout.CalculatePage: %#v", loc)
 	loc.SetPage((loc.LineNumber() / perPage) + 1)
 	loc.SetOffset((loc.Page() - 1) * perPage)
 	loc.SetPerPage(perPage)
 	loc.SetTotal(buf.Size())
 
-	trace("BasicLayout.CalculatePage: %#v", loc)
 	if loc.Total() == 0 {
 		loc.SetMaxPage(1)
 	} else {
@@ -548,7 +551,7 @@ func linesPerPage() int {
 	reservedLines := 2 + extraOffset
 	pp := height - reservedLines
 	if pp < 1 {
-		panic("linesPerPage is < 1 (height = " +strconv.Itoa(height) +", reservedLines = " + strconv.Itoa(reservedLines) + ")")
+		panic("linesPerPage is < 1 (height = " + strconv.Itoa(height) + ", reservedLines = " + strconv.Itoa(reservedLines) + ")")
 	}
 	return pp
 }

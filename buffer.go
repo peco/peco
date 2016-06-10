@@ -249,19 +249,27 @@ func (mb MemoryBuffer) Done() <-chan struct{} {
 }
 
 func (mb *MemoryBuffer) Accept(ctx context.Context, p pipeline.Producer) {
+	trace("START MemoryBuffer.Accept")
+	defer trace("END MemoryBuffer.Accept")
 	defer close(mb.done)
+
   for {
     select {
     case <-ctx.Done():
+			trace("MemoryBuffer received context done")
       return
     case v := <-p.OutCh():
-      if err, ok := v.(error); ok {
-        if pipeline.IsEndMark(err) {
+			switch v.(type) {
+			case error:
+        if pipeline.IsEndMark(v.(error)) {
+				trace("MemoryBuffer received end mark")
           return
         }
-      }
-      if l, ok := v.(Line); ok {
-				mb.lines = append(mb.lines, l)
+      case Line:
+				trace("MemoryBuffer received new line")
+				mb.lines = append(mb.lines, v.(Line))
+			default:
+				trace("MemoryBuffer received something else %s", v)
 			}
     }
   }
@@ -376,18 +384,23 @@ func (s *Source) Setup(state *Peco) {
 
 // Start starts
 func (s *Source) Start(ctx context.Context) {
-	go func() {
-		defer s.OutputChannel.SendEndMark("end of input")
+	trace("START Source.Start")
+	defer trace("END Source.Start")
+	defer s.OutputChannel.SendEndMark("end of input")
 
-		for i := 0; i < len(s.lines); i++ {
-			select {
-			case <-ctx.Done():
-				return
-			case s.OutputChannel <- s.lines[i]:
-				// no op
-			}
+	s.done = make(chan struct{})
+
+	trace("Going to send %d lines", len(s.lines))
+	for _, l := range s.lines {
+		select {
+		case <-ctx.Done():
+			trace("Source received done")
+			return
+		case s.OutputChannel <- l:
+			trace("Source sent to output channel")
+			// no op
 		}
-	}()
+	}
 }
 
 // Ready returns the "input ready" channel. It will be closed as soon as

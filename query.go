@@ -19,8 +19,8 @@ func (q *Query) DeleteRange(start, end int) {
 		return
 	}
 
-	if end >= q.Len() {
-		end = q.Len() - 1
+	if end > q.Len() {
+		end = q.Len()
 	}
 
 	// everything up to "start" is left in tact

@@ -47,6 +47,7 @@ type Destination interface {
 
 // Pipeline is encapsulates a chain of `Source`, `ProcNode`s, and `Destination`
 type Pipeline struct {
+	done  chan struct {}
 	mutex sync.Mutex
 	nodes []ProcNode
 	src   Source

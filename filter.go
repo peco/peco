@@ -22,6 +22,7 @@ var ErrFilterDidNotMatch = errors.New("error: filter did not match against given
 type LineFilter interface {
 	pipeline.ProcNode
 
+	Clone() LineFilter
 	String() string
 }
 
@@ -69,8 +70,6 @@ func NewFilter(state *Peco) *Filter {
 // Work is the actual work horse that that does the matching
 // in a goroutine of its own. It wraps Matcher.Match().
 func (f *Filter) Work(ctx context.Context, q hub.Payload) {
-	trace("Filter.Work: START\n")
-	defer trace("Filter.Work: END\n")
 	defer q.Done()
 
 	query, ok := q.Data().(string)
@@ -83,30 +82,30 @@ func (f *Filter) Work(ctx context.Context, q hub.Payload) {
 		trace("Filter.Work: Resetting activingLineBuffer")
 		state.ResetCurrentLineBuffer()
 	} else {
+		trace("Filter.Work: Creating new pipeline")
 		// Create a new pipeline
 		p := pipeline.New()
 		p.SetSource(state.Source())
-		p.Add(state.Filters().Current())
+		p.Add(state.Filters().Current().Clone())
 
 		buf := NewMemoryBuffer()
 		p.SetDestination(buf)
 		state.SetCurrentLineBuffer(buf)
 
-		go p.Run(ctx)
-		/*
-			f.rawLineBuffer.Replay()
+		go func() {
+			if err := p.Run(ctx); err != nil {
+				state.Hub().SendStatusMsg(err.Error())
+			}
+		}()
 
-			filter := f.Filter().Clone()
-			filter.SetQuery(query)
-			trace("Running %#v filter using query '%s'", filter, query)
-
-			filter.Accept(f.rawLineBuffer)
-			buf := NewRawLineBuffer()
-			buf.onEnd = func() { f.SendStatusMsg("") }
-			buf.Accept(filter)
-
-			f.SetActiveLineBuffer(buf, true)
-		*/
+		go func() {
+			defer trace("query finished running")
+			trace("waiting for query to finish")
+			<-p.Done()
+			trace("p.Done returns")
+			state.Hub().SendStatusMsg("")
+			trace("SendStatusMsg returns")
+		}()
 	}
 
 	if !state.config.StickySelection {
@@ -132,7 +131,11 @@ func (f *Filter) Loop(ctx context.Context, cancel func()) error {
 		case <-ctx.Done():
 			return nil
 		case q := <-f.state.Hub().QueryCh():
-			workctx, workcancel := context.WithCancel(ctx)
+			workctx, _workcancel := context.WithCancel(ctx)
+			workcancel := func() {
+				trace("Filter.Work cancel called!")
+				_workcancel()
+			}
 
 			mutex.Lock()
 			previous()
@@ -142,7 +145,6 @@ func (f *Filter) Loop(ctx context.Context, cancel func()) error {
 			f.state.Hub().SendStatusMsg("Running query...")
 
 			go func() {
-				defer workcancel()
 				f.Work(workctx, q)
 			}()
 		}
@@ -190,20 +192,25 @@ func (rf RegexpFilter) Clone() LineFilter {
 }
 
 func (rf *RegexpFilter) Accept(ctx context.Context, p pipeline.Producer) {
+	trace("START RegexpFilter.Accept")
+	defer trace("END RegexpFilter.Accept")
 	defer rf.outCh.SendEndMark("end of RegexpFilter")
 	for {
 		select {
 		case <-ctx.Done():
+			trace("RegexpFilter received done")
 			return
 		case v := <-p.OutCh():
-			if err, ok := v.(error); ok {
-				if pipeline.IsEndMark(err) {
+			switch v.(type) {
+			case error:
+				if pipeline.IsEndMark(v.(error)) {
+					trace("RegexpFilter received end mark")
 					return
 				}
-			}
-
-			if l, ok := v.(Line); ok {
-				if l, err := rf.filter(l); err == nil {
+			case Line:
+				trace("RegexpFilter received new line")
+				if l, err := rf.filter(v.(Line)); err == nil {
+					trace("RegexpFilter send line")
 					rf.outCh.Send(l)
 				}
 			}
@@ -223,7 +230,6 @@ func (rf *RegexpFilter) filter(l Line) (Line, error) {
 	matches := [][]int{}
 TryRegexps:
 	for _, rx := range regexps {
-		trace("RegexpFilter.filter: matching '%s' against '%s'", v, rx)
 		match := rx.FindAllStringSubmatchIndex(v, -1)
 		if match == nil {
 			allMatched = false
@@ -236,7 +242,6 @@ TryRegexps:
 		return nil, ErrFilterDidNotMatch
 	}
 
-	trace("RegexpFilter.filter: line matched pattern\n")
 	sort.Sort(byMatchStart(matches))
 
 	// We need to "dedupe" the results. For example, if we matched the

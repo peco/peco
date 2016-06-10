@@ -168,6 +168,7 @@ func doAcceptChar(ctx context.Context, state *Peco, e termbox.Event) {
 
 	q.InsertAt(ch, c.Pos())
 	c.Move(1)
+	trace("query = '%s'", q.String())
 
 	h := state.Hub()
 	h.SendDrawPrompt() // Update prompt before running query
@@ -378,7 +379,7 @@ func doDeleteBackwardWord(ctx context.Context, state *Peco, _ termbox.Event) {
 	}
 
 	sepFunc := unicode.IsSpace
-	if unicode.IsSpace(q.RuneAt(pos-1)) {
+	if unicode.IsSpace(q.RuneAt(pos - 1)) {
 		sepFunc = func(r rune) bool { return !unicode.IsSpace(r) }
 	}
 
@@ -613,11 +614,7 @@ func doDeleteBackwardChar(ctx context.Context, state *Peco, e termbox.Event) {
 		// Micro optimization
 		q.Reset()
 	} else {
-		if pos == qlen {
-			q.DeleteRange(qlen-1, qlen)
-		} else {
-			q.DeleteRange(pos-1,pos)
-		}
+		q.DeleteRange(pos-1, pos)
 	}
 	c.SetPos(pos - 1)
 
@@ -634,7 +631,7 @@ func doRefreshScreen(ctx context.Context, state *Peco, _ termbox.Event) {
 
 func doToggleQuery(ctx context.Context, state *Peco, _ termbox.Event) {
 	q := state.Query()
-	if q.Len()== 0 {
+	if q.Len() == 0 {
 		q.RestoreSavedQuery()
 	} else {
 		q.SaveQuery()

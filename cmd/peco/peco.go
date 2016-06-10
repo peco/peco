@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
 	"os"
 	"runtime"
@@ -30,5 +31,12 @@ func _main() int {
 		}
 		return 1
 	}
+
+	buf := bytes.Buffer{}
+	for line := range cli.ResultCh() {
+		buf.WriteString(line.DisplayString())
+		buf.WriteByte('\n')
+	}
+	os.Stdout.Write(buf.Bytes())
 	return 0
 }

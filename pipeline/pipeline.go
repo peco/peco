@@ -2,6 +2,9 @@
 package pipeline
 
 import (
+	"reflect"
+
+	"github.com/lestrrat/go-pdebug"
 	"github.com/pkg/errors"
 
 	"golang.org/x/net/context"
@@ -32,18 +35,28 @@ func (oc OutputChannel) OutCh() <-chan interface{} {
 }
 
 // Send sends the data `v` through this channel
-func (oc OutputChannel) Send(v interface{}) {
+func (oc OutputChannel) Send(v interface{}) (err error) {
+	if pdebug.Enabled {
+		g := pdebug.Marker("OutputChannel.Send %s", reflect.TypeOf(v).String()).BindError(&err)
+		defer g.End()
+	}
+	if oc == nil {
+		return errors.New("nil channel")
+	}
 	oc <- v
+	return nil
 }
 
 // SendEndMark sends an end mark
-func (oc OutputChannel) SendEndMark(s string) {
-	oc.Send(errors.Wrap(EndMark{}, s))
+func (oc OutputChannel) SendEndMark(s string) error {
+	return errors.Wrap(oc.Send(errors.Wrap(EndMark{}, s)), "failed to send end mark")
 }
 
 // New creates a new Pipeline
 func New() *Pipeline {
-	return &Pipeline{}
+	return &Pipeline{
+		done: make(chan struct{}),
+	}
 }
 
 // SetSource sets the source.
@@ -78,6 +91,7 @@ func (p *Pipeline) SetDestination(d Destination) {
 func (p *Pipeline) Run(ctx context.Context) error {
 	p.mutex.Lock()
 	defer p.mutex.Unlock()
+	defer close(p.done)
 
 	if p.src == nil {
 		return errors.New("source must be non-nil")
@@ -99,10 +113,12 @@ func (p *Pipeline) Run(ctx context.Context) error {
 	prev = p.dst
 	for i := len(p.nodes) - 1; i >= 0; i-- {
 		cur := p.nodes[i]
+		println(reflect.TypeOf(prev).String() + " accepting " + reflect.TypeOf(cur).String())
 		go prev.Accept(ctx, cur)
 		prev = cur
 	}
 
+	println(reflect.TypeOf(prev).String() + " accepting " + reflect.TypeOf(p.src).String())
 	// Chain to Source...
 	go prev.Accept(ctx, p.src)
 
@@ -111,11 +127,13 @@ func (p *Pipeline) Run(ctx context.Context) error {
 	go p.src.Start(ctx)
 
 	// Wait till we're done
+	println("waiting for pipeline to finish...")
 	<-p.dst.Done()
+	println("pipeline done")
 
 	return nil
 }
 
 func (p Pipeline) Done() <-chan struct{} {
-	return p.dst.Done()
+	return p.done
 }
