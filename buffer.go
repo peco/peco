@@ -23,32 +23,6 @@ func (sp simplePipeline) Pipeline() (chan struct{}, chan Line) {
 	return sp.cancelCh, sp.outputCh
 }
 
-func acceptPipeline(cancel chan struct{}, in chan Line, out chan Line, pc *pipelineCtx) {
-	trace("acceptPipeline: START")
-	defer trace("acceptPipeline: END")
-	defer close(out)
-	for {
-		select {
-		case <-cancel:
-			trace("acceptPipeline: detected cancel request. Bailing out")
-			return
-		case l, ok := <-in:
-			if l == nil && !ok {
-				trace("acceptPipeline: detected end of input. Bailing out")
-				if pc.onEnd != nil {
-					pc.onEnd()
-				}
-				return
-			}
-			trace("acceptPipeline: forwarding to callback")
-			if ll, err := pc.onIncomingLine(l); err == nil {
-				trace("acceptPipeline: forwarding to out channel")
-				out <- ll
-			}
-		}
-	}
-}
-
 func (buffers *dependentBuffers) Register(lb LineBuffer) {
 	*buffers = append(*buffers, lb)
 }
@@ -73,93 +47,6 @@ func (buffers dependentBuffers) InvalidateUpTo(i int) {
 	for _, b := range buffers {
 		b.InvalidateUpTo(i)
 	}
-}
-
-func NewRawLineBuffer() *RawLineBuffer {
-	return &RawLineBuffer{
-		simplePipeline: simplePipeline{},
-		lines:          []Line{},
-		capacity:       0,
-	}
-}
-
-func (rlb *RawLineBuffer) Replay() error {
-	rlb.outputCh = make(chan Line)
-	go func() {
-		replayed := 0
-		trace("RawLineBuffer.Replay (goroutine): START")
-		defer func() { trace("RawLineBuffer.Replay (goroutine): END (Replayed %d lines)", replayed) }()
-
-		defer func() { recover() }() // It's okay if we fail to replay
-		defer close(rlb.outputCh)
-		for _, l := range rlb.lines {
-			select {
-			case rlb.outputCh <- l:
-				replayed++
-			case <-rlb.cancelCh:
-				return
-			}
-		}
-	}()
-	return nil
-}
-
-func (rlb *RawLineBuffer) Accept(p Pipeliner) {
-	cancelCh, incomingCh := p.Pipeline()
-	rlb.cancelCh = cancelCh
-	rlb.outputCh = make(chan Line)
-	go acceptPipeline(cancelCh, incomingCh, rlb.outputCh,
-		&pipelineCtx{rlb.Append, rlb.onEnd})
-}
-
-func (rlb *RawLineBuffer) Append(l Line) (Line, error) {
-	trace("RawLineBuffer.Append: %s", l.DisplayString())
-	if rlb.capacity > 0 && len(rlb.lines) > rlb.capacity {
-		diff := len(rlb.lines) - rlb.capacity
-
-		// Golang's version of array realloc
-		rlb.lines = rlb.lines[diff:rlb.capacity:rlb.capacity]
-	} else {
-		rlb.lines = append(rlb.lines, l)
-	}
-
-	return l, nil
-}
-
-func (rlb *RawLineBuffer) Register(lb LineBuffer) {
-	rlb.buffers.Register(lb)
-}
-
-func (rlb *RawLineBuffer) Unregister(lb LineBuffer) {
-	rlb.buffers.Unregister(lb)
-}
-
-// LineAt returns the line at index `i`
-func (rlb RawLineBuffer) LineAt(i int) (Line, error) {
-	if i < 0 || len(rlb.lines) <= i {
-		return nil, ErrBufferOutOfRange
-	}
-	return rlb.lines[i], nil
-}
-
-// Size returns the number of lines in the buffer
-func (rlb RawLineBuffer) Size() int {
-	return len(rlb.lines)
-}
-
-func (rlb *RawLineBuffer) SetCapacity(capacity int) {
-	if capacity < 0 {
-		capacity = 0
-	}
-	rlb.capacity = capacity
-}
-
-func (rlb RawLineBuffer) InvalidateUpTo(_ int) {
-	// no op
-}
-
-func (rlb *RawLineBuffer) AppendLine(l Line) (Line, error) {
-	return rlb.Append(l)
 }
 
 func NewFilteredBuffer(src Buffer, page, perPage int) *FilteredBuffer {
