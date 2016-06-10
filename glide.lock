@@ -1,10 +1,16 @@
-hash: 134c81b9cf40433214000ef82cbdc415d876a5b458abfa0ca214e77989b99256
-updated: 2016-05-16T15:39:16.678074837+09:00
+hash: 854854a28c7bbb8124d302c88b30d65c4ed6a15eee43b9c7f32d4bf9e3cc4465
+updated: 2016-06-10T14:22:57.48783324+09:00
 imports:
+- name: github.com/davecgh/go-spew
+  version: 5215b55f46b2b919f50a1df0eaa5886afe4e3b3d
+  subpackages:
+  - spew
 - name: github.com/google/btree
   version: 00edb8c3163323f673bbe3c04afd9429eb12117d
 - name: github.com/jessevdk/go-flags
   version: 6b9493b3cb60367edd942144879646604089e3f7
+- name: github.com/lestrrat/go-pdebug
+  version: a45b04725d5819f9f30fb68085be53b90a1d55f1
 - name: github.com/mattn/go-runewidth
   version: d6bea18f789704b5f83375793155289da36a3c7f
 - name: github.com/nsf/termbox-go
