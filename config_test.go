@@ -30,7 +30,7 @@ func TestReadRC(t *testing.T) {
 `
 	cfg := Config{}
 	cfg.Init()
-	if err := json.Unmarshal([]byte(txt), cfg); err != nil {
+	if err := json.Unmarshal([]byte(txt), &cfg); err != nil {
 		t.Fatalf("Error unmarshaling json: %s", err)
 	}
 	t.Logf("%#v", cfg)
