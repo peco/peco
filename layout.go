@@ -416,7 +416,6 @@ func (l *ListArea) Draw(state *Peco, parent Layout, perPage int, runningQuery bo
 		x := -1 * loc.Column()
 		xOffset := loc.Column()
 		line := target.DisplayString()
-trace("on line %d target line = '%s'", y, line)
 
 		if state.SingleKeyJumpMode() || state.SingleKeyJumpShowPrefix() {
 			prefixes := state.SingleKeyJumpPrefixes()

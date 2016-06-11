@@ -22,6 +22,7 @@ var ErrFilterDidNotMatch = errors.New("error: filter did not match against given
 type LineFilter interface {
 	pipeline.ProcNode
 
+	SetQuery(string)
 	Clone() LineFilter
 	String() string
 }
@@ -86,7 +87,9 @@ func (f *Filter) Work(ctx context.Context, q hub.Payload) {
 		// Create a new pipeline
 		p := pipeline.New()
 		p.SetSource(state.Source())
-		p.Add(state.Filters().Current().Clone())
+		f := state.Filters().Current().Clone()
+		f.SetQuery(query)
+		p.Add(f)
 
 		buf := NewMemoryBuffer()
 		p.SetDestination(buf)
