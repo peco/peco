@@ -86,7 +86,7 @@ type Peco struct {
 func New() *Peco {
 	return &Peco{
 		currentLineBuffer: NewMemoryBuffer(), // XXX revisit this
-		queryExecDelay:    500 * time.Millisecond,
+		queryExecDelay:    50 * time.Millisecond,
 		selection:         NewSelection(),
 	}
 }
