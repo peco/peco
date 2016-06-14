@@ -1,7 +1,6 @@
 package peco
 
 import (
-	"sync"
 	"time"
 
 	"golang.org/x/net/context"
@@ -9,7 +8,7 @@ import (
 
 const (
 	// ToLineAbove moves the selection to the line above
-	ToLineAbove PagingRequestType = iota	// ToScrollPageDown moves the selection to the next page
+	ToLineAbove PagingRequestType = iota // ToScrollPageDown moves the selection to the next page
 	ToScrollPageDown
 	// ToLineBelow moves the selection to the line below
 	ToLineBelow
@@ -22,12 +21,6 @@ const (
 	// ToLineInPage jumps to a particular line on the page
 	ToLineInPage
 )
-
-type View struct {
-	mutex  sync.Mutex
-	layout Layout
-	state *Peco
-}
 
 type statusMsgReq interface {
 	Message() string
@@ -55,7 +48,7 @@ func NewView(state *Peco) *View {
 		layout = NewDefaultLayout(state)
 	}
 	return &View{
-		state: state,
+		state:  state,
 		layout: layout,
 	}
 }

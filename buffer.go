@@ -92,20 +92,6 @@ func (flb FilteredBuffer) Size() int {
 	return len(flb.selection)
 }
 
-// Buffer interface is used for containers for lines to be
-// processed by peco.
-type Buffer interface {
-	LineAt(int) (Line, error)
-	Size() int
-}
-
-// MemoryBuffer is an implementation of Buffer
-type MemoryBuffer struct {
-	done  chan struct{}
-	lines []Line
-	mutex sync.Mutex
-}
-
 func NewMemoryBuffer() *MemoryBuffer {
 	return &MemoryBuffer{
 		done: make(chan struct{}),

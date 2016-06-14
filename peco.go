@@ -3,7 +3,6 @@ package peco
 import (
 	"os"
 	"reflect"
-	"sync"
 	"time"
 
 	"golang.org/x/net/context"
@@ -38,49 +37,6 @@ func (is Inputseq) Len() int {
 
 func (is *Inputseq) Reset() {
 	*is = []string(nil)
-}
-
-// Peco is the global object containing everything required to run peco.
-// It also contains the global state of the program.
-type Peco struct {
-	Argv []string
-	hub  *hub.Hub
-
-	args  []string
-	caret Caret
-	// Config contains the values read in from config file
-	config                  Config
-	ctx                     context.Context
-	currentLineBuffer       Buffer
-	filters                 FilterSet
-	keymap                  Keymap
-	enableSep               bool     // Enable parsing on separators
-	inputseq                Inputseq // current key sequence (just the names)
-	layoutType              string
-	location                Location
-	prompt                  string
-	query                   Query
-	queryExecDelay          time.Duration
-	queryExecMutex          sync.Mutex
-	queryExecTimer          *time.Timer
-	resultCh                chan Line
-	selection               *Selection
-	selectionRangeStart     RangeStart
-	singleKeyJumpMode       bool
-	singleKeyJumpPrefixes   []rune
-	singleKeyJumpShowPrefix bool
-	styles                  StyleSet
-
-	Options CLIOptions
-
-	// Source is where we buffer input. It gets reused when a new query is
-	// executed.
-	source *Source
-
-	// cancelFunc is called for Exit()
-	cancelFunc func()
-	// Errors are stored here
-	err error
 }
 
 func New() *Peco {
@@ -125,11 +81,6 @@ func (p *Peco) SetResultCh(ch chan Line) {
 
 func (p Peco) Selection() *Selection {
 	return p.selection
-}
-
-type RangeStart struct {
-	val   int
-	valid bool
 }
 
 func (s RangeStart) Valid() bool {

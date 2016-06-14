@@ -19,14 +19,6 @@ import (
 
 var ErrFilterDidNotMatch = errors.New("error: filter did not match against given line")
 
-type LineFilter interface {
-	pipeline.ProcNode
-
-	SetQuery(string)
-	Clone() LineFilter
-	String() string
-}
-
 func (fx *FilterSet) Reset() {
 	fx.current = 0
 }
@@ -154,22 +146,8 @@ func (f *Filter) Loop(ctx context.Context, cancel func()) error {
 	}
 }
 
-type SelectionFilter struct {
-	sel *Selection
-}
-
 func (sf SelectionFilter) Name() string {
 	return "SelectionFilter"
-}
-
-type RegexpFilter struct {
-	compiledQuery []*regexp.Regexp
-	flags         regexpFlags
-	quotemeta     bool
-	query         string
-	name          string
-	onEnd         func()
-	outCh         pipeline.OutputChannel
 }
 
 func NewRegexpFilter() *RegexpFilter {
@@ -329,16 +307,6 @@ func NewSmartCaseFilter() *RegexpFilter {
 		quotemeta: true,
 		name:      "SmartCase",
 	}
-}
-
-type ExternalCmdFilter struct {
-	simplePipeline
-	enableSep       bool
-	cmd             string
-	args            []string
-	name            string
-	query           string
-	thresholdBufsiz int
 }
 
 func NewExternalCmdFilter(name, cmd string, args []string, threshold int, enableSep bool) *ExternalCmdFilter {

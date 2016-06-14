@@ -1,7 +1,7 @@
 package peco
 
 import (
-	"io"
+	"regexp"
 	"sync"
 	"time"
 
@@ -9,13 +9,58 @@ import (
 
 	"github.com/google/btree"
 	"github.com/nsf/termbox-go"
+	"github.com/peco/peco/hub"
 	"github.com/peco/peco/internal/keyseq"
+	"github.com/peco/peco/pipeline"
 )
 
 const invalidSelectionRange = -1
 
 type idGen struct {
 	genCh chan uint64
+}
+
+// Peco is the global object containing everything required to run peco.
+// It also contains the global state of the program.
+type Peco struct {
+	Argv []string
+	hub  *hub.Hub
+
+	args  []string
+	caret Caret
+	// Config contains the values read in from config file
+	config                  Config
+	ctx                     context.Context
+	currentLineBuffer       Buffer
+	filters                 FilterSet
+	keymap                  Keymap
+	enableSep               bool     // Enable parsing on separators
+	inputseq                Inputseq // current key sequence (just the names)
+	layoutType              string
+	location                Location
+	prompt                  string
+	query                   Query
+	queryExecDelay          time.Duration
+	queryExecMutex          sync.Mutex
+	queryExecTimer          *time.Timer
+	resultCh                chan Line
+	selection               *Selection
+	selectionRangeStart     RangeStart
+	singleKeyJumpMode       bool
+	singleKeyJumpPrefixes   []rune
+	singleKeyJumpShowPrefix bool
+	styles                  StyleSet
+
+	Options CLIOptions
+
+	// Source is where we buffer input. It gets reused when a new query is
+	// executed.
+	source *Source
+
+	// cancelFunc is called for Exit()
+	cancelFunc func()
+	// Errors are stored here
+	err error
 }
 
 // Line represents each of the line that peco uses to display
@@ -65,14 +110,6 @@ type MatchedLine struct {
 	indices [][]int
 }
 
-// BufferReader reads from either stdin or a file. In case of stdin,
-// it also handles possible infinite source.
-type BufferReader struct {
-	*Ctx
-	input        io.ReadCloser
-	inputReadyCh chan struct{}
-}
-
 type Keyseq interface {
 	Add(keyseq.KeyList, interface{})
 	AcceptKey(keyseq.Key) (interface{}, error)
@@ -119,14 +156,12 @@ type Screen interface {
 // Termbox just hands out the processing to the termbox library
 type Termbox struct{}
 
-/*
 // View handles the drawing/updating the screen
 type View struct {
-	*Ctx
-	mutex  sync.Locker
+	mutex  sync.Mutex
 	layout Layout
+	state  *Peco
 }
-*/
 
 // PageCrop filters out a new LineBuffer based on entries
 // per page and the page number
@@ -284,7 +319,7 @@ type RawLineBuffer struct {
 // the source buffer (note: should be immutable) and a list of indices
 // into the source buffer
 type FilteredBuffer struct {
-	src     Buffer
+	src       Buffer
 	selection []int // maps from our index to src's index
 }
 
@@ -427,35 +462,6 @@ type State interface {
 	SingleKeyJumpMode() bool
 }
 
-// Ctx contains all the important data. while you can easily access
-// data in this struct from anywhere, only do so via channels
-type Ctx struct {
-	*FilterQuery
-	filters             FilterSet
-	caretPosition       int
-	enableSep           bool
-	resultCh            chan Line
-	mutex               sync.Locker
-	currentLine         int
-	currentCol          int
-	selection           *Selection
-	activeLineBuffer    LineBuffer
-	rawLineBuffer       *RawLineBuffer
-	lines               []Line
-	linesMutex          sync.Locker
-	current             []Line
-	currentMutex        sync.Locker
-	bufferSize          int
-	config              *Config
-	selectionRangeStart int
-	layoutType          string
-	singleKeyJumpMode   bool
-	select1             bool
-
-	wait *sync.WaitGroup
-	err  error
-}
-
 type CLIOptions struct {
 	OptHelp           bool   `short:"h" long:"help" description:"show this help message and exit"`
 	OptTTY            string `long:"tty" description:"path to the TTY (usually, the value of $TTY)"`
@@ -473,4 +479,67 @@ type CLIOptions struct {
 }
 
 type CLI struct {
+}
+
+type RangeStart struct {
+	val   int
+	valid bool
+}
+
+// Buffer interface is used for containers for lines to be
+// processed by peco.
+type Buffer interface {
+	LineAt(int) (Line, error)
+	Size() int
+}
+
+// MemoryBuffer is an implementation of Buffer
+type MemoryBuffer struct {
+	done  chan struct{}
+	lines []Line
+	mutex sync.Mutex
+}
+
+type ActionMap interface {
+	ExecuteAction(context.Context, termbox.Event) error
+}
+
+type Input struct {
+	actions ActionMap
+	evsrc   chan termbox.Event
+	mod     *time.Timer
+	mutex   sync.Mutex
+	state   *Peco
+}
+
+type LineFilter interface {
+	pipeline.ProcNode
+
+	SetQuery(string)
+	Clone() LineFilter
+	String() string
+}
+
+type SelectionFilter struct {
+	sel *Selection
+}
+
+type RegexpFilter struct {
+	compiledQuery []*regexp.Regexp
+	flags         regexpFlags
+	quotemeta     bool
+	query         string
+	name          string
+	onEnd         func()
+	outCh         pipeline.OutputChannel
+}
+
+type ExternalCmdFilter struct {
+	simplePipeline
+	enableSep       bool
+	cmd             string
+	args            []string
+	name            string
+	query           string
+	thresholdBufsiz int
 }
