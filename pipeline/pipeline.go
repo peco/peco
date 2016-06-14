@@ -113,12 +113,10 @@ func (p *Pipeline) Run(ctx context.Context) error {
 	prev = p.dst
 	for i := len(p.nodes) - 1; i >= 0; i-- {
 		cur := p.nodes[i]
-		println(reflect.TypeOf(prev).String() + " accepting " + reflect.TypeOf(cur).String())
 		go prev.Accept(ctx, cur)
 		prev = cur
 	}
 
-	println(reflect.TypeOf(prev).String() + " accepting " + reflect.TypeOf(p.src).String())
 	// Chain to Source...
 	go prev.Accept(ctx, p.src)
 
@@ -127,9 +125,7 @@ func (p *Pipeline) Run(ctx context.Context) error {
 	go p.src.Start(ctx)
 
 	// Wait till we're done
-	println("waiting for pipeline to finish...")
 	<-p.dst.Done()
-	println("pipeline done")
 
 	return nil
 }
