@@ -99,6 +99,10 @@ type PrintArgs struct {
 }
 
 func (t Termbox) Print(args PrintArgs) int {
+	return screenPrint(t, args)
+}
+
+func screenPrint(t Screen, args PrintArgs) int {
 	var written int
 
 	bg := args.Bg

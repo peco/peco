@@ -33,7 +33,7 @@ func (d dummyScreen) Close() error {
 }
 
 func (d dummyScreen) Print(args PrintArgs) int {
-	return len(args.Msg)
+	return screenPrint(d, args)
 }
 
 func (d dummyScreen) SendEvent(e termbox.Event) {
