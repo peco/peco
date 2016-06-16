@@ -368,13 +368,17 @@ func doInvertSelection(ctx context.Context, state *Peco, _ termbox.Event) {
 }
 
 func doDeleteBackwardWord(ctx context.Context, state *Peco, _ termbox.Event) {
-	pos := state.Caret().Pos()
-	if pos == 0 {
+	q := state.Query()
+	trace("START doDeleteBackwardWord")
+	defer trace("END doDeleteBackwardWord")
+
+	c := state.Caret()
+	if c.Pos() == 0 {
 		return
 	}
 
-	q := state.Query()
-	if l := q.Len(); l <= pos {
+	pos := q.Len()
+	if l := q.Len(); l <= c.Pos() {
 		pos = l
 	}
 
@@ -387,8 +391,8 @@ func doDeleteBackwardWord(ctx context.Context, state *Peco, _ termbox.Event) {
 	start := pos
 	for pos = start - 1; pos >= 0; pos-- {
 		if sepFunc(q.RuneAt(pos)) {
-			q.DeleteRange(pos, start)
-			state.Caret().SetPos(pos + 1)
+			q.DeleteRange(pos + 1, start)
+			c.SetPos(pos + 1)
 			found = true
 			break
 		}
@@ -396,7 +400,7 @@ func doDeleteBackwardWord(ctx context.Context, state *Peco, _ termbox.Event) {
 
 	if !found {
 		q.DeleteRange(0, start)
-		state.Caret().SetPos(0)
+		c.SetPos(0)
 	}
 	if state.ExecQuery() {
 		return

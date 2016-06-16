@@ -1,7 +1,5 @@
 package peco
 
-import "fmt"
-
 func (q *Query) Reset() {
 	q.query = []rune(nil)
 }
@@ -17,7 +15,6 @@ func (q *Query) SaveQuery() {
 }
 
 func (q *Query) DeleteRange(start, end int) {
-	fmt.Printf("start = %d, end = %d, q.Len() = %d\n", start, end, q.Len())
 	if start == -1 {
 		return
 	}

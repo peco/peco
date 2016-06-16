@@ -32,10 +32,10 @@ func setDummyScreen() (*interceptor, func()) {
 	old := screen
 	guard := func() { screen = old }
 	screen = dummyScreen{
-		i,
-		100,
-		100,
-		make(chan termbox.Event, 256), // chan has a biiiig buffer, so we avoid blocking
+		interceptor: i,
+		width: 100,
+		height: 100,
+		pollCh: make(chan termbox.Event, 256), // chan has a biiiig buffer, so we avoid blocking
 	}
 	return i, guard
 }
@@ -124,7 +124,7 @@ func TestStatusBar(t *testing.T) {
 	i, guard := setDummyScreen()
 	defer guard()
 
-	st := NewStatusBar(AnchorBottom, 0, nil)
+	st := NewStatusBar(AnchorBottom, 0, NewStyleSet())
 	st.PrintStatus("Hello, World!", 0)
 
 	events := i.events

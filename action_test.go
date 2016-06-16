@@ -228,16 +228,26 @@ func TestDoDeleteBackwardWord(t *testing.T) {
 	c.SetPos(4)
 	doDeleteBackwardWord(ctx, state, termbox.Event{})
 
-	expectQueryString(t, q, " ")
-	expectCaretPos(t, c, 1)
+	if !expectQueryString(t, q, " ") {
+		return
+	}
+
+	if !expectCaretPos(t, c, 1) {
+		return
+	}
 
 	// Case 2. "foo bar<caret>" -> "foo "
 	q.query = []rune("foo bar")
 	c.SetPos(7)
 	doDeleteBackwardWord(ctx, state, termbox.Event{})
 
-	expectQueryString(t, q, "foo ")
-	expectCaretPos(t, c, 4)
+	if !expectQueryString(t, q, "foo ") {
+		return
+	}
+
+	if !expectCaretPos(t, c, 4) {
+		return
+	}
 }
 
 func writeQueryToPrompt(t *testing.T, message string) {
@@ -269,6 +279,8 @@ func TestDoAcceptChar(t *testing.T) {
 	state := New()
 	go state.Run(ctx)
 	defer cancel()
+
+	<-state.Ready()
 
 	message := "Hello, World!"
 	writeQueryToPrompt(t, message)
@@ -358,8 +370,11 @@ func TestBackToInitialFilter(t *testing.T) {
 
 	ctx, cancel := context.WithCancel(context.Background())
 	state := New()
+
 	go state.Run(ctx)
 	defer cancel()
+
+	<-state.Ready()
 
 	state.config.Keymap["C-q"] = "peco.BackToInitialFilter"
 	if state.Filters().current != 0 {
