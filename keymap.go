@@ -1,25 +1,22 @@
 package peco
 
 import (
-	"errors"
-	"fmt"
-	"os"
+	"sort"
 	"strings"
 	"time"
 
-	"golang.org/x/net/context"
-
 	"github.com/nsf/termbox-go"
 	"github.com/peco/peco/internal/keyseq"
+	"github.com/pkg/errors"
+	"golang.org/x/net/context"
 )
 
 // NewKeymap creates a new Keymap struct
-func NewKeymap(state *Peco, config map[string]string, actions map[string][]string) Keymap {
+func NewKeymap(config map[string]string, actions map[string][]string) Keymap {
 	return Keymap{
 		Config: config,
 		Action: actions,
 		seq:    keyseq.New(),
-		state:  state,
 	}
 }
 
@@ -27,13 +24,13 @@ func (km Keymap) Sequence() Keyseq {
 	return km.seq
 }
 
-func (km Keymap) ExecuteAction(ctx context.Context, ev termbox.Event) error {
+func (km Keymap) ExecuteAction(ctx context.Context, state *Peco, ev termbox.Event) error {
 	a := km.LookupAction(ev)
 	if a == nil {
 		return errors.New("action not found")
 	}
 
-	a.(Action).Execute(ctx, km.state, ev)
+	a.(Action).Execute(ctx, state, ev)
 	return nil
 }
 
@@ -44,8 +41,13 @@ func (km Keymap) LookupAction(ev termbox.Event) Action {
 		modifier = keyseq.ModAlt
 	}
 
-	key := keyseq.Key{modifier, ev.Key, ev.Ch}
+	key := keyseq.Key{
+		Modifier: modifier,
+		Key:      ev.Key,
+		Ch:       ev.Ch,
+	}
 	action, err := km.seq.AcceptKey(key)
+	trace("err = %s\n", err)
 
 	switch err {
 	case nil:
@@ -93,7 +95,7 @@ const maxResolveActionDepth = 100
 
 func (km Keymap) resolveActionName(name string, depth int) (Action, error) {
 	if depth >= maxResolveActionDepth {
-		return nil, fmt.Errorf("error: Could not resolve %s: deep recursion", name)
+		return nil, errors.Errorf("could not resolve %s: deep recursion", name)
 	}
 
 	// Can it be resolved via regular nameToActions ?
@@ -118,12 +120,12 @@ func (km Keymap) resolveActionName(name string, depth int) (Action, error) {
 		return v, nil
 	}
 
-	return nil, fmt.Errorf("error: Could not resolve %s: no such action", name)
+	return nil, errors.Errorf("could not resolve %s: no such action", name)
 }
 
 // ApplyKeybinding applies all of the custom key bindings on top of
 // the default key bindings
-func (km Keymap) ApplyKeybinding() {
+func (km *Keymap) ApplyKeybinding() error {
 	k := km.seq
 	k.Clear()
 
@@ -142,24 +144,32 @@ func (km Keymap) ApplyKeybinding() {
 
 		v, err := km.resolveActionName(as, 0)
 		if err != nil {
-			fmt.Fprintln(os.Stderr, err)
-			continue
+			return errors.Wrapf(err, "failed to resolve action name %s", as)
 		}
 		kb[s] = v
 	}
 
 	// now compile using kb
-	for s, a := range kb {
+	// there's no need to do this, but we sort keys here just to make
+	// debugging easier
+	keys := make([]string, 0, len(kb))
+	for s := range kb {
+		keys = append(keys, s)
+	}
+	sort.Strings(keys)
+
+	for _, s := range keys {
+		a := kb[s]
+		trace("%s", s)
 		list, err := keyseq.ToKeyList(s)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "Unknown key %s: %s", s, err)
-			continue
+			return errors.Wrapf(err, "urnknown key %s: %s", s, err)
 		}
 
 		k.Add(list, a)
 	}
 
-	k.Compile()
+	return errors.Wrap(k.Compile(), "failed to compile key binding patterns")
 }
 
 // TODO: this needs to be fixed.

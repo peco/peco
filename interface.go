@@ -456,6 +456,7 @@ type FilterSet struct {
 }
 
 type State interface {
+	Keymap() *Keymap
 	Query() Query
 	Screen() Screen
 	SetCurrentCol(int)
@@ -505,7 +506,7 @@ type MemoryBuffer struct {
 }
 
 type ActionMap interface {
-	ExecuteAction(context.Context, termbox.Event) error
+	ExecuteAction(context.Context, *Peco, termbox.Event) error
 }
 
 type Input struct {

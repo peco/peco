@@ -54,6 +54,8 @@ func (i *Input) handleInputEvent(ctx context.Context, ev termbox.Event) error {
 
 		m := i.mutex
 
+trace("ev = %#v", ev)
+
 		// Smells like Esc or Alt. mod == nil checks for the presense
 		// of a previous timer
 		if ev.Ch == 0 && ev.Key == 27 && i.mod == nil {
@@ -63,7 +65,7 @@ func (i *Input) handleInputEvent(ctx context.Context, ev termbox.Event) error {
 				m.Lock()
 				i.mod = nil
 				m.Unlock()
-							trace("Input.handleInputEvent: Firing delayed input event")
+				//			trace("Input.handleInputEvent: Firing delayed input event")
 				i.handleInputEvent(ctx, tmp)
 			})
 			m.Unlock()
@@ -80,7 +82,7 @@ func (i *Input) handleInputEvent(ctx context.Context, ev termbox.Event) error {
 		}
 		m.Unlock()
 
-		i.actions.ExecuteAction(ctx, ev)
+		i.state.Keymap().ExecuteAction(ctx, i.state, ev)
 
 		return nil
 	}

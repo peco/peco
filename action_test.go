@@ -349,7 +349,6 @@ func TestBeginningOfLineAndEndOfLine(t *testing.T) {
 }
 
 func TestBackToInitialFilter(t *testing.T) {
-	t.Skip("Wait till we can fix how we set keymaps from the test")
 	state := newPeco()
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -359,6 +358,10 @@ func TestBackToInitialFilter(t *testing.T) {
 	<-state.Ready()
 
 	state.config.Keymap["C-q"] = "peco.BackToInitialFilter"
+	if !assert.NoError(t, state.populateKeymap(), "populateKeymap expected to succeed") {
+		return
+	}
+
 	if !assert.Equal(t, state.Filters().current, 0, "Expected filter to be at position 0, got %d", state.Filters().current) {
 		return
 	}

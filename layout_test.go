@@ -18,8 +18,8 @@ type dummyScreen struct {
 func NewDummyScreen() *dummyScreen {
 	return &dummyScreen{
 		interceptor: newInterceptor(),
-		width:       100,
-		height:      100,
+		width:       80,
+		height:      10,
 		pollCh:      make(chan termbox.Event),
 	}
 }
