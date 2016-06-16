@@ -244,11 +244,7 @@ func writeQueryToPrompt(t *testing.T, screen Screen, message string) {
 	for str := message; true; {
 		r, size := utf8.DecodeRuneInString(str)
 		if r == utf8.RuneError {
-			if size == 0 {
-				t.Logf("End of string reached")
-				break
-			}
-			t.Errorf("Failed to decode run in string: %#U", r)
+			assert.Equal(t, 0, size, "when in error, we should have size == 0")
 			return
 		}
 
@@ -332,17 +328,22 @@ func TestBeginningOfLineAndEndOfLine(t *testing.T) {
 	go state.Run(ctx)
 	defer cancel()
 
+	<-state.Ready()
+
 	message := "Hello, World!"
 	writeQueryToPrompt(t, state.screen, message)
 	state.screen.SendEvent(termbox.Event{Key: termbox.KeyCtrlA})
-	if cp := state.Caret().Pos(); cp != 0 {
-		t.Errorf("Expected caret position to be 0, got %d", cp)
+
+	time.Sleep(time.Second)
+	if !assert.Equal(t, state.Caret().Pos(), 0, "Expected caret position to be 0, got %d", state.Caret().Pos()) {
+		return
 	}
 
 	state.screen.SendEvent(termbox.Event{Key: termbox.KeyCtrlE})
 	time.Sleep(time.Second)
-	if cp := state.Caret().Pos(); cp != len(message) {
-		t.Errorf("Expected caret position to be %d, got %d", len(message), cp)
+
+	if !assert.Equal(t, state.Caret().Pos(), len(message), "Expected caret position to be %d, got %d", len(message), state.Caret().Pos()) {
+		return
 	}
 
 }
