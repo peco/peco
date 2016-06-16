@@ -3,8 +3,6 @@ package peco
 import (
 	"bufio"
 	"bytes"
-	"errors"
-	"fmt"
 	"os/exec"
 	"regexp"
 	"sort"
@@ -15,6 +13,7 @@ import (
 	"github.com/peco/peco/hub"
 	"github.com/peco/peco/internal/util"
 	"github.com/peco/peco/pipeline"
+	"github.com/pkg/errors"
 )
 
 var ErrFilterDidNotMatch = errors.New("error: filter did not match against given line")
@@ -279,34 +278,33 @@ func (rf RegexpFilter) String() string {
 var ErrFilterNotFound = errors.New("specified filter was not found")
 
 func NewIgnoreCaseFilter() *RegexpFilter {
-	return &RegexpFilter{
-		flags:     ignoreCaseFlags,
-		quotemeta: true,
-		name:      "IgnoreCase",
-	}
+	rf := NewRegexpFilter()
+	rf.flags = ignoreCaseFlags
+	rf.quotemeta = true
+	rf.name = "IgnoreCase"
+	return rf
 }
 
 func NewCaseSensitiveFilter() *RegexpFilter {
-	return &RegexpFilter{
-		flags:     defaultFlags,
-		quotemeta: true,
-		name:      "CaseSensitive",
-	}
+	rf := NewRegexpFilter()
+	rf.quotemeta = true
+	rf.name = "CaseSensitive"
+	return rf
 }
 
 // SmartCaseFilter turns ON the ignore-case flag in the regexp
 // if the query contains a upper-case character
 func NewSmartCaseFilter() *RegexpFilter {
-	return &RegexpFilter{
-		flags: regexpFlagFunc(func(q string) []string {
-			if util.ContainsUpper(q) {
-				return defaultFlags
-			}
-			return []string{"i"}
-		}),
-		quotemeta: true,
-		name:      "SmartCase",
-	}
+	rf := NewRegexpFilter()
+	rf.quotemeta = true
+	rf.name = "SmartCase"
+	rf.flags = regexpFlagFunc(func(q string) []string {
+		if util.ContainsUpper(q) {
+			return defaultFlags
+		}
+		return []string{"i"}
+	})
+	return rf
 }
 
 func NewExternalCmdFilter(name, cmd string, args []string, threshold int, enableSep bool) *ExternalCmdFilter {
@@ -316,64 +314,73 @@ func NewExternalCmdFilter(name, cmd string, args []string, threshold int, enable
 	}
 
 	return &ExternalCmdFilter{
-		simplePipeline:  simplePipeline{},
 		enableSep:       enableSep,
 		cmd:             cmd,
 		args:            args,
 		name:            name,
 		thresholdBufsiz: threshold,
+		outCh:           pipeline.OutputChannel(make(chan interface{})),
 	}
 }
 
-func (ecf ExternalCmdFilter) Clone() QueryFilterer {
+func (ecf ExternalCmdFilter) Clone() LineFilter {
 	return &ExternalCmdFilter{
-		simplePipeline:  simplePipeline{},
 		enableSep:       ecf.enableSep,
 		cmd:             ecf.cmd,
 		args:            ecf.args,
 		name:            ecf.name,
 		thresholdBufsiz: ecf.thresholdBufsiz,
+		outCh:           pipeline.OutputChannel(make(chan interface{})),
 	}
 }
 
 func (ecf *ExternalCmdFilter) Verify() error {
 	if ecf.cmd == "" {
-		return fmt.Errorf("no executable specified for custom matcher '%s'", ecf.name)
+		return errors.Errorf("no executable specified for custom matcher '%s'", ecf.name)
 	}
 
 	if _, err := exec.LookPath(ecf.cmd); err != nil {
-		return err
+		return errors.Wrap(err, "failed to locate command")
 	}
 	return nil
 }
 
-func (ecf *ExternalCmdFilter) Accept(p Pipeliner) {
-	cancelCh, incomingCh := p.Pipeline()
-	outputCh := make(chan Line)
-	ecf.cancelCh = cancelCh
-	ecf.outputCh = outputCh
+func (ecf *ExternalCmdFilter) Accept(ctx context.Context, p pipeline.Producer) {
+	trace("START ExternalCmdFilter.Accept")
+	defer trace("END ExternalCmdFilter.Accept")
+	defer ecf.outCh.SendEndMark("end of ExternalCmdFilter")
 
-	go func() {
-		defer close(outputCh)
+	buf := make([]Line, 0, ecf.thresholdBufsiz)
+	for {
+		select {
+		case <-ctx.Done():
+			trace("ExternalCmdFilter received done")
+			return
+		case v := <-ecf.OutCh():
+			switch v.(type) {
+			case error:
+				if pipeline.IsEndMark(v.(error)) {
+					trace("ExternalCmdFilter received end mark")
+					if len(buf) > 0 {
+						ecf.launchExternalCmd(ctx, buf)
+					}
+				}
+			case Line:
+				trace("ExternalCmdFilter received new line")
+				buf = append(buf, v.(Line))
+				if len(buf) < ecf.thresholdBufsiz {
+					continue
+				}
 
-		defer trace("ExternalCmdFilter.Accept: DONE")
-
-		// for every N lines, execute the external command
-		buf := []Line{}
-		for l := range incomingCh {
-			buf = append(buf, l)
-			if len(buf) < ecf.thresholdBufsiz {
-				continue
+				ecf.launchExternalCmd(ctx, buf)
+				buf = buf[0:0]
 			}
-
-			ecf.launchExternalCmd(buf, cancelCh, outputCh)
-			buf = []Line{} // drain
 		}
+	}
+}
 
-		if len(buf) > 0 {
-			ecf.launchExternalCmd(buf, cancelCh, outputCh)
-		}
-	}()
+func (ecf ExternalCmdFilter) OutCh() <-chan interface{} {
+	return ecf.outCh
 }
 
 func (ecf *ExternalCmdFilter) SetQuery(q string) {
@@ -384,7 +391,7 @@ func (ecf ExternalCmdFilter) String() string {
 	return ecf.name
 }
 
-func (ecf *ExternalCmdFilter) launchExternalCmd(buf []Line, cancelCh chan struct{}, outputCh chan Line) {
+func (ecf *ExternalCmdFilter) launchExternalCmd(ctx context.Context, buf []Line) {
 	defer func() { recover() }() // ignore errors
 
 	trace("ExternalCmdFilter.launchExternalCmd: START")
@@ -448,14 +455,14 @@ func (ecf *ExternalCmdFilter) launchExternalCmd(buf []Line, cancelCh chan struct
 
 	for {
 		select {
-		case <-cancelCh:
+		case <-ctx.Done():
 			return
 		case l, ok := <-cmdCh:
 			if l == nil || !ok {
 				return
 			}
 			trace("Custom: l = %s", l.DisplayString())
-			outputCh <- l
+			ecf.outCh.Send(l)
 		}
 	}
 }

@@ -267,58 +267,6 @@ type Action interface {
 // ActionFunc is a type of Action that is basically just a callback.
 type ActionFunc func(context.Context, *Peco, termbox.Event)
 
-type Pipeliner interface {
-	Pipeline() (chan struct{}, chan Line)
-}
-
-type pipelineCtx struct {
-	onIncomingLine func(Line) (Line, error)
-	onEnd          func()
-}
-
-type simplePipeline struct {
-	// Close this channel if you want to cancel the entire pipeline.
-	// InputReader is the generator for the pipeline, so this is the
-	// only object that can create the cancelCh
-	cancelCh chan struct{}
-	// Consumers of this generator read from this channel.
-	outputCh chan Line
-}
-
-// LineBuffer represents a set of lines. This could be the
-// raw data read in, or filtered data, such as result of
-// running a match, or applying a selection by the user
-//
-// Buffers should be immutable.
-type LineBuffer interface {
-	Pipeliner
-
-	LineAt(int) (Line, error)
-	Size() int
-
-	// Register registers another LineBuffer that is dependent on
-	// this buffer.
-	Register(LineBuffer)
-	Unregister(LineBuffer)
-
-	// InvalidateUpTo is called when a source buffer invalidates
-	// some lines. The argument is the largest line number that
-	// should be invalidated (so anything up to that line is no
-	// longer valid in the source)
-	InvalidateUpTo(int)
-}
-
-type dependentBuffers []LineBuffer
-
-// RawLineBuffer holds the raw set of lines as read into peco.
-type RawLineBuffer struct {
-	simplePipeline
-	buffers  dependentBuffers
-	lines    []Line
-	capacity int // max number of lines. 0 means unlimited
-	onEnd    func()
-}
-
 // FilteredBuffer holds a "filtered" buffer. It holds a reference to
 // the source buffer (note: should be immutable) and a list of indices
 // into the source buffer
@@ -421,15 +369,6 @@ type CtxOptions interface {
 
 	// LayoutType returns the name of the layout to use
 	LayoutType() string
-}
-
-type QueryFilterer interface {
-	Pipeliner
-	Cancel()
-	Clone() QueryFilterer
-	Accept(Pipeliner)
-	SetQuery(string)
-	String() string
 }
 
 type Location struct {
@@ -540,11 +479,11 @@ type RegexpFilter struct {
 }
 
 type ExternalCmdFilter struct {
-	simplePipeline
 	enableSep       bool
 	cmd             string
 	args            []string
 	name            string
 	query           string
 	thresholdBufsiz int
+	outCh           pipeline.OutputChannel
 }

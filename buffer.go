@@ -16,39 +16,6 @@ import (
 // was queried was out of the containing buffer's range
 var ErrBufferOutOfRange = errors.New("error: Specified index is out of range")
 
-func (sp simplePipeline) Cancel()                 { close(sp.cancelCh) }
-func (sp simplePipeline) CancelCh() chan struct{} { return sp.cancelCh }
-func (sp simplePipeline) OutputCh() chan Line     { return sp.outputCh }
-func (sp simplePipeline) Pipeline() (chan struct{}, chan Line) {
-	return sp.cancelCh, sp.outputCh
-}
-
-func (buffers *dependentBuffers) Register(lb LineBuffer) {
-	*buffers = append(*buffers, lb)
-}
-
-func (buffers *dependentBuffers) Unregister(lb LineBuffer) {
-	for i, x := range *buffers {
-		if x == lb {
-			switch i {
-			case 0:
-				*buffers = append([]LineBuffer(nil), (*buffers)[1:]...)
-			case len(*buffers) - 1:
-				*buffers = append([]LineBuffer(nil), (*buffers)[0:i-1]...)
-			default:
-				*buffers = append(append([]LineBuffer(nil), (*buffers)[0:i-1]...), (*buffers)[i+1:]...)
-			}
-			return
-		}
-	}
-}
-
-func (buffers dependentBuffers) InvalidateUpTo(i int) {
-	for _, b := range buffers {
-		b.InvalidateUpTo(i)
-	}
-}
-
 func NewFilteredBuffer(src Buffer, page, perPage int) *FilteredBuffer {
 	fb := FilteredBuffer{
 		src: src,
