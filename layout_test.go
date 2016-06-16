@@ -15,6 +15,15 @@ type dummyScreen struct {
 	pollCh chan termbox.Event
 }
 
+func NewDummyScreen() *dummyScreen {
+	return &dummyScreen{
+		interceptor: newInterceptor(),
+		width:       100,
+		height:      100,
+		pollCh:      make(chan termbox.Event),
+	}
+}
+
 func (d dummyScreen) Init() error {
 	return nil
 }
@@ -23,21 +32,12 @@ func (d dummyScreen) Close() error {
 	return nil
 }
 
-func (d dummyScreen) SendEvent(e termbox.Event) {
-	d.pollCh <- e
+func (d dummyScreen) Print(args PrintArgs) int {
+	return len(args.Msg)
 }
 
-func setDummyScreen() (*interceptor, func()) {
-	i := newInterceptor()
-	old := screen
-	guard := func() { screen = old }
-	screen = dummyScreen{
-		interceptor: i,
-		width: 100,
-		height: 100,
-		pollCh: make(chan termbox.Event, 256), // chan has a biiiig buffer, so we avoid blocking
-	}
-	return i, guard
+func (d dummyScreen) SendEvent(e termbox.Event) {
+	d.pollCh <- e
 }
 
 func (d dummyScreen) SetCell(x, y int, ch rune, fg, bg termbox.Attribute) {
@@ -76,16 +76,22 @@ func TestLayoutType(t *testing.T) {
 }
 
 func TestPrintScreen(t *testing.T) {
-	i, guard := setDummyScreen()
-	defer guard()
+	screen := NewDummyScreen()
 
 	makeVerifier := func(initX, initY int, fill bool) func(string) {
 		return func(msg string) {
-			i.reset()
+			screen.interceptor.reset()
 			t.Logf("Checking printScreen(%d, %d, %s, %t)", initX, initY, msg, fill)
 			width := utf8.RuneCountInString(msg)
-			printScreen(initX, initY, termbox.ColorDefault, termbox.ColorDefault, msg, fill)
-			events := i.events["SetCell"]
+			screen.Print(PrintArgs{
+				X:    initX,
+				Y:    initY,
+				Fg:   termbox.ColorDefault,
+				Bg:   termbox.ColorDefault,
+				Msg:  msg,
+				Fill: fill,
+			})
+			events := screen.interceptor.events["SetCell"]
 			if !fill {
 				if len(events) != width {
 					t.Errorf("Expected %d SetCell events, got %d",
@@ -121,13 +127,11 @@ func TestPrintScreen(t *testing.T) {
 }
 
 func TestStatusBar(t *testing.T) {
-	i, guard := setDummyScreen()
-	defer guard()
-
-	st := NewStatusBar(AnchorBottom, 0, NewStyleSet())
+	screen := NewDummyScreen()
+	st := NewStatusBar(screen, AnchorBottom, 0, NewStyleSet())
 	st.PrintStatus("Hello, World!", 0)
 
-	events := i.events
+	events := screen.interceptor.events
 	if l := len(events["Flush"]); l != 1 {
 		t.Errorf("Expected 1 Flush event, got %d", l)
 		return

@@ -17,9 +17,6 @@ import (
 
 const version = "v0.3.6"
 
-// Global variable that bridges the "screen", so testing is easier
-var screen Screen = Termbox{}
-
 // Inputseq is a list of keys that the user typed
 type Inputseq []string
 
@@ -44,12 +41,17 @@ func New() *Peco {
 		currentLineBuffer: NewMemoryBuffer(), // XXX revisit this
 		queryExecDelay:    50 * time.Millisecond,
 		readyCh:           make(chan struct{}),
+		screen:            Termbox{},
 		selection:         NewSelection(),
 	}
 }
 
 func (p Peco) Ready() <-chan struct{} {
 	return p.readyCh
+}
+
+func (p Peco) Screen() Screen {
+	return p.screen
 }
 
 func (p Peco) Styles() *StyleSet {
@@ -218,8 +220,8 @@ func (p *Peco) Run(ctx context.Context) error {
 	// screen.Init must be called within Run() because we
 	// want to make sure to call screen.Close() after getting
 	// out of Run()
-	screen.Init()
-	defer screen.Close()
+	p.screen.Init()
+	defer p.screen.Close()
 
 	var _cancel func()
 	ctx, _cancel = context.WithCancel(ctx)
@@ -238,7 +240,7 @@ func (p *Peco) Run(ctx context.Context) error {
 	loopers := []interface {
 		Loop(ctx context.Context, cancel func()) error
 	}{
-		NewInput(p, p.Keymap(), screen.PollEvent()),
+		NewInput(p, p.Keymap(), p.screen.PollEvent()),
 		NewView(p),
 		NewFilter(p),
 		sig.New(sig.SigReceivedHandlerFunc(func(sig os.Signal) {

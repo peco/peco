@@ -45,6 +45,7 @@ type Peco struct {
 	queryExecTimer          *time.Timer
 	readyCh                 chan struct{}
 	resultCh                chan Line
+	screen                  Screen
 	selection               *Selection
 	selectionRangeStart     RangeStart
 	singleKeyJumpMode       bool
@@ -149,6 +150,7 @@ type Screen interface {
 	Close() error
 	Flush() error
 	PollEvent() chan termbox.Event
+	Print(PrintArgs) int
 	SetCell(int, int, rune, termbox.Attribute, termbox.Attribute)
 	Size() (int, int)
 	SendEvent(termbox.Event)
@@ -192,6 +194,7 @@ type Layout interface {
 type AnchorSettings struct {
 	anchor       VerticalAnchor // AnchorTop or AnchorBottom
 	anchorOffset int            // offset this many lines from the anchor
+	screen       Screen
 }
 
 // UserPrompt draws the prompt line
@@ -454,7 +457,7 @@ type FilterSet struct {
 
 type State interface {
 	Query() Query
-
+	Screen() Screen
 	SetCurrentCol(int)
 	CurrentCol() int
 	SetCurrentLine(int)

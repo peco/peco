@@ -1,6 +1,11 @@
 package peco
 
-import "github.com/nsf/termbox-go"
+import (
+	"unicode/utf8"
+
+	"github.com/mattn/go-runewidth"
+	"github.com/nsf/termbox-go"
+)
 
 // termbox always gives us some sort of warning when we run
 // go run -race cmd/peco/peco.go
@@ -81,4 +86,58 @@ func (t Termbox) Size() (int, int) {
 	termboxMutex.Lock()
 	defer termboxMutex.Unlock()
 	return termboxSize()
+}
+
+type PrintArgs struct {
+	X       int
+	XOffset int
+	Y       int
+	Fg      termbox.Attribute
+	Bg      termbox.Attribute
+	Msg     string
+	Fill    bool
+}
+
+func (t Termbox) Print(args PrintArgs) int {
+	var written int
+
+	bg := args.Bg
+	fg := args.Fg
+	msg := args.Msg
+	x := args.X
+	y := args.Y
+	xOffset := args.XOffset
+	for len(msg) > 0 {
+		c, w := utf8.DecodeRuneInString(msg)
+		if c == utf8.RuneError {
+			c = '?'
+			w = 1
+		}
+		msg = msg[w:]
+		if c == '\t' {
+			// In case we found a tab, we draw it as 4 spaces
+			n := 4 - (x+xOffset)%4
+			for i := int(0); i <= n; i++ {
+				t.SetCell(int(x+i), int(y), ' ', fg, bg)
+			}
+			written += n
+			x += n
+		} else {
+			t.SetCell(int(x), int(y), c, fg, bg)
+			n := int(runewidth.RuneWidth(c))
+			x += n
+			written += n
+		}
+	}
+
+	if !args.Fill {
+		return written
+	}
+
+	width, _ := t.Size()
+	for ; x < int(width); x++ {
+		t.SetCell(int(x), int(y), ' ', fg, bg)
+	}
+	written += int(width) - x
+	return written
 }
