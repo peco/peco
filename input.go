@@ -31,11 +31,6 @@ func (i *Input) Loop(ctx context.Context, cancel func()) error {
 			}
 		}
 	}
-	return nil
-}
-
-type redrawer interface {
-	Redraw(bool)
 }
 
 func (i *Input) handleInputEvent(ctx context.Context, ev termbox.Event) error {
@@ -52,9 +47,7 @@ func (i *Input) handleInputEvent(ctx context.Context, ev termbox.Event) error {
 		// we workaround it by waiting (juuuust a few milliseconds) for
 		// extra key events. If no extra events arrive, it should be Esc
 
-		m := i.mutex
-
-trace("ev = %#v", ev)
+		m := &i.mutex
 
 		// Smells like Esc or Alt. mod == nil checks for the presense
 		// of a previous timer

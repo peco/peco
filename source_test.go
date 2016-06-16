@@ -24,7 +24,7 @@ func addReadDelay(r io.Reader, delay time.Duration) io.Reader {
 	}
 }
 
-func (r delayedReader) Read(b []byte) (int, error) {
+func (r *delayedReader) Read(b []byte) (int, error) {
 	r.once.Do(func() { time.Sleep(r.delay) })
 	return r.Reader.Read(b)
 }

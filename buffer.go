@@ -67,11 +67,11 @@ func NewMemoryBuffer() *MemoryBuffer {
 
 // XXX go through an accessor that returns a reference so that
 // we are sure we are accessing/modifying the same mutex
-func (mb MemoryBuffer) locker() *sync.Mutex {
+func (mb *MemoryBuffer) locker() *sync.Mutex {
 	return &mb.mutex
 }
 
-func (mb MemoryBuffer) Size() int {
+func (mb *MemoryBuffer) Size() int {
 	l := mb.locker()
 	l.Lock()
 	defer l.Unlock()
@@ -84,7 +84,7 @@ func (mb *MemoryBuffer) Reset() {
 	mb.lines = []Line(nil)
 }
 
-func (mb MemoryBuffer) Done() <-chan struct{} {
+func (mb *MemoryBuffer) Done() <-chan struct{} {
 	return mb.done
 }
 
@@ -115,7 +115,7 @@ func (mb *MemoryBuffer) Accept(ctx context.Context, p pipeline.Producer) {
   }
 }
 
-func (mb MemoryBuffer) LineAt(n int) (Line, error) {
+func (mb *MemoryBuffer) LineAt(n int) (Line, error) {
 	l := mb.locker()
 	l.Lock()
 	defer l.Unlock()

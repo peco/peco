@@ -35,11 +35,11 @@ func (q *Query) DeleteRange(start, end int) {
 	q.query = q.query[:q.Len()-(end-start)]
 }
 
-func (q Query) String() string {
+func (q *Query) String() string {
 	return string(q.query)
 }
 
-func (q Query) Len() int {
+func (q *Query) Len() int {
 	return len(q.query)
 }
 
@@ -50,11 +50,11 @@ func (q *Query) Append(r rune) {
 	q.query = append(q.query, r)
 }
 
-func (q Query) Runes() []rune {
+func (q *Query) Runes() []rune {
 	return q.query
 }
 
-func (q Query) RuneAt(where int) rune {
+func (q *Query) RuneAt(where int) rune {
 	return q.query[where]
 }
 

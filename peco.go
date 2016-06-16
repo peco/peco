@@ -47,31 +47,31 @@ func New() *Peco {
 	}
 }
 
-func (p Peco) Ready() <-chan struct{} {
+func (p *Peco) Ready() <-chan struct{} {
 	return p.readyCh
 }
 
-func (p Peco) Screen() Screen {
+func (p *Peco) Screen() Screen {
 	return p.screen
 }
 
-func (p Peco) Styles() *StyleSet {
+func (p *Peco) Styles() *StyleSet {
 	return &p.styles
 }
 
-func (p Peco) Prompt() string {
+func (p *Peco) Prompt() string {
 	return p.prompt
 }
 
-func (p Peco) Inputseq() *Inputseq {
+func (p *Peco) Inputseq() *Inputseq {
 	return &p.inputseq
 }
 
-func (p Peco) Context() context.Context {
+func (p *Peco) Context() context.Context {
 	return p.ctx
 }
 
-func (p Peco) LayoutType() string {
+func (p *Peco) LayoutType() string {
 	return p.layoutType
 }
 
@@ -79,7 +79,7 @@ func (p *Peco) Location() *Location {
 	return &p.location
 }
 
-func (p Peco) ResultCh() chan Line {
+func (p *Peco) ResultCh() chan Line {
 	return p.resultCh
 }
 
@@ -87,7 +87,7 @@ func (p *Peco) SetResultCh(ch chan Line) {
 	p.resultCh = ch
 }
 
-func (p Peco) Selection() *Selection {
+func (p *Peco) Selection() *Selection {
 	return p.selection
 }
 
@@ -108,19 +108,19 @@ func (s *RangeStart) Reset() {
 	s.valid = false
 }
 
-func (p Peco) SelectionRangeStart() *RangeStart {
+func (p *Peco) SelectionRangeStart() *RangeStart {
 	return &p.selectionRangeStart
 }
 
-func (p Peco) SingleKeyJumpShowPrefix() bool {
+func (p *Peco) SingleKeyJumpShowPrefix() bool {
 	return p.singleKeyJumpShowPrefix
 }
 
-func (p Peco) SingleKeyJumpPrefixes() []rune {
+func (p *Peco) SingleKeyJumpPrefixes() []rune {
 	return p.singleKeyJumpPrefixes
 }
 
-func (p Peco) SingleKeyJumpMode() bool {
+func (p *Peco) SingleKeyJumpMode() bool {
 	return p.singleKeyJumpMode
 }
 
@@ -150,7 +150,7 @@ func (p *Peco) Query() *Query {
 	return &p.query
 }
 
-func (p Peco) QueryExecDelay() time.Duration {
+func (p *Peco) QueryExecDelay() time.Duration {
 	return p.queryExecDelay
 }
 
@@ -173,7 +173,7 @@ func (p *Peco) Exit(err error) {
 	}
 }
 
-func (p Peco) Keymap() Keymap {
+func (p *Peco) Keymap() Keymap {
 	return p.keymap
 }
 
@@ -370,7 +370,7 @@ func (p *Peco) populateStyles() error {
 	return nil
 }
 
-func (p Peco) CurrentLineBuffer() Buffer {
+func (p *Peco) CurrentLineBuffer() Buffer {
 	return p.currentLineBuffer
 }
 
