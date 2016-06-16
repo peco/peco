@@ -9,6 +9,7 @@ import (
 
 	"github.com/nsf/termbox-go"
 	"github.com/peco/peco/internal/util"
+	"github.com/pkg/errors"
 )
 
 // DefaultCustomFilterBufferThreshold is the default value
@@ -47,7 +48,7 @@ func (c *Config) ReadFilename(filename string) error {
 	}
 
 	if !IsValidLayoutType(LayoutType(c.Layout)) {
-		return fmt.Errorf("invalid layout type: %s", c.Layout)
+		return errors.Errorf("invalid layout type: %s", c.Layout)
 	}
 
 	if len(c.CustomMatcher) > 0 {
@@ -55,7 +56,7 @@ func (c *Config) ReadFilename(filename string) error {
 
 		for n, cfg := range c.CustomMatcher {
 			if _, ok := c.CustomFilter[n]; ok {
-				return fmt.Errorf("error: CustomFilter '%s' already exists. Refusing to overwrite with deprecated CustomMatcher config", n)
+				return errors.Errorf("failed to create CustomFilter: '%s' already exists. Refusing to overwrite with deprecated CustomMatcher config", n)
 			}
 
 			c.CustomFilter[n] = CustomFilterConfig{
@@ -211,5 +212,5 @@ func LocateRcfile() (string, error) {
 		}
 	}
 
-	return "", fmt.Errorf("error: Config file not found")
+	return "", errors.New("config file not found")
 }

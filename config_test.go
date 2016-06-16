@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"github.com/nsf/termbox-go"
+	"github.com/pkg/errors"
 )
 
 func TestReadRC(t *testing.T) {
@@ -103,7 +104,7 @@ func TestLocateRcfile(t *testing.T) {
 			t.Errorf("Expected %s, got %s", expected[i], dir)
 		}
 		i++
-		return "", fmt.Errorf("error: Not found")
+		return "", errors.New("error: Not found")
 	}
 
 	os.Setenv("XDG_CONFIG_HOME", dir)

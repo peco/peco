@@ -1,16 +1,16 @@
 package keyseq
 
 import (
-	"fmt"
 	"strings"
 	"sync"
 	"time"
 
 	"github.com/nsf/termbox-go"
+	"github.com/pkg/errors"
 )
 
-var ErrInSequence = fmt.Errorf("Currently expecting a key sequence")
-var ErrNoMatch = fmt.Errorf("Could not match key to any action")
+var ErrInSequence = errors.New("expected a key sequence")
+var ErrNoMatch = errors.New("could not match key to any action")
 
 type ModifierKey int
 
