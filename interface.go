@@ -43,6 +43,7 @@ type Peco struct {
 	queryExecDelay          time.Duration
 	queryExecMutex          sync.Mutex
 	queryExecTimer          *time.Timer
+	readyCh                 chan struct{}
 	resultCh                chan Line
 	selection               *Selection
 	selectionRangeStart     RangeStart

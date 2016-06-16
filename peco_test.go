@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
+	"golang.org/x/net/context"
 )
 
 type interceptorArgs []interface{}
@@ -63,10 +64,10 @@ func TestPeco(t *testing.T) {
 	p := New()
 	p.Argv = []string{"peco", file}
 
-	time.AfterFunc(time.Second, func() {
-		p.Exit(nil)
-	})
-	if !assert.NoError(t, p.Run(), "p.Run() succeeds") {
+	ctx, cancel := context.WithCancel(context.Background())
+	time.AfterFunc(time.Second, cancel)
+
+	if !assert.NoError(t, p.Run(ctx), "p.Run() succeeds") {
 		return
 	}
 }

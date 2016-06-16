@@ -1,5 +1,7 @@
 package peco
 
+import "fmt"
+
 func (q *Query) Reset() {
 	q.query = []rune(nil)
 }
@@ -15,12 +17,17 @@ func (q *Query) SaveQuery() {
 }
 
 func (q *Query) DeleteRange(start, end int) {
+	fmt.Printf("start = %d, end = %d, q.Len() = %d\n", start, end, q.Len())
 	if start == -1 {
 		return
 	}
 
 	if end > q.Len() {
 		end = q.Len()
+	}
+
+	if start > end {
+		return
 	}
 
 	// everything up to "start" is left in tact
@@ -70,4 +77,3 @@ func (q *Query) InsertAt(ch rune, where int) {
 	copy(buf[where+1:], sq[where:])
 	q.query = buf
 }
-

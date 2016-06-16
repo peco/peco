@@ -43,8 +43,13 @@ func New() *Peco {
 	return &Peco{
 		currentLineBuffer: NewMemoryBuffer(), // XXX revisit this
 		queryExecDelay:    50 * time.Millisecond,
+		readyCh:           make(chan struct{}),
 		selection:         NewSelection(),
 	}
+}
+
+func (p Peco) Ready() <-chan struct{} {
+	return p.readyCh
 }
 
 func (p Peco) Styles() *StyleSet {
@@ -170,6 +175,8 @@ func (p Peco) Keymap() Keymap {
 }
 
 func (p *Peco) Setup() error {
+	trace("START Peco.Setup")
+	defer trace("END Peco.Setup")
 	if err := p.config.Init(); err != nil {
 		return errors.Wrap(err, "failed to initialize config")
 	}
@@ -190,6 +197,7 @@ func (p *Peco) Setup() error {
 	}
 
 	// XXX p.Keymap et al should be initialized around here
+	p.hub = hub.New(5)
 
 	// Setup source buffer
 	src, err := p.SetupSource()
@@ -197,13 +205,13 @@ func (p *Peco) Setup() error {
 		return errors.Wrap(err, "failed to setup input source")
 	}
 	p.source = src
-
-	p.hub = hub.New(5)
-
+	p.ResetCurrentLineBuffer()
 	return nil
 }
 
-func (p *Peco) Run() error {
+func (p *Peco) Run(ctx context.Context) error {
+	trace("START Peco.Run")
+	defer trace("END Peco.Run")
 	if err := p.Setup(); err != nil {
 		return errors.Wrap(err, "failed to setup peco")
 	}
@@ -213,10 +221,8 @@ func (p *Peco) Run() error {
 	screen.Init()
 	defer screen.Close()
 
-	var ctx context.Context
 	var _cancel func()
-
-	ctx, _cancel = context.WithCancel(context.Background())
+	ctx, _cancel = context.WithCancel(ctx)
 	cancel := func() {
 		trace("cancel function called!")
 		_cancel()
@@ -245,6 +251,7 @@ func (p *Peco) Run() error {
 	}
 
 	trace("peco is now ready, go go go!")
+	close(p.readyCh)
 	<-ctx.Done()
 
 	return p.Err()
@@ -261,6 +268,8 @@ func parseCommandLine(opts *CLIOptions, args *[]string, argv []string) error {
 }
 
 func (p *Peco) SetupSource() (*Source, error) {
+	trace("START Peco.SetupSource")
+	defer trace("END Peco.SetupSource")
 	var in *os.File
 	var err error
 	switch {
@@ -278,6 +287,7 @@ func (p *Peco) SetupSource() (*Source, error) {
 
 	src := NewSource(in, p.enableSep)
 	// Block until we receive something from `in`
+	trace("Blocking until we read something in source...")
 	go src.Setup(p)
 	<-src.Ready()
 
@@ -373,6 +383,13 @@ func (p *Peco) ResetCurrentLineBuffer() {
 func (p *Peco) ExecQuery() bool {
 	trace("Peco.ExecQuery: START")
 	defer trace("Peco.ExecQuery: END")
+
+	select {
+	case <-p.Ready():
+	default:
+		trace("peco is not ready yet, ignoring.")
+		return false
+	}
 
 	// If this is an empty query, reset the display to show
 	// the raw source buffer

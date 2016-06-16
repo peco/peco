@@ -495,15 +495,16 @@ func doBackwardChar(ctx context.Context, state *Peco, _ termbox.Event) {
 
 func doDeleteForwardWord(ctx context.Context, state *Peco, _ termbox.Event) {
 	c := state.Caret()
-	if state.Query().Len() <= c.Pos() {
+	q := state.Query()
+	start := c.Pos()
+
+	if q.Len() <= start {
 		return
 	}
 
-	start := c.Pos()
 
 	// If we are on a word (non-Space, delete till the end of the word.
 	// If we are on a space, delete till the end of space.
-	q := state.Query()
 	sepFunc := unicode.IsSpace
 	if unicode.IsSpace(q.RuneAt(start)) {
 		sepFunc = func(r rune) bool { return !unicode.IsSpace(r) }
@@ -511,13 +512,13 @@ func doDeleteForwardWord(ctx context.Context, state *Peco, _ termbox.Event) {
 
 	for pos := start; pos < q.Len(); pos++ {
 		if pos == q.Len()-1 {
-			q.DeleteRange(pos, q.Len())
+			q.DeleteRange(start, q.Len())
 			c.SetPos(start)
 			break
 		}
 
 		if sepFunc(q.RuneAt(pos)) {
-			q.DeleteRange(pos, start)
+			q.DeleteRange(start, pos)
 			c.SetPos(start)
 			break
 		}

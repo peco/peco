@@ -7,6 +7,7 @@ import (
 	"runtime"
 
 	"github.com/peco/peco"
+	"golang.org/x/net/context"
 )
 
 func main() {
@@ -23,9 +24,10 @@ func _main() int {
 	if envvar := os.Getenv("GOMAXPROCS"); envvar == "" {
 		runtime.GOMAXPROCS(runtime.NumCPU())
 	}
+	ctx := context.Background()
 
 	cli := peco.New()
-	if err := cli.Run(); err != nil {
+	if err := cli.Run(ctx); err != nil {
 		if err != peco.ErrUserCanceled {
 			fmt.Fprintf(os.Stderr, "Error: %s\n", err)
 		}

@@ -135,7 +135,7 @@ func (mb *MemoryBuffer) Accept(ctx context.Context, p pipeline.Producer) {
 			switch v.(type) {
 			case error:
         if pipeline.IsEndMark(v.(error)) {
-				trace("MemoryBuffer received end mark")
+					trace("MemoryBuffer received end mark (read %d lines)", mb.Size())
           return
         }
       case Line:
@@ -241,8 +241,11 @@ func (s *Source) Setup(state *Peco) {
 			close(s.ready)
 		}
 		scanner := bufio.NewScanner(s.in)
+
+		readCount := 0
 		for scanner.Scan() {
 			txt := scanner.Text()
+			readCount++
 			s.lines = append(s.lines, NewRawLine(txt, s.enableSep))
 			notify.Do(notifycb)
 
@@ -251,7 +254,12 @@ func (s *Source) Setup(state *Peco) {
 				refresh <- struct{}{}
 			}()
 		}
-		trace("Read all from source")
+
+		// XXX Just in case scanner.Scan() did not return a single line...
+		// Note: this will be a no-op if notify.Do has been called before
+		notify.Do(notifycb)
+
+		trace("Read all %d lines from source", readCount)
 	})
 }
 

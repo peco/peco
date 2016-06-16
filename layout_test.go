@@ -1,5 +1,3 @@
-// +build none
-
 package peco
 
 import (
@@ -126,7 +124,7 @@ func TestStatusBar(t *testing.T) {
 	i, guard := setDummyScreen()
 	defer guard()
 
-	st := NewStatusBar(NewCtx(nil), AnchorBottom, 0)
+	st := NewStatusBar(AnchorBottom, 0, nil)
 	st.PrintStatus("Hello, World!", 0)
 
 	events := i.events

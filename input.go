@@ -49,7 +49,7 @@ func (i *Input) handleInputEvent(ctx context.Context, ev termbox.Event) error {
 	case termbox.EventKey:
 		// ModAlt is a sequence of letters with a leading \x1b (=Esc).
 		// It would be nice if termbox differentiated this for us, but
-		// we workaround it by waiting (juuuuse a few milliseconds) for
+		// we workaround it by waiting (juuuust a few milliseconds) for
 		// extra key events. If no extra events arrive, it should be Esc
 
 		m := i.mutex
@@ -63,7 +63,7 @@ func (i *Input) handleInputEvent(ctx context.Context, ev termbox.Event) error {
 				m.Lock()
 				i.mod = nil
 				m.Unlock()
-				//			trace("Input.handleInputEvent: Firing delayed input event")
+							trace("Input.handleInputEvent: Firing delayed input event")
 				i.handleInputEvent(ctx, tmp)
 			})
 			m.Unlock()

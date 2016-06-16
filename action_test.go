@@ -1,23 +1,24 @@
-// +build none
-
 package peco
 
 import (
+	"runtime"
 	"testing"
 	"time"
 	"unicode/utf8"
 
 	"github.com/nsf/termbox-go"
+	"github.com/stretchr/testify/assert"
+	"golang.org/x/net/context"
 )
 
 func TestActionFunc(t *testing.T) {
 	called := 0
-	af := ActionFunc(func(_ *Input, _ termbox.Event) {
+	af := ActionFunc(func(_ context.Context, _ *Peco, _ termbox.Event) {
 		called++
 	})
-	af.Execute(nil, termbox.Event{})
-	if called != 1 {
-		t.Errorf("Expected ActionFunc to be called once, but it got called %d times", called)
+	af.Execute(nil, nil, termbox.Event{})
+	if !assert.Equal(t, called, 1, "Expected ActionFunc to be called once, but it got called %d times", called) {
+		return
 	}
 }
 
@@ -54,129 +55,189 @@ func TestActionNames(t *testing.T) {
 	}
 }
 
-func expectCaretPos(t *testing.T, c interface {
-	CaretPos() int
-}, expect int) bool {
-	if c.CaretPos() != expect {
-		t.Errorf("Expected caret position %d, got %d", expect, c.CaretPos())
-		return false
-	}
-	return true
+func expectCaretPos(t *testing.T, c *Caret, expect int) bool {
+	return assert.Equal(t, expect, c.Pos(), "Expected caret position %d, got %d", expect, c.Pos())
 }
 
-func expectQueryString(t *testing.T, c interface {
-	QueryString() string
-}, expect string) bool {
-	if c.QueryString() != expect {
-		t.Errorf("Expected '%s', got '%s'", expect, c.QueryString())
-		return false
-	}
-	return true
+func expectQueryString(t *testing.T, q *Query, expect string) bool {
+	return assert.Equal(t, expect, q.String(), "Expected '%s', got '%s'", expect, q.String())
 }
 
 func TestDoDeleteForwardChar(t *testing.T) {
-	ctx := NewCtx(nil)
-	input := ctx.NewInput()
+	_, guard := setDummyScreen()
+	defer guard()
 
-	ctx.SetQuery([]rune("Hello, World!"))
-	ctx.SetCaretPos(5)
-	doDeleteForwardChar(input, termbox.Event{})
+	_, file, _, _ := runtime.Caller(0)
+	state := New()
+	state.args = []string{"peco", file}
+	q := state.Query()
+	c := state.Caret()
 
-	expectQueryString(t, ctx, "Hello World!")
-	expectCaretPos(t, ctx, 5)
+	ctx, cancel := context.WithCancel(context.Background())
+	go state.Run(ctx)
+	defer cancel()
 
-	ctx.SetCaretPos(ctx.QueryLen())
-	doDeleteForwardChar(input, termbox.Event{})
+	<-state.Ready()
 
-	expectQueryString(t, ctx, "Hello World!")
-	expectCaretPos(t, ctx, ctx.QueryLen())
+	q.query = []rune("Hello, World!")
+	c.SetPos(5)
 
-	ctx.SetCaretPos(0)
-	doDeleteForwardChar(input, termbox.Event{})
+	doDeleteForwardChar(ctx, state, termbox.Event{})
 
-	expectQueryString(t, ctx, "ello World!")
-	expectCaretPos(t, ctx, 0)
+	if !expectQueryString(t, q, "Hello World!") {
+		return
+	}
+	if !expectCaretPos(t, c, 5) {
+		return
+	}
+
+	c.SetPos(q.Len())
+	doDeleteForwardChar(ctx, state, termbox.Event{})
+
+	expectQueryString(t, q, "Hello World!")
+	expectCaretPos(t, c, q.Len())
+
+	c.SetPos(0)
+	doDeleteForwardChar(ctx, state, termbox.Event{})
+
+	expectQueryString(t, q, "ello World!")
+	expectCaretPos(t, c, 0)
 }
 
 func TestDoDeleteForwardWord(t *testing.T) {
-	ctx := NewCtx(nil)
-	input := ctx.NewInput()
+	_, guard := setDummyScreen()
+	defer guard()
 
-	ctx.SetQuery([]rune("Hello, World!"))
-	ctx.SetCaretPos(5)
-	doDeleteForwardWord(input, termbox.Event{})
+	ctx, cancel := context.WithCancel(context.Background())
+	_, file, _, _ := runtime.Caller(0)
+	state := New()
+	state.args = []string{"peco", file}
+	q := state.Query()
+	c := state.Caret()
 
-	expectQueryString(t, ctx, "Hello World!")
-	expectCaretPos(t, ctx, 5)
+	go state.Run(ctx)
+	defer cancel()
 
-	ctx.SetCaretPos(ctx.QueryLen())
-	doDeleteForwardWord(input, termbox.Event{})
+	<-state.Ready()
 
-	expectQueryString(t, ctx, "Hello World!")
-	expectCaretPos(t, ctx, ctx.QueryLen())
+	q.query = []rune("Hello, World!")
+	c.SetPos(5)
 
-	ctx.SetCaretPos(0)
-	doDeleteForwardWord(input, termbox.Event{})
+	// delete the comma
+	doDeleteForwardWord(ctx, state, termbox.Event{})
+	if !expectQueryString(t, q, "Hello World!") {
+		return
+	}
 
-	expectQueryString(t, ctx, " World!")
-	expectCaretPos(t, ctx, 0)
+	if !expectCaretPos(t, c, 5) {
+		return
+	}
 
-	ctx.SetCaretPos(1)
-	doDeleteForwardWord(input, termbox.Event{})
+	// at the end of the query, should not delete anything
+	c.SetPos(q.Len())
+	doDeleteForwardWord(ctx, state, termbox.Event{})
 
-	expectQueryString(t, ctx, " ")
+	if !expectQueryString(t, q, "Hello World!") {
+		return
+	}
+	if !expectCaretPos(t, c, q.Len()) {
+		return
+	}
+
+	// back to the first column, should delete 'Hello'
+	c.SetPos(0)
+	doDeleteForwardWord(ctx, state, termbox.Event{})
+
+	if !expectQueryString(t, q, " World!") {
+		return
+	}
+
+	if !expectCaretPos(t, c, 0) {
+		return
+	}
+
+	// should delete "World"
+	c.SetPos(1)
+	doDeleteForwardWord(ctx, state, termbox.Event{})
+
+	if !expectQueryString(t, q, " ") {
+		return
+	}
 }
 
 func TestDoDeleteBackwardChar(t *testing.T) {
-	ctx := NewCtx(nil)
-	input := ctx.NewInput()
+	_, guard := setDummyScreen()
+	defer guard()
 
-	ctx.SetQuery([]rune("Hello, World!"))
-	ctx.SetCaretPos(5)
-	doDeleteBackwardChar(input, termbox.Event{})
+	ctx, cancel := context.WithCancel(context.Background())
+	_, file, _, _ := runtime.Caller(0)
+	state := New()
+	state.args = []string{"peco", file}
+	q := state.Query()
+	c := state.Caret()
 
-	expectQueryString(t, ctx, "Hell, World!")
-	expectCaretPos(t, ctx, 4)
+	go state.Run(ctx)
+	defer cancel()
 
-	ctx.SetCaretPos(ctx.QueryLen())
-	doDeleteBackwardChar(input, termbox.Event{})
+	<-state.Ready()
 
-	expectQueryString(t, ctx, "Hell, World")
-	expectCaretPos(t, ctx, ctx.QueryLen())
+	q.query = []rune("Hello, World!")
+	c.SetPos(5)
 
-	ctx.SetCaretPos(0)
-	doDeleteBackwardChar(input, termbox.Event{})
+	doDeleteBackwardChar(ctx, state, termbox.Event{})
 
-	expectQueryString(t, ctx, "Hell, World")
-	expectCaretPos(t, ctx, 0)
+	expectQueryString(t, q, "Hell, World!")
+	expectCaretPos(t, c, 4)
+
+	c.SetPos(q.Len())
+	doDeleteBackwardChar(ctx, state, termbox.Event{})
+
+	expectQueryString(t, q, "Hell, World")
+	expectCaretPos(t, c, q.Len())
+
+	c.SetPos(0)
+	doDeleteBackwardChar(ctx, state, termbox.Event{})
+
+	expectQueryString(t, q, "Hell, World")
+	expectCaretPos(t, c, 0)
 }
 
 func TestDoDeleteBackwardWord(t *testing.T) {
-	ctx := NewCtx(nil)
-	input := ctx.NewInput()
+	_, guard := setDummyScreen()
+	defer guard()
+
+	ctx, cancel := context.WithCancel(context.Background())
+	state := New()
+	q := state.Query()
+	c := state.Caret()
+
+	go state.Run(ctx)
+	defer cancel()
+
+	<-state.Ready()
 
 	// In case of an overflow (bug)
-	ctx.SetQuery([]rune("foo"))
-	ctx.SetCaretPos(5)
-	doDeleteBackwardWord(input, termbox.Event{})
+	q.query = []rune("foo")
+	c.SetPos(5)
+	doDeleteBackwardWord(ctx, state, termbox.Event{})
 
 	// https://github.com/peco/peco/pull/184#issuecomment-54026739
 
 	// Case 1. " foo<caret>" -> " "
-	ctx.SetQuery([]rune(" foo"))
-	ctx.SetCaretPos(4)
-	doDeleteBackwardWord(input, termbox.Event{})
+	q.query = []rune(" foo")
+	c.SetPos(4)
+	doDeleteBackwardWord(ctx, state, termbox.Event{})
 
-	expectQueryString(t, ctx, " ")
-	expectCaretPos(t, ctx, 1)
+	expectQueryString(t, q, " ")
+	expectCaretPos(t, c, 1)
 
 	// Case 2. "foo bar<caret>" -> "foo "
-	ctx.SetQuery([]rune("foo bar"))
-	ctx.SetCaretPos(7)
-	doDeleteBackwardWord(input, termbox.Event{})
+	q.query = []rune("foo bar")
+	c.SetPos(7)
+	doDeleteBackwardWord(ctx, state, termbox.Event{})
 
-	expectQueryString(t, ctx, "foo ")
-	expectCaretPos(t, ctx, 4)
+	expectQueryString(t, q, "foo ")
+	expectCaretPos(t, c, 4)
 }
 
 func writeQueryToPrompt(t *testing.T, message string) {
@@ -204,25 +265,26 @@ func TestDoAcceptChar(t *testing.T) {
 	_, guard := setDummyScreen()
 	defer guard()
 
-	ctx := newCtx(nil, 25)
-	defer ctx.Stop()
-	ctx.startInput()
+	ctx, cancel := context.WithCancel(context.Background())
+	state := New()
+	go state.Run(ctx)
+	defer cancel()
 
 	message := "Hello, World!"
 	writeQueryToPrompt(t, message)
 	time.Sleep(500 * time.Millisecond)
 
-	if qs := ctx.QueryString(); qs != message {
+	if qs := state.Query().String(); qs != message {
 		t.Errorf("Expected query to be populated as '%s', but got '%s'", message, qs)
 	}
 
-	ctx.MoveCaretPos(-1 * len("World!"))
+	state.Caret().Move(-1 * len("World!"))
 	writeQueryToPrompt(t, "Cruel ")
 
 	time.Sleep(500 * time.Millisecond)
 
 	expected := "Hello, Cruel World!"
-	if qs := ctx.QueryString(); qs != expected {
+	if qs := state.Query().String(); qs != expected {
 		t.Errorf("Expected query to be populated as '%s', but got '%s'", expected, qs)
 	}
 }
@@ -231,24 +293,25 @@ func TestRotateFilter(t *testing.T) {
 	_, guard := setDummyScreen()
 	defer guard()
 
-	ctx := newCtx(nil, 25)
-	defer ctx.Stop()
-
-	size := ctx.filters.Size()
-	if size < 2 {
-		t.Errorf("Can't proceed testing, only have 1 filter registered")
+	state := New()
+	size := state.filters.Size()
+	if size <= 1 {
+		t.Skip("Can't proceed testing, only have 1 filter registered")
+		return
 	}
 
-	ctx.startInput()
+	ctx, cancel := context.WithCancel(context.Background())
+	go state.Run(ctx)
+	defer cancel()
 
-	var prev QueryFilterer
-	first := ctx.Filter()
+	var prev LineFilter
+	first := state.Filters().Current()
 	prev = first
 	for i := 0; i < size; i++ {
 		screen.SendEvent(termbox.Event{Key: termbox.KeyCtrlR})
 
 		time.Sleep(500 * time.Millisecond)
-		f := ctx.Filter()
+		f := state.Filters().Current()
 		if f == prev {
 			t.Errorf("failed to rotate")
 		}
@@ -266,21 +329,24 @@ func TestBeginningOfLineAndEndOfLine(t *testing.T) {
 	_, guard := setDummyScreen()
 	defer guard()
 
-	ctx := newCtx(nil, 25)
-	defer ctx.Stop()
+	_, file, _, _ := runtime.Caller(0)
+	state := New()
+	state.args = []string{"peco", file}
 
-	ctx.startInput()
+	ctx, cancel := context.WithCancel(context.Background())
+	go state.Run(ctx)
+	defer cancel()
 
 	message := "Hello, World!"
 	writeQueryToPrompt(t, message)
 	screen.SendEvent(termbox.Event{Key: termbox.KeyCtrlA})
-	if cp := ctx.CaretPos(); cp != 0 {
+	if cp := state.Caret().Pos(); cp != 0 {
 		t.Errorf("Expected caret position to be 0, got %d", cp)
 	}
 
 	screen.SendEvent(termbox.Event{Key: termbox.KeyCtrlE})
 	time.Sleep(time.Second)
-	if cp := ctx.CaretPos(); cp != len(message) {
+	if cp := state.Caret().Pos(); cp != len(message) {
 		t.Errorf("Expected caret position to be %d, got %d", len(message), cp)
 	}
 
@@ -290,27 +356,28 @@ func TestBackToInitialFilter(t *testing.T) {
 	_, guard := setDummyScreen()
 	defer guard()
 
-	ctx := newCtx(nil, 25)
-	defer ctx.Stop()
+	ctx, cancel := context.WithCancel(context.Background())
+	state := New()
+	go state.Run(ctx)
+	defer cancel()
 
-	ctx.config.Keymap["C-q"] = "peco.BackToInitialFilter"
-	ctx.startInput()
-	if ctx.filters.current != 0 {
-		t.Errorf("Expected filter to be at position 0, got %d", ctx.filters.current)
+	state.config.Keymap["C-q"] = "peco.BackToInitialFilter"
+	if state.Filters().current != 0 {
+		t.Errorf("Expected filter to be at position 0, got %d", state.Filters().current)
 		return
 	}
 
 	screen.SendEvent(termbox.Event{Key: termbox.KeyCtrlR})
 	time.Sleep(time.Second)
-	if ctx.filters.current != 1 {
-		t.Errorf("Expected filter to be at position 1, got %d", ctx.filters.current)
+	if state.Filters().current != 1 {
+		t.Errorf("Expected filter to be at position 1, got %d", state.Filters().current)
 		return
 	}
 
 	screen.SendEvent(termbox.Event{Key: termbox.KeyCtrlQ})
 	time.Sleep(time.Second)
-	if ctx.filters.current != 0 {
-		t.Errorf("Expected filter to be at position 0, got %d", ctx.filters.current)
+	if state.Filters().current != 0 {
+		t.Errorf("Expected filter to be at position 0, got %d", state.Filters().current)
 		return
 	}
 }
