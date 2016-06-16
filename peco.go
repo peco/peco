@@ -38,6 +38,7 @@ func (is *Inputseq) Reset() {
 
 func New() *Peco {
 	return &Peco{
+		Argv:              os.Args,
 		currentLineBuffer: NewMemoryBuffer(), // XXX revisit this
 		queryExecDelay:    50 * time.Millisecond,
 		readyCh:           make(chan struct{}),
@@ -283,7 +284,7 @@ func (p *Peco) SetupSource() (*Source, error) {
 	case !util.IsTty(os.Stdin.Fd()):
 		in = os.Stdin
 	default:
-		return nil, errors.Wrap(err, "error: You must supply something to work with via filename or stdin")
+		return nil, errors.New("you must supply something to work with via filename or stdin")
 	}
 	defer in.Close()
 
@@ -380,8 +381,7 @@ func (p *Peco) SetCurrentLineBuffer(b Buffer) {
 }
 
 func (p *Peco) ResetCurrentLineBuffer() {
-	p.currentLineBuffer = p.source
-	p.Hub().SendDraw(false)
+	p.SetCurrentLineBuffer(p.source)
 }
 
 func (p *Peco) ExecQuery() bool {
