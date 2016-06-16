@@ -10,6 +10,23 @@ import (
 	"github.com/pkg/errors"
 )
 
+// BufferSize returns the specified buffer size. Fulfills CtxOptions
+func (o CLIOptions) BufferSize() int {
+	return o.OptBufferSize
+}
+
+// EnableNullSep returns true if --null was specified. Fulfills CtxOptions
+func (o CLIOptions) EnableNullSep() bool {
+	return o.OptEnableNullSep
+}
+
+func (o CLIOptions) InitialIndex() int {
+	return o.OptInitialIndex
+}
+
+func (o CLIOptions) LayoutType() string {
+	return o.OptLayout
+}
 func (options *CLIOptions) parse(s []string) ([]string, error) {
 	p := flags.NewParser(options, flags.PrintErrors)
 	args, err := p.ParseArgs(s)
