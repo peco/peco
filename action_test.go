@@ -158,7 +158,7 @@ func TestDoDeleteForwardWord(t *testing.T) {
 func newPeco() *Peco {
 	_, file, _, _ := runtime.Caller(0)
 	state := New()
-	state.args = []string{"peco", file}
+	state.Argv = []string{"peco", file}
 	state.screen = NewDummyScreen()
 	return state
 }
