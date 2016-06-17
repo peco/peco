@@ -24,4 +24,3 @@ func (i VerticalAnchor) String() string {
 	}
 	return _VerticalAnchor_name[_VerticalAnchor_index[i]:_VerticalAnchor_index[i+1]]
 }
-

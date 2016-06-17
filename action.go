@@ -391,7 +391,7 @@ func doDeleteBackwardWord(ctx context.Context, state *Peco, _ termbox.Event) {
 	start := pos
 	for pos = start - 1; pos >= 0; pos-- {
 		if sepFunc(q.RuneAt(pos)) {
-			q.DeleteRange(pos + 1, start)
+			q.DeleteRange(pos+1, start)
 			c.SetPos(pos + 1)
 			found = true
 			break
@@ -505,7 +505,6 @@ func doDeleteForwardWord(ctx context.Context, state *Peco, _ termbox.Event) {
 	if q.Len() <= start {
 		return
 	}
-
 
 	// If we are on a word (non-Space, delete till the end of the word.
 	// If we are on a space, delete till the end of space.

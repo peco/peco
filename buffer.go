@@ -16,16 +16,16 @@ func NewFilteredBuffer(src Buffer, page, perPage int) *FilteredBuffer {
 		src: src,
 	}
 
-  s := perPage * (page - 1)
-  if s > src.Size() {
-    return &fb
-  }
+	s := perPage * (page - 1)
+	if s > src.Size() {
+		return &fb
+	}
 
 	selection := make([]int, 0, src.Size())
-  e := s + perPage
-  if e >= src.Size() {
-    e = src.Size()
-  }
+	e := s + perPage
+	if e >= src.Size() {
+		e = src.Size()
+	}
 
 	for i := s; i < e; i++ {
 		selection = append(selection, i)
@@ -78,26 +78,26 @@ func (mb *MemoryBuffer) Accept(ctx context.Context, p pipeline.Producer) {
 	defer trace("END MemoryBuffer.Accept")
 	defer close(mb.done)
 
-  for {
-    select {
-    case <-ctx.Done():
+	for {
+		select {
+		case <-ctx.Done():
 			trace("MemoryBuffer received context done")
-      return
-    case v := <-p.OutCh():
+			return
+		case v := <-p.OutCh():
 			switch v.(type) {
 			case error:
-        if pipeline.IsEndMark(v.(error)) {
+				if pipeline.IsEndMark(v.(error)) {
 					trace("MemoryBuffer received end mark (read %d lines)", mb.Size())
-          return
-        }
-      case Line:
+					return
+				}
+			case Line:
 				trace("MemoryBuffer received new line")
 				mb.lines = append(mb.lines, v.(Line))
 			default:
 				trace("MemoryBuffer received something else %s", v)
 			}
-    }
-  }
+		}
+	}
 }
 
 func (mb *MemoryBuffer) LineAt(n int) (Line, error) {

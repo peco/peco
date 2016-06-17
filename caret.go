@@ -15,5 +15,3 @@ func (c *Caret) SetPos(p int) {
 func (c *Caret) Move(diff int) {
 	c.SetPos(c.Pos() + diff)
 }
-
-

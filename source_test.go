@@ -58,7 +58,7 @@ func TestSource(t *testing.T) {
 	// Even if s.Ready() returns, we may still be reading.
 	// Wait for another few seconds for the buffer to fill up to
 	// the expected number of lines
-	timeout = time.After(5 *time.Second)
+	timeout = time.After(5 * time.Second)
 	for s.Size() != len(lines) {
 		select {
 		case <-timeout:
