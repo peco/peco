@@ -232,6 +232,7 @@ func (p *Peco) Setup() (err error) {
 	}
 	p.source = src
 	p.ResetCurrentLineBuffer()
+
 	return nil
 }
 
@@ -286,6 +287,19 @@ func (p *Peco) Run(ctx context.Context) (err error) {
 	}
 
 	close(p.readyCh)
+	if p.Options.OptSelect1 {
+		go func() {
+			<-p.source.Done()
+			if b := p.CurrentLineBuffer(); b.Size() == 1 {
+				if l, err := b.LineAt(0); err == nil {
+					p.resultCh = make(chan Line)
+					p.Exit(nil)
+					p.resultCh <- l
+					close(p.resultCh)
+				}
+			}
+		}()
+	}
 	<-ctx.Done()
 
 	return p.Err()

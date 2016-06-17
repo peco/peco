@@ -115,23 +115,13 @@ func (mb *MemoryBuffer) LineAt(n int) (Line, error) {
 	return mb.lines[n], nil
 }
 
-// Source implements pipline.Source, and is the buffer for the input
-type Source struct {
-	pipeline.OutputChannel
-	MemoryBuffer
-
-	in        io.Reader
-	enableSep bool
-	ready     chan struct{}
-	setupOnce sync.Once
-}
-
 // Creates a new Source. Does not start processing the input until you
 // call Setup()
 func NewSource(in io.Reader, enableSep bool) *Source {
 	return &Source{
 		in:            in, // Note that this may be closed, so do not rely on it
 		enableSep:     enableSep,
+		done: make(chan struct{}),
 		ready:         make(chan struct{}),
 		setupOnce:     sync.Once{},
 		OutputChannel: pipeline.OutputChannel(make(chan interface{})),
@@ -212,6 +202,9 @@ func (s *Source) Setup(state *Peco) {
 		// XXX Just in case scanner.Scan() did not return a single line...
 		// Note: this will be a no-op if notify.Do has been called before
 		notify.Do(notifycb)
+		// And also, close the done channel so we can tell the consumers
+		// we have finished reading everything
+		close(s.done)
 
 		if pdebug.Enabled {
 			pdebug.Printf("Read all %d lines from source", readCount)
@@ -243,4 +236,10 @@ func (s *Source) Start(ctx context.Context) {
 // the first line of input is processed via Setup()
 func (s *Source) Ready() <-chan struct{} {
 	return s.ready
+}
+
+// Done returns the "read all lines" channel. It will be closed as soon as
+// the all input has been read
+func (s *Source) Done() <-chan struct{} {
+	return s.done
 }

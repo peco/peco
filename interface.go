@@ -409,6 +409,18 @@ type FilterSet struct {
 	current int
 }
 
+// Source implements pipline.Source, and is the buffer for the input
+type Source struct {
+	pipeline.OutputChannel
+	MemoryBuffer
+
+	in        io.Reader
+	enableSep bool
+	done      chan struct{}
+	ready     chan struct{}
+	setupOnce sync.Once
+}
+
 type State interface {
 	Keymap() *Keymap
 	Query() Query
