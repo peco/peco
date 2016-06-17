@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"regexp"
 	"strings"
+
+	"github.com/pkg/errors"
 )
 
 // These are used as keys in the config file
@@ -37,7 +39,7 @@ func regexpFor(q string, flags []string, quotemeta bool) (*regexp.Regexp, error)
 
 	re, err := regexp.Compile(reTxt)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrapf(err, "failed to compile regular expression '%s'", reTxt)
 	}
 	return re, nil
 }
@@ -49,7 +51,7 @@ func queryToRegexps(flags regexpFlags, quotemeta bool, query string) ([]*regexp.
 	for _, q := range queries {
 		re, err := regexpFor(q, flags.flags(query), quotemeta)
 		if err != nil {
-			return nil, err
+			return nil, errors.Wrapf(err, "failed to compile regular expression '%s'", q)
 		}
 		regexps = append(regexps, re)
 	}

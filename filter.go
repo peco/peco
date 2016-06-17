@@ -197,7 +197,7 @@ func (rf *RegexpFilter) filter(l Line) (Line, error) {
 	defer trace("RegexpFilter.filter: END")
 	regexps, err := rf.getQueryAsRegexps()
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "failed to compile queries as regular expression")
 	}
 	v := l.DisplayString()
 	allMatched := true
@@ -253,7 +253,7 @@ func (rf *RegexpFilter) getQueryAsRegexps() ([]*regexp.Regexp, error) {
 	}
 	q, err := queryToRegexps(rf.flags, rf.quotemeta, rf.query)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "failed to compile queries as regular expression")
 	}
 
 	rf.compiledQuery = q

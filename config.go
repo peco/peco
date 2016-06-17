@@ -38,13 +38,13 @@ func (c *Config) Init() error {
 func (c *Config) ReadFilename(filename string) error {
 	f, err := os.Open(filename)
 	if err != nil {
-		return err
+		return errors.Wrapf(err, "failed to open file %s", filename)
 	}
 	defer f.Close()
 
 	err = json.NewDecoder(f).Decode(c)
 	if err != nil {
-		return err
+		return errors.Wrap(err, "failed to decode JSON")
 	}
 
 	if !IsValidLayoutType(LayoutType(c.Layout)) {
@@ -118,7 +118,7 @@ func NewStyleSet() *StyleSet {
 func (s *Style) UnmarshalJSON(buf []byte) error {
 	raw := []string{}
 	if err := json.Unmarshal(buf, &raw); err != nil {
-		return err
+		return errors.Wrapf(err, "failed to unmarshal Style")
 	}
 	*s = *stringsToStyle(raw)
 	return nil
@@ -163,7 +163,7 @@ func locateRcfileIn(dir string) (string, error) {
 	const basename = "config.json"
 	file := filepath.Join(dir, basename)
 	if _, err := os.Stat(file); err != nil {
-		return "", err
+		return "", errors.Wrapf(err, "failed to stat file %s", file)
 	}
 	return file, nil
 }

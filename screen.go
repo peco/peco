@@ -5,6 +5,7 @@ import (
 
 	"github.com/mattn/go-runewidth"
 	"github.com/nsf/termbox-go"
+	"github.com/pkg/errors"
 )
 
 // termbox always gives us some sort of warning when we run
@@ -14,7 +15,7 @@ var termboxMutex = newMutex()
 func (t Termbox) Init() error {
 	trace("initializing termbox")
 	if err := termbox.Init(); err != nil {
-		return err
+		return errors.Wrap(err, "failed to initialized termbox")
 	}
 
 	return t.PostInit()
@@ -36,7 +37,7 @@ func (t Termbox) SendEvent(_ termbox.Event) {
 func (t Termbox) Flush() error {
 	termboxMutex.Lock()
 	defer termboxMutex.Unlock()
-	return termbox.Flush()
+	return errors.Wrap(termbox.Flush(), "failed to flush termbox")
 }
 
 // PollEvent returns a channel that you can listen to for
