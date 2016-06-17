@@ -8,12 +8,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-// termbox always gives us some sort of warning when we run
-// go run -race cmd/peco/peco.go
-var termboxMutex = newMutex()
-
-func (t Termbox) Init() error {
-	trace("initializing termbox")
+func (t *Termbox) Init() error {
 	if err := termbox.Init(); err != nil {
 		return errors.Wrap(err, "failed to initialized termbox")
 	}
@@ -21,7 +16,7 @@ func (t Termbox) Init() error {
 	return t.PostInit()
 }
 
-func (t Termbox) Close() error {
+func (t *Termbox) Close() error {
 	termbox.Close()
 	return nil
 }
@@ -29,21 +24,21 @@ func (t Termbox) Close() error {
 // SendEvent is used to allow programmers generate random
 // events, but it's only useful for testing purposes.
 // When interactiving with termbox-go, this method is a noop
-func (t Termbox) SendEvent(_ termbox.Event) {
+func (t *Termbox) SendEvent(_ termbox.Event) {
 	// no op
 }
 
 // Flush calls termbox.Flush
-func (t Termbox) Flush() error {
-	termboxMutex.Lock()
-	defer termboxMutex.Unlock()
+func (t *Termbox) Flush() error {
+	t.mutex.Lock()
+	defer t.mutex.Unlock()
 	return errors.Wrap(termbox.Flush(), "failed to flush termbox")
 }
 
 // PollEvent returns a channel that you can listen to for
 // termbox's events. The actual polling is done in a
 // separate gouroutine
-func (t Termbox) PollEvent() chan termbox.Event {
+func (t *Termbox) PollEvent() chan termbox.Event {
 	// XXX termbox.PollEvent() can get stuck on unexpected signal
 	// handling cases. We still would like to wait until the user
 	// (termbox) has some event for us to process, but we don't
@@ -66,16 +61,16 @@ func (t Termbox) PollEvent() chan termbox.Event {
 }
 
 // SetCell writes to the terminal
-func (t Termbox) SetCell(x, y int, ch rune, fg, bg termbox.Attribute) {
-	termboxMutex.Lock()
-	defer termboxMutex.Unlock()
+func (t *Termbox) SetCell(x, y int, ch rune, fg, bg termbox.Attribute) {
+	t.mutex.Lock()
+	defer t.mutex.Unlock()
 	termbox.SetCell(x, y, ch, fg, bg)
 }
 
 // Size returns the dimensions of the current terminal
-func (t Termbox) Size() (int, int) {
-	termboxMutex.Lock()
-	defer termboxMutex.Unlock()
+func (t *Termbox) Size() (int, int) {
+	t.mutex.Lock()
+	defer t.mutex.Unlock()
 	return termbox.Size()
 }
 
@@ -89,7 +84,7 @@ type PrintArgs struct {
 	Fill    bool
 }
 
-func (t Termbox) Print(args PrintArgs) int {
+func (t *Termbox) Print(args PrintArgs) int {
 	return screenPrint(t, args)
 }
 

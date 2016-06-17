@@ -8,6 +8,7 @@ import (
 	"golang.org/x/net/context"
 
 	"github.com/google/btree"
+	"github.com/lestrrat/go-pdebug"
 	"github.com/peco/peco/hub"
 	"github.com/peco/peco/internal/util"
 	"github.com/peco/peco/pipeline"
@@ -42,7 +43,7 @@ func New() *Peco {
 		currentLineBuffer: NewMemoryBuffer(), // XXX revisit this
 		queryExecDelay:    50 * time.Millisecond,
 		readyCh:           make(chan struct{}),
-		screen:            Termbox{},
+		screen:            &Termbox{},
 		selection:         NewSelection(),
 	}
 }
@@ -177,9 +178,12 @@ func (p *Peco) Keymap() Keymap {
 	return p.keymap
 }
 
-func (p *Peco) Setup() error {
-	trace("START Peco.Setup")
-	defer trace("END Peco.Setup")
+func (p *Peco) Setup() (err error) {
+	if pdebug.Enabled {
+		g := pdebug.Marker("Peco.Setup").BindError(&err)
+		defer g.End()
+	}
+
 	if err := p.config.Init(); err != nil {
 		return errors.Wrap(err, "failed to initialize config")
 	}
@@ -212,9 +216,12 @@ func (p *Peco) Setup() error {
 	return nil
 }
 
-func (p *Peco) Run(ctx context.Context) error {
-	trace("START Peco.Run")
-	defer trace("END Peco.Run")
+func (p *Peco) Run(ctx context.Context) (err error) {
+	if pdebug.Enabled {
+		g := pdebug.Marker("Peco.Run").BindError(&err)
+		defer g.End()
+	}
+
 	if err := p.Setup(); err != nil {
 		return errors.Wrap(err, "failed to setup peco")
 	}
@@ -227,7 +234,9 @@ func (p *Peco) Run(ctx context.Context) error {
 	var _cancel func()
 	ctx, _cancel = context.WithCancel(ctx)
 	cancel := func() {
-		trace("cancel function called!")
+		if pdebug.Enabled {
+			pdebug.Printf("Peco.Run cancel called")
+		}
 		_cancel()
 	}
 
@@ -253,7 +262,10 @@ func (p *Peco) Run(ctx context.Context) error {
 		go l.Loop(ctx, cancel)
 	}
 
-	trace("peco is now ready, go go go!")
+	if pdebug.Enabled {
+		pdebug.Printf("peco is now ready, go go go!")
+	}
+
 	close(p.readyCh)
 	<-ctx.Done()
 
@@ -270,11 +282,13 @@ func parseCommandLine(opts *CLIOptions, args *[]string, argv []string) error {
 	return nil
 }
 
-func (p *Peco) SetupSource() (*Source, error) {
-	trace("START Peco.SetupSource")
-	defer trace("END Peco.SetupSource")
+func (p *Peco) SetupSource() (s *Source, err error) {
+	if pdebug.Enabled {
+		g := pdebug.Marker("Peco.SetupSource").BindError(&err)
+		defer g.End()
+	}
+
 	var in *os.File
-	var err error
 	switch {
 	case len(p.args) > 1:
 		in, err = os.Open(p.args[1])
@@ -289,8 +303,11 @@ func (p *Peco) SetupSource() (*Source, error) {
 	defer in.Close()
 
 	src := NewSource(in, p.enableSep)
+
 	// Block until we receive something from `in`
-	trace("Blocking until we read something in source...")
+	if pdebug.Enabled {
+		pdebug.Printf("Blocking until we read something in source...")
+	}
 	go src.Setup(p)
 	<-src.Ready()
 
@@ -375,7 +392,10 @@ func (p *Peco) CurrentLineBuffer() Buffer {
 }
 
 func (p *Peco) SetCurrentLineBuffer(b Buffer) {
-	trace("Peco.SetCurrentLineBuffer %s", reflect.TypeOf(b).String())
+	if pdebug.Enabled {
+		g := pdebug.Marker("Peco.SetCurrentLineBuffer %s", reflect.TypeOf(b).String())
+		defer g.End()
+	}
 	p.currentLineBuffer = b
 	p.Hub().SendDraw(false)
 }
@@ -385,13 +405,17 @@ func (p *Peco) ResetCurrentLineBuffer() {
 }
 
 func (p *Peco) ExecQuery() bool {
-	trace("Peco.ExecQuery: START")
-	defer trace("Peco.ExecQuery: END")
+	if pdebug.Enabled {
+		g := pdebug.Marker("Peco.ExecQuery")
+		defer g.End()
+	}
 
 	select {
 	case <-p.Ready():
 	default:
-		trace("peco is not ready yet, ignoring.")
+		if pdebug.Enabled {
+			pdebug.Printf("peco is not ready yet, ignoring.")
+		}
 		return false
 	}
 
@@ -399,7 +423,9 @@ func (p *Peco) ExecQuery() bool {
 	// the raw source buffer
 	q := p.Query()
 	if q.Len() <= 0 {
-		trace("empty query, reset buffer")
+		if pdebug.Enabled {
+			pdebug.Printf("empty query, reset buffer")
+		}
 		p.ResetCurrentLineBuffer()
 		return true
 	}

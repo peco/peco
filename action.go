@@ -1,23 +1,19 @@
 package peco
 
 import (
-	"errors"
 	"fmt"
 	"io/ioutil"
 	"os"
 	"os/exec"
 	"unicode"
 
-	"golang.org/x/net/context"
-
 	"github.com/google/btree"
+	"github.com/lestrrat/go-pdebug"
 	"github.com/nsf/termbox-go"
 	"github.com/peco/peco/internal/keyseq"
+	"github.com/pkg/errors"
+	"golang.org/x/net/context"
 )
-
-// ErrUserCanceled is used to signal that the user deliberately
-// canceled using peco
-var ErrUserCanceled = errors.New("canceled")
 
 // This is the global map of canonical action name to actions
 var nameToActions map[string]Action
@@ -168,7 +164,6 @@ func doAcceptChar(ctx context.Context, state *Peco, e termbox.Event) {
 
 	q.InsertAt(ch, c.Pos())
 	c.Move(1)
-	trace("query = '%s'", q.String())
 
 	h := state.Hub()
 	h.SendDrawPrompt() // Update prompt before running query
@@ -177,8 +172,10 @@ func doAcceptChar(ctx context.Context, state *Peco, e termbox.Event) {
 }
 
 func doRotateFilter(ctx context.Context, state *Peco, e termbox.Event) {
-	trace("doRotateFitler: START")
-	defer trace("doRotateFitler: END")
+	if pdebug.Enabled {
+		g := pdebug.Marker("doRotateFilter")
+		defer g.End()
+	}
 
 	filters := state.Filters()
 	filters.Rotate()
@@ -190,8 +187,10 @@ func doRotateFilter(ctx context.Context, state *Peco, e termbox.Event) {
 }
 
 func doBackToInitialFilter(ctx context.Context, state *Peco, e termbox.Event) {
-	trace("doBackToInitialFilter: START")
-	defer trace("doBackToInitialFilter: END")
+	if pdebug.Enabled {
+		g := pdebug.Marker("doBackToInitialFilter")
+		defer g.End()
+	}
 
 	filters := state.Filters()
 	filters.Reset()
@@ -203,6 +202,11 @@ func doBackToInitialFilter(ctx context.Context, state *Peco, e termbox.Event) {
 }
 
 func doToggleSelection(ctx context.Context, state *Peco, _ termbox.Event) {
+	if pdebug.Enabled {
+		g := pdebug.Marker("doToggleSelection")
+		defer g.End()
+	}
+
 	l, err := state.CurrentLineBuffer().LineAt(state.Location().LineNumber())
 	if err != nil {
 		return
@@ -217,8 +221,10 @@ func doToggleSelection(ctx context.Context, state *Peco, _ termbox.Event) {
 }
 
 func doToggleRangeMode(ctx context.Context, state *Peco, _ termbox.Event) {
-	trace("doToggleRangeMode: START")
-	defer trace("doToggleRangeMode: END")
+	if pdebug.Enabled {
+		g := pdebug.Marker("doToggleRangeMode")
+		defer g.End()
+	}
 
 	r := state.SelectionRangeStart()
 	if r.Valid() {
@@ -255,8 +261,10 @@ func doSelectAll(ctx context.Context, state *Peco, _ termbox.Event) {
 }
 
 func doSelectVisible(ctx context.Context, state *Peco, _ termbox.Event) {
-	trace("doSelectVisible: START")
-	defer trace("doSelectVisible: END")
+	if pdebug.Enabled {
+		g := pdebug.Marker("doSelectVisible")
+		defer g.End()
+	}
 
 	b := state.CurrentLineBuffer()
 	selection := state.Selection()
@@ -275,8 +283,10 @@ func doSelectVisible(ctx context.Context, state *Peco, _ termbox.Event) {
 }
 
 func doFinish(ctx context.Context, state *Peco, _ termbox.Event) {
-	trace("doFinish: START")
-	defer trace("doFinish: END")
+	if pdebug.Enabled {
+		g := pdebug.Marker("doFinish")
+		defer g.End()
+	}
 
 	selection := state.Selection()
 	// Must end with all the selected lines.
@@ -306,12 +316,14 @@ func doCancel(ctx context.Context, state *Peco, e termbox.Event) {
 	}
 
 	// peco.Cancel -> end program, exit with failure
-	state.Exit(ErrUserCanceled)
+	state.Exit(errors.New("user canceled"))
 }
 
 func doSelectDown(ctx context.Context, state *Peco, e termbox.Event) {
-	trace("doSelectDown: START")
-	defer trace("doSelectDown: END")
+	if pdebug.Enabled {
+		g := pdebug.Marker("doSelectDown")
+		defer g.End()
+	}
 	state.Hub().SendPaging(ToLineBelow)
 }
 
@@ -348,8 +360,10 @@ func doToggleSelectionAndSelectNext(ctx context.Context, state *Peco, e termbox.
 }
 
 func doInvertSelection(ctx context.Context, state *Peco, _ termbox.Event) {
-	trace("doInvertSelection: START")
-	defer trace("doInvertSelection: END")
+	if pdebug.Enabled {
+		g := pdebug.Marker("doInvertSelection")
+		defer g.End()
+	}
 
 	selection := state.Selection()
 	selection.Reset()
@@ -368,15 +382,17 @@ func doInvertSelection(ctx context.Context, state *Peco, _ termbox.Event) {
 }
 
 func doDeleteBackwardWord(ctx context.Context, state *Peco, _ termbox.Event) {
-	q := state.Query()
-	trace("START doDeleteBackwardWord")
-	defer trace("END doDeleteBackwardWord")
+	if pdebug.Enabled {
+		g := pdebug.Marker("doDeleteBackwardWord")
+		defer g.End()
+	}
 
 	c := state.Caret()
 	if c.Pos() == 0 {
 		return
 	}
 
+	q := state.Query()
 	pos := q.Len()
 	if l := q.Len(); l <= c.Pos() {
 		pos = l
@@ -596,20 +612,26 @@ func doDeleteForwardChar(ctx context.Context, state *Peco, _ termbox.Event) {
 }
 
 func doDeleteBackwardChar(ctx context.Context, state *Peco, e termbox.Event) {
-	trace("doDeleteBackwardChar: START")
-	defer trace("doDeleteBackwardChar: END")
+	if pdebug.Enabled {
+		g := pdebug.Marker("doDeleteBackwardChar")
+		defer g.End()
+	}
 
 	q := state.Query()
 	c := state.Caret()
 	qlen := q.Len()
 	if qlen <= 0 {
-		trace("doDeleteBackwardChar: QueryLen <= 0, do nothing")
+		if pdebug.Enabled {
+			pdebug.Printf("doDeleteBackwardChar: QueryLen <= 0, do nothing")
+		}
 		return
 	}
 
 	pos := c.Pos()
 	if pos == 0 {
-		trace("doDeleteBackwardChar: Already at position 0")
+		if pdebug.Enabled {
+			pdebug.Printf("doDeleteBackwardChar: Already at position 0")
+		}
 		// No op
 		return
 	}
@@ -652,12 +674,18 @@ func doKonamiCommand(ctx context.Context, state *Peco, e termbox.Event) {
 }
 
 func doToggleSingleKeyJump(ctx context.Context, state *Peco, e termbox.Event) {
-	trace("Toggling SingleKeyJump")
+	if pdebug.Enabled {
+		g := pdebug.Marker("doToggleSingleKeyJump")
+		defer g.End()
+	}
 	state.ToggleSingleKeyJumpMode()
 }
 
 func doSingleKeyJump(ctx context.Context, state *Peco, e termbox.Event) {
-	trace("Doing single key jump for %c", e.Ch)
+	if pdebug.Enabled {
+		g := pdebug.Marker("doSingleKeyJump %c", e.Ch)
+		defer g.End()
+	}
 	index, ok := state.SingleKeyJumpIndex(e.Ch)
 	if !ok {
 		// Couldn't find it? Do nothing

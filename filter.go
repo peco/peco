@@ -8,12 +8,12 @@ import (
 	"sort"
 	"sync"
 
-	"golang.org/x/net/context"
-
+	"github.com/lestrrat/go-pdebug"
 	"github.com/peco/peco/hub"
 	"github.com/peco/peco/internal/util"
 	"github.com/peco/peco/pipeline"
 	"github.com/pkg/errors"
+	"golang.org/x/net/context"
 )
 
 func (fx *FilterSet) Reset() {
@@ -34,7 +34,9 @@ func (fs *FilterSet) Rotate() {
 	if fs.current >= len(fs.filters) {
 		fs.current = 0
 	}
-	trace("FilterSet.Rotate: now filter in effect is %s", fs.filters[fs.current])
+	if pdebug.Enabled {
+		pdebug.Printf("FilterSet.Rotate: now filter in effect is %s", fs.filters[fs.current])
+	}
 }
 
 func (fs *FilterSet) SetCurrentByName(name string) error {
@@ -69,10 +71,8 @@ func (f *Filter) Work(ctx context.Context, q hub.Payload) {
 
 	state := f.state
 	if query == "" {
-		trace("Filter.Work: Resetting activingLineBuffer")
 		state.ResetCurrentLineBuffer()
 	} else {
-		trace("Filter.Work: Creating new pipeline")
 		// Create a new pipeline
 		p := pipeline.New()
 		p.SetSource(state.Source())
@@ -91,12 +91,12 @@ func (f *Filter) Work(ctx context.Context, q hub.Payload) {
 		}()
 
 		go func() {
-			defer trace("query finished running")
-			trace("waiting for query to finish")
+			if pdebug.Enabled {
+				pdebug.Printf("waiting for query to finish")
+				defer pdebug.Printf("Filter.Work: finished running query")
+			}
 			<-p.Done()
-			trace("p.Done returns")
 			state.Hub().SendStatusMsg("")
-			trace("SendStatusMsg returns")
 		}()
 	}
 
@@ -123,11 +123,7 @@ func (f *Filter) Loop(ctx context.Context, cancel func()) error {
 		case <-ctx.Done():
 			return nil
 		case q := <-f.state.Hub().QueryCh():
-			workctx, _workcancel := context.WithCancel(ctx)
-			workcancel := func() {
-				trace("Filter.Work cancel called!")
-				_workcancel()
-			}
+			workctx, workcancel := context.WithCancel(ctx)
 
 			mutex.Lock()
 			previous()
@@ -166,25 +162,29 @@ func (rf RegexpFilter) Clone() LineFilter {
 }
 
 func (rf *RegexpFilter) Accept(ctx context.Context, p pipeline.Producer) {
-	trace("START RegexpFilter.Accept")
-	defer trace("END RegexpFilter.Accept")
+	if pdebug.Enabled {
+		g := pdebug.Marker("RegexpFilter.Accept")
+		defer g.End()
+	}
 	defer rf.outCh.SendEndMark("end of RegexpFilter")
 	for {
 		select {
 		case <-ctx.Done():
-			trace("RegexpFilter received done")
+			if pdebug.Enabled {
+				pdebug.Printf("RegexpFilter received done")
+			}
 			return
 		case v := <-p.OutCh():
 			switch v.(type) {
 			case error:
 				if pipeline.IsEndMark(v.(error)) {
-					trace("RegexpFilter received end mark")
+					if pdebug.Enabled {
+						pdebug.Printf("RegexpFilter received end mark")
+					}
 					return
 				}
 			case Line:
-				trace("RegexpFilter received new line")
 				if l, err := rf.filter(v.(Line)); err == nil {
-					trace("RegexpFilter send line")
 					rf.outCh.Send(l)
 				}
 			}
@@ -193,8 +193,6 @@ func (rf *RegexpFilter) Accept(ctx context.Context, p pipeline.Producer) {
 }
 
 func (rf *RegexpFilter) filter(l Line) (Line, error) {
-	trace("RegexpFilter.filter: START")
-	defer trace("RegexpFilter.filter: END")
 	regexps, err := rf.getQueryAsRegexps()
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to compile queries as regular expression")
@@ -302,7 +300,6 @@ func NewSmartCaseFilter() *RegexpFilter {
 }
 
 func NewExternalCmdFilter(name, cmd string, args []string, threshold int, enableSep bool) *ExternalCmdFilter {
-	trace("name = %s, cmd = %s, args = %#v", name, cmd, args)
 	if len(args) == 0 {
 		args = []string{"$QUERY"}
 	}
@@ -340,27 +337,35 @@ func (ecf *ExternalCmdFilter) Verify() error {
 }
 
 func (ecf *ExternalCmdFilter) Accept(ctx context.Context, p pipeline.Producer) {
-	trace("START ExternalCmdFilter.Accept")
-	defer trace("END ExternalCmdFilter.Accept")
+	if pdebug.Enabled {
+		g := pdebug.Marker("ExternalCmdFilter.Accept")
+		defer g.End()
+	}
 	defer ecf.outCh.SendEndMark("end of ExternalCmdFilter")
 
 	buf := make([]Line, 0, ecf.thresholdBufsiz)
 	for {
 		select {
 		case <-ctx.Done():
-			trace("ExternalCmdFilter received done")
+			if pdebug.Enabled {
+				pdebug.Printf("ExternalCmdFilter received done")
+			}
 			return
 		case v := <-ecf.OutCh():
 			switch v.(type) {
 			case error:
 				if pipeline.IsEndMark(v.(error)) {
-					trace("ExternalCmdFilter received end mark")
+					if pdebug.Enabled {
+						pdebug.Printf("ExternalCmdFilter received end mark")
+					}
 					if len(buf) > 0 {
 						ecf.launchExternalCmd(ctx, buf)
 					}
 				}
 			case Line:
-				trace("ExternalCmdFilter received new line")
+				if pdebug.Enabled {
+					pdebug.Printf("ExternalCmdFilter received new line")
+				}
 				buf = append(buf, v.(Line))
 				if len(buf) < ecf.thresholdBufsiz {
 					continue
@@ -387,11 +392,10 @@ func (ecf ExternalCmdFilter) String() string {
 
 func (ecf *ExternalCmdFilter) launchExternalCmd(ctx context.Context, buf []Line) {
 	defer func() { recover() }() // ignore errors
-
-	trace("ExternalCmdFilter.launchExternalCmd: START")
-	defer trace("ExternalCmdFilter.launchExternalCmd: END")
-
-	trace("buf = %v", buf)
+	if pdebug.Enabled {
+		g := pdebug.Marker("ExternalCmdFilter.launchExternalCmd")
+		defer g.End()
+	}
 
 	args := append([]string(nil), ecf.args...)
 	for i, v := range args {
@@ -412,7 +416,6 @@ func (ecf *ExternalCmdFilter) launchExternalCmd(ctx context.Context, buf []Line)
 		return
 	}
 
-	trace("cmd = %#v", cmd)
 	err = cmd.Start()
 	if err != nil {
 		return
@@ -445,8 +448,6 @@ func (ecf *ExternalCmdFilter) launchExternalCmd(ctx context.Context, buf []Line)
 		}
 	}()
 
-	defer trace("Done waiting for cancel or line")
-
 	for {
 		select {
 		case <-ctx.Done():
@@ -455,7 +456,6 @@ func (ecf *ExternalCmdFilter) launchExternalCmd(ctx context.Context, buf []Line)
 			if l == nil || !ok {
 				return
 			}
-			trace("Custom: l = %s", l.DisplayString())
 			ecf.outCh.Send(l)
 		}
 	}

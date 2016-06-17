@@ -5,6 +5,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/lestrrat/go-pdebug"
 	"github.com/nsf/termbox-go"
 	"github.com/peco/peco/internal/keyseq"
 	"github.com/pkg/errors"
@@ -47,18 +48,23 @@ func (km Keymap) LookupAction(ev termbox.Event) Action {
 		Ch:       ev.Ch,
 	}
 	action, err := km.seq.AcceptKey(key)
-	trace("err = %s\n", err)
 
 	switch err {
 	case nil:
 		// Found an action!
-		trace("Keymap.Handler: Fetched action")
+		if pdebug.Enabled {
+			pdebug.Printf("Keymap.Handler: Fetched action")
+		}
 		return wrapClearSequence(action.(Action))
 	case keyseq.ErrInSequence:
-		trace("Keymap.Handler: Waiting for more commands...")
+		if pdebug.Enabled {
+			pdebug.Printf("Keymap.Handler: Waiting for more commands...")
+		}
 		return wrapRememberSequence(ActionFunc(doNothing))
 	default:
-		trace("Keymap.Handler: Defaulting to doAcceptChar")
+		if pdebug.Enabled {
+			pdebug.Printf("Keymap.Handler: Defaulting to doAcceptChar")
+		}
 		return wrapClearSequence(ActionFunc(doAcceptChar))
 	}
 }
@@ -160,7 +166,6 @@ func (km *Keymap) ApplyKeybinding() error {
 
 	for _, s := range keys {
 		a := kb[s]
-		trace("%s", s)
 		list, err := keyseq.ToKeyList(s)
 		if err != nil {
 			return errors.Wrapf(err, "urnknown key %s: %s", s, err)

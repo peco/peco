@@ -6,6 +6,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/lestrrat/go-pdebug"
 	"github.com/peco/peco/pipeline"
 	"github.com/pkg/errors"
 	"golang.org/x/net/context"
@@ -74,27 +75,30 @@ func (mb *MemoryBuffer) Done() <-chan struct{} {
 }
 
 func (mb *MemoryBuffer) Accept(ctx context.Context, p pipeline.Producer) {
-	trace("START MemoryBuffer.Accept")
-	defer trace("END MemoryBuffer.Accept")
+	if pdebug.Enabled {
+		g := pdebug.Marker("MemoryBuffer.Accept")
+		defer g.End()
+	}
 	defer close(mb.done)
 
 	for {
 		select {
 		case <-ctx.Done():
-			trace("MemoryBuffer received context done")
+			if pdebug.Enabled {
+				pdebug.Printf("MemoryBuffer received context done")
+			}
 			return
 		case v := <-p.OutCh():
 			switch v.(type) {
 			case error:
 				if pipeline.IsEndMark(v.(error)) {
-					trace("MemoryBuffer received end mark (read %d lines)", mb.Size())
+					if pdebug.Enabled {
+						pdebug.Printf("MemoryBuffer received end mark (read %d lines)", mb.Size())
+					}
 					return
 				}
 			case Line:
-				trace("MemoryBuffer received new line")
 				mb.lines = append(mb.lines, v.(Line))
-			default:
-				trace("MemoryBuffer received something else %s", v)
 			}
 		}
 	}
@@ -209,26 +213,27 @@ func (s *Source) Setup(state *Peco) {
 		// Note: this will be a no-op if notify.Do has been called before
 		notify.Do(notifycb)
 
-		trace("Read all %d lines from source", readCount)
+		if pdebug.Enabled {
+			pdebug.Printf("Read all %d lines from source", readCount)
+		}
 	})
 }
 
 // Start starts
 func (s *Source) Start(ctx context.Context) {
-	trace("START Source.Start")
-	defer trace("END Source.Start")
+	if pdebug.Enabled {
+		g := pdebug.Marker("Source.Start")
+		defer g.End()
+	}
 	defer s.OutputChannel.SendEndMark("end of input")
 
 	s.done = make(chan struct{})
 
-	trace("Going to send %d lines", len(s.lines))
 	for _, l := range s.lines {
 		select {
 		case <-ctx.Done():
-			trace("Source received done")
 			return
 		case s.OutputChannel <- l:
-			trace("Source sent to output channel")
 			// no op
 		}
 	}

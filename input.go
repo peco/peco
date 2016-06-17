@@ -54,7 +54,6 @@ func (i *Input) handleInputEvent(ctx context.Context, ev termbox.Event) error {
 				m.Lock()
 				i.mod = nil
 				m.Unlock()
-				//			trace("Input.handleInputEvent: Firing delayed input event")
 				i.handleInputEvent(ctx, tmp)
 			})
 			m.Unlock()

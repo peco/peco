@@ -2,11 +2,11 @@ package peco
 
 import (
 	"fmt"
-	"reflect"
 	"strconv"
 	"time"
 	"unicode/utf8"
 
+	"github.com/lestrrat/go-pdebug"
 	"github.com/mattn/go-runewidth"
 	"github.com/nsf/termbox-go"
 	"github.com/pkg/errors"
@@ -95,8 +95,10 @@ func NewUserPrompt(screen Screen, anchor VerticalAnchor, anchorOffset int, promp
 
 // Draw draws the query prompt
 func (u UserPrompt) Draw(state *Peco) {
-	trace("UserPrompt.Draw: START")
-	defer trace("UserPrompt.Draw: END")
+	if pdebug.Enabled {
+		g := pdebug.Marker("UserPrompt.Draw")
+		defer g.End()
+	}
 
 	location := u.AnchorPosition()
 
@@ -209,7 +211,6 @@ func NewStatusBar(screen Screen, anchor VerticalAnchor, anchorOffset int, styles
 		AnchorSettings: NewAnchorSettings(screen, anchor, anchorOffset),
 		clearTimer:     nil,
 		styles:         styles,
-		timerMutex:     newMutex(),
 	}
 }
 
@@ -319,8 +320,10 @@ func selectionContains(state *Peco, n int) bool {
 
 // Draw displays the ListArea on the screen
 func (l *ListArea) Draw(state *Peco, parent Layout, perPage int, runningQuery bool) {
-	trace("START ListArea.Draw perPage = %d, runningQuery = %t", perPage, runningQuery)
-	defer trace("END ListArea.Draw")
+	if pdebug.Enabled {
+		g := pdebug.Marker("ListArea.Draw pp = %d, q = %t", perPage, runningQuery)
+		defer g.End()
+	}
 
 	if perPage < 1 {
 		panic("perPage < 1 (was " + strconv.Itoa(perPage) + ")")
@@ -376,7 +379,10 @@ func (l *ListArea) Draw(state *Peco, parent Layout, perPage int, runningQuery bo
 
 	// If our buffer is smaller than perPage, we may need to
 	// clear some lines
-	trace("ListArea.Draw: buffer size is %d, our view area is %d\n", bufsiz, perPage)
+	if pdebug.Enabled {
+		pdebug.Printf("ListArea.Draw: buffer size is %d, our view area is %d", bufsiz, perPage)
+	}
+
 	for n := bufsiz; n < perPage; n++ {
 		l.displayCache[n] = nil
 		if l.sortTopDown {
@@ -385,7 +391,6 @@ func (l *ListArea) Draw(state *Peco, parent Layout, perPage int, runningQuery bo
 			y = start - n
 		}
 
-		trace("ListArea.Draw: clearing row %d", y)
 		l.screen.Print(PrintArgs{
 			Y:    y,
 			Fg:   l.styles.Basic.fg,
@@ -541,7 +546,9 @@ func (l *ListArea) Draw(state *Peco, parent Layout, perPage int, runningQuery bo
 		}
 	}
 	l.SetDirty(false)
-	trace("ListArea.Draw: Written total of %d lines (%d cached)\n", written+cached, cached)
+	if pdebug.Enabled {
+		pdebug.Printf("ListArea.Draw: Written total of %d lines (%d cached)", written+cached, cached)
+	}
 }
 
 // NewDefaultLayout creates a new Layout in the default format (top-down)
@@ -574,10 +581,12 @@ func (l *BasicLayout) PurgeDisplayCache() {
 
 // CalculatePage calculates which page we're displaying
 func (l *BasicLayout) CalculatePage(state *Peco, perPage int) error {
+	if pdebug.Enabled {
+		g := pdebug.Marker("BasicLayout.Calculate %d", perPage)
+		defer g.End()
+	}
 	buf := state.CurrentLineBuffer()
 	loc := state.Location()
-	trace("BasicLayout.CalculatePage buf = %s", reflect.TypeOf(buf).String())
-	defer trace("BasicLayout.CalculatePage: %#v", loc)
 	loc.SetPage((loc.LineNumber() / perPage) + 1)
 	loc.SetOffset((loc.Page() - 1) * perPage)
 	loc.SetPerPage(perPage)
@@ -607,8 +616,10 @@ func (l *BasicLayout) DrawPrompt(state *Peco) {
 
 // DrawScreen draws the entire screen
 func (l *BasicLayout) DrawScreen(state *Peco, runningQuery bool) {
-	trace("DrawScreen: START")
-	defer trace("DrawScreen: END")
+	if pdebug.Enabled {
+		g := pdebug.Marker("BasicLayout.DrawScreen")
+		defer g.End()
+	}
 
 	perPage := l.linesPerPage()
 
@@ -654,14 +665,18 @@ func verticalScroll(state *Peco, l *BasicLayout, p PagingRequest) bool {
 	lineBefore := loc.LineNumber()
 	lineno := lineBefore
 
-	defer func() { trace("currentLine changed from %d -> %d", lineBefore, state.Location().LineNumber()) }()
+	if pdebug.Enabled {
+		defer func() {
+			pdebug.Printf("currentLine changed from %d -> %d", lineBefore, state.Location().LineNumber())
+		}()
+	}
+
 	buf := state.CurrentLineBuffer()
 	lcur := buf.Size()
 
 	defer func() {
 		for _, lno := range []int{lineBefore, loc.LineNumber()} {
 			if oldLine, err := buf.LineAt(lno); err == nil {
-				trace("Setting line %d dirty", lno)
 				oldLine.SetDirty(true)
 			}
 		}

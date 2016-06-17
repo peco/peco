@@ -157,7 +157,9 @@ type Screen interface {
 }
 
 // Termbox just hands out the processing to the termbox library
-type Termbox struct{}
+type Termbox struct {
+	mutex sync.Mutex
+}
 
 // View handles the drawing/updating the screen
 type View struct {
@@ -210,7 +212,7 @@ type StatusBar struct {
 	*AnchorSettings
 	clearTimer *time.Timer
 	styles     *StyleSet
-	timerMutex sync.Locker
+	timerMutex sync.Mutex
 }
 
 // ListArea represents the area where the actual line buffer is

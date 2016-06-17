@@ -13,14 +13,13 @@ import (
 
 type interceptorArgs []interface{}
 type interceptor struct {
-	m      sync.Locker
+	m      sync.Mutex
 	events map[string][]interceptorArgs
 }
 
 func newInterceptor() *interceptor {
 	return &interceptor{
-		newMutex(),
-		make(map[string][]interceptorArgs),
+		events: make(map[string][]interceptorArgs),
 	}
 }
 
