@@ -1,6 +1,7 @@
 package peco
 
 import (
+	"bytes"
 	"fmt"
 	"runtime"
 	"sync"
@@ -128,9 +129,11 @@ type testCauser interface {
 type testIgnorableError interface {
 	Ignorable() bool
 }
+
 func TestPecoHelp(t *testing.T) {
 	p := newPeco()
 	p.Argv = []string{"peco", "-h"}
+	p.Stdout = &bytes.Buffer{}
 	ctx, cancel := context.WithCancel(context.Background())
 	time.AfterFunc(time.Second, cancel)
 

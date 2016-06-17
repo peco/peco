@@ -1,6 +1,7 @@
 package peco
 
 import (
+	"io"
 	"regexp"
 	"sync"
 	"time"
@@ -52,8 +53,11 @@ type idGen struct {
 // Peco is the global object containing everything required to run peco.
 // It also contains the global state of the program.
 type Peco struct {
-	Argv []string
-	hub  *hub.Hub
+	Argv   []string
+	Stdin  io.Reader
+	Stdout io.Writer
+	Stderr io.Writer
+	hub    *hub.Hub
 
 	args  []string
 	caret Caret

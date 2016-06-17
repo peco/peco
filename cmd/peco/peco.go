@@ -19,9 +19,11 @@ func main() {
 	}()
 	os.Exit(_main())
 }
+
 type causer interface {
 	Cause() error
 }
+
 type ignorable interface {
 	Ignorable() bool
 }

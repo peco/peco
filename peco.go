@@ -1,6 +1,7 @@
 package peco
 
 import (
+	"io"
 	"os"
 	"reflect"
 	"time"
@@ -55,6 +56,9 @@ func (is *Inputseq) Reset() {
 func New() *Peco {
 	return &Peco{
 		Argv:              os.Args,
+		Stderr:            os.Stderr,
+		Stdin:             os.Stdin,
+		Stdout:            os.Stdout,
 		currentLineBuffer: NewMemoryBuffer(), // XXX revisit this
 		queryExecDelay:    50 * time.Millisecond,
 		readyCh:           make(chan struct{}),
@@ -203,7 +207,7 @@ func (p *Peco) Setup() (err error) {
 		return errors.Wrap(err, "failed to initialize config")
 	}
 
-	if err := parseCommandLine(&p.Options, &p.args, p.Argv); err != nil {
+	if err := p.parseCommandLine(&p.Options, &p.args, p.Argv); err != nil {
 		return errors.Wrap(err, "failed to parse command line")
 	}
 
@@ -287,19 +291,19 @@ func (p *Peco) Run(ctx context.Context) (err error) {
 	return p.Err()
 }
 
-func parseCommandLine(opts *CLIOptions, args *[]string, argv []string) error {
+func (p *Peco) parseCommandLine(opts *CLIOptions, args *[]string, argv []string) error {
 	remaining, err := opts.parse(argv)
 	if err != nil {
 		return errors.Wrap(err, "failed to parse command line options")
 	}
 
 	if opts.OptHelp {
-		os.Stdout.Write(opts.help())
+		p.Stdout.Write(opts.help())
 		return makeIgnorable(errors.New("user asked to show help message"))
 	}
 
 	if opts.OptVersion {
-		os.Stdout.Write([]byte("peco version " + version + "\n"))
+		p.Stdout.Write([]byte("peco version " + version + "\n"))
 		return makeIgnorable(errors.New("user asked to show version"))
 	}
 
@@ -320,16 +324,17 @@ func (p *Peco) SetupSource() (s *Source, err error) {
 		defer g.End()
 	}
 
-	var in *os.File
+	var in io.Reader
 	switch {
 	case len(p.args) > 1:
-		in, err = os.Open(p.args[1])
+		f, err := os.Open(p.args[1])
 		if err != nil {
 			return nil, errors.Wrap(err, "failed to open file for input")
 		}
-		defer in.Close() // ONLY do this here, you don't want to close Stdin
-	case !util.IsTty(os.Stdin.Fd()):
-		in = os.Stdin
+		defer f.Close() // ONLY do this here, you don't want to close Stdin
+		in = f
+	case !util.IsTty(p.Stdin):
+		in = p.Stdin
 	default:
 		return nil, errors.New("you must supply something to work with via filename or stdin")
 	}
@@ -361,7 +366,7 @@ func (p *Peco) populateCommandList() error {
 		if len(v.Args) == 0 {
 			continue
 		}
-		makeCommandAction(&v).Register("ExecuteCommand." + v.Name)
+		makeCommandAction(p, &v).Register("ExecuteCommand." + v.Name)
 	}
 
 	return nil

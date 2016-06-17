@@ -708,7 +708,7 @@ func makeCombinedAction(actions ...Action) ActionFunc {
 	})
 }
 
-func makeCommandAction(cc *CommandConfig) ActionFunc {
+func makeCommandAction(state *Peco, cc *CommandConfig) ActionFunc {
 	return func(ctx context.Context, state *Peco, _ termbox.Event) {
 		sel := state.Selection()
 		if sel.Len() == 0 {
@@ -751,9 +751,9 @@ func makeCommandAction(cc *CommandConfig) ActionFunc {
 					}
 				}()
 			} else {
-				cmd.Stdin = os.Stdin
-				cmd.Stdout = os.Stdout
-				cmd.Stderr = os.Stderr
+				cmd.Stdin = state.Stdin
+				cmd.Stdout = state.Stdout
+				cmd.Stderr = state.Stderr
 				err = cmd.Run()
 				if f != nil {
 					os.Remove(f.Name())

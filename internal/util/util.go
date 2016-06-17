@@ -5,6 +5,10 @@ import (
 	"unicode"
 )
 
+type fder interface {
+	Fd() uintptr
+}
+
 func ContainsUpper(query string) bool {
 	for _, c := range query {
 		if unicode.IsUpper(c) {

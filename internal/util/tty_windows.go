@@ -29,7 +29,13 @@ func setStdHandle(stdhandle int32, handle syscall.Handle) error {
 }
 
 // IsTty checks if the given fd is a tty
-func IsTty(fd uintptr) bool {
+func IsTty(arg interface{}) bool {
+	fdsrc, ok := arg.(fder)
+	if !ok {
+		return false
+	}
+	fd := fdsrc.Fd()
+
 	var st uint32
 	r1, _, err := procGetConsoleMode.Call(fd, uintptr(unsafe.Pointer(&st)))
 	return r1 != 0 && err != nil

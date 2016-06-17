@@ -7,8 +7,19 @@ import (
 	"unsafe"
 )
 
+// Used in tty related functions
+type fder interface {
+	Fd() uintptr
+}
+
 // IsTty checks if the given fd is a tty
-func IsTty(fd uintptr) bool {
+func IsTty(arg interface{}) bool {
+	fdsrc, ok := arg.(fder)
+	if !ok {
+		return false
+	}
+	fd := fdsrc.Fd()
+
 	var termios syscall.Termios
 	_, _, err := syscall.Syscall6(syscall.SYS_IOCTL, fd, uintptr(syscall.TCGETS), uintptr(unsafe.Pointer(&termios)), 0, 0, 0)
 	return err == 0
