@@ -68,7 +68,7 @@ func (m byMatchStart) Less(i, j int) bool {
 	}
 
 	if m[i][0] == m[j][0] {
-		return m[i][1]-m[i][0] < m[i][1]-m[i][0]
+		return m[i][1]-m[i][0] < m[j][1]-m[j][0]
 	}
 
 	return false
