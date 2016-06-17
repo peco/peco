@@ -377,6 +377,8 @@ func (p *Peco) ApplyConfig() error {
 		}
 	}
 
+	p.enableSep = p.Options.OptEnableNullSep
+
 	if err := p.populateCommandList(); err != nil {
 		return errors.Wrap(err, "failed to populate command list")
 	}
