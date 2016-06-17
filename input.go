@@ -13,7 +13,6 @@ func NewInput(state *Peco, am ActionMap, src chan termbox.Event) *Input {
 	return &Input{
 		actions: am,
 		evsrc:   src,
-		mutex:   sync.Mutex{},
 		state:   state,
 	}
 }
@@ -38,9 +37,8 @@ func (i *Input) handleInputEvent(ctx context.Context, ev termbox.Event) error {
 	case termbox.EventError:
 		return nil
 	case termbox.EventResize:
-		return errors.New("redraw unimplemented")
-		//		p.Redraw(false)
-		//		return nil
+		i.state.Hub().SendDraw(false)
+		return nil
 	case termbox.EventKey:
 		// ModAlt is a sequence of letters with a leading \x1b (=Esc).
 		// It would be nice if termbox differentiated this for us, but

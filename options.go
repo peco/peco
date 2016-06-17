@@ -27,6 +27,7 @@ func (o CLIOptions) InitialIndex() int {
 func (o CLIOptions) LayoutType() string {
 	return o.OptLayout
 }
+
 func (options *CLIOptions) parse(s []string) ([]string, error) {
 	p := flags.NewParser(options, flags.PrintErrors)
 	args, err := p.ParseArgs(s)
