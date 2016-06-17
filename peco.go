@@ -379,6 +379,14 @@ func (p *Peco) ApplyConfig() error {
 
 	p.enableSep = p.Options.OptEnableNullSep
 
+	if i := p.Options.OptInitialIndex; i >= 0 {
+		p.Location().SetLineNumber(i)
+	}
+
+	if v := p.Options.OptLayout; v != "" {
+		p.layoutType = v
+	}
+
 	if err := p.populateCommandList(); err != nil {
 		return errors.Wrap(err, "failed to populate command list")
 	}
