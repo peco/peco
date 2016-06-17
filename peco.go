@@ -18,6 +18,21 @@ import (
 
 const version = "v0.3.6"
 
+type errIgnorable struct {
+	err error
+}
+
+func (e errIgnorable) Ignorable() bool { return true }
+func (e errIgnorable) Causer() error {
+	return e.err
+}
+func (e errIgnorable) Error() string {
+	return e.err.Error()
+}
+func makeIgnorable(err error) error {
+	return errIgnorable{err: err}
+}
+
 // Inputseq is a list of keys that the user typed
 type Inputseq []string
 
@@ -276,6 +291,11 @@ func parseCommandLine(opts *CLIOptions, args *[]string, argv []string) error {
 	remaining, err := opts.parse(argv)
 	if err != nil {
 		return errors.Wrap(err, "failed to parse command line options")
+	}
+
+	if opts.OptHelp {
+		os.Stdout.Write(opts.help())
+		return makeIgnorable(errors.New("user asked to show help message"))
 	}
 	*args = remaining
 

@@ -11,12 +11,9 @@ import (
 	"github.com/lestrrat/go-pdebug"
 	"github.com/nsf/termbox-go"
 	"github.com/peco/peco/internal/keyseq"
+	"github.com/pkg/errors"
 	"golang.org/x/net/context"
 )
-
-type errUserCanceled struct {}
-func (e errUserCanceled) Canceled() bool { return true }
-func (e errUserCanceled) Error() string { return "user canceled" }
 
 // This is the global map of canonical action name to actions
 var nameToActions map[string]Action
@@ -319,7 +316,7 @@ func doCancel(ctx context.Context, state *Peco, e termbox.Event) {
 	}
 
 	// peco.Cancel -> end program, exit with failure
-	state.Exit(errUserCanceled{})
+	state.Exit(makeIgnorable(errors.New("user canceled")))
 }
 
 func doSelectDown(ctx context.Context, state *Peco, e termbox.Event) {

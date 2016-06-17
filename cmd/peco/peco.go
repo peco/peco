@@ -19,17 +19,25 @@ func main() {
 	}()
 	os.Exit(_main())
 }
-
-type canceler interface {
-	Canceled() bool
+type causer interface {
+	Cause() error
+}
+type ignorable interface {
+	Ignorable() bool
 }
 
-func isCanceled(err error) bool {
-	ec, ok := err.(canceler)
-	if !ok {
-		return false
+func isIgnorable(err error) bool {
+	for e := err; e != nil; {
+		switch e.(type) {
+		case ignorable:
+			return e.(ignorable).Ignorable()
+		case causer:
+			e = e.(causer).Cause()
+		default:
+			return false
+		}
 	}
-	return ec.Canceled()
+	return false
 }
 
 func _main() int {
@@ -40,9 +48,10 @@ func _main() int {
 
 	cli := peco.New()
 	if err := cli.Run(ctx); err != nil {
-		if !isCanceled(err) {
-			fmt.Fprintf(os.Stderr, "Error: %s\n", err)
+		if isIgnorable(err) {
+			return 0
 		}
+		fmt.Fprintf(os.Stderr, "Error: %s\n", err)
 		return 1
 	}
 
