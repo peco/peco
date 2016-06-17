@@ -49,5 +49,4 @@ func (h *Handler) Loop(ctx context.Context, cancel func()) error {
 			return nil
 		}
 	}
-	return nil
 }
