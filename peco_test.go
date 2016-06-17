@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/nsf/termbox-go"
 	"github.com/stretchr/testify/assert"
 	"golang.org/x/net/context"
 )
