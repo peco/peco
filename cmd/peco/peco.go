@@ -20,6 +20,18 @@ func main() {
 	os.Exit(_main())
 }
 
+type canceler interface {
+	Canceled() bool
+}
+
+func isCanceled(err error) bool {
+	ec, ok := err.(canceler)
+	if !ok {
+		return false
+	}
+	return ec.Canceled()
+}
+
 func _main() int {
 	if envvar := os.Getenv("GOMAXPROCS"); envvar == "" {
 		runtime.GOMAXPROCS(runtime.NumCPU())
@@ -28,7 +40,7 @@ func _main() int {
 
 	cli := peco.New()
 	if err := cli.Run(ctx); err != nil {
-		if err != peco.ErrUserCanceled {
+		if !isCanceled(err) {
 			fmt.Fprintf(os.Stderr, "Error: %s\n", err)
 		}
 		return 1
