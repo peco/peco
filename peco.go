@@ -299,7 +299,7 @@ func parseCommandLine(opts *CLIOptions, args *[]string, argv []string) error {
 	}
 
 	if opts.OptVersion {
-		os.Stdout.Write([]byte("peco version " + version))
+		os.Stdout.Write([]byte("peco version " + version + "\n"))
 		return makeIgnorable(errors.New("user asked to show version"))
 	}
 
