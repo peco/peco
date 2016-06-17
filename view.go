@@ -6,22 +6,6 @@ import (
 	"golang.org/x/net/context"
 )
 
-const (
-	// ToLineAbove moves the selection to the line above
-	ToLineAbove PagingRequestType = iota // ToScrollPageDown moves the selection to the next page
-	ToScrollPageDown
-	// ToLineBelow moves the selection to the line below
-	ToLineBelow
-	// ToScrollPageUp moves the selection to the previous page
-	ToScrollPageUp
-	// ToScrollLeft scrolls screen to the left
-	ToScrollLeft
-	// ToScrollRight scrolls screen to the right
-	ToScrollRight
-	// ToLineInPage jumps to a particular line on the page
-	ToLineInPage
-)
-
 type statusMsgReq interface {
 	Message() string
 	Delay() time.Duration

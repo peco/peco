@@ -16,6 +16,35 @@ import (
 
 const invalidSelectionRange = -1
 
+const (
+	ToLineAbove      PagingRequestType = iota // ToLineAbove moves the selection to the line above
+	ToScrollPageDown                          // ToScrollPageDown moves the selection to the next page
+	ToLineBelow                               // ToLineBelow moves the selection to the line below
+	ToScrollPageUp                            // ToScrollPageUp moves the selection to the previous page
+	ToScrollLeft                              // ToScrollLeft scrolls screen to the left
+	ToScrollRight                             // ToScrollRight scrolls screen to the right
+	ToLineInPage                              // ToLineInPage jumps to a particular line on the page
+)
+
+const (
+	DefaultLayoutType  = LayoutTypeTopDown // LayoutTypeTopDown makes the layout so the items read from top to bottom
+	LayoutTypeTopDown  = "top-down"        // LayoutTypeBottomUp changes the layout to read from bottom to up
+	LayoutTypeBottomUp = "bottom-up"
+)
+
+const (
+	AnchorTop    VerticalAnchor = iota + 1 // AnchorTop anchors elements towards the top of the screen
+	AnchorBottom                           // AnchorBottom anchors elements towards the bottom of the screen
+)
+
+// These are used as keys in the config file
+const (
+	IgnoreCaseMatch    = "IgnoreCase"
+	CaseSensitiveMatch = "CaseSensitive"
+	SmartCaseMatch     = "SmartCase"
+	RegexpMatch        = "Regexp"
+)
+
 type idGen struct {
 	genCh chan uint64
 }

@@ -14,25 +14,10 @@ import (
 
 var extraOffset int = 0
 
-const (
-	DefaultLayoutType = LayoutTypeTopDown
-	// LayoutTypeTopDown makes the layout so the items read from top to bottom
-	LayoutTypeTopDown = "top-down"
-	// LayoutTypeBottomUp changes the layout to read from bottom to up
-	LayoutTypeBottomUp = "bottom-up"
-)
-
 // IsValidLayoutType checks if a string is a supported layout type
 func IsValidLayoutType(v LayoutType) bool {
 	return v == LayoutTypeTopDown || v == LayoutTypeBottomUp
 }
-
-const (
-	// AnchorTop anchors elements towards the top of the screen
-	AnchorTop VerticalAnchor = iota + 1
-	// AnchorBottom anchors elements towards the bottom of the screen
-	AnchorBottom
-)
 
 // IsValidVerticalAnchor checks if the specified anchor is supported
 func IsValidVerticalAnchor(anchor VerticalAnchor) bool {

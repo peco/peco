@@ -8,52 +8,6 @@ import (
 	"github.com/nsf/termbox-go"
 )
 
-type dummyScreen struct {
-	*interceptor
-	width  int
-	height int
-	pollCh chan termbox.Event
-}
-
-func NewDummyScreen() *dummyScreen {
-	return &dummyScreen{
-		interceptor: newInterceptor(),
-		width:       80,
-		height:      10,
-		pollCh:      make(chan termbox.Event),
-	}
-}
-
-func (d dummyScreen) Init() error {
-	return nil
-}
-
-func (d dummyScreen) Close() error {
-	return nil
-}
-
-func (d dummyScreen) Print(args PrintArgs) int {
-	return screenPrint(d, args)
-}
-
-func (d dummyScreen) SendEvent(e termbox.Event) {
-	d.pollCh <- e
-}
-
-func (d dummyScreen) SetCell(x, y int, ch rune, fg, bg termbox.Attribute) {
-	d.record("SetCell", interceptorArgs{x, y, ch, fg, bg})
-}
-func (d dummyScreen) Flush() error {
-	d.record("Flush", interceptorArgs{})
-	return nil
-}
-func (d dummyScreen) PollEvent() chan termbox.Event {
-	return d.pollCh
-}
-func (d dummyScreen) Size() (int, int) {
-	return d.width, d.height
-}
-
 func TestLayoutType(t *testing.T) {
 	layouts := []struct {
 		value    LayoutType

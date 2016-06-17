@@ -8,14 +8,6 @@ import (
 	"github.com/pkg/errors"
 )
 
-// These are used as keys in the config file
-const (
-	IgnoreCaseMatch    = "IgnoreCase"
-	CaseSensitiveMatch = "CaseSensitive"
-	SmartCaseMatch     = "SmartCase"
-	RegexpMatch        = "Regexp"
-)
-
 var ignoreCaseFlags = regexpFlagList([]string{"i"})
 var defaultFlags = regexpFlagList{}
 
