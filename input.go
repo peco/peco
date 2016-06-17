@@ -1,11 +1,9 @@
 package peco
 
 import (
-	"sync"
 	"time"
 
 	"github.com/nsf/termbox-go"
-	"github.com/pkg/errors"
 	"golang.org/x/net/context"
 )
 
@@ -80,4 +78,3 @@ func (i *Input) handleInputEvent(ctx context.Context, ev termbox.Event) error {
 
 	return nil
 }
-
