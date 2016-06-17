@@ -297,6 +297,7 @@ func parseCommandLine(opts *CLIOptions, args *[]string, argv []string) error {
 		os.Stdout.Write(opts.help())
 		return makeIgnorable(errors.New("user asked to show help message"))
 	}
+
 	*args = remaining
 
 	return nil

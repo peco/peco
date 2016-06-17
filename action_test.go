@@ -1,7 +1,6 @@
 package peco
 
 import (
-	"runtime"
 	"testing"
 	"time"
 	"unicode/utf8"
@@ -153,14 +152,6 @@ func TestDoDeleteForwardWord(t *testing.T) {
 	if !expectQueryString(t, q, " ") {
 		return
 	}
-}
-
-func newPeco() *Peco {
-	_, file, _, _ := runtime.Caller(0)
-	state := New()
-	state.Argv = []string{"peco", file}
-	state.screen = NewDummyScreen()
-	return state
 }
 
 func TestDoDeleteBackwardChar(t *testing.T) {

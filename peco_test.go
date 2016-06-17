@@ -43,6 +43,14 @@ func (i *interceptor) record(name string, args []interface{}) {
 	events[name] = append(v, interceptorArgs(args))
 }
 
+func newPeco() *Peco {
+	_, file, _, _ := runtime.Caller(0)
+	state := New()
+	state.Argv = []string{"peco", file}
+	state.screen = NewDummyScreen()
+	return state
+}
+
 func TestIDGen(t *testing.T) {
 	lines := []*RawLine{}
 	for i := 0; i < 1000000; i++ {
@@ -59,14 +67,40 @@ func TestIDGen(t *testing.T) {
 }
 
 func TestPeco(t *testing.T) {
-	_, file, _, _ := runtime.Caller(0)
-	p := New()
-	p.Argv = []string{"peco", file}
+	p := newPeco()
+	ctx, cancel := context.WithCancel(context.Background())
+	time.AfterFunc(time.Second, cancel)
+	if !assert.NoError(t, p.Run(ctx), "p.Run() succeeds") {
+		return
+	}
+}
 
+type testCauser interface {
+	Cause() error
+}
+type testIgnorableError interface {
+	Ignorable() bool
+}
+func TestPecoHelp(t *testing.T) {
+	p := newPeco()
+	p.Argv = []string{"peco", "-h"}
 	ctx, cancel := context.WithCancel(context.Background())
 	time.AfterFunc(time.Second, cancel)
 
-	if !assert.NoError(t, p.Run(ctx), "p.Run() succeeds") {
+	err := p.Run(ctx)
+	for err != nil {
+		if ec, ok := err.(testCauser); ok {
+			err = ec.Cause()
+		} else {
+			break
+		}
+	}
+t.Logf("%s", err)
+	if !assert.Implements(t, (*testIgnorableError)(nil), err, "p.Run() should return error") {
+		return
+	}
+
+	if !assert.True(t, err.(testIgnorableError).Ignorable(), "error from Run() should be ignorable") {
 		return
 	}
 }
