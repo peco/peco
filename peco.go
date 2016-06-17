@@ -304,7 +304,7 @@ func parseCommandLine(opts *CLIOptions, args *[]string, argv []string) error {
 	}
 
 	if opts.OptRcfile == "" {
-		if file, err := LocateRcfile(locateRcfileIn); err != nil {
+		if file, err := LocateRcfile(locateRcfileIn); err == nil {
 			opts.OptRcfile = file
 		}
 	}
