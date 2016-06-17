@@ -353,26 +353,6 @@ type Style struct {
 	bg termbox.Attribute
 }
 
-// CtxOptions is the interface that defines that options can be
-// passed in from the command line
-type CtxOptions interface {
-	// EnableNullSep should return if the null separator is
-	// enabled (--null)
-	EnableNullSep() bool
-
-	// BufferSize should return the buffer size. By default (i.e.
-	// when it returns 0), the buffer size is unlimited.
-	// (--buffer-size)
-	BufferSize() int
-
-	// InitialIndex is the line number to put the cursor on
-	// when peco starts
-	InitialIndex() int
-
-	// LayoutType returns the name of the layout to use
-	LayoutType() string
-}
-
 type Location struct {
 	col     int
 	lineno  int

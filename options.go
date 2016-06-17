@@ -10,12 +10,12 @@ import (
 	"github.com/pkg/errors"
 )
 
-// BufferSize returns the specified buffer size. Fulfills CtxOptions
+// BufferSize returns the specified buffer size.
 func (o CLIOptions) BufferSize() int {
 	return o.OptBufferSize
 }
 
-// EnableNullSep returns true if --null was specified. Fulfills CtxOptions
+// EnableNullSep returns true if --null was specified.
 func (o CLIOptions) EnableNullSep() bool {
 	return o.OptEnableNullSep
 }
