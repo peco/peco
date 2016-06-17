@@ -85,6 +85,7 @@ func (f *Filter) Work(ctx context.Context, q hub.Payload) {
 		state.SetCurrentLineBuffer(buf)
 
 		go func() {
+			defer state.Hub().SendDraw(true)
 			if err := p.Run(ctx); err != nil {
 				state.Hub().SendStatusMsg(err.Error())
 			}
