@@ -327,12 +327,12 @@ func (p *Peco) SetupSource() (s *Source, err error) {
 		if err != nil {
 			return nil, errors.Wrap(err, "failed to open file for input")
 		}
+		defer in.Close() // ONLY do this here, you don't want to close Stdin
 	case !util.IsTty(os.Stdin.Fd()):
 		in = os.Stdin
 	default:
 		return nil, errors.New("you must supply something to work with via filename or stdin")
 	}
-	defer in.Close()
 
 	src := NewSource(in, p.enableSep)
 
