@@ -298,6 +298,11 @@ func parseCommandLine(opts *CLIOptions, args *[]string, argv []string) error {
 		return makeIgnorable(errors.New("user asked to show help message"))
 	}
 
+	if opts.OptVersion {
+		os.Stdout.Write([]byte("peco version " + version))
+		return makeIgnorable(errors.New("user asked to show version"))
+	}
+
 	if opts.OptRcfile == "" {
 		if file, err := LocateRcfile(locateRcfileIn); err != nil {
 			opts.OptRcfile = file
