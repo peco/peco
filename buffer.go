@@ -61,11 +61,7 @@ func NewMemoryBuffer() *MemoryBuffer {
 }
 
 func (mb *MemoryBuffer) Size() int {
-	l := mb.mutex
-	l.Lock()
-	defer l.Unlock()
-
-	return int(len(mb.lines))
+	return len(mb.lines)
 }
 
 func (mb *MemoryBuffer) Reset() {
@@ -105,9 +101,8 @@ func (mb *MemoryBuffer) Accept(ctx context.Context, p pipeline.Producer) {
 }
 
 func (mb *MemoryBuffer) LineAt(n int) (Line, error) {
-	l := mb.mutex
-	l.Lock()
-	defer l.Unlock()
+	mb.mutex.Lock()
+	defer mb.mutex.Unlock()
 
 	if s := mb.Size(); s <= 0 || n >= s {
 		return nil, errors.New("empty buffer")
@@ -142,9 +137,8 @@ func NewSource(in io.Reader, enableSep bool) *Source {
 // Setup reads from the input os.File.
 func (s *Source) Setup(state *Peco) {
 	s.setupOnce.Do(func() {
-		l := s.mutex
-		l.Lock()
-		defer l.Unlock()
+		s.mutex.Lock()
+		defer s.mutex.Unlock()
 
 		done := make(chan struct{})
 		refresh := make(chan struct{}, 1)
