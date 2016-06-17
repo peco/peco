@@ -11,6 +11,7 @@ import (
 
 	"github.com/nsf/termbox-go"
 	"github.com/pkg/errors"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestReadRC(t *testing.T) {
@@ -77,8 +78,8 @@ func TestStringsToStyle(t *testing.T) {
 
 func TestLocateRcfile(t *testing.T) {
 	dir, err := ioutil.TempDir("", "peco-")
-	if err != nil {
-		t.Fatalf("Failed to create temporary directory: %s", err)
+	if !assert.NoError(t, err, "Failed to create temporary directory: %s", err) {
+		return
 	}
 
 	homedirFunc = func() (string, error) {
@@ -94,14 +95,14 @@ func TestLocateRcfile(t *testing.T) {
 	}
 
 	i := 0
-	locateRcfileInFunc = func(dir string) (string, error) {
+	locater := func(dir string) (string, error) {
 		t.Logf("looking for file in %s", dir)
-		if i > len(expected)-1 {
-			t.Fatalf("Got %d directories, only have %d", i+1, len(expected))
+		if !assert.True(t, i <= len(expected)-1, "Got %d directories, only have %d", i+1, len(expected)) {
+			return "", errors.New("error: Not found")
 		}
 
-		if expected[i] != dir {
-			t.Errorf("Expected %s, got %s", expected[i], dir)
+		if !assert.Equal(t, expected[i], dir, "Expected %s, got %s", expected[i], dir) {
+			return "", errors.New("error: Not found")
 		}
 		i++
 		return "", errors.New("error: Not found")
@@ -117,10 +118,10 @@ func TestLocateRcfile(t *testing.T) {
 		fmt.Sprintf("%c", filepath.ListSeparator),
 	))
 
-	LocateRcfile()
+	LocateRcfile(locater)
 	expected[0] = filepath.Join(dir, ".config", "peco")
 	os.Setenv("XDG_CONFIG_HOME", "")
 	i = 0
-	LocateRcfile()
+	LocateRcfile(locater)
 
 }

@@ -95,7 +95,7 @@ func TestPecoHelp(t *testing.T) {
 			break
 		}
 	}
-t.Logf("%s", err)
+
 	if !assert.Implements(t, (*testIgnorableError)(nil), err, "p.Run() should return error") {
 		return
 	}

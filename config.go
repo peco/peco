@@ -157,7 +157,7 @@ func stringsToStyle(raw []string) *Style {
 
 // This is a variable because we want to change its behavior
 // when we run tests.
-var locateRcfileInFunc = locateRcfileIn
+type configLocateFunc func(string) (string, error)
 
 func locateRcfileIn(dir string) (string, error) {
 	const basename = "config.json"
@@ -169,7 +169,7 @@ func locateRcfileIn(dir string) (string, error) {
 }
 
 // LocateRcfile attempts to find the config file in various locations
-func LocateRcfile() (string, error) {
+func LocateRcfile(locater configLocateFunc) (string, error) {
 	// http://standards.freedesktop.org/basedir-spec/basedir-spec-latest.html
 	//
 	// Try in this order:
@@ -181,14 +181,12 @@ func LocateRcfile() (string, error) {
 
 	// Try dir supplied via env var
 	if dir := os.Getenv("XDG_CONFIG_HOME"); dir != "" {
-		file, err := locateRcfileInFunc(filepath.Join(dir, "peco"))
-		if err == nil {
+		if file, err := locater(filepath.Join(dir, "peco")); err == nil {
 			return file, nil
 		}
 	} else if uErr == nil { // silently ignore failure for homedir()
 		// Try "default" XDG location, is user is available
-		file, err := locateRcfileInFunc(filepath.Join(home, ".config", "peco"))
-		if err == nil {
+		if file, err := locater(filepath.Join(home, ".config", "peco")); err == nil {
 			return file, nil
 		}
 	}
@@ -198,16 +196,14 @@ func LocateRcfile() (string, error) {
 	// with filepath.ListSeparator, so use it
 	if dirs := os.Getenv("XDG_CONFIG_DIRS"); dirs != "" {
 		for _, dir := range strings.Split(dirs, fmt.Sprintf("%c", filepath.ListSeparator)) {
-			file, err := locateRcfileInFunc(filepath.Join(dir, "peco"))
-			if err == nil {
+			if file, err := locater(filepath.Join(dir, "peco")); err == nil {
 				return file, nil
 			}
 		}
 	}
 
 	if uErr == nil { // silently ignore failure for homedir()
-		file, err := locateRcfileInFunc(filepath.Join(home, ".peco"))
-		if err == nil {
+		if file, err := locater(filepath.Join(home, ".peco")); err == nil {
 			return file, nil
 		}
 	}
