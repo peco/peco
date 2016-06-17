@@ -11,19 +11,9 @@ import (
 // go run -race cmd/peco/peco.go
 var termboxMutex = newMutex()
 
-// These functions are here so that we can test
-var (
-	termboxClose     = termbox.Close
-	termboxFlush     = termbox.Flush
-	termboxInit      = termbox.Init
-	termboxPollEvent = termbox.PollEvent
-	termboxSetCell   = termbox.SetCell
-	termboxSize      = termbox.Size
-)
-
 func (t Termbox) Init() error {
 	trace("initializing termbox")
-	if err := termboxInit(); err != nil {
+	if err := termbox.Init(); err != nil {
 		return err
 	}
 
@@ -31,7 +21,7 @@ func (t Termbox) Init() error {
 }
 
 func (t Termbox) Close() error {
-	termboxClose()
+	termbox.Close()
 	return nil
 }
 
@@ -46,7 +36,7 @@ func (t Termbox) SendEvent(_ termbox.Event) {
 func (t Termbox) Flush() error {
 	termboxMutex.Lock()
 	defer termboxMutex.Unlock()
-	return termboxFlush()
+	return termbox.Flush()
 }
 
 // PollEvent returns a channel that you can listen to for
@@ -67,7 +57,7 @@ func (t Termbox) PollEvent() chan termbox.Event {
 		defer func() { recover() }()
 		defer func() { close(evCh) }()
 		for {
-			evCh <- termboxPollEvent()
+			evCh <- termbox.PollEvent()
 		}
 	}()
 	return evCh
@@ -78,14 +68,14 @@ func (t Termbox) PollEvent() chan termbox.Event {
 func (t Termbox) SetCell(x, y int, ch rune, fg, bg termbox.Attribute) {
 	termboxMutex.Lock()
 	defer termboxMutex.Unlock()
-	termboxSetCell(x, y, ch, fg, bg)
+	termbox.SetCell(x, y, ch, fg, bg)
 }
 
 // Size returns the dimensions of the current terminal
 func (t Termbox) Size() (int, int) {
 	termboxMutex.Lock()
 	defer termboxMutex.Unlock()
-	return termboxSize()
+	return termbox.Size()
 }
 
 type PrintArgs struct {
