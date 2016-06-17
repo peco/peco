@@ -286,7 +286,6 @@ func (p *Peco) Run(ctx context.Context) (err error) {
 		pdebug.Printf("peco is now ready, go go go!")
 	}
 
-	close(p.readyCh)
 	if p.Options.OptSelect1 {
 		go func() {
 			<-p.source.Done()
@@ -300,6 +299,14 @@ func (p *Peco) Run(ctx context.Context) (err error) {
 			}
 		}()
 	}
+
+	close(p.readyCh)
+
+	if p.Options.OptQuery != "" {
+		p.Query().Set(p.Options.OptQuery)
+		p.ExecQuery()
+	}
+
 	<-ctx.Done()
 
 	return p.Err()

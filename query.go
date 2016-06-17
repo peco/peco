@@ -1,5 +1,9 @@
 package peco
 
+func (q *Query) Set(s string) {
+	q.query = []rune(s)
+}
+
 func (q *Query) Reset() {
 	q.query = []rune(nil)
 }
