@@ -6,15 +6,10 @@ import (
 	"sync"
 	"time"
 
-	"golang.org/x/net/context"
-
 	"github.com/peco/peco/pipeline"
 	"github.com/pkg/errors"
+	"golang.org/x/net/context"
 )
-
-// ErrBufferOutOfRange is returned when the index within the buffer that
-// was queried was out of the containing buffer's range
-var ErrBufferOutOfRange = errors.New("error: Specified index is out of range")
 
 func NewFilteredBuffer(src Buffer, page, perPage int) *FilteredBuffer {
 	fb := FilteredBuffer{
@@ -48,8 +43,8 @@ func (flb *FilteredBuffer) Append(l Line) (Line, error) {
 // in this filtered buffer may actually correspond to a totally
 // different line number in the source buffer.
 func (flb FilteredBuffer) LineAt(i int) (Line, error) {
-	if i >= int(len(flb.selection)) {
-		return nil, ErrBufferOutOfRange
+	if i >= len(flb.selection) {
+		return nil, errors.Errorf("specified index %d is out of range", len(flb.selection))
 	}
 	return flb.src.LineAt(flb.selection[i])
 }
@@ -65,14 +60,8 @@ func NewMemoryBuffer() *MemoryBuffer {
 	}
 }
 
-// XXX go through an accessor that returns a reference so that
-// we are sure we are accessing/modifying the same mutex
-func (mb *MemoryBuffer) locker() *sync.Mutex {
-	return &mb.mutex
-}
-
 func (mb *MemoryBuffer) Size() int {
-	l := mb.locker()
+	l := mb.mutex
 	l.Lock()
 	defer l.Unlock()
 
@@ -116,7 +105,7 @@ func (mb *MemoryBuffer) Accept(ctx context.Context, p pipeline.Producer) {
 }
 
 func (mb *MemoryBuffer) LineAt(n int) (Line, error) {
-	l := mb.locker()
+	l := mb.mutex
 	l.Lock()
 	defer l.Unlock()
 
@@ -153,7 +142,7 @@ func NewSource(in io.Reader, enableSep bool) *Source {
 // Setup reads from the input os.File.
 func (s *Source) Setup(state *Peco) {
 	s.setupOnce.Do(func() {
-		l := s.locker()
+		l := s.mutex
 		l.Lock()
 		defer l.Unlock()
 
