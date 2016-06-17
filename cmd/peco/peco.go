@@ -57,7 +57,7 @@ func _main() int {
 
 	buf := bytes.Buffer{}
 	for line := range cli.ResultCh() {
-		buf.WriteString(line.DisplayString())
+		buf.WriteString(line.Output())
 		buf.WriteByte('\n')
 	}
 	os.Stdout.Write(buf.Bytes())
