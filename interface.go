@@ -464,10 +464,6 @@ type LineFilter interface {
 	String() string
 }
 
-type SelectionFilter struct {
-	sel *Selection
-}
-
 type RegexpFilter struct {
 	compiledQuery []*regexp.Regexp
 	flags         regexpFlags

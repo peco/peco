@@ -16,8 +16,6 @@ import (
 	"github.com/pkg/errors"
 )
 
-var ErrFilterDidNotMatch = errors.New("error: filter did not match against given line")
-
 func (fx *FilterSet) Reset() {
 	fx.current = 0
 }
@@ -145,10 +143,6 @@ func (f *Filter) Loop(ctx context.Context, cancel func()) error {
 	}
 }
 
-func (sf SelectionFilter) Name() string {
-	return "SelectionFilter"
-}
-
 func NewRegexpFilter() *RegexpFilter {
 	return &RegexpFilter{
 		flags: regexpFlagList(defaultFlags),
@@ -219,7 +213,7 @@ TryRegexps:
 	}
 
 	if !allMatched {
-		return nil, ErrFilterDidNotMatch
+		return nil, errors.New("filter did not match against given line")
 	}
 
 	sort.Sort(byMatchStart(matches))
