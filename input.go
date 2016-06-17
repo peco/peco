@@ -54,7 +54,7 @@ func (i *Input) handleInputEvent(ctx context.Context, ev termbox.Event) error {
 				m.Lock()
 				i.mod = nil
 				m.Unlock()
-				i.handleInputEvent(ctx, tmp)
+				i.state.Keymap().ExecuteAction(ctx, i.state, tmp)
 			})
 			m.Unlock()
 			return nil
