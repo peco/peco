@@ -446,6 +446,18 @@ func (p *Peco) ApplyConfig(opts CLIOptions) error {
 		return errors.Wrap(err, "failed to populate styles")
 	}
 
+	if len(opts.OptInitialFilter) <= 0 && len(opts.OptInitialMatcher) > 0 {
+		p.initialFilter = opts.OptInitialMatcher
+	} else if len(opts.OptInitialFilter) > 0 {
+		p.initialFilter = opts.OptInitialFilter
+	}
+
+	if v := p.initialFilter; v != "" {
+		if err := p.filters.SetCurrentByName(v); err != nil {
+			return errors.Wrap(err, "failed to set filter")
+		}
+	}
+
 	return nil
 }
 

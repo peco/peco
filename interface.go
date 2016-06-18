@@ -68,7 +68,8 @@ type Peco struct {
 	filters                 FilterSet
 	keymap                  Keymap
 	enableSep               bool     // Enable parsing on separators
-	initialQuery            string   // True if --query is specified
+	initialFilter           string   // populated if --initial-filter is specified
+	initialQuery            string   // populated if --query is specified
 	inputseq                Inputseq // current key sequence (just the names)
 	layoutType              string
 	location                Location
