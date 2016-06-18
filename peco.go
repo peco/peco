@@ -207,18 +207,19 @@ func (p *Peco) Setup() (err error) {
 		return errors.Wrap(err, "failed to initialize config")
 	}
 
-	if err := p.parseCommandLine(&p.Options, &p.args, p.Argv); err != nil {
+	var opts CLIOptions
+	if err := p.parseCommandLine(&opts, &p.args, p.Argv); err != nil {
 		return errors.Wrap(err, "failed to parse command line")
 	}
 
 	// Read config
-	if err := readConfig(&p.config, p.Options.OptRcfile); err != nil {
+	if err := readConfig(&p.config, opts.OptRcfile); err != nil {
 		return errors.Wrap(err, "failed to setup configuration")
 	}
 
 	// Take Args, Config, Options, and apply the configuration to
 	// the peco object
-	if err := p.ApplyConfig(); err != nil {
+	if err := p.ApplyConfig(opts); err != nil {
 		return errors.Wrap(err, "failed to apply configuration")
 	}
 
@@ -286,9 +287,14 @@ func (p *Peco) Run(ctx context.Context) (err error) {
 		pdebug.Printf("peco is now ready, go go go!")
 	}
 
-	if p.Options.OptSelect1 {
+	// If this is enabled, we need to check if we have 1 line only
+	// in the buffer. If we do, we select that line and bail out
+	if p.selectOneAndExit {
 		go func() {
+			// Wait till source has read all lines
 			<-p.source.Done()
+			// If we have only one line, we just want to bail out
+			// printing that one line as the result
 			if b := p.CurrentLineBuffer(); b.Size() == 1 {
 				if l, err := b.LineAt(0); err == nil {
 					p.resultCh = make(chan Line)
@@ -302,13 +308,19 @@ func (p *Peco) Run(ctx context.Context) (err error) {
 
 	close(p.readyCh)
 
-	if p.Options.OptQuery != "" {
-		p.Query().Set(p.Options.OptQuery)
+	// This has tobe AFTER close(p.readyCh), otherwise the query is
+	// ignored by us (queries are not run until peco thinks it's ready)
+	if q := p.initialQuery; q != "" {
+		p.Query().Set(q)
 		p.ExecQuery()
 	}
 
+	// Alright, done everything we need to do automatically. We'll let
+	// the user play with peco, and when we receive notification to
+	// bail out, the context should be canceled appropriately
 	<-ctx.Done()
 
+	// ...and we return any errors that we might have been informed about.
 	return p.Err()
 }
 
@@ -393,7 +405,7 @@ func (p *Peco) populateCommandList() error {
 	return nil
 }
 
-func (p *Peco) ApplyConfig() error {
+func (p *Peco) ApplyConfig(opts CLIOptions) error {
 	// If layoutType is not set and is set in the config, set it
 	if p.layoutType == "" {
 		if v := p.config.Layout; v != "" {
@@ -403,15 +415,18 @@ func (p *Peco) ApplyConfig() error {
 		}
 	}
 
-	p.enableSep = p.Options.OptEnableNullSep
+	p.enableSep = opts.OptEnableNullSep
 
-	if i := p.Options.OptInitialIndex; i >= 0 {
+	if i := opts.OptInitialIndex; i >= 0 {
 		p.Location().SetLineNumber(i)
 	}
 
-	if v := p.Options.OptLayout; v != "" {
+	if v := opts.OptLayout; v != "" {
 		p.layoutType = v
 	}
+
+	p.selectOneAndExit = opts.OptSelect1
+	p.initialQuery = opts.OptQuery
 
 	if err := p.populateCommandList(); err != nil {
 		return errors.Wrap(err, "failed to populate command list")

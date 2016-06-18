@@ -68,6 +68,7 @@ type Peco struct {
 	filters                 FilterSet
 	keymap                  Keymap
 	enableSep               bool     // Enable parsing on separators
+	initialQuery            string   // True if --query is specified
 	inputseq                Inputseq // current key sequence (just the names)
 	layoutType              string
 	location                Location
@@ -81,12 +82,11 @@ type Peco struct {
 	screen                  Screen
 	selection               *Selection
 	selectionRangeStart     RangeStart
+	selectOneAndExit        bool // True if --select-1 is enabled
 	singleKeyJumpMode       bool
 	singleKeyJumpPrefixes   []rune
 	singleKeyJumpShowPrefix bool
 	styles                  StyleSet
-
-	Options CLIOptions
 
 	// Source is where we buffer input. It gets reused when a new query is
 	// executed.
