@@ -5,6 +5,7 @@ import (
 	"os"
 	"reflect"
 	"time"
+	"unicode/utf8"
 
 	"golang.org/x/net/context"
 
@@ -312,6 +313,7 @@ func (p *Peco) Run(ctx context.Context) (err error) {
 	// ignored by us (queries are not run until peco thinks it's ready)
 	if q := p.initialQuery; q != "" {
 		p.Query().Set(q)
+		p.Caret().SetPos(utf8.RuneCountInString(q))
 		p.ExecQuery()
 	}
 
