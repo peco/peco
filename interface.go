@@ -370,6 +370,11 @@ type CustomFilterConfig struct {
 	// more often, but you pay the penalty of invoking that command
 	// more times.
 	BufferThreshold int
+
+	// Set this to true if your tool can receive lines containing
+	// "DATA\0LINE_ID". You should only return the LINE_ID if this
+	// is set to true
+	ReturnsLineID bool
 }
 
 // StyleSet holds styles for various sections
@@ -503,11 +508,12 @@ type RegexpFilter struct {
 }
 
 type ExternalCmdFilter struct {
-	enableSep       bool
-	cmd             string
 	args            []string
+	cmd             string
+	enableSep       bool
 	name            string
-	query           string
-	thresholdBufsiz int
 	outCh           pipeline.OutputChannel
+	query           string
+	returnsLineID   bool
+	thresholdBufsiz int
 }
