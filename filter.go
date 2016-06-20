@@ -519,11 +519,6 @@ func (ecf *ExternalCmdFilter) launchExternalCmd(ctx context.Context, buf []Line)
 		for {
 			b, _, err := rdr.ReadLine()
 			if len(b) > 0 {
-				// TODO: need to redo the spec for custom matchers
-				// This is the ONLY location where we need to actually
-				// RECREATE a RawLine, and thus the only place where
-				// ctx.enableSep is required.
-
 				// Lookup the Line from its ID
 				id, err := strconv.ParseUint(string(b), 10, 64)
 				if err == nil {
