@@ -6,6 +6,7 @@ import (
 	"os/exec"
 	"regexp"
 	"sort"
+	"strconv"
 	"sync"
 	"time"
 
@@ -487,9 +488,15 @@ func (ecf *ExternalCmdFilter) launchExternalCmd(ctx context.Context, buf []Line)
 		pdebug.Printf("Executing command %s %v", cmd.Path, cmd.Args)
 	}
 
+	lines := make(map[uint64]Line)
 	inbuf := &bytes.Buffer{}
 	for _, l := range buf {
-		inbuf.WriteString(l.DisplayString() + "\n")
+		inbuf.WriteString(l.DisplayString())
+		inbuf.WriteByte(0)
+		inbuf.WriteString(strconv.FormatUint(l.ID(), 10))
+		inbuf.WriteByte('\n')
+
+		lines[l.ID()] = l
 	}
 
 	cmd.Stdin = inbuf
@@ -516,7 +523,19 @@ func (ecf *ExternalCmdFilter) launchExternalCmd(ctx context.Context, buf []Line)
 				// This is the ONLY location where we need to actually
 				// RECREATE a RawLine, and thus the only place where
 				// ctx.enableSep is required.
-				cmdCh <- NewMatchedLine(NewRawLine(string(b), ecf.enableSep), nil)
+
+				// Lookup the Line from its ID
+				id, err := strconv.ParseUint(string(b), 10, 64)
+				if err == nil {
+					continue
+				}
+
+				l, ok := lines[id]
+				if !ok {
+					continue
+				}
+
+				cmdCh <- NewMatchedLine(l, nil)
 			}
 			if err != nil {
 				break
