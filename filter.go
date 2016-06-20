@@ -69,37 +69,45 @@ func (f *Filter) Work(ctx context.Context, q hub.Payload) {
 		return
 	}
 
+	if pdebug.Enabled {
+		pdebug.Printf("New query '%s'", query)
+	}
+
 	state := f.state
 	if query == "" {
 		state.ResetCurrentLineBuffer()
-	} else {
-		// Create a new pipeline
-		p := pipeline.New()
-		p.SetSource(state.Source())
-		f := state.Filters().Current().Clone()
-		f.SetQuery(query)
-		p.Add(f)
-
-		buf := NewMemoryBuffer()
-		p.SetDestination(buf)
-		state.SetCurrentLineBuffer(buf)
-
-		go func() {
-			defer state.Hub().SendDraw(true)
-			if err := p.Run(ctx); err != nil {
-				state.Hub().SendStatusMsg(err.Error())
-			}
-		}()
-
-		go func() {
-			if pdebug.Enabled {
-				pdebug.Printf("waiting for query to finish")
-				defer pdebug.Printf("Filter.Work: finished running query")
-			}
-			<-p.Done()
-			state.Hub().SendStatusMsg("")
-		}()
+		if !state.config.StickySelection {
+			state.Selection().Reset()
+		}
+		return
 	}
+
+	// Create a new pipeline
+	p := pipeline.New()
+	p.SetSource(state.Source())
+	thisf := state.Filters().Current().Clone()
+	thisf.SetQuery(query)
+	p.Add(thisf)
+
+	buf := NewMemoryBuffer()
+	p.SetDestination(buf)
+	state.SetCurrentLineBuffer(buf)
+
+	go func() {
+		defer state.Hub().SendDraw(true)
+		if err := p.Run(ctx); err != nil {
+			state.Hub().SendStatusMsg(err.Error())
+		}
+	}()
+
+	go func() {
+		if pdebug.Enabled {
+			pdebug.Printf("waiting for query to finish")
+			defer pdebug.Printf("Filter.Work: finished running query")
+		}
+		<-p.Done()
+		state.Hub().SendStatusMsg("")
+	}()
 
 	if !state.config.StickySelection {
 		state.Selection().Reset()
@@ -300,29 +308,33 @@ func NewSmartCaseFilter() *RegexpFilter {
 	return rf
 }
 
-func NewExternalCmdFilter(name, cmd string, args []string, threshold int, enableSep bool) *ExternalCmdFilter {
+func NewExternalCmdFilter(name string, cmd string, args []string, threshold int, enableSep bool) *ExternalCmdFilter {
 	if len(args) == 0 {
 		args = []string{"$QUERY"}
 	}
 
+	if threshold <= 0 {
+		threshold = DefaultCustomFilterBufferThreshold
+	}
+
 	return &ExternalCmdFilter{
-		enableSep:       enableSep,
-		cmd:             cmd,
 		args:            args,
+		cmd:             cmd,
+		enableSep:       enableSep,
 		name:            name,
-		thresholdBufsiz: threshold,
 		outCh:           pipeline.OutputChannel(make(chan interface{})),
+		thresholdBufsiz: threshold,
 	}
 }
 
 func (ecf ExternalCmdFilter) Clone() LineFilter {
 	return &ExternalCmdFilter{
-		enableSep:       ecf.enableSep,
-		cmd:             ecf.cmd,
 		args:            ecf.args,
+		cmd:             ecf.cmd,
+		enableSep:       ecf.enableSep,
 		name:            ecf.name,
-		thresholdBufsiz: ecf.thresholdBufsiz,
 		outCh:           pipeline.OutputChannel(make(chan interface{})),
+		thresholdBufsiz: ecf.thresholdBufsiz,
 	}
 }
 
@@ -406,6 +418,9 @@ func (ecf *ExternalCmdFilter) launchExternalCmd(ctx context.Context, buf []Line)
 		}
 	}
 	cmd := exec.Command(ecf.cmd, args...)
+	if pdebug.Enabled {
+		pdebug.Printf("Executing command %s %v", cmd.Path, cmd.Args)
+	}
 
 	inbuf := &bytes.Buffer{}
 	for _, l := range buf {
