@@ -352,7 +352,7 @@ func (ecf *ExternalCmdFilter) Accept(ctx context.Context, p pipeline.Producer) {
 				pdebug.Printf("ExternalCmdFilter received done")
 			}
 			return
-		case v := <-ecf.OutCh():
+		case v := <-p.OutCh():
 			switch v.(type) {
 			case error:
 				if pipeline.IsEndMark(v.(error)) {
@@ -363,6 +363,7 @@ func (ecf *ExternalCmdFilter) Accept(ctx context.Context, p pipeline.Producer) {
 						ecf.launchExternalCmd(ctx, buf)
 					}
 				}
+				return
 			case Line:
 				if pdebug.Enabled {
 					pdebug.Printf("ExternalCmdFilter received new line")
