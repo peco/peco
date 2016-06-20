@@ -133,13 +133,6 @@ barfoo
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-
-	p.Run(ctx)
-
-	t.Logf("%#v", dst.lines)
-
-	ctx, cancel = context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
 	p.Run(ctx)
 	t.Logf("%#v", dst.lines)
 }
