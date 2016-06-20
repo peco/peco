@@ -4,7 +4,7 @@
 
 ## Reporting Issues/Filing Pulling Requests
 
-* Please follow the [Issue Template](./.github/ISSUE_TEMPLATE.md)
+* Please follow the [Issue Template](./ISSUE_TEMPLATE.md)
 * Please always include concrete example, code, etc.
 * Please Do not assume that the peco contributors know about what you are talking about.
   * Please always include enough information/links to terms/tools that you refer in your report. 
