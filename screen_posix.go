@@ -2,6 +2,6 @@
 
 package peco
 
-func (t Termbox) PostInit() error {
+func (t *Termbox) PostInit() error {
 	return nil
 }

@@ -3,147 +3,106 @@ package peco
 import (
 	"bufio"
 	"bytes"
-	"errors"
-	"fmt"
 	"os/exec"
 	"regexp"
 	"sort"
-	"strings"
+	"sync"
 
+	"github.com/lestrrat/go-pdebug"
+	"github.com/peco/peco/hub"
 	"github.com/peco/peco/internal/util"
+	"github.com/peco/peco/pipeline"
+	"github.com/pkg/errors"
+	"golang.org/x/net/context"
 )
 
-// These are used as keys in the config file
-const (
-	IgnoreCaseMatch    = "IgnoreCase"
-	CaseSensitiveMatch = "CaseSensitive"
-	SmartCaseMatch     = "SmartCase"
-	RegexpMatch        = "Regexp"
-)
-
-var ignoreCaseFlags = regexpFlagList([]string{"i"})
-var defaultFlags = regexpFlagList{}
-
-func (r regexpFlagList) flags(_ string) []string {
-	return []string(r)
+func (fx *FilterSet) Reset() {
+	fx.current = 0
 }
 
-func (r regexpFlagFunc) flags(s string) []string {
-	return r(s)
+func (fs *FilterSet) Size() int {
+	return len(fs.filters)
 }
 
-func regexpFor(q string, flags []string, quotemeta bool) (*regexp.Regexp, error) {
-	reTxt := q
-	if quotemeta {
-		reTxt = regexp.QuoteMeta(q)
-	}
-
-	if flags != nil && len(flags) > 0 {
-		reTxt = fmt.Sprintf("(?%s)%s", strings.Join(flags, ""), reTxt)
-	}
-
-	re, err := regexp.Compile(reTxt)
-	if err != nil {
-		return nil, err
-	}
-	return re, nil
+func (fs *FilterSet) Add(lf LineFilter) error {
+	fs.filters = append(fs.filters, lf)
+	return nil
 }
 
-func queryToRegexps(flags regexpFlags, quotemeta bool, query string) ([]*regexp.Regexp, error) {
-	queries := strings.Split(strings.TrimSpace(query), " ")
-	regexps := make([]*regexp.Regexp, 0)
+func (fs *FilterSet) Rotate() {
+	fs.current++
+	if fs.current >= len(fs.filters) {
+		fs.current = 0
+	}
+	if pdebug.Enabled {
+		pdebug.Printf("FilterSet.Rotate: now filter in effect is %s", fs.filters[fs.current])
+	}
+}
 
-	for _, q := range queries {
-		re, err := regexpFor(q, flags.flags(query), quotemeta)
-		if err != nil {
-			return nil, err
+func (fs *FilterSet) SetCurrentByName(name string) error {
+	for i, f := range fs.filters {
+		if f.String() == name {
+			fs.current = i
+			return nil
 		}
-		regexps = append(regexps, re)
 	}
-
-	return regexps, nil
+	return ErrFilterNotFound
 }
 
-// sort related stuff
-type byMatchStart [][]int
-
-func (m byMatchStart) Len() int {
-	return len(m)
+func (fs *FilterSet) Current() LineFilter {
+	return fs.filters[fs.current]
 }
 
-func (m byMatchStart) Swap(i, j int) {
-	m[i], m[j] = m[j], m[i]
-}
-
-func (m byMatchStart) Less(i, j int) bool {
-	if m[i][0] < m[j][0] {
-		return true
+func NewFilter(state *Peco) *Filter {
+	return &Filter{
+		state: state,
 	}
-
-	if m[i][0] == m[j][0] {
-		return m[i][1]-m[i][0] < m[j][1]-m[j][0]
-	}
-
-	return false
-}
-func matchContains(a []int, b []int) bool {
-	return a[0] <= b[0] && a[1] >= b[1]
-}
-
-func matchOverlaps(a []int, b []int) bool {
-	return a[0] <= b[0] && a[1] >= b[0] ||
-		a[0] <= b[1] && a[1] >= b[1]
-}
-
-func mergeMatches(a []int, b []int) []int {
-	ret := make([]int, 2)
-
-	// Note: In practice this should never happen
-	// because we're sorting by N[0] before calling
-	// this routine, but for completeness' sake...
-	if a[0] < b[0] {
-		ret[0] = a[0]
-	} else {
-		ret[0] = b[0]
-	}
-
-	if a[1] < b[1] {
-		ret[1] = b[1]
-	} else {
-		ret[1] = a[1]
-	}
-	return ret
 }
 
 // Work is the actual work horse that that does the matching
 // in a goroutine of its own. It wraps Matcher.Match().
-func (f *Filter) Work(cancel chan struct{}, q HubReq) {
-	trace("Filter.Work: START\n")
-	defer trace("Filter.Work: END\n")
+func (f *Filter) Work(ctx context.Context, q hub.Payload) {
 	defer q.Done()
 
-	query := q.DataString()
-	if query == "" {
-		trace("Filter.Work: Resetting activingLineBuffer")
-		f.ResetActiveLineBuffer()
-	} else {
-		f.rawLineBuffer.cancelCh = cancel
-		f.rawLineBuffer.Replay()
-
-		filter := f.Filter().Clone()
-		filter.SetQuery(query)
-		trace("Running %#v filter using query '%s'", filter, query)
-
-		filter.Accept(f.rawLineBuffer)
-		buf := NewRawLineBuffer()
-		buf.onEnd = func() { f.SendStatusMsg("") }
-		buf.Accept(filter)
-
-		f.SetActiveLineBuffer(buf, true)
+	query, ok := q.Data().(string)
+	if !ok {
+		return
 	}
 
-	if !f.config.StickySelection {
-		f.SelectionClear()
+	state := f.state
+	if query == "" {
+		state.ResetCurrentLineBuffer()
+	} else {
+		// Create a new pipeline
+		p := pipeline.New()
+		p.SetSource(state.Source())
+		f := state.Filters().Current().Clone()
+		f.SetQuery(query)
+		p.Add(f)
+
+		buf := NewMemoryBuffer()
+		p.SetDestination(buf)
+		state.SetCurrentLineBuffer(buf)
+
+		go func() {
+			defer state.Hub().SendDraw(true)
+			if err := p.Run(ctx); err != nil {
+				state.Hub().SendStatusMsg(err.Error())
+			}
+		}()
+
+		go func() {
+			if pdebug.Enabled {
+				pdebug.Printf("waiting for query to finish")
+				defer pdebug.Printf("Filter.Work: finished running query")
+			}
+			<-p.Done()
+			state.Hub().SendStatusMsg("")
+		}()
+	}
+
+	if !state.config.StickySelection {
+		state.Selection().Reset()
 	}
 }
 
@@ -151,99 +110,99 @@ func (f *Filter) Work(cancel chan struct{}, q HubReq) {
 // a query, spawns a goroutine to do the heavy work. It also
 // checks for previously running queries, so we can avoid
 // running many goroutines doing the grep at the same time
-func (f *Filter) Loop() {
-	defer f.ReleaseWaitGroup()
+func (f *Filter) Loop(ctx context.Context, cancel func()) error {
+	defer cancel()
 
-	// previous holds a channel that can cancel the previous
+	// previous holds the function that can cancel the previous
 	// query. This is used when multiple queries come in succession
 	// and the previous query is discarded anyway
-	var previous chan struct{}
+	var mutex sync.Mutex
+	var previous func()
+	previous = func() {} // no op func
 	for {
 		select {
-		case <-f.LoopCh():
-			return
-		case q := <-f.QueryCh():
-			if previous != nil {
-				// Tell the previous query to stop
-				close(previous)
-			}
-			previous = make(chan struct{})
+		case <-ctx.Done():
+			return nil
+		case q := <-f.state.Hub().QueryCh():
+			workctx, workcancel := context.WithCancel(ctx)
 
-			f.SendStatusMsg("Running query...")
-			go f.Work(previous, q)
+			mutex.Lock()
+			previous()
+			previous = workcancel
+			mutex.Unlock()
+
+			f.state.Hub().SendStatusMsg("Running query...")
+
+			go func() {
+				f.Work(workctx, q)
+			}()
 		}
 	}
-}
-
-type QueryFilterer interface {
-	Pipeliner
-	Cancel()
-	Clone() QueryFilterer
-	Accept(Pipeliner)
-	SetQuery(string)
-	String() string
-}
-
-type SelectionFilter struct {
-	sel *Selection
-}
-
-func (sf SelectionFilter) Name() string {
-	return "SelectionFilter"
-}
-
-type RegexpFilter struct {
-	simplePipeline
-	compiledQuery []*regexp.Regexp
-	flags         regexpFlags
-	quotemeta     bool
-	query         string
-	name          string
-	onEnd         func()
 }
 
 func NewRegexpFilter() *RegexpFilter {
 	return &RegexpFilter{
 		flags: regexpFlagList(defaultFlags),
 		name:  "Regexp",
+		outCh: pipeline.OutputChannel(make(chan interface{})),
 	}
 }
 
-func (rf RegexpFilter) Clone() QueryFilterer {
+func (rf RegexpFilter) OutCh() <-chan interface{} {
+	return rf.outCh
+}
+
+func (rf RegexpFilter) Clone() LineFilter {
 	return &RegexpFilter{
-		simplePipeline{},
-		nil,
-		rf.flags,
-		rf.quotemeta,
-		rf.query,
-		rf.name,
-		nil,
+		flags:     rf.flags,
+		quotemeta: rf.quotemeta,
+		query:     rf.query,
+		name:      rf.name,
+		outCh:     pipeline.OutputChannel(make(chan interface{})),
 	}
 }
 
-func (rf *RegexpFilter) Accept(p Pipeliner) {
-	cancelCh, incomingCh := p.Pipeline()
-	rf.cancelCh = cancelCh
-	rf.outputCh = make(chan Line)
-	go acceptPipeline(cancelCh, incomingCh, rf.outputCh,
-		&pipelineCtx{rf.filter, rf.onEnd})
+func (rf *RegexpFilter) Accept(ctx context.Context, p pipeline.Producer) {
+	if pdebug.Enabled {
+		g := pdebug.Marker("RegexpFilter.Accept")
+		defer g.End()
+	}
+	defer rf.outCh.SendEndMark("end of RegexpFilter")
+	for {
+		select {
+		case <-ctx.Done():
+			if pdebug.Enabled {
+				pdebug.Printf("RegexpFilter received done")
+			}
+			return
+		case v := <-p.OutCh():
+			switch v.(type) {
+			case error:
+				if pipeline.IsEndMark(v.(error)) {
+					if pdebug.Enabled {
+						pdebug.Printf("RegexpFilter received end mark")
+					}
+					return
+				}
+			case Line:
+				if l, err := rf.filter(v.(Line)); err == nil {
+					rf.outCh.Send(l)
+				}
+			}
+		}
+	}
 }
-
-var ErrFilterDidNotMatch = errors.New("error: filter did not match against given line")
 
 func (rf *RegexpFilter) filter(l Line) (Line, error) {
-	trace("RegexpFilter.filter: START")
-	defer trace("RegexpFilter.filter: END")
 	regexps, err := rf.getQueryAsRegexps()
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "failed to compile queries as regular expression")
 	}
 	v := l.DisplayString()
 	allMatched := true
 	matches := [][]int{}
 TryRegexps:
 	for _, rx := range regexps {
-		trace("RegexpFilter.filter: matching '%s' against '%s'", v, rx)
 		match := rx.FindAllStringSubmatchIndex(v, -1)
 		if match == nil {
 			allMatched = false
@@ -253,10 +212,9 @@ TryRegexps:
 	}
 
 	if !allMatched {
-		return nil, ErrFilterDidNotMatch
+		return nil, errors.New("filter did not match against given line")
 	}
 
-	trace("RegexpFilter.filter: line matched pattern\n")
 	sort.Sort(byMatchStart(matches))
 
 	// We need to "dedupe" the results. For example, if we matched the
@@ -294,7 +252,7 @@ func (rf *RegexpFilter) getQueryAsRegexps() ([]*regexp.Regexp, error) {
 	}
 	q, err := queryToRegexps(rf.flags, rf.quotemeta, rf.query)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "failed to compile queries as regular expression")
 	}
 
 	rf.compiledQuery = q
@@ -310,154 +268,119 @@ func (rf RegexpFilter) String() string {
 	return rf.name
 }
 
-type FilterSet struct {
-	filters []QueryFilterer
-	current int
-}
-
-func (fx *FilterSet) Reset() {
-	fx.current = 0
-}
-
-func (fs *FilterSet) Size() int {
-	return len(fs.filters)
-}
-
-func (fs *FilterSet) Add(qf QueryFilterer) error {
-	fs.filters = append(fs.filters, qf)
-	return nil
-}
-
-func (fs *FilterSet) Rotate() {
-	fs.current++
-	if fs.current >= len(fs.filters) {
-		fs.current = 0
-	}
-	trace("FilterSet.Rotate: now filter in effect is %s", fs.filters[fs.current])
-}
-
 var ErrFilterNotFound = errors.New("specified filter was not found")
 
-func (fs *FilterSet) SetCurrentByName(name string) error {
-	for i, f := range fs.filters {
-		if f.String() == name {
-			fs.current = i
-			return nil
-		}
-	}
-	return ErrFilterNotFound
-}
-
-func (fs *FilterSet) GetCurrent() QueryFilterer {
-	return fs.filters[fs.current]
-}
-
 func NewIgnoreCaseFilter() *RegexpFilter {
-	return &RegexpFilter{
-		flags:     ignoreCaseFlags,
-		quotemeta: true,
-		name:      "IgnoreCase",
-	}
+	rf := NewRegexpFilter()
+	rf.flags = ignoreCaseFlags
+	rf.quotemeta = true
+	rf.name = "IgnoreCase"
+	return rf
 }
 
 func NewCaseSensitiveFilter() *RegexpFilter {
-	return &RegexpFilter{
-		flags:     defaultFlags,
-		quotemeta: true,
-		name:      "CaseSensitive",
-	}
+	rf := NewRegexpFilter()
+	rf.quotemeta = true
+	rf.name = "CaseSensitive"
+	return rf
 }
 
 // SmartCaseFilter turns ON the ignore-case flag in the regexp
 // if the query contains a upper-case character
 func NewSmartCaseFilter() *RegexpFilter {
-	return &RegexpFilter{
-		flags: regexpFlagFunc(func(q string) []string {
-			if util.ContainsUpper(q) {
-				return defaultFlags
-			}
-			return []string{"i"}
-		}),
-		quotemeta: true,
-		name:      "SmartCase",
-	}
-}
-
-type ExternalCmdFilter struct {
-	simplePipeline
-	enableSep       bool
-	cmd             string
-	args            []string
-	name            string
-	query           string
-	thresholdBufsiz int
+	rf := NewRegexpFilter()
+	rf.quotemeta = true
+	rf.name = "SmartCase"
+	rf.flags = regexpFlagFunc(func(q string) []string {
+		if util.ContainsUpper(q) {
+			return defaultFlags
+		}
+		return []string{"i"}
+	})
+	return rf
 }
 
 func NewExternalCmdFilter(name, cmd string, args []string, threshold int, enableSep bool) *ExternalCmdFilter {
-	trace("name = %s, cmd = %s, args = %#v", name, cmd, args)
 	if len(args) == 0 {
 		args = []string{"$QUERY"}
 	}
 
 	return &ExternalCmdFilter{
-		simplePipeline:  simplePipeline{},
 		enableSep:       enableSep,
 		cmd:             cmd,
 		args:            args,
 		name:            name,
 		thresholdBufsiz: threshold,
+		outCh:           pipeline.OutputChannel(make(chan interface{})),
 	}
 }
 
-func (ecf ExternalCmdFilter) Clone() QueryFilterer {
+func (ecf ExternalCmdFilter) Clone() LineFilter {
 	return &ExternalCmdFilter{
-		simplePipeline:  simplePipeline{},
 		enableSep:       ecf.enableSep,
 		cmd:             ecf.cmd,
 		args:            ecf.args,
 		name:            ecf.name,
 		thresholdBufsiz: ecf.thresholdBufsiz,
+		outCh:           pipeline.OutputChannel(make(chan interface{})),
 	}
 }
 
 func (ecf *ExternalCmdFilter) Verify() error {
 	if ecf.cmd == "" {
-		return fmt.Errorf("no executable specified for custom matcher '%s'", ecf.name)
+		return errors.Errorf("no executable specified for custom matcher '%s'", ecf.name)
 	}
 
 	if _, err := exec.LookPath(ecf.cmd); err != nil {
-		return err
+		return errors.Wrap(err, "failed to locate command")
 	}
 	return nil
 }
 
-func (ecf *ExternalCmdFilter) Accept(p Pipeliner) {
-	cancelCh, incomingCh := p.Pipeline()
-	outputCh := make(chan Line)
-	ecf.cancelCh = cancelCh
-	ecf.outputCh = outputCh
+func (ecf *ExternalCmdFilter) Accept(ctx context.Context, p pipeline.Producer) {
+	if pdebug.Enabled {
+		g := pdebug.Marker("ExternalCmdFilter.Accept")
+		defer g.End()
+	}
+	defer ecf.outCh.SendEndMark("end of ExternalCmdFilter")
 
-	go func() {
-		defer close(outputCh)
-
-		defer trace("ExternalCmdFilter.Accept: DONE")
-
-		// for every N lines, execute the external command
-		buf := []Line{}
-		for l := range incomingCh {
-			buf = append(buf, l)
-			if len(buf) < ecf.thresholdBufsiz {
-				continue
+	buf := make([]Line, 0, ecf.thresholdBufsiz)
+	for {
+		select {
+		case <-ctx.Done():
+			if pdebug.Enabled {
+				pdebug.Printf("ExternalCmdFilter received done")
 			}
+			return
+		case v := <-ecf.OutCh():
+			switch v.(type) {
+			case error:
+				if pipeline.IsEndMark(v.(error)) {
+					if pdebug.Enabled {
+						pdebug.Printf("ExternalCmdFilter received end mark")
+					}
+					if len(buf) > 0 {
+						ecf.launchExternalCmd(ctx, buf)
+					}
+				}
+			case Line:
+				if pdebug.Enabled {
+					pdebug.Printf("ExternalCmdFilter received new line")
+				}
+				buf = append(buf, v.(Line))
+				if len(buf) < ecf.thresholdBufsiz {
+					continue
+				}
 
-			ecf.launchExternalCmd(buf, cancelCh, outputCh)
-			buf = []Line{} // drain
+				ecf.launchExternalCmd(ctx, buf)
+				buf = buf[0:0]
+			}
 		}
+	}
+}
 
-		if len(buf) > 0 {
-			ecf.launchExternalCmd(buf, cancelCh, outputCh)
-		}
-	}()
+func (ecf ExternalCmdFilter) OutCh() <-chan interface{} {
+	return ecf.outCh
 }
 
 func (ecf *ExternalCmdFilter) SetQuery(q string) {
@@ -468,13 +391,12 @@ func (ecf ExternalCmdFilter) String() string {
 	return ecf.name
 }
 
-func (ecf *ExternalCmdFilter) launchExternalCmd(buf []Line, cancelCh chan struct{}, outputCh chan Line) {
+func (ecf *ExternalCmdFilter) launchExternalCmd(ctx context.Context, buf []Line) {
 	defer func() { recover() }() // ignore errors
-
-	trace("ExternalCmdFilter.launchExternalCmd: START")
-	defer trace("ExternalCmdFilter.launchExternalCmd: END")
-
-	trace("buf = %v", buf)
+	if pdebug.Enabled {
+		g := pdebug.Marker("ExternalCmdFilter.launchExternalCmd")
+		defer g.End()
+	}
 
 	args := append([]string(nil), ecf.args...)
 	for i, v := range args {
@@ -495,7 +417,6 @@ func (ecf *ExternalCmdFilter) launchExternalCmd(buf []Line, cancelCh chan struct
 		return
 	}
 
-	trace("cmd = %#v", cmd)
 	err = cmd.Start()
 	if err != nil {
 		return
@@ -528,18 +449,15 @@ func (ecf *ExternalCmdFilter) launchExternalCmd(buf []Line, cancelCh chan struct
 		}
 	}()
 
-	defer trace("Done waiting for cancel or line")
-
 	for {
 		select {
-		case <-cancelCh:
+		case <-ctx.Done():
 			return
 		case l, ok := <-cmdCh:
 			if l == nil || !ok {
 				return
 			}
-			trace("Custom: l = %s", l.DisplayString())
-			outputCh <- l
+			ecf.outCh.Send(l)
 		}
 	}
 }

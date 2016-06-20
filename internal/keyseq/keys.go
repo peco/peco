@@ -6,6 +6,7 @@ import (
 	"unicode/utf8"
 
 	"github.com/nsf/termbox-go"
+	"github.com/pkg/errors"
 )
 
 // This map is populated using some magic numbers, which must match
@@ -112,7 +113,7 @@ func ToKeyList(ksk string) (KeyList, error) {
 
 		k, m, ch, err := ToKey(term)
 		if err != nil {
-			return list, fmt.Errorf("Failed to convert '%s': %s", term, err)
+			return list, errors.Wrapf(err, "failed to convert '%s'", term)
 		}
 
 		list = append(list, Key{m, k, ch})
@@ -120,6 +121,7 @@ func ToKeyList(ksk string) (KeyList, error) {
 	return list, nil
 }
 
+// EventToString returns human readable name for a given termbox.Event
 func EventToString(ev termbox.Event) (string, error) {
 	s := ""
 	if ev.Key == 0 {
@@ -128,7 +130,7 @@ func EventToString(ev termbox.Event) (string, error) {
 		var ok bool
 		s, ok = keyToString[ev.Key]
 		if !ok {
-			return "", fmt.Errorf("error: No such key %#v", ev)
+			return "", errors.Errorf("no such key %#v", ev)
 		}
 
 		// Special case for ArrowUp/Down/Left/Right
@@ -171,7 +173,7 @@ func ToKey(key string) (k termbox.Key, modifier ModifierKey, ch rune, err error)
 			return
 		}
 
-		err = fmt.Errorf("No such key %s", key)
+		err = errors.Errorf("no such key %s", key)
 	}
 	return
 }

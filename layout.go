@@ -2,56 +2,22 @@ package peco
 
 import (
 	"fmt"
+	"strconv"
 	"time"
 	"unicode/utf8"
 
+	"github.com/lestrrat/go-pdebug"
 	"github.com/mattn/go-runewidth"
 	"github.com/nsf/termbox-go"
+	"github.com/pkg/errors"
 )
 
-var extraOffset = 0
-
-// Crop returns a new LineBuffer whose contents are
-// bound within the given range
-func (pf PageCrop) Crop(in LineBuffer) LineBuffer {
-	out := &FilteredLineBuffer{
-		src:       in,
-		selection: []int{},
-	}
-
-	s := pf.perPage * (pf.currentPage - 1)
-	e := s + pf.perPage
-	if s > in.Size() {
-		return out
-	}
-	if e >= in.Size() {
-		e = in.Size()
-	}
-
-	for i := s; i < e; i++ {
-		out.SelectSourceLineAt(i)
-	}
-	return out
-}
-
-const (
-	// LayoutTypeTopDown is the default. All the items read from top to bottom
-	LayoutTypeTopDown = "top-down"
-	// LayoutTypeBottomUp changes the layout to read from bottom to up
-	LayoutTypeBottomUp = "bottom-up"
-)
+var extraOffset int = 0
 
 // IsValidLayoutType checks if a string is a supported layout type
 func IsValidLayoutType(v LayoutType) bool {
 	return v == LayoutTypeTopDown || v == LayoutTypeBottomUp
 }
-
-const (
-	// AnchorTop anchors elements towards the top of the screen
-	AnchorTop VerticalAnchor = iota + 1
-	// AnchorBottom anchors elements towards the bottom of the screen
-	AnchorBottom
-)
 
 // IsValidVerticalAnchor checks if the specified anchor is supported
 func IsValidVerticalAnchor(anchor VerticalAnchor) bool {
@@ -66,57 +32,18 @@ func mergeAttribute(a, b termbox.Attribute) termbox.Attribute {
 	return ((a - 1) | (b - 1)) + 1
 }
 
-// Utility function
-func printScreen(x, y int, fg, bg termbox.Attribute, msg string, fill bool) int {
-	return printScreenWithOffset(x, y, 0, fg, bg, msg, fill)
-}
-
-func printScreenWithOffset(x, y, xOffset int, fg, bg termbox.Attribute, msg string, fill bool) int {
-	var written int
-
-	for len(msg) > 0 {
-		c, w := utf8.DecodeRuneInString(msg)
-		if c == utf8.RuneError {
-			c = '?'
-			w = 1
-		}
-		msg = msg[w:]
-		if c == '\t' {
-			// In case we found a tab, we draw it as 4 spaces
-			n := 4 - (x+xOffset)%4
-			for i := 0; i <= n; i++ {
-				screen.SetCell(x+i, y, ' ', fg, bg)
-			}
-			written += n
-			x += n
-		} else {
-			screen.SetCell(x, y, c, fg, bg)
-			n := runewidth.RuneWidth(c)
-			x += n
-			written += n
-		}
-	}
-
-	if !fill {
-		return written
-	}
-
-	width, _ := screen.Size()
-	for ; x < width; x++ {
-		screen.SetCell(x, y, ' ', fg, bg)
-	}
-	written += width - x
-	return written
-}
-
 // NewAnchorSettings creates a new AnchorSetting struct. Panics if
 // an unknown VerticalAnchor is sent
-func NewAnchorSettings(anchor VerticalAnchor, offset int) *AnchorSettings {
+func NewAnchorSettings(screen Screen, anchor VerticalAnchor, offset int) *AnchorSettings {
 	if !IsValidVerticalAnchor(anchor) {
 		panic("Invalid vertical anchor specified")
 	}
 
-	return &AnchorSettings{anchor, offset}
+	return &AnchorSettings{
+		anchor:       anchor,
+		anchorOffset: offset,
+		screen:       screen,
+	}
 }
 
 // AnchorPosition returns the starting y-offset, based on the
@@ -127,8 +54,8 @@ func (as AnchorSettings) AnchorPosition() int {
 	case AnchorTop:
 		pos = as.anchorOffset
 	case AnchorBottom:
-		_, h := screen.Size()
-		pos = h - as.anchorOffset - 1 // -1 is required because y is 0 base, but h is 1 base
+		_, h := as.screen.Size()
+		pos = int(h) - as.anchorOffset - 1 // -1 is required because y is 0 base, but h is 1 base
 	default:
 		panic("Unknown anchor type!")
 	}
@@ -137,89 +64,138 @@ func (as AnchorSettings) AnchorPosition() int {
 }
 
 // NewUserPrompt creates a new UserPrompt struct
-func NewUserPrompt(ctx *Ctx, anchor VerticalAnchor, anchorOffset int) *UserPrompt {
-	prefix := ctx.config.Prompt
-	if len(prefix) <= 0 { // default
-		prefix = "QUERY>"
+func NewUserPrompt(screen Screen, anchor VerticalAnchor, anchorOffset int, prompt string, styles *StyleSet) *UserPrompt {
+	if len(prompt) <= 0 { // default
+		prompt = "QUERY>"
 	}
-	prefixLen := runewidth.StringWidth(prefix)
+	promptLen := runewidth.StringWidth(prompt)
 
 	return &UserPrompt{
-		Ctx:            ctx,
-		AnchorSettings: &AnchorSettings{anchor, anchorOffset},
-		prefix:         prefix,
-		prefixLen:      prefixLen,
-		basicStyle:     ctx.config.Style.Basic,
-		queryStyle:     ctx.config.Style.Query,
+		AnchorSettings: NewAnchorSettings(screen, anchor, anchorOffset),
+		prompt:         prompt,
+		promptLen:      int(promptLen),
+		styles:         styles,
 	}
 }
 
 // Draw draws the query prompt
-func (u UserPrompt) Draw() {
-	trace("UserPrompt.Draw: START")
-	defer trace("UserPrompt.Draw: END")
+func (u UserPrompt) Draw(state *Peco) {
+	if pdebug.Enabled {
+		g := pdebug.Marker("UserPrompt.Draw")
+		defer g.End()
+	}
 
 	location := u.AnchorPosition()
 
 	// print "QUERY>"
-	printScreen(0, location, u.basicStyle.fg, u.basicStyle.bg, u.prefix, false)
+	u.screen.Print(PrintArgs{
+		Y:   location,
+		Fg:  u.styles.Basic.fg,
+		Bg:  u.styles.Basic.bg,
+		Msg: u.prompt,
+	})
 
-	pos := u.CaretPos()
-	if pos <= 0 { // XXX Do we really need this?
-		u.SetCaretPos(0) // sanity
+	c := state.Caret()
+	if c.Pos() <= 0 { // XXX Do we really need this?
+		c.SetPos(0) // sanity
 	}
 
-	qs := u.QueryString()
-	ql := u.QueryLen()
-	if pos > ql { // XXX Do we really need this?
-		u.SetCaretPos(ql)
+	q := state.Query()
+	qs := q.String()
+	ql := q.Len()
+	if c.Pos() > ql { // XXX Do we really need this?
+		c.SetPos(ql)
 	}
 
-	fg := u.queryStyle.fg
-	bg := u.queryStyle.bg
+	fg := u.styles.Query.fg
+	bg := u.styles.Query.bg
 	switch ql {
 	case 0:
-		printScreen(u.prefixLen, location, fg, bg, "", true)
-		printScreen(u.prefixLen+1, location, fg|termbox.AttrReverse, bg|termbox.AttrReverse, " ", false)
-	case u.CaretPos():
+		u.screen.Print(PrintArgs{
+			X:    u.promptLen,
+			Y:    location,
+			Fg:   fg,
+			Bg:   bg,
+			Fill: true,
+		})
+		u.screen.Print(PrintArgs{
+			X:    u.promptLen + 1,
+			Y:    location,
+			Bg:   bg | termbox.AttrReverse,
+			Fg:   fg | termbox.AttrReverse,
+			Msg:  " ",
+			Fill: false,
+		})
+	case c.Pos():
 		// the entire string + the caret after the string
-		printScreen(u.prefixLen, location, fg, bg, "", true)
-		printScreen(u.prefixLen+1, location, fg, bg, qs, false)
-		printScreen(u.prefixLen+runewidth.StringWidth(qs)+1, location, fg|termbox.AttrReverse, bg|termbox.AttrReverse, " ", false)
+		u.screen.Print(PrintArgs{
+			X:    u.promptLen,
+			Y:    location,
+			Fg:   fg,
+			Bg:   bg,
+			Fill: true,
+		})
+		u.screen.Print(PrintArgs{
+			X:    u.promptLen + 1,
+			Y:    location,
+			Fg:   fg,
+			Bg:   bg,
+			Msg:  qs,
+			Fill: false,
+		})
+		u.screen.Print(PrintArgs{
+			X:    u.promptLen + 1 + int(runewidth.StringWidth(qs)),
+			Y:    location,
+			Fg:   fg | termbox.AttrReverse,
+			Bg:   bg | termbox.AttrReverse,
+			Msg:  " ",
+			Fill: false,
+		})
 	default:
 		// the caret is in the middle of the string
-		prev := 0
-		for i, r := range []rune(u.Query()) {
-			fg := u.queryStyle.fg
-			bg := u.queryStyle.bg
-			if i == u.CaretPos() {
+		prev := int(0)
+		for i, r := range q.Runes() {
+			fg := u.styles.Query.fg
+			bg := u.styles.Query.bg
+			if i == c.Pos() {
 				fg |= termbox.AttrReverse
 				bg |= termbox.AttrReverse
 			}
-			screen.SetCell(u.prefixLen+1+prev, location, r, fg, bg)
-			prev += runewidth.RuneWidth(r)
+			u.screen.SetCell(int(u.promptLen+1+prev), int(location), r, fg, bg)
+			prev += int(runewidth.RuneWidth(r))
 		}
-		fg := u.queryStyle.fg
-		bg := u.queryStyle.bg
-		printScreen(u.prefixLen+prev+1, location, fg, bg, "", true)
+		fg := u.styles.Query.fg
+		bg := u.styles.Query.bg
+		u.screen.Print(PrintArgs{
+			X:    u.promptLen + prev + 1,
+			Y:    location,
+			Fg:   fg,
+			Bg:   bg,
+			Fill: true,
+		})
 	}
 
-	width, _ := screen.Size()
+	width, _ := u.screen.Size()
 
-	pmsg := fmt.Sprintf("%s [%d (%d/%d)]", u.Filter().String(), u.currentPage.total, u.currentPage.page, u.currentPage.maxPage)
-	printScreen(width-runewidth.StringWidth(pmsg), location, u.basicStyle.fg, u.basicStyle.bg, pmsg, false)
+	loc := state.Location()
+	pmsg := fmt.Sprintf("%s [%d (%d/%d)]", state.Filters().Current().String(), loc.Total(), loc.Page(), loc.MaxPage())
+	u.screen.Print(PrintArgs{
+		X:   int(width - runewidth.StringWidth(pmsg)),
+		Y:   location,
+		Fg:  u.styles.Basic.fg,
+		Bg:  u.styles.Basic.bg,
+		Msg: pmsg,
+	})
 
-	screen.Flush()
+	u.screen.Flush()
 }
 
 // NewStatusBar creates a new StatusBar struct
-func NewStatusBar(ctx *Ctx, anchor VerticalAnchor, anchorOffset int) *StatusBar {
+func NewStatusBar(screen Screen, anchor VerticalAnchor, anchorOffset int, styles *StyleSet) *StatusBar {
 	return &StatusBar{
-		Ctx:            ctx,
-		AnchorSettings: NewAnchorSettings(anchor, anchorOffset),
+		AnchorSettings: NewAnchorSettings(screen, anchor, anchorOffset),
 		clearTimer:     nil,
-		timerMutex:     newMutex(),
-		basicStyle:     ctx.config.Style.Basic,
+		styles:         styles,
 	}
 }
 
@@ -247,7 +223,7 @@ func (s *StatusBar) PrintStatus(msg string, clearDelay time.Duration) {
 
 	location := s.AnchorPosition()
 
-	w, _ := screen.Size()
+	w, _ := s.screen.Size()
 	width := runewidth.StringWidth(msg)
 	for width > w {
 		_, rw := utf8.DecodeRuneInString(msg)
@@ -263,17 +239,28 @@ func (s *StatusBar) PrintStatus(msg string, clearDelay time.Duration) {
 		}
 	}
 
-	fgAttr := s.basicStyle.fg
-	bgAttr := s.basicStyle.bg
+	fgAttr := s.styles.Basic.fg
+	bgAttr := s.styles.Basic.bg
 
 	if w > width {
-		printScreen(0, location, fgAttr, bgAttr, string(pad), false)
+		s.screen.Print(PrintArgs{
+			Y:   location,
+			Fg:  fgAttr,
+			Bg:  bgAttr,
+			Msg: string(pad),
+		})
 	}
 
 	if width > 0 {
-		printScreen(w-width, location, fgAttr|termbox.AttrReverse|termbox.AttrBold|termbox.AttrReverse, bgAttr|termbox.AttrReverse, msg, false)
+		s.screen.Print(PrintArgs{
+			X:   int(w - width),
+			Y:   location,
+			Fg:  fgAttr | termbox.AttrReverse | termbox.AttrBold | termbox.AttrReverse,
+			Bg:  bgAttr | termbox.AttrReverse,
+			Msg: msg,
+		})
 	}
-	screen.Flush()
+	s.screen.Flush()
 
 	s.timerMutex.Unlock()
 
@@ -287,18 +274,13 @@ func (s *StatusBar) PrintStatus(msg string, clearDelay time.Duration) {
 }
 
 // NewListArea creates a new ListArea struct
-func NewListArea(ctx *Ctx, anchor VerticalAnchor, anchorOffset int, sortTopDown bool) *ListArea {
+func NewListArea(screen Screen, anchor VerticalAnchor, anchorOffset int, sortTopDown bool, styles *StyleSet) *ListArea {
 	return &ListArea{
-		Ctx:                 ctx,
-		AnchorSettings:      NewAnchorSettings(anchor, anchorOffset),
-		sortTopDown:         sortTopDown,
-		displayCache:        []Line{},
-		dirty:               false,
-		basicStyle:          ctx.config.Style.Basic,
-		queryStyle:          ctx.config.Style.Query,
-		matchedStyle:        ctx.config.Style.Matched,
-		selectedStyle:       ctx.config.Style.Selected,
-		savedSelectionStyle: ctx.config.Style.SavedSelection,
+		AnchorSettings: NewAnchorSettings(screen, anchor, anchorOffset),
+		displayCache:   []Line{},
+		dirty:          false,
+		sortTopDown:    sortTopDown,
+		styles:         styles,
 	}
 }
 
@@ -314,13 +296,27 @@ func (l *ListArea) SetDirty(dirty bool) {
 	l.dirty = dirty
 }
 
-// Draw displays the ListArea on the screen
-func (l *ListArea) Draw(parent Layout, perPage int, runningQuery bool) {
-	trace("ListArea.Draw: START")
-	defer trace("ListArea.Draw: END")
-	currentPage := l.currentPage
+func selectionContains(state *Peco, n int) bool {
+	if l, err := state.CurrentLineBuffer().LineAt(n); err == nil {
+		return state.Selection().Has(l)
+	}
+	return false
+}
 
-	linebuf := l.GetCurrentLineBuffer()
+// Draw displays the ListArea on the screen
+func (l *ListArea) Draw(state *Peco, parent Layout, perPage int, runningQuery bool) {
+	if pdebug.Enabled {
+		g := pdebug.Marker("ListArea.Draw pp = %d, q = %t", perPage, runningQuery)
+		defer g.End()
+	}
+
+	if perPage < 1 {
+		panic("perPage < 1 (was " + strconv.Itoa(perPage) + ")")
+	}
+
+	loc := state.Location()
+
+	linebuf := state.CurrentLineBuffer()
 
 	// Should only get into this clause if we are RUNNING A QUERY.
 	// regular paging shouldn't be affected. This clause basically
@@ -329,35 +325,35 @@ func (l *ListArea) Draw(parent Layout, perPage int, runningQuery bool) {
 	// to fill that many pages in the buffer
 	if runningQuery {
 		bufsiz := linebuf.Size()
-		page := currentPage.page
+		page := loc.Page()
 
 		for page > 1 {
-			if (currentPage.perPage*(page-1) < bufsiz) &&
-				(currentPage.perPage*page) >= bufsiz {
+			if (loc.PerPage()*(page-1) < bufsiz) &&
+				(loc.PerPage()*page) >= bufsiz {
 				break
 			}
 
 			page--
 		}
-		if currentPage.page != page {
-			currentPage.page = page
-			parent.DrawPrompt()
+		if loc.Page() != page {
+			loc.SetPage(page)
+			parent.DrawPrompt(state)
 		}
 	}
 
-	pf := PageCrop{perPage: currentPage.perPage, currentPage: currentPage.page}
+	pf := loc.PageCrop()
 	buf := pf.Crop(linebuf)
 	bufsiz := buf.Size()
 
 	// This protects us from losing the selected line in case our selected
 	// line is greater than the buffer
-	if lbufsiz := linebuf.Size(); lbufsiz > 0 && l.currentLine >= lbufsiz {
-		l.currentLine = lbufsiz - 1
+	if lbufsiz := linebuf.Size(); lbufsiz > 0 && loc.LineNumber() >= lbufsiz {
+		loc.SetLineNumber(lbufsiz - 1)
 	}
 
 	// previously drawn lines are cached. first, truncate the cache
 	// to current size of the drawable area
-	if ldc := len(l.displayCache); ldc != perPage {
+	if ldc := int(len(l.displayCache)); ldc != perPage {
 		newCache := make([]Line, perPage)
 		copy(newCache, l.displayCache)
 		l.displayCache = newCache
@@ -368,7 +364,10 @@ func (l *ListArea) Draw(parent Layout, perPage int, runningQuery bool) {
 
 	// If our buffer is smaller than perPage, we may need to
 	// clear some lines
-	trace("ListeArea.Draw: buffer size is %d, our view area is %d\n", bufsiz, perPage)
+	if pdebug.Enabled {
+		pdebug.Printf("ListArea.Draw: buffer size is %d, our view area is %d", bufsiz, perPage)
+	}
+
 	for n := bufsiz; n < perPage; n++ {
 		l.displayCache[n] = nil
 		if l.sortTopDown {
@@ -377,23 +376,27 @@ func (l *ListArea) Draw(parent Layout, perPage int, runningQuery bool) {
 			y = start - n
 		}
 
-		trace("ListArea.Draw: clearing row %d", y)
-		printScreen(0, y, l.basicStyle.fg, l.basicStyle.bg, "", true)
+		l.screen.Print(PrintArgs{
+			Y:    y,
+			Fg:   l.styles.Basic.fg,
+			Bg:   l.styles.Basic.bg,
+			Fill: true,
+		})
 	}
 
 	var cached, written int
 	var fgAttr, bgAttr termbox.Attribute
 	for n := 0; n < perPage; n++ {
 		switch {
-		case n+currentPage.offset == l.currentLine:
-			fgAttr = l.selectedStyle.fg
-			bgAttr = l.selectedStyle.bg
-		case l.SelectionContains(n + currentPage.offset):
-			fgAttr = l.savedSelectionStyle.fg
-			bgAttr = l.savedSelectionStyle.bg
+		case n+loc.Offset() == loc.LineNumber():
+			fgAttr = l.styles.Selected.fg
+			bgAttr = l.styles.Selected.bg
+		case selectionContains(state, n+loc.Offset()):
+			fgAttr = l.styles.SavedSelection.fg
+			bgAttr = l.styles.SavedSelection.bg
 		default:
-			fgAttr = l.basicStyle.fg
-			bgAttr = l.basicStyle.bg
+			fgAttr = l.styles.Basic.fg
+			bgAttr = l.styles.Basic.bg
 		}
 
 		if n >= bufsiz {
@@ -421,16 +424,38 @@ func (l *ListArea) Draw(parent Layout, perPage int, runningQuery bool) {
 		written++
 		l.displayCache[n] = target
 
-		x := -l.currentCol
-		xOffset := l.currentCol
+		x := -1 * loc.Column()
+		xOffset := loc.Column()
 		line := target.DisplayString()
 
-		if l.IsSingleKeyJumpMode() || l.config.SingleKeyJump.ShowPrefix {
-			if n < len(l.config.SingleKeyJump.PrefixList) {
-				printScreenWithOffset(x, y, xOffset, fgAttr|termbox.AttrBold|termbox.AttrReverse, bgAttr, fmt.Sprintf("%c", l.config.SingleKeyJump.PrefixList[n]), false)
-				printScreenWithOffset(x+1, y, xOffset, fgAttr, bgAttr, " ", false)
+		if state.SingleKeyJumpMode() || state.SingleKeyJumpShowPrefix() {
+			prefixes := state.SingleKeyJumpPrefixes()
+			if n < int(len(prefixes)) {
+				l.screen.Print(PrintArgs{
+					X:       x,
+					Y:       y,
+					XOffset: xOffset,
+					Fg:      fgAttr | termbox.AttrBold | termbox.AttrReverse,
+					Bg:      bgAttr,
+					Msg:     string(prefixes[n]),
+				})
+				l.screen.Print(PrintArgs{
+					X:       x + 1,
+					Y:       y,
+					XOffset: xOffset,
+					Fg:      fgAttr,
+					Bg:      bgAttr,
+					Msg:     " ",
+				})
 			} else {
-				printScreenWithOffset(x, y, xOffset, fgAttr, bgAttr, "  ", false)
+				l.screen.Print(PrintArgs{
+					X:       x,
+					Y:       y,
+					XOffset: xOffset,
+					Fg:      fgAttr,
+					Bg:      bgAttr,
+					Msg:     "  ",
+				})
 			}
 
 			x += 2
@@ -438,7 +463,15 @@ func (l *ListArea) Draw(parent Layout, perPage int, runningQuery bool) {
 
 		matches := target.Indices()
 		if matches == nil {
-			printScreenWithOffset(x, y, xOffset, fgAttr, bgAttr, line, true)
+			l.screen.Print(PrintArgs{
+				X:       x,
+				Y:       y,
+				XOffset: xOffset,
+				Fg:      fgAttr,
+				Bg:      bgAttr,
+				Msg:     line,
+				Fill:    true,
+			})
 			continue
 		}
 
@@ -448,51 +481,82 @@ func (l *ListArea) Draw(parent Layout, perPage int, runningQuery bool) {
 		for _, m := range matches {
 			if m[0] > index {
 				c := line[index:m[0]]
-				n := printScreenWithOffset(prev, y, xOffset, fgAttr, bgAttr, c, false)
+				n := l.screen.Print(PrintArgs{
+					X:       prev,
+					Y:       y,
+					XOffset: xOffset,
+					Fg:      fgAttr,
+					Bg:      bgAttr,
+					Msg:     c,
+				})
 				prev += n
 				index += len(c)
 			}
 			c := line[m[0]:m[1]]
 
-			n := printScreenWithOffset(prev, y, xOffset, l.matchedStyle.fg, mergeAttribute(bgAttr, l.matchedStyle.bg), c, true)
+			n := l.screen.Print(PrintArgs{
+				X:       prev,
+				Y:       y,
+				XOffset: xOffset,
+				Fg:      l.styles.Matched.fg,
+				Bg:      mergeAttribute(bgAttr, l.styles.Matched.bg),
+				Msg:     c,
+				Fill:    true,
+			})
 			prev += n
 			index += len(c)
 		}
 
 		m := matches[len(matches)-1]
 		if m[0] > index {
-			printScreenWithOffset(prev, y, xOffset, l.queryStyle.fg, mergeAttribute(bgAttr, l.queryStyle.bg), line[m[0]:m[1]], true)
+			l.screen.Print(PrintArgs{
+				X:       prev,
+				Y:       y,
+				XOffset: xOffset,
+				Fg:      l.styles.Query.fg,
+				Bg:      mergeAttribute(bgAttr, l.styles.Query.bg),
+				Msg:     line[m[0]:m[1]],
+				Fill:    true,
+			})
 		} else if len(line) > m[1] {
-			printScreenWithOffset(prev, y, xOffset, fgAttr, bgAttr, line[m[1]:len(line)], true)
+			l.screen.Print(PrintArgs{
+				X:       prev,
+				Y:       y,
+				XOffset: xOffset,
+				Fg:      fgAttr,
+				Bg:      bgAttr,
+				Msg:     line[m[1]:len(line)],
+				Fill:    true,
+			})
 		}
 	}
 	l.SetDirty(false)
-	trace("ListArea.Draw: Written total of %d lines (%d cached)\n", written+cached, cached)
+	if pdebug.Enabled {
+		pdebug.Printf("ListArea.Draw: Written total of %d lines (%d cached)", written+cached, cached)
+	}
 }
 
 // NewDefaultLayout creates a new Layout in the default format (top-down)
-func NewDefaultLayout(ctx *Ctx) *BasicLayout {
+func NewDefaultLayout(state *Peco) *BasicLayout {
 	return &BasicLayout{
-		Ctx:       ctx,
-		StatusBar: NewStatusBar(ctx, AnchorBottom, 0+extraOffset),
+		StatusBar: NewStatusBar(state.Screen(), AnchorBottom, 0+extraOffset, state.Styles()),
 		// The prompt is at the top
-		prompt: NewUserPrompt(ctx, AnchorTop, 0),
+		prompt: NewUserPrompt(state.Screen(), AnchorTop, 0, state.Prompt(), state.Styles()),
 		// The list area is at the top, after the prompt
 		// It's also displayed top-to-bottom order
-		list: NewListArea(ctx, AnchorTop, 1, true),
+		list: NewListArea(state.Screen(), AnchorTop, 1, true, state.Styles()),
 	}
 }
 
 // NewBottomUpLayout creates a new Layout in bottom-up format
-func NewBottomUpLayout(ctx *Ctx) *BasicLayout {
+func NewBottomUpLayout(state *Peco) *BasicLayout {
 	return &BasicLayout{
-		Ctx:       ctx,
-		StatusBar: NewStatusBar(ctx, AnchorBottom, 0+extraOffset),
+		StatusBar: NewStatusBar(state.Screen(), AnchorBottom, 0+extraOffset, state.Styles()),
 		// The prompt is at the bottom, above the status bar
-		prompt: NewUserPrompt(ctx, AnchorBottom, 1+extraOffset),
+		prompt: NewUserPrompt(state.Screen(), AnchorBottom, 1+extraOffset, state.Prompt(), state.Styles()),
 		// The list area is at the bottom, above the prompt
 		// It's displayed in bottom-to-top order
-		list: NewListArea(ctx, AnchorBottom, 2+extraOffset, false),
+		list: NewListArea(state.Screen(), AnchorBottom, 2+extraOffset, false, state.Styles()),
 	}
 }
 
@@ -501,171 +565,202 @@ func (l *BasicLayout) PurgeDisplayCache() {
 }
 
 // CalculatePage calculates which page we're displaying
-func (l *BasicLayout) CalculatePage(perPage int) error {
-	buf := l.GetCurrentLineBuffer()
-	currentPage := l.currentPage
-	currentPage.page = (l.currentLine / perPage) + 1
-	currentPage.offset = (currentPage.page - 1) * perPage
-	currentPage.perPage = perPage
-	currentPage.total = buf.Size()
+func (l *BasicLayout) CalculatePage(state *Peco, perPage int) error {
+	if pdebug.Enabled {
+		g := pdebug.Marker("BasicLayout.Calculate %d", perPage)
+		defer g.End()
+	}
+	buf := state.CurrentLineBuffer()
+	loc := state.Location()
+	loc.SetPage((loc.LineNumber() / perPage) + 1)
+	loc.SetOffset((loc.Page() - 1) * perPage)
+	loc.SetPerPage(perPage)
+	loc.SetTotal(buf.Size())
 
-	trace("BasicLayout.CalculatePage: %#v", currentPage)
-	if currentPage.total == 0 {
-		currentPage.maxPage = 1
+	if loc.Total() == 0 {
+		loc.SetMaxPage(1)
 	} else {
-		currentPage.maxPage = ((currentPage.total + perPage - 1) / perPage)
+		loc.SetMaxPage((loc.Total() + perPage - 1) / perPage)
 	}
 
-	if currentPage.maxPage < currentPage.page {
+	if loc.MaxPage() < loc.Page() {
 		if buf.Size() == 0 {
 			// wait for targets
-			return fmt.Errorf("no targets or query. nothing to do")
+			return errors.New("no targets or query. nothing to do")
 		}
-		l.currentLine = currentPage.offset
+		loc.SetLineNumber(loc.Offset())
 	}
 
 	return nil
 }
 
 // DrawPrompt draws the prompt to the terminal
-func (l *BasicLayout) DrawPrompt() {
-	l.prompt.Draw()
+func (l *BasicLayout) DrawPrompt(state *Peco) {
+	l.prompt.Draw(state)
 }
 
 // DrawScreen draws the entire screen
-func (l *BasicLayout) DrawScreen(runningQuery bool) {
-	trace("DrawScreen: START")
-	defer trace("DrawScreen: END")
+func (l *BasicLayout) DrawScreen(state *Peco, runningQuery bool) {
+	if pdebug.Enabled {
+		g := pdebug.Marker("BasicLayout.DrawScreen")
+		defer g.End()
+	}
 
-	perPage := linesPerPage()
+	perPage := l.linesPerPage()
 
-	if err := l.CalculatePage(perPage); err != nil {
+	if err := l.CalculatePage(state, perPage); err != nil {
 		return
 	}
 
-	l.DrawPrompt()
-	l.list.Draw(l, perPage, runningQuery)
+	l.DrawPrompt(state)
+	l.list.Draw(state, l, perPage, runningQuery)
 
-	if err := screen.Flush(); err != nil {
+	if err := l.screen.Flush(); err != nil {
 		return
 	}
 }
 
-func linesPerPage() int {
-	_, height := screen.Size()
+func (l *BasicLayout) linesPerPage() int {
+	_, height := l.screen.Size()
 
 	// list area is always the display area - 2 lines for prompt and status
 	reservedLines := 2 + extraOffset
-	return height - reservedLines
+	pp := height - reservedLines
+	if pp < 1 {
+		panic("linesPerPage is < 1 (height = " + strconv.Itoa(height) + ", reservedLines = " + strconv.Itoa(reservedLines) + ")")
+	}
+	return pp
 }
 
 // MovePage scrolls the screen
-func (l *BasicLayout) MovePage(p PagingRequest) (moved bool) {
-	switch p {
+func (l *BasicLayout) MovePage(state *Peco, p PagingRequest) (moved bool) {
+	switch p.Type() {
 	case ToScrollLeft, ToScrollRight:
-		moved = horizontalScroll(l, p)
+		moved = horizontalScroll(state, l, p)
 	default:
-		moved = verticalScroll(l, p)
+		moved = verticalScroll(state, l, p)
 	}
 	return
 }
 
 // verticalScroll moves the cursor position vertically
-func verticalScroll(l *BasicLayout, p PagingRequest) bool {
+func verticalScroll(state *Peco, l *BasicLayout, p PagingRequest) bool {
 	// Before we move, on which line were we located?
-	lineBefore := l.currentLine
+	loc := state.Location()
+	lineBefore := loc.LineNumber()
+	lineno := lineBefore
 
-	defer func() { trace("currentLine changed from %d -> %d", lineBefore, l.currentLine) }()
-	cp := l.currentPage
-	buf := l.GetCurrentLineBuffer()
+	if pdebug.Enabled {
+		defer func() {
+			pdebug.Printf("currentLine changed from %d -> %d", lineBefore, state.Location().LineNumber())
+		}()
+	}
+
+	buf := state.CurrentLineBuffer()
 	lcur := buf.Size()
 
 	defer func() {
-		for _, lno := range []int{lineBefore, l.currentLine} {
+		for _, lno := range []int{lineBefore, loc.LineNumber()} {
 			if oldLine, err := buf.LineAt(lno); err == nil {
-				trace("Setting line %d dirty", lno)
 				oldLine.SetDirty(true)
 			}
 		}
 	}()
 
-	lpp := linesPerPage()
+	lpp := l.linesPerPage()
 	if l.list.sortTopDown {
 		switch p.Type() {
 		case ToLineAbove:
-			l.currentLine--
+			lineno--
 		case ToLineBelow:
-			l.currentLine++
+			lineno++
 		case ToScrollPageDown:
-			l.currentLine += lpp
-			if cp.page == cp.maxPage-1 && lcur < l.currentLine && (lcur-lineBefore) < lpp {
-				l.currentLine = lcur - 1
+			lineno += lpp
+			if loc.Page() == loc.MaxPage()-1 && lcur < lineno && (lcur-lineBefore) < lpp {
+				lineno = lcur - 1
 			}
 		case ToScrollPageUp:
-			l.currentLine -= lpp
+			lineno -= lpp
 		case ToLineInPage:
-			l.currentLine = cp.perPage*(cp.page-1) + p.(JumpToLineRequest).Line()
+			lineno = loc.PerPage()*(loc.Page()-1) + p.(JumpToLineRequest).Line()
 		}
 	} else {
-		switch p {
+		switch p.Type() {
 		case ToLineAbove:
-			l.currentLine++
+			lineno++
 		case ToLineBelow:
-			l.currentLine--
+			lineno--
 		case ToScrollPageDown:
-			l.currentLine -= lpp
+			lineno -= lpp
 		case ToScrollPageUp:
-			l.currentLine += lpp
+			lineno += lpp
 		case ToLineInPage:
-			l.currentLine = cp.perPage*(cp.page-1) - p.(JumpToLineRequest).Line()
+			lineno = loc.PerPage()*(loc.Page()-1) - p.(JumpToLineRequest).Line()
 		}
 	}
 
-	if l.currentLine < 0 {
+	if lineno < 0 {
 		if lcur > 0 {
 			// Go to last page, if possible
-			l.currentLine = lcur - 1
+			lineno = lcur - 1
 		} else {
-			l.currentLine = 0
+			lineno = 0
 		}
-	} else if lcur > 0 && l.currentLine >= lcur {
-		l.currentLine = 0
+	} else if lcur > 0 && lineno >= lcur {
+		lineno = 0
 	}
+
+	// XXX DO NOT RETURN UNTIL YOU SET THE LINE NUMBER HERE
+	loc.SetLineNumber(lineno)
 
 	// if we were in range mode, we need to do stuff. otherwise
 	// just bail out
-	if !l.IsRangeMode() {
+	r := state.SelectionRangeStart()
+	if !r.Valid() {
 		return true
 	}
 
+	sel := state.Selection()
 	if l.list.sortTopDown {
-		if l.currentLine < l.selectionRangeStart {
-			for lineno := l.currentLine; lineno <= l.selectionRangeStart; lineno++ {
-				l.SelectionAdd(lineno)
+		if loc.LineNumber() < r.Value() {
+			for lineno := loc.LineNumber(); lineno <= r.Value(); lineno++ {
+				if line, err := buf.LineAt(lineno); err == nil {
+					sel.Add(line)
+				}
 			}
 			switch {
-			case l.selectionRangeStart <= lineBefore:
-				for lineno := l.selectionRangeStart; lineno <= lcur && lineno < lineBefore; lineno++ {
-					l.SelectionRemove(lineno)
+			case r.Value() <= lineBefore:
+				for lineno := r.Value(); lineno <= lcur && lineno < lineBefore; lineno++ {
+					if line, err := buf.LineAt(lineno); err == nil {
+						sel.Remove(line)
+					}
 				}
-			case lineBefore < l.currentLine:
-				for lineno := lineBefore; lineno < l.currentLine; lineno++ {
-					l.SelectionRemove(lineno)
+			case lineBefore < loc.LineNumber():
+				for lineno := lineBefore; lineno < loc.LineNumber(); lineno++ {
+					if line, err := buf.LineAt(lineno); err == nil {
+						sel.Remove(line)
+					}
 				}
 			}
 		} else {
-			for lineno := l.selectionRangeStart; lineno <= lcur && lineno <= l.currentLine; lineno++ {
-				l.SelectionAdd(lineno)
+			for lineno := r.Value(); lineno <= lcur && lineno <= loc.LineNumber(); lineno++ {
+				if line, err := buf.LineAt(lineno); err == nil {
+					sel.Add(line)
+				}
 			}
 
 			switch {
-			case lineBefore <= l.selectionRangeStart:
-				for lineno := lineBefore; lineno < l.selectionRangeStart; lineno++ {
-					l.SelectionRemove(lineno)
+			case lineBefore <= r.Value():
+				for lineno := lineBefore; lineno < r.Value(); lineno++ {
+					if line, err := buf.LineAt(lineno); err == nil {
+						sel.Remove(line)
+					}
 				}
-			case l.currentLine < lineBefore:
-				for lineno := l.currentLine; lineno <= lineBefore; lineno++ {
-					l.SelectionRemove(lineno)
+			case loc.LineNumber() < lineBefore:
+				for lineno := loc.LineNumber(); lineno <= lineBefore; lineno++ {
+					if line, err := buf.LineAt(lineno); err == nil {
+						sel.Remove(line)
+					}
 				}
 			}
 		}
@@ -675,15 +770,15 @@ func verticalScroll(l *BasicLayout, p PagingRequest) bool {
 }
 
 // horizontalScroll scrolls screen horizontal
-func horizontalScroll(l *BasicLayout, p PagingRequest) bool {
-	width, _ := screen.Size()
-
-	if p == ToScrollRight {
-		l.currentCol += width / 2
-	} else if l.currentCol > 0 {
-		l.currentCol -= width / 2
-		if l.currentCol < 0 {
-			l.currentCol = 0
+func horizontalScroll(state *Peco, l *BasicLayout, p PagingRequest) bool {
+	width, _ := state.screen.Size()
+	loc := state.Location()
+	if p.Type() == ToScrollRight {
+		loc.SetColumn(loc.Column() + width/2)
+	} else if loc.Column() > 0 {
+		loc.SetColumn(loc.Column() - width/2)
+		if loc.Column() < 0 {
+			loc.SetColumn(0)
 		}
 	} else {
 		return false

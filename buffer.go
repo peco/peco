@@ -1,228 +1,245 @@
 package peco
 
 import (
-	"errors"
-	"runtime"
+	"bufio"
+	"io"
+	"sync"
+	"time"
+
+	"github.com/lestrrat/go-pdebug"
+	"github.com/peco/peco/pipeline"
+	"github.com/pkg/errors"
+	"golang.org/x/net/context"
 )
 
-// ErrBufferOutOfRange is returned when the index within the buffer that
-// was queried was out of the containing buffer's range
-var ErrBufferOutOfRange = errors.New("error: Specified index is out of range")
-
-func (sp simplePipeline) Cancel()                 { close(sp.cancelCh) }
-func (sp simplePipeline) CancelCh() chan struct{} { return sp.cancelCh }
-func (sp simplePipeline) OutputCh() chan Line     { return sp.outputCh }
-func (sp simplePipeline) Pipeline() (chan struct{}, chan Line) {
-	return sp.cancelCh, sp.outputCh
-}
-
-func acceptPipeline(cancel chan struct{}, in chan Line, out chan Line, pc *pipelineCtx) {
-	trace("acceptPipeline: START")
-	defer trace("acceptPipeline: END")
-	defer close(out)
-	for {
-		select {
-		case <-cancel:
-			trace("acceptPipeline: detected cancel request. Bailing out")
-			return
-		case l, ok := <-in:
-			if l == nil && !ok {
-				trace("acceptPipeline: detected end of input. Bailing out")
-				if pc.onEnd != nil {
-					pc.onEnd()
-				}
-				return
-			}
-			trace("acceptPipeline: forwarding to callback")
-			if ll, err := pc.onIncomingLine(l); err == nil {
-				trace("acceptPipeline: forwarding to out channel")
-				out <- ll
-			}
-		}
-	}
-}
-
-func (buffers *dependentBuffers) Register(lb LineBuffer) {
-	*buffers = append(*buffers, lb)
-}
-
-func (buffers *dependentBuffers) Unregister(lb LineBuffer) {
-	for i, x := range *buffers {
-		if x == lb {
-			switch i {
-			case 0:
-				*buffers = append([]LineBuffer(nil), (*buffers)[1:]...)
-			case len(*buffers) - 1:
-				*buffers = append([]LineBuffer(nil), (*buffers)[0:i-1]...)
-			default:
-				*buffers = append(append([]LineBuffer(nil), (*buffers)[0:i-1]...), (*buffers)[i+1:]...)
-			}
-			return
-		}
-	}
-}
-
-func (buffers dependentBuffers) InvalidateUpTo(i int) {
-	for _, b := range buffers {
-		b.InvalidateUpTo(i)
-	}
-}
-
-func NewRawLineBuffer() *RawLineBuffer {
-	return &RawLineBuffer{
-		simplePipeline: simplePipeline{},
-		lines:          []Line{},
-		capacity:       0,
-	}
-}
-
-func (rlb *RawLineBuffer) Replay() error {
-	rlb.outputCh = make(chan Line)
-	go func() {
-		replayed := 0
-		trace("RawLineBuffer.Replay (goroutine): START")
-		defer func() { trace("RawLineBuffer.Replay (goroutine): END (Replayed %d lines)", replayed) }()
-
-		defer func() { recover() }() // It's okay if we fail to replay
-		defer close(rlb.outputCh)
-		for _, l := range rlb.lines {
-			select {
-			case rlb.outputCh <- l:
-				replayed++
-			case <-rlb.cancelCh:
-				return
-			}
-		}
-	}()
-	return nil
-}
-
-func (rlb *RawLineBuffer) Accept(p Pipeliner) {
-	cancelCh, incomingCh := p.Pipeline()
-	rlb.cancelCh = cancelCh
-	rlb.outputCh = make(chan Line)
-	go acceptPipeline(cancelCh, incomingCh, rlb.outputCh,
-		&pipelineCtx{rlb.Append, rlb.onEnd})
-}
-
-func (rlb *RawLineBuffer) Append(l Line) (Line, error) {
-	trace("RawLineBuffer.Append: %s", l.DisplayString())
-	if rlb.capacity > 0 && len(rlb.lines) > rlb.capacity {
-		diff := len(rlb.lines) - rlb.capacity
-
-		// Golang's version of array realloc
-		rlb.lines = rlb.lines[diff:rlb.capacity:rlb.capacity]
-	} else {
-		rlb.lines = append(rlb.lines, l)
+func NewFilteredBuffer(src Buffer, page, perPage int) *FilteredBuffer {
+	fb := FilteredBuffer{
+		src: src,
 	}
 
+	s := perPage * (page - 1)
+	if s > src.Size() {
+		return &fb
+	}
+
+	selection := make([]int, 0, src.Size())
+	e := s + perPage
+	if e >= src.Size() {
+		e = src.Size()
+	}
+
+	for i := s; i < e; i++ {
+		selection = append(selection, i)
+	}
+	fb.selection = selection
+
+	return &fb
+}
+
+func (flb *FilteredBuffer) Append(l Line) (Line, error) {
 	return l, nil
-}
-
-func (rlb *RawLineBuffer) Register(lb LineBuffer) {
-	rlb.buffers.Register(lb)
-}
-
-func (rlb *RawLineBuffer) Unregister(lb LineBuffer) {
-	rlb.buffers.Unregister(lb)
-}
-
-// LineAt returns the line at index `i`
-func (rlb RawLineBuffer) LineAt(i int) (Line, error) {
-	if i < 0 || len(rlb.lines) <= i {
-		return nil, ErrBufferOutOfRange
-	}
-	return rlb.lines[i], nil
-}
-
-// Size returns the number of lines in the buffer
-func (rlb RawLineBuffer) Size() int {
-	return len(rlb.lines)
-}
-
-func (rlb *RawLineBuffer) SetCapacity(capacity int) {
-	if capacity < 0 {
-		capacity = 0
-	}
-	rlb.capacity = capacity
-}
-
-func (rlb RawLineBuffer) InvalidateUpTo(_ int) {
-	// no op
-}
-
-func (rlb *RawLineBuffer) AppendLine(l Line) (Line, error) {
-	return rlb.Append(l)
-}
-
-func NewFilteredLineBuffer(src LineBuffer) *FilteredLineBuffer {
-	flb := &FilteredLineBuffer{
-		simplePipeline: simplePipeline{},
-		src:            src,
-		selection:      []int{},
-	}
-	src.Register(flb)
-
-	runtime.SetFinalizer(flb, func(x *FilteredLineBuffer) {
-		x.src.Unregister(x)
-	})
-
-	return flb
-}
-
-func (flb *FilteredLineBuffer) Accept(p Pipeliner) {
-	cancelCh, incomingCh := p.Pipeline()
-	flb.cancelCh = cancelCh
-	flb.outputCh = make(chan Line)
-	go acceptPipeline(cancelCh, incomingCh, flb.outputCh,
-		&pipelineCtx{flb.Append, nil})
-}
-
-func (flb *FilteredLineBuffer) Append(l Line) (Line, error) {
-	return l, nil
-}
-
-func (flb *FilteredLineBuffer) InvalidateUpTo(x int) {
-	p := -1
-	for i := 0; i < len(flb.selection); i++ {
-		if flb.selection[i] > x {
-			break
-		}
-		p = i
-	}
-
-	if p >= 0 {
-		flb.selection = append([]int(nil), flb.selection[p:]...)
-	}
-
-	for _, b := range flb.buffers {
-		b.InvalidateUpTo(p)
-	}
 }
 
 // LineAt returns the line at index `i`. Note that the i-th element
 // in this filtered buffer may actually correspond to a totally
 // different line number in the source buffer.
-func (flb FilteredLineBuffer) LineAt(i int) (Line, error) {
-	if i < 0 || i >= len(flb.selection) {
-		return nil, ErrBufferOutOfRange
+func (flb FilteredBuffer) LineAt(i int) (Line, error) {
+	if i >= len(flb.selection) {
+		return nil, errors.Errorf("specified index %d is out of range", len(flb.selection))
 	}
 	return flb.src.LineAt(flb.selection[i])
 }
 
 // Size returns the number of lines in the buffer
-func (flb FilteredLineBuffer) Size() int {
+func (flb FilteredBuffer) Size() int {
 	return len(flb.selection)
 }
 
-func (flb *FilteredLineBuffer) SelectSourceLineAt(i int) {
-	flb.selection = append(flb.selection, i)
+func NewMemoryBuffer() *MemoryBuffer {
+	return &MemoryBuffer{
+		done: make(chan struct{}),
+	}
 }
 
-func (flb *FilteredLineBuffer) Register(lb LineBuffer) {
-	flb.buffers.Register(lb)
+func (mb *MemoryBuffer) Size() int {
+	return len(mb.lines)
 }
 
-func (flb *FilteredLineBuffer) Unregister(lb LineBuffer) {
-	flb.buffers.Unregister(lb)
+func (mb *MemoryBuffer) Reset() {
+	mb.done = make(chan struct{})
+	mb.lines = []Line(nil)
+}
+
+func (mb *MemoryBuffer) Done() <-chan struct{} {
+	return mb.done
+}
+
+func (mb *MemoryBuffer) Accept(ctx context.Context, p pipeline.Producer) {
+	if pdebug.Enabled {
+		g := pdebug.Marker("MemoryBuffer.Accept")
+		defer g.End()
+	}
+	defer close(mb.done)
+
+	for {
+		select {
+		case <-ctx.Done():
+			if pdebug.Enabled {
+				pdebug.Printf("MemoryBuffer received context done")
+			}
+			return
+		case v := <-p.OutCh():
+			switch v.(type) {
+			case error:
+				if pipeline.IsEndMark(v.(error)) {
+					if pdebug.Enabled {
+						pdebug.Printf("MemoryBuffer received end mark (read %d lines)", mb.Size())
+					}
+					return
+				}
+			case Line:
+				mb.lines = append(mb.lines, v.(Line))
+			}
+		}
+	}
+}
+
+func (mb *MemoryBuffer) LineAt(n int) (Line, error) {
+	mb.mutex.Lock()
+	defer mb.mutex.Unlock()
+
+	if s := mb.Size(); s <= 0 || n >= s {
+		return nil, errors.New("empty buffer")
+	}
+
+	return mb.lines[n], nil
+}
+
+// Creates a new Source. Does not start processing the input until you
+// call Setup()
+func NewSource(in io.Reader, enableSep bool) *Source {
+	return &Source{
+		in:            in, // Note that this may be closed, so do not rely on it
+		enableSep:     enableSep,
+		done: make(chan struct{}),
+		ready:         make(chan struct{}),
+		setupOnce:     sync.Once{},
+		OutputChannel: pipeline.OutputChannel(make(chan interface{})),
+	}
+}
+
+// Setup reads from the input os.File.
+func (s *Source) Setup(state *Peco) {
+	s.setupOnce.Do(func() {
+		s.mutex.Lock()
+		defer s.mutex.Unlock()
+
+		done := make(chan struct{})
+		refresh := make(chan struct{}, 1)
+		defer close(done)
+		defer close(refresh)
+
+		draw := func(state *Peco, refresh chan struct{}) {
+			run := false
+			for loop := true; loop; {
+				select {
+				case _, ok := <-refresh:
+					run = true
+					loop = ok
+				default:
+					loop = false
+				}
+			}
+			if !run {
+				return
+			}
+			// Not a great thing to do, allowing nil to be passed
+			// as state, but for testing I couldn't come up with anything
+			// better for the moment
+			if state != nil && !state.ExecQuery() {
+				state.Hub().SendDraw(false)
+			}
+		}
+
+		go func() {
+			ticker := time.NewTicker(100 * time.Millisecond)
+			defer ticker.Stop()
+
+			for {
+				select {
+				case <-done:
+					draw(state, refresh)
+					return
+				case <-ticker.C:
+					draw(state, refresh)
+				}
+			}
+		}()
+
+		// This sync.Once var is used to receive the notification
+		// that there was at least 1 line read from the source
+		var notify sync.Once
+		notifycb := func() {
+			// close the ready channel so others can be notified
+			// that there's at least 1 line in the buffer
+			close(s.ready)
+		}
+		scanner := bufio.NewScanner(s.in)
+
+		readCount := 0
+		for scanner.Scan() {
+			txt := scanner.Text()
+			readCount++
+			s.lines = append(s.lines, NewRawLine(txt, s.enableSep))
+			notify.Do(notifycb)
+
+			go func() {
+				defer func() { recover() }()
+				refresh <- struct{}{}
+			}()
+		}
+
+		// XXX Just in case scanner.Scan() did not return a single line...
+		// Note: this will be a no-op if notify.Do has been called before
+		notify.Do(notifycb)
+		// And also, close the done channel so we can tell the consumers
+		// we have finished reading everything
+		close(s.done)
+
+		if pdebug.Enabled {
+			pdebug.Printf("Read all %d lines from source", readCount)
+		}
+	})
+}
+
+// Start starts
+func (s *Source) Start(ctx context.Context) {
+	if pdebug.Enabled {
+		g := pdebug.Marker("Source.Start")
+		defer g.End()
+	}
+	defer s.OutputChannel.SendEndMark("end of input")
+
+	s.done = make(chan struct{})
+
+	for _, l := range s.lines {
+		select {
+		case <-ctx.Done():
+			return
+		case s.OutputChannel <- l:
+			// no op
+		}
+	}
+}
+
+// Ready returns the "input ready" channel. It will be closed as soon as
+// the first line of input is processed via Setup()
+func (s *Source) Ready() <-chan struct{} {
+	return s.ready
+}
+
+// Done returns the "read all lines" channel. It will be closed as soon as
+// the all input has been read
+func (s *Source) Done() <-chan struct{} {
+	return s.done
 }

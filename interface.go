@@ -2,16 +2,101 @@ package peco
 
 import (
 	"io"
+	"regexp"
 	"sync"
 	"time"
 
+	"golang.org/x/net/context"
+
 	"github.com/google/btree"
 	"github.com/nsf/termbox-go"
+	"github.com/peco/peco/hub"
 	"github.com/peco/peco/internal/keyseq"
+	"github.com/peco/peco/pipeline"
+)
+
+const invalidSelectionRange = -1
+
+const (
+	ToLineAbove      PagingRequestType = iota // ToLineAbove moves the selection to the line above
+	ToScrollPageDown                          // ToScrollPageDown moves the selection to the next page
+	ToLineBelow                               // ToLineBelow moves the selection to the line below
+	ToScrollPageUp                            // ToScrollPageUp moves the selection to the previous page
+	ToScrollLeft                              // ToScrollLeft scrolls screen to the left
+	ToScrollRight                             // ToScrollRight scrolls screen to the right
+	ToLineInPage                              // ToLineInPage jumps to a particular line on the page
+)
+
+const (
+	DefaultLayoutType  = LayoutTypeTopDown // LayoutTypeTopDown makes the layout so the items read from top to bottom
+	LayoutTypeTopDown  = "top-down"        // LayoutTypeBottomUp changes the layout to read from bottom to up
+	LayoutTypeBottomUp = "bottom-up"
+)
+
+const (
+	AnchorTop    VerticalAnchor = iota + 1 // AnchorTop anchors elements towards the top of the screen
+	AnchorBottom                           // AnchorBottom anchors elements towards the bottom of the screen
+)
+
+// These are used as keys in the config file
+const (
+	IgnoreCaseMatch    = "IgnoreCase"
+	CaseSensitiveMatch = "CaseSensitive"
+	SmartCaseMatch     = "SmartCase"
+	RegexpMatch        = "Regexp"
 )
 
 type idGen struct {
 	genCh chan uint64
+}
+
+// Peco is the global object containing everything required to run peco.
+// It also contains the global state of the program.
+type Peco struct {
+	Argv   []string
+	Stdin  io.Reader
+	Stdout io.Writer
+	Stderr io.Writer
+	hub    *hub.Hub
+
+	args  []string
+	caret Caret
+	// Config contains the values read in from config file
+	config                  Config
+	ctx                     context.Context
+	currentLineBuffer       Buffer
+	filters                 FilterSet
+	keymap                  Keymap
+	enableSep               bool     // Enable parsing on separators
+	initialFilter           string   // populated if --initial-filter is specified
+	initialQuery            string   // populated if --query is specified
+	inputseq                Inputseq // current key sequence (just the names)
+	layoutType              string
+	location                Location
+	prompt                  string
+	query                   Query
+	queryExecDelay          time.Duration
+	queryExecMutex          sync.Mutex
+	queryExecTimer          *time.Timer
+	readyCh                 chan struct{}
+	resultCh                chan Line
+	screen                  Screen
+	selection               *Selection
+	selectionRangeStart     RangeStart
+	selectOneAndExit        bool // True if --select-1 is enabled
+	singleKeyJumpMode       bool
+	singleKeyJumpPrefixes   []rune
+	singleKeyJumpShowPrefix bool
+	styles                  StyleSet
+
+	// Source is where we buffer input. It gets reused when a new query is
+	// executed.
+	source *Source
+
+	// cancelFunc is called for Exit()
+	cancelFunc func()
+	// Errors are stored here
+	err error
 }
 
 // Line represents each of the line that peco uses to display
@@ -61,14 +146,6 @@ type MatchedLine struct {
 	indices [][]int
 }
 
-// BufferReader reads from either stdin or a file. In case of stdin,
-// it also handles possible infinite source.
-type BufferReader struct {
-	*Ctx
-	input        io.ReadCloser
-	inputReadyCh chan struct{}
-}
-
 type Keyseq interface {
 	Add(keyseq.KeyList, interface{})
 	AcceptKey(keyseq.Key) (interface{}, error)
@@ -85,7 +162,7 @@ type PagingRequest interface {
 	Type() PagingRequestType
 }
 
-type JumpToLineRequest uint
+type JumpToLineRequest int
 
 // Selection stores the line ids that were selected by the user.
 // The contents of the Selection is always sorted from smallest to
@@ -107,19 +184,22 @@ type Screen interface {
 	Close() error
 	Flush() error
 	PollEvent() chan termbox.Event
+	Print(PrintArgs) int
 	SetCell(int, int, rune, termbox.Attribute, termbox.Attribute)
 	Size() (int, int)
 	SendEvent(termbox.Event)
 }
 
 // Termbox just hands out the processing to the termbox library
-type Termbox struct{}
+type Termbox struct {
+	mutex sync.Mutex
+}
 
 // View handles the drawing/updating the screen
 type View struct {
-	*Ctx
-	mutex  sync.Locker
+	mutex  sync.Mutex
 	layout Layout
+	state  *Peco
 }
 
 // PageCrop filters out a new LineBuffer based on entries
@@ -139,9 +219,9 @@ type VerticalAnchor int
 // Layout represents the component that controls where elements are placed on screen
 type Layout interface {
 	PrintStatus(string, time.Duration)
-	DrawPrompt()
-	DrawScreen(bool)
-	MovePage(PagingRequest) (moved bool)
+	DrawPrompt(*Peco)
+	DrawScreen(*Peco, bool)
+	MovePage(*Peco, PagingRequest) (moved bool)
 	PurgeDisplayCache()
 }
 
@@ -150,40 +230,33 @@ type Layout interface {
 type AnchorSettings struct {
 	anchor       VerticalAnchor // AnchorTop or AnchorBottom
 	anchorOffset int            // offset this many lines from the anchor
+	screen       Screen
 }
 
 // UserPrompt draws the prompt line
 type UserPrompt struct {
-	*Ctx
 	*AnchorSettings
-	prefix     string
-	prefixLen  int
-	basicStyle Style
-	queryStyle Style
+	prompt    string
+	promptLen int
+	styles    *StyleSet
 }
 
 // StatusBar draws the status message bar
 type StatusBar struct {
-	*Ctx
 	*AnchorSettings
 	clearTimer *time.Timer
-	timerMutex sync.Locker
-	basicStyle Style
+	styles     *StyleSet
+	timerMutex sync.Mutex
 }
 
 // ListArea represents the area where the actual line buffer is
 // displayed in the screen
 type ListArea struct {
-	*Ctx
 	*AnchorSettings
-	sortTopDown         bool
-	displayCache        []Line
-	dirty               bool
-	basicStyle          Style
-	queryStyle          Style
-	matchedStyle        Style
-	selectedStyle       Style
-	savedSelectionStyle Style
+	sortTopDown  bool
+	displayCache []Line
+	dirty        bool
+	styles       *StyleSet
 }
 
 // BasicLayout is... the basic layout :) At this point this is the
@@ -191,7 +264,6 @@ type ListArea struct {
 // of components may be configurable, the actual types of components
 // that are used are set and static
 type BasicLayout struct {
-	*Ctx
 	*StatusBar
 	prompt *UserPrompt
 	list   *ListArea
@@ -202,6 +274,7 @@ type Keymap struct {
 	Config map[string]string
 	Action map[string][]string // custom actions
 	seq    Keyseq
+	state  *Peco
 }
 
 // internal stuff
@@ -214,7 +287,7 @@ type regexpFlagFunc func(string) []string
 
 // Filter is responsible for the actual "grep" part of peco
 type Filter struct {
-	*Ctx
+	state *Peco
 }
 
 // Action describes an action that can be executed upon receiving user
@@ -224,104 +297,18 @@ type Filter struct {
 type Action interface {
 	Register(string, ...termbox.Key)
 	RegisterKeySequence(string, keyseq.KeyList)
-	Execute(*Input, termbox.Event)
+	Execute(context.Context, *Peco, termbox.Event)
 }
 
 // ActionFunc is a type of Action that is basically just a callback.
-type ActionFunc func(*Input, termbox.Event)
+type ActionFunc func(context.Context, *Peco, termbox.Event)
 
-type Pipeliner interface {
-	Pipeline() (chan struct{}, chan Line)
-}
-
-type pipelineCtx struct {
-	onIncomingLine func(Line) (Line, error)
-	onEnd          func()
-}
-
-type simplePipeline struct {
-	// Close this channel if you want to cancel the entire pipeline.
-	// InputReader is the generator for the pipeline, so this is the
-	// only object that can create the cancelCh
-	cancelCh chan struct{}
-	// Consumers of this generator read from this channel.
-	outputCh chan Line
-}
-
-// LineBuffer represents a set of lines. This could be the
-// raw data read in, or filtered data, such as result of
-// running a match, or applying a selection by the user
-//
-// Buffers should be immutable.
-type LineBuffer interface {
-	Pipeliner
-
-	LineAt(int) (Line, error)
-	Size() int
-
-	// Register registers another LineBuffer that is dependent on
-	// this buffer.
-	Register(LineBuffer)
-	Unregister(LineBuffer)
-
-	// InvalidateUpTo is called when a source buffer invalidates
-	// some lines. The argument is the largest line number that
-	// should be invalidated (so anything up to that line is no
-	// longer valid in the source)
-	InvalidateUpTo(int)
-}
-
-type dependentBuffers []LineBuffer
-
-// RawLineBuffer holds the raw set of lines as read into peco.
-type RawLineBuffer struct {
-	simplePipeline
-	buffers  dependentBuffers
-	lines    []Line
-	capacity int // max number of lines. 0 means unlimited
-	onEnd    func()
-}
-
-// FilteredLineBuffer holds a "filtered" buffer. It holds a reference to
+// FilteredBuffer holds a "filtered" buffer. It holds a reference to
 // the source buffer (note: should be immutable) and a list of indices
 // into the source buffer
-type FilteredLineBuffer struct {
-	simplePipeline
-	buffers dependentBuffers
-	src     LineBuffer
-	// maps from our index to src's index
-	selection []int
-}
-
-// Input handles input events from termbox.
-type Input struct {
-	*Ctx
-	mutex         sync.Locker // Currently only used for protecting Alt/Esc workaround
-	mod           *time.Timer
-	keymap        Keymap
-	currentKeySeq []string
-}
-
-// Hub acts as the messaging hub between components -- that is,
-// it controls how the communication that goes through channels
-// are handled.
-type Hub struct {
-	isSync      bool
-	mutex       sync.Locker
-	loopCh      chan struct{}
-	queryCh     chan HubReq
-	drawCh      chan HubReq
-	statusMsgCh chan HubReq
-	pagingCh    chan HubReq
-}
-
-// HubReq is a wrapper around the actual request value that needs
-// to be passed. It contains an optional channel field which can
-// be filled to force synchronous communication between the
-// sender and receiver
-type HubReq struct {
-	data    interface{}
-	replyCh chan struct{}
+type FilteredBuffer struct {
+	src       Buffer
+	selection []int // maps from our index to src's index
 }
 
 // Config holds all the data that can be configured in the
@@ -400,69 +387,51 @@ type Style struct {
 	bg termbox.Attribute
 }
 
-// CtxOptions is the interface that defines that options can be
-// passed in from the command line
-type CtxOptions interface {
-	// EnableNullSep should return if the null separator is
-	// enabled (--null)
-	EnableNullSep() bool
-
-	// BufferSize should return the buffer size. By default (i.e.
-	// when it returns 0), the buffer size is unlimited.
-	// (--buffer-size)
-	BufferSize() int
-
-	// InitialIndex is the line number to put the cursor on
-	// when peco starts
-	InitialIndex() int
-
-	// LayoutType returns the name of the layout to use
-	LayoutType() string
-}
-
-type PageInfo struct {
-	page    int
-	offset  int
-	perPage int
-	total   int
+type Location struct {
+	col     int
+	lineno  int
 	maxPage int
+	page    int
+	perPage int
+	offset  int
+	total   int
 }
 
-type FilterQuery struct {
+type Query struct {
 	query      []rune
 	savedQuery []rune
-	mutex      sync.Locker
+	mutex      sync.Mutex
 }
 
-// Ctx contains all the important data. while you can easily access
-// data in this struct from anywhere, only do so via channels
-type Ctx struct {
-	*Hub
-	*FilterQuery
-	filters             FilterSet
-	caretPosition       int
-	enableSep           bool
-	resultCh            chan Line
-	mutex               sync.Locker
-	currentLine         int
-	currentCol          int
-	currentPage         *PageInfo
-	selection           *Selection
-	activeLineBuffer    LineBuffer
-	rawLineBuffer       *RawLineBuffer
-	lines               []Line
-	linesMutex          sync.Locker
-	current             []Line
-	currentMutex        sync.Locker
-	bufferSize          int
-	config              *Config
-	selectionRangeStart int
-	layoutType          string
-	singleKeyJumpMode   bool
-	select1             bool
+type FilterQuery Query
 
-	wait *sync.WaitGroup
-	err  error
+type FilterSet struct {
+	filters []LineFilter
+	current int
+}
+
+// Source implements pipline.Source, and is the buffer for the input
+type Source struct {
+	pipeline.OutputChannel
+	MemoryBuffer
+
+	in        io.Reader
+	enableSep bool
+	done      chan struct{}
+	ready     chan struct{}
+	setupOnce sync.Once
+}
+
+type State interface {
+	Keymap() *Keymap
+	Query() Query
+	Screen() Screen
+	SetCurrentCol(int)
+	CurrentCol() int
+	SetCurrentLine(int)
+	CurrentLine() int
+	SetSingleKeyJumpMode(bool)
+	SingleKeyJumpMode() bool
 }
 
 type CLIOptions struct {
@@ -482,4 +451,63 @@ type CLIOptions struct {
 }
 
 type CLI struct {
+}
+
+type RangeStart struct {
+	val   int
+	valid bool
+}
+
+// Buffer interface is used for containers for lines to be
+// processed by peco.
+type Buffer interface {
+	LineAt(int) (Line, error)
+	Size() int
+}
+
+// MemoryBuffer is an implementation of Buffer
+type MemoryBuffer struct {
+	done  chan struct{}
+	lines []Line
+	mutex sync.Mutex
+}
+
+type ActionMap interface {
+	ExecuteAction(context.Context, *Peco, termbox.Event) error
+}
+
+type Input struct {
+	actions ActionMap
+	evsrc   chan termbox.Event
+	mod     *time.Timer
+	mutex   sync.Mutex
+	state   *Peco
+}
+
+type LineFilter interface {
+	pipeline.ProcNode
+
+	SetQuery(string)
+	Clone() LineFilter
+	String() string
+}
+
+type RegexpFilter struct {
+	compiledQuery []*regexp.Regexp
+	flags         regexpFlags
+	quotemeta     bool
+	query         string
+	name          string
+	onEnd         func()
+	outCh         pipeline.OutputChannel
+}
+
+type ExternalCmdFilter struct {
+	enableSep       bool
+	cmd             string
+	args            []string
+	name            string
+	query           string
+	thresholdBufsiz int
+	outCh           pipeline.OutputChannel
 }

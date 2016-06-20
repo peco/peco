@@ -9,6 +9,7 @@ import (
 
 	"github.com/nsf/termbox-go"
 	"github.com/peco/peco/internal/util"
+	"github.com/pkg/errors"
 )
 
 // DefaultCustomFilterBufferThreshold is the default value
@@ -18,19 +19,18 @@ const DefaultCustomFilterBufferThreshold = 100
 var homedirFunc = util.Homedir
 
 // NewConfig creates a new Config
-func NewConfig() *Config {
-	return &Config{
-		Keymap:         make(map[string]string),
-		InitialMatcher: IgnoreCaseMatch,
-		Style:          NewStyleSet(),
-		SingleKeyJump: SingleKeyJumpConfig{
-			ShowPrefix: false,
-			PrefixMap:  make(map[rune]uint),
-			PrefixList: []rune(nil),
-		},
-		Prompt: "QUERY>",
-		Layout: "top-down",
+func (c *Config) Init() error {
+	c.Keymap = make(map[string]string)
+	c.InitialMatcher = IgnoreCaseMatch
+	c.Style = NewStyleSet()
+	c.SingleKeyJump = SingleKeyJumpConfig{
+		ShowPrefix: false,
+		PrefixMap:  make(map[rune]uint),
+		PrefixList: []rune(nil),
 	}
+	c.Prompt = "QUERY>"
+	c.Layout = LayoutTypeTopDown
+	return nil
 }
 
 // ReadFilename reads the config from the given file, and
@@ -38,17 +38,17 @@ func NewConfig() *Config {
 func (c *Config) ReadFilename(filename string) error {
 	f, err := os.Open(filename)
 	if err != nil {
-		return err
+		return errors.Wrapf(err, "failed to open file %s", filename)
 	}
 	defer f.Close()
 
 	err = json.NewDecoder(f).Decode(c)
 	if err != nil {
-		return err
+		return errors.Wrap(err, "failed to decode JSON")
 	}
 
 	if !IsValidLayoutType(LayoutType(c.Layout)) {
-		return fmt.Errorf("invalid layout type: %s", c.Layout)
+		return errors.Errorf("invalid layout type: %s", c.Layout)
 	}
 
 	if len(c.CustomMatcher) > 0 {
@@ -56,7 +56,7 @@ func (c *Config) ReadFilename(filename string) error {
 
 		for n, cfg := range c.CustomMatcher {
 			if _, ok := c.CustomFilter[n]; ok {
-				return fmt.Errorf("error: CustomFilter '%s' already exists. Refusing to overwrite with deprecated CustomMatcher config", n)
+				return errors.Errorf("failed to create CustomFilter: '%s' already exists. Refusing to overwrite with deprecated CustomMatcher config", n)
 			}
 
 			c.CustomFilter[n] = CustomFilterConfig{
@@ -118,7 +118,7 @@ func NewStyleSet() *StyleSet {
 func (s *Style) UnmarshalJSON(buf []byte) error {
 	raw := []string{}
 	if err := json.Unmarshal(buf, &raw); err != nil {
-		return err
+		return errors.Wrapf(err, "failed to unmarshal Style")
 	}
 	*s = *stringsToStyle(raw)
 	return nil
@@ -157,19 +157,19 @@ func stringsToStyle(raw []string) *Style {
 
 // This is a variable because we want to change its behavior
 // when we run tests.
-var locateRcfileInFunc = locateRcfileIn
+type configLocateFunc func(string) (string, error)
 
 func locateRcfileIn(dir string) (string, error) {
 	const basename = "config.json"
 	file := filepath.Join(dir, basename)
 	if _, err := os.Stat(file); err != nil {
-		return "", err
+		return "", errors.Wrapf(err, "failed to stat file %s", file)
 	}
 	return file, nil
 }
 
 // LocateRcfile attempts to find the config file in various locations
-func LocateRcfile() (string, error) {
+func LocateRcfile(locater configLocateFunc) (string, error) {
 	// http://standards.freedesktop.org/basedir-spec/basedir-spec-latest.html
 	//
 	// Try in this order:
@@ -181,14 +181,12 @@ func LocateRcfile() (string, error) {
 
 	// Try dir supplied via env var
 	if dir := os.Getenv("XDG_CONFIG_HOME"); dir != "" {
-		file, err := locateRcfileInFunc(filepath.Join(dir, "peco"))
-		if err == nil {
+		if file, err := locater(filepath.Join(dir, "peco")); err == nil {
 			return file, nil
 		}
 	} else if uErr == nil { // silently ignore failure for homedir()
 		// Try "default" XDG location, is user is available
-		file, err := locateRcfileInFunc(filepath.Join(home, ".config", "peco"))
-		if err == nil {
+		if file, err := locater(filepath.Join(home, ".config", "peco")); err == nil {
 			return file, nil
 		}
 	}
@@ -198,19 +196,17 @@ func LocateRcfile() (string, error) {
 	// with filepath.ListSeparator, so use it
 	if dirs := os.Getenv("XDG_CONFIG_DIRS"); dirs != "" {
 		for _, dir := range strings.Split(dirs, fmt.Sprintf("%c", filepath.ListSeparator)) {
-			file, err := locateRcfileInFunc(filepath.Join(dir, "peco"))
-			if err == nil {
+			if file, err := locater(filepath.Join(dir, "peco")); err == nil {
 				return file, nil
 			}
 		}
 	}
 
 	if uErr == nil { // silently ignore failure for homedir()
-		file, err := locateRcfileInFunc(filepath.Join(home, ".peco"))
-		if err == nil {
+		if file, err := locater(filepath.Join(home, ".peco")); err == nil {
 			return file, nil
 		}
 	}
 
-	return "", fmt.Errorf("error: Config file not found")
+	return "", errors.New("config file not found")
 }

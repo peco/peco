@@ -1,16 +1,16 @@
 package keyseq
 
 import (
-	"fmt"
 	"strings"
 	"sync"
 	"time"
 
 	"github.com/nsf/termbox-go"
+	"github.com/pkg/errors"
 )
 
-var ErrInSequence = fmt.Errorf("Currently expecting a key sequence")
-var ErrNoMatch = fmt.Errorf("Could not match key to any action")
+var ErrInSequence = errors.New("expected a key sequence")
+var ErrNoMatch = errors.New("could not match key to any action")
 
 type ModifierKey int
 
@@ -60,7 +60,11 @@ func (k Key) String() string {
 }
 
 func NewKeyFromKey(k termbox.Key) Key {
-	return Key{0, k, rune(0)}
+	return Key{
+		Modifier: 0,
+		Key:      k,
+		Ch:       rune(0),
+	}
 }
 
 // KeyList is just the list of keys
@@ -109,12 +113,15 @@ type keyseqMatcher interface {
 type Keyseq struct {
 	*Matcher
 	current       keyseqMatcher
-	mutex         *sync.Mutex
+	mutex         sync.Mutex
 	prevInputTime time.Time
 }
 
 func New() *Keyseq {
-	return &Keyseq{NewMatcher(), nil, &sync.Mutex{}, time.Time{}}
+	return &Keyseq{
+		Matcher: NewMatcher(),
+		current: nil,
+	}
 }
 
 func (k *Keyseq) InMiddleOfChain() bool {
@@ -139,11 +146,15 @@ func (k *Keyseq) Current() keyseqMatcher {
 	return k.current
 }
 
+func (k *Keyseq) updateInputTime() {
+	k.prevInputTime = time.Now()
+}
+
 func (k *Keyseq) AcceptKey(key Key) (interface{}, error) {
 	// XXX should we return Action instead of interface{}?
 	k.mutex.Lock()
 	defer k.mutex.Unlock()
-	defer func() { k.prevInputTime = time.Now() }()
+	defer k.updateInputTime()
 	c := k.Current()
 	n := c.Get(key)
 

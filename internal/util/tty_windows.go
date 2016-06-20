@@ -4,6 +4,8 @@ import (
 	"os"
 	"syscall"
 	"unsafe"
+
+	"github.com/pkg/errors"
 )
 
 var (
@@ -21,13 +23,19 @@ func getStdHandle(h int) (fd syscall.Handle) {
 func setStdHandle(stdhandle int32, handle syscall.Handle) error {
 	r1, _, err := procSetStdHandle.Call(uintptr(stdhandle), uintptr(handle))
 	if r1 == 0 && err != nil {
-		return err
+		return errors.Wrap(err, "failed to call SetStdHandle")
 	}
 	return nil
 }
 
 // IsTty checks if the given fd is a tty
-func IsTty(fd uintptr) bool {
+func IsTty(arg interface{}) bool {
+	fdsrc, ok := arg.(fder)
+	if !ok {
+		return false
+	}
+	fd := fdsrc.Fd()
+
 	var st uint32
 	r1, _, err := procGetConsoleMode.Call(fd, uintptr(unsafe.Pointer(&st)))
 	return r1 != 0 && err != nil
@@ -46,11 +54,8 @@ func TtyReady() error {
 	stdin = os.Stdin
 	os.Stdin = _stdin
 	syscall.Stdin = syscall.Handle(os.Stdin.Fd())
-	err = setStdHandle(syscall.STD_INPUT_HANDLE, syscall.Stdin)
-	if err != nil {
-		return err
-	}
-	return nil
+
+	return errors.Wrap(setStdHandle(syscall.STD_INPUT_HANDLE, syscall.Stdin), "failed to check for TtyReady")
 }
 
 // TtyTerm restores any state, if necessary
