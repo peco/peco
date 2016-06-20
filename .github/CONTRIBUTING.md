@@ -4,6 +4,12 @@
 
 ## Reporting Issues/Filing Pulling Requests
 
-* Please always include peco version, OS name, and architecture.
-* Please always include enough information/links to terms/tools that you refer in your report. Do not assume that the peco contributors know about what you are talking about.
+* Please follow the [Issue Template](./.github/ISSUE_TEMPLATE.md)
+* Please always include concrete example, code, etc.
+* Please Do not assume that the peco contributors know about what you are talking about.
+  * Please always include enough information/links to terms/tools that you refer in your report. 
 * Please include graphic material to explain UI/UX issues, such as screen captures and animated gifs.
+
+## Miscellaneous
+
+* We accept issues/PRs in English or Japanese, but English is preferred.
