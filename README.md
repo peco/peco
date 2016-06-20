@@ -541,18 +541,29 @@ Hacking
 
 First, fork this repo, and get your clone locally.
 
-1. Make sure you have [go 1.x](http://golang.org), with GOPATH appropriately set
-2. Run `go get github.com/jessevdk/go-flags`
-3. Run `go get github.com/mattn/go-runewidth`
-4. Run `go get github.com/nsf/termbox-go`
+1. Make sure you have [go 1.x](http://golang.org) installed, with GOPATH appropriately set
+2. Make sure you have `make` installed
+3. Run `make installdeps` (You only need to do this once, or when you update glide.yml/glide.lock)
 
-Then from the root of this repository run:
+To test, run
+
+```
+make test
+```
+
+To build, run
+
+```
+make build
+```
+
+This will create a `peco` binary in `$(RELEASE_DIR)/peco_$(GOOS)_$(GOARCH)/peco$(SUFFIX)`. Or, of course, you can just run
 
 ```
 go build cmd/peco/peco.go
 ```
 
-This will create a `peco` binary in the local directory.
+which will create the binary in the local directory.
 
 TODO
 ====

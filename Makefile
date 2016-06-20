@@ -11,6 +11,8 @@ GITHUB_USERNAME=peco
 
 .PHONY: clean build build-windows-amd64 build-windows-386 build-linux-amd64 $(RELEASE_DIR)/$(GOOS)/$(GOARCH)/peco$(SUFFIX)
 
+build: $(RELEASE_DIR)/peco_$(GOOS)_$(GOARCH)/peco$(SUFFIX)
+
 $(INTERNAL_BIN_DIR)/$(GOOS)/$(GOARCH)/glide:
 ifndef HAVE_GLIDE
 	@echo "Installing glide for $(GOOS)/$(GOARCH)..."
@@ -46,8 +48,6 @@ build-darwin-386:
 
 $(RELEASE_DIR)/peco_$(GOOS)_$(GOARCH)/peco$(SUFFIX):
 	go build -o $(RELEASE_DIR)/peco_$(GOOS)_$(GOARCH)/peco$(SUFFIX) cmd/peco/peco.go
-
-build: $(RELEASE_DIR)/peco_$(GOOS)_$(GOARCH)/peco$(SUFFIX)
 
 all: build-linux-amd64 build-linux-386 build-darwin-amd64 build-darwin-386 build-windows-amd64 build-windows-386
 
