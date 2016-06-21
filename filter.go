@@ -170,17 +170,24 @@ func (rf RegexpFilter) Clone() LineFilter {
 	}
 }
 
-var bufPool = sync.Pool{
+const filterBufSize = 1000
+var filterBufPool = sync.Pool{
 	New: func() interface{} {
 		return make([]Line, 0, 1000)
 	},
 }
 
 func releaseRegexpFilterBuf(l []Line) {
-	bufPool.Put(l[0:0])
+	if l == nil {
+		return
+	}
+	l = l[0:0]
+	filterBufPool.Put(l)
 }
+
 func getRegexpFilterBuf() []Line {
-	return bufPool.Get().([]Line)
+	l := filterBufPool.Get().([]Line)
+	return l
 }
 
 func (rf *RegexpFilter) Accept(ctx context.Context, p pipeline.Producer) {
@@ -194,15 +201,17 @@ func (rf *RegexpFilter) Accept(ctx context.Context, p pipeline.Producer) {
 	flush := func(buf []Line) {
 		sem <- struct{}{}
 		defer func() { <-sem }()
+		defer releaseRegexpFilterBuf(buf)
+
 		for _, in := range buf {
 			if l, err := rf.filter(in); err == nil {
 				rf.outCh.Send(l)
 			}
 		}
-		releaseRegexpFilterBuf(buf)
 	}
 	buf := getRegexpFilterBuf()
 	defer func() { releaseRegexpFilterBuf(buf) }()
+
 	for {
 		select {
 		case <-ctx.Done():
@@ -219,15 +228,14 @@ func (rf *RegexpFilter) Accept(ctx context.Context, p pipeline.Producer) {
 					}
 					if len(buf) > 0 {
 						flush(buf)
+						buf = nil
 					}
 					return
-
 				}
 			case Line:
 				buf = append(buf, v.(Line))
 				if len(buf) >= cap(buf) {
-					lb := buf
-					go flush(lb)
+					go flush(buf)
 					buf = getRegexpFilterBuf()
 				}
 			}
