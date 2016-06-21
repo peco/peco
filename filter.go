@@ -108,15 +108,15 @@ func (f *Filter) Work(ctx context.Context, q hub.Payload) {
 		}
 		t := time.NewTicker(100 * time.Millisecond)
 		defer t.Stop()
+		defer state.Hub().SendStatusMsg("")
 		for {
 			select {
 			case <-p.Done():
-				break
+				return
 			case <-t.C:
 				state.Hub().SendDraw(true)
 			}
 		}
-		state.Hub().SendStatusMsg("")
 	}()
 
 	if !state.config.StickySelection {
@@ -226,6 +226,7 @@ func (rf *RegexpFilter) Accept(ctx context.Context, p pipeline.Producer) {
 	defer func() { <-flushDone }() // Wait till the flush goroutine is done
 	defer close(flush) // Kill the flush goroutine
 
+	lines := 0
 	for {
 		select {
 		case <-ctx.Done():
@@ -238,7 +239,7 @@ func (rf *RegexpFilter) Accept(ctx context.Context, p pipeline.Producer) {
 			case error:
 				if pipeline.IsEndMark(v.(error)) {
 					if pdebug.Enabled {
-						pdebug.Printf("RegexpFilter received end mark")
+						pdebug.Printf("RegexpFilter received end mark (read %d lines)", lines + len(buf))
 					}
 					if len(buf) > 0 {
 						flush <-buf
@@ -247,6 +248,9 @@ func (rf *RegexpFilter) Accept(ctx context.Context, p pipeline.Producer) {
 				}
 				return
 			case Line:
+				if pdebug.Enabled {
+					lines++
+				}
 				buf = append(buf, v.(Line))
 				if len(buf) >= cap(buf) {
 					flush <- buf

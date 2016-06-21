@@ -30,6 +30,8 @@ type Source interface {
 	// Start should be able to be called repeatedly, producing the
 	// same data to be consumed by the chained Acceptors
 	Start(context.Context)
+
+	Reset()
 }
 
 // Acceptor is an object that can accept output from Producers

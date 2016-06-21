@@ -121,7 +121,7 @@ func NewSource(in io.Reader, enableSep bool) *Source {
 	return &Source{
 		in:            in, // Note that this may be closed, so do not rely on it
 		enableSep:     enableSep,
-		done: make(chan struct{}),
+		done:          make(chan struct{}),
 		ready:         make(chan struct{}),
 		setupOnce:     sync.Once{},
 		OutputChannel: pipeline.OutputChannel(make(chan interface{})),
@@ -199,19 +199,29 @@ func (s *Source) Start(ctx context.Context) {
 	if pdebug.Enabled {
 		g := pdebug.Marker("Source.Start")
 		defer g.End()
+		defer pdebug.Printf("Source sent %d lines", len(s.lines))
 	}
 	defer s.OutputChannel.SendEndMark("end of input")
-
-	s.done = make(chan struct{})
+	defer close(s.done)
 
 	for _, l := range s.lines {
 		select {
 		case <-ctx.Done():
+			if pdebug.Enabled {
+				pdebug.Printf("Source: context.Done detected")
+			}
 			return
 		case s.OutputChannel <- l:
 			// no op
 		}
 	}
+}
+
+// Reset resets the state of the source object so that it
+// is ready to feed the filters
+func (s *Source) Reset() {
+	s.done = make(chan struct{})
+	s.OutputChannel = pipeline.OutputChannel(make(chan interface{}))
 }
 
 // Ready returns the "input ready" channel. It will be closed as soon as
