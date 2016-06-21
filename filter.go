@@ -170,12 +170,39 @@ func (rf RegexpFilter) Clone() LineFilter {
 	}
 }
 
+var bufPool = sync.Pool{
+	New: func() interface{} {
+		return make([]Line, 0, 1000)
+	},
+}
+
+func releaseRegexpFilterBuf(l []Line) {
+	bufPool.Put(l[0:0])
+}
+func getRegexpFilterBuf() []Line {
+	return bufPool.Get().([]Line)
+}
+
 func (rf *RegexpFilter) Accept(ctx context.Context, p pipeline.Producer) {
 	if pdebug.Enabled {
 		g := pdebug.Marker("RegexpFilter.Accept")
 		defer g.End()
 	}
 	defer rf.outCh.SendEndMark("end of RegexpFilter")
+
+	sem := make(chan struct{}, 1)
+	flush := func(buf []Line) {
+		sem <- struct{}{}
+		defer func() { <-sem }()
+		for _, in := range buf {
+			if l, err := rf.filter(in); err == nil {
+				rf.outCh.Send(l)
+			}
+		}
+		releaseRegexpFilterBuf(buf)
+	}
+	buf := getRegexpFilterBuf()
+	defer func() { releaseRegexpFilterBuf(buf) }()
 	for {
 		select {
 		case <-ctx.Done():
@@ -190,11 +217,18 @@ func (rf *RegexpFilter) Accept(ctx context.Context, p pipeline.Producer) {
 					if pdebug.Enabled {
 						pdebug.Printf("RegexpFilter received end mark")
 					}
+					if len(buf) > 0 {
+						flush(buf)
+					}
 					return
+
 				}
 			case Line:
-				if l, err := rf.filter(v.(Line)); err == nil {
-					rf.outCh.Send(l)
+				buf = append(buf, v.(Line))
+				if len(buf) >= cap(buf) {
+					lb := buf
+					go flush(lb)
+					buf = getRegexpFilterBuf()
 				}
 			}
 		}

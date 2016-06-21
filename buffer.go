@@ -139,20 +139,7 @@ func (s *Source) Setup(state *Peco) {
 		defer close(done)
 		defer close(refresh)
 
-		draw := func(state *Peco, refresh chan struct{}) {
-			run := false
-			for loop := true; loop; {
-				select {
-				case _, ok := <-refresh:
-					run = true
-					loop = ok
-				default:
-					loop = false
-				}
-			}
-			if !run {
-				return
-			}
+		draw := func(state *Peco) {
 			// Not a great thing to do, allowing nil to be passed
 			// as state, but for testing I couldn't come up with anything
 			// better for the moment
@@ -168,10 +155,10 @@ func (s *Source) Setup(state *Peco) {
 			for {
 				select {
 				case <-done:
-					draw(state, refresh)
+					draw(state)
 					return
 				case <-ticker.C:
-					draw(state, refresh)
+					draw(state)
 				}
 			}
 		}()
@@ -192,11 +179,6 @@ func (s *Source) Setup(state *Peco) {
 			readCount++
 			s.lines = append(s.lines, NewRawLine(txt, s.enableSep))
 			notify.Do(notifycb)
-
-			go func() {
-				defer func() { recover() }()
-				refresh <- struct{}{}
-			}()
 		}
 
 		// XXX Just in case scanner.Scan() did not return a single line...
