@@ -525,7 +525,6 @@ func (ecf *ExternalCmdFilter) launchExternalCmd(ctx context.Context, buf []Line)
 				switch {
 				case ecf.returnsLineID:
 					// Lookup the Line from its ID
-pdebug.Printf("------------------> %s\n", b)
 					id, err := strconv.ParseUint(string(b), 10, 64)
 					if err != nil {
 						continue
