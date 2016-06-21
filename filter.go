@@ -7,6 +7,7 @@ import (
 	"regexp"
 	"sort"
 	"sync"
+	"time"
 
 	"github.com/lestrrat/go-pdebug"
 	"github.com/peco/peco/hub"
@@ -105,7 +106,16 @@ func (f *Filter) Work(ctx context.Context, q hub.Payload) {
 			pdebug.Printf("waiting for query to finish")
 			defer pdebug.Printf("Filter.Work: finished running query")
 		}
-		<-p.Done()
+		t := time.NewTicker(100 * time.Millisecond)
+		defer t.Stop()
+		for {
+			select {
+			case <-p.Done():
+				break
+			case <-t.C:
+				state.Hub().SendDraw(true)
+			}
+		}
 		state.Hub().SendStatusMsg("")
 	}()
 
