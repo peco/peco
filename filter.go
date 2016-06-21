@@ -7,6 +7,7 @@ import (
 	"regexp"
 	"sort"
 	"sync"
+	"time"
 
 	"github.com/lestrrat/go-pdebug"
 	"github.com/peco/peco/hub"
@@ -105,8 +106,17 @@ func (f *Filter) Work(ctx context.Context, q hub.Payload) {
 			pdebug.Printf("waiting for query to finish")
 			defer pdebug.Printf("Filter.Work: finished running query")
 		}
-		<-p.Done()
-		state.Hub().SendStatusMsg("")
+		t := time.NewTicker(100 * time.Millisecond)
+		defer t.Stop()
+		defer state.Hub().SendStatusMsg("")
+		for {
+			select {
+			case <-p.Done():
+				return
+			case <-t.C:
+				state.Hub().SendDraw(true)
+			}
+		}
 	}()
 
 	if !state.config.StickySelection {
@@ -170,12 +180,53 @@ func (rf RegexpFilter) Clone() LineFilter {
 	}
 }
 
+const filterBufSize = 1000
+var filterBufPool = sync.Pool{
+	New: func() interface{} {
+		return make([]Line, 0, filterBufSize)
+	},
+}
+
+func releaseRegexpFilterBuf(l []Line) {
+	if l == nil {
+		return
+	}
+	l = l[0:0]
+	filterBufPool.Put(l)
+}
+
+func getRegexpFilterBuf() []Line {
+	l := filterBufPool.Get().([]Line)
+	return l
+}
+
 func (rf *RegexpFilter) Accept(ctx context.Context, p pipeline.Producer) {
 	if pdebug.Enabled {
 		g := pdebug.Marker("RegexpFilter.Accept")
 		defer g.End()
 	}
 	defer rf.outCh.SendEndMark("end of RegexpFilter")
+
+	flush := make(chan []Line)
+	flushDone := make(chan struct{})
+	go func() {
+		defer close(flushDone)
+		for buf := range flush {
+			for _, in := range buf {
+				if l, err := rf.filter(in); err == nil {
+					rf.outCh.Send(l)
+				}
+			}
+			releaseRegexpFilterBuf(buf)
+		}
+	}()
+
+	buf := getRegexpFilterBuf()
+	defer func() { releaseRegexpFilterBuf(buf) }()
+	defer func() { <-flushDone }() // Wait till the flush goroutine is done
+	defer close(flush) // Kill the flush goroutine
+
+	lines := 0
 	for {
 		select {
 		case <-ctx.Done():
@@ -188,13 +239,22 @@ func (rf *RegexpFilter) Accept(ctx context.Context, p pipeline.Producer) {
 			case error:
 				if pipeline.IsEndMark(v.(error)) {
 					if pdebug.Enabled {
-						pdebug.Printf("RegexpFilter received end mark")
+						pdebug.Printf("RegexpFilter received end mark (read %d lines)", lines + len(buf))
 					}
-					return
+					if len(buf) > 0 {
+						flush <-buf
+						buf = nil
+					}
 				}
+				return
 			case Line:
-				if l, err := rf.filter(v.(Line)); err == nil {
-					rf.outCh.Send(l)
+				if pdebug.Enabled {
+					lines++
+				}
+				buf = append(buf, v.(Line))
+				if len(buf) >= cap(buf) {
+					flush <- buf
+					buf = getRegexpFilterBuf()
 				}
 			}
 		}

@@ -121,7 +121,7 @@ func NewSource(in io.Reader, enableSep bool) *Source {
 	return &Source{
 		in:            in, // Note that this may be closed, so do not rely on it
 		enableSep:     enableSep,
-		done: make(chan struct{}),
+		done:          make(chan struct{}),
 		ready:         make(chan struct{}),
 		setupOnce:     sync.Once{},
 		OutputChannel: pipeline.OutputChannel(make(chan interface{})),
@@ -139,20 +139,7 @@ func (s *Source) Setup(state *Peco) {
 		defer close(done)
 		defer close(refresh)
 
-		draw := func(state *Peco, refresh chan struct{}) {
-			run := false
-			for loop := true; loop; {
-				select {
-				case _, ok := <-refresh:
-					run = true
-					loop = ok
-				default:
-					loop = false
-				}
-			}
-			if !run {
-				return
-			}
+		draw := func(state *Peco) {
 			// Not a great thing to do, allowing nil to be passed
 			// as state, but for testing I couldn't come up with anything
 			// better for the moment
@@ -168,10 +155,10 @@ func (s *Source) Setup(state *Peco) {
 			for {
 				select {
 				case <-done:
-					draw(state, refresh)
+					draw(state)
 					return
 				case <-ticker.C:
-					draw(state, refresh)
+					draw(state)
 				}
 			}
 		}()
@@ -192,11 +179,6 @@ func (s *Source) Setup(state *Peco) {
 			readCount++
 			s.lines = append(s.lines, NewRawLine(txt, s.enableSep))
 			notify.Do(notifycb)
-
-			go func() {
-				defer func() { recover() }()
-				refresh <- struct{}{}
-			}()
 		}
 
 		// XXX Just in case scanner.Scan() did not return a single line...
@@ -217,19 +199,29 @@ func (s *Source) Start(ctx context.Context) {
 	if pdebug.Enabled {
 		g := pdebug.Marker("Source.Start")
 		defer g.End()
+		defer pdebug.Printf("Source sent %d lines", len(s.lines))
 	}
 	defer s.OutputChannel.SendEndMark("end of input")
-
-	s.done = make(chan struct{})
+	defer close(s.done)
 
 	for _, l := range s.lines {
 		select {
 		case <-ctx.Done():
+			if pdebug.Enabled {
+				pdebug.Printf("Source: context.Done detected")
+			}
 			return
 		case s.OutputChannel <- l:
 			// no op
 		}
 	}
+}
+
+// Reset resets the state of the source object so that it
+// is ready to feed the filters
+func (s *Source) Reset() {
+	s.done = make(chan struct{})
+	s.OutputChannel = pipeline.OutputChannel(make(chan interface{}))
 }
 
 // Ready returns the "input ready" channel. It will be closed as soon as

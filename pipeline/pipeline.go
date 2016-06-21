@@ -101,9 +101,10 @@ func (p *Pipeline) Run(ctx context.Context) error {
 		return errors.New("destination must be non-nil")
 	}
 
-	// Reset is called on the destination to effectively reset
+	// Reset is called on the source/destination to effectively reset
 	// any state changes that may have happened in the end of
 	// the previous call to Run()
+	p.src.Reset()
 	p.dst.Reset()
 
 	// Setup the ProcNodes, effectively chaining all nodes
