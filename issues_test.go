@@ -4,7 +4,6 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
-	"reflect"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -34,7 +33,9 @@ func TestIssue212_SanityCheck(t *testing.T) {
 		return
 	}
 
-	if !assert.True(t, reflect.DeepEqual(state.config.Style, NewStyleSet()), "Default style should was not the same as NewStyleSet()") {
+	defstyle := StyleSet{}
+	defstyle.Init()
+	if !assert.Equal(t, state.config.Style, defstyle, "should be default style") {
 		return
 	}
 
