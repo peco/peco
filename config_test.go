@@ -31,11 +31,48 @@ func TestReadRC(t *testing.T) {
 }
 `
 	cfg := Config{}
-	cfg.Init()
-	if err := json.Unmarshal([]byte(txt), &cfg); err != nil {
-		t.Fatalf("Error unmarshaling json: %s", err)
+	if !assert.NoError(t, cfg.Init(), "Config.Init should succeed") {
+		return
 	}
-	t.Logf("%#v", cfg)
+
+	if !assert.NoError(t, json.Unmarshal([]byte(txt), &cfg), "Unmarshalling config should succeed") {
+		return
+	}
+
+	expected := Config{
+		Keymap: map[string]string{
+			"C-j":     "peco.Finish",
+			"C-x,C-c": "peco.Finish",
+		},
+		InitialMatcher: IgnoreCaseMatch,
+		Layout:         DefaultLayoutType,
+		Prompt:         "[peco]",
+		SingleKeyJump: SingleKeyJumpConfig{
+			PrefixMap: map[rune]uint{},
+		},
+		Style: StyleSet{
+			Matched: Style{
+				fg: termbox.ColorCyan | termbox.AttrBold,
+				bg: termbox.ColorRed,
+			},
+			Query: Style{
+				fg: termbox.ColorYellow | termbox.AttrBold,
+				bg: termbox.ColorDefault,
+			},
+			Selected: Style{
+				fg: termbox.ColorBlack | termbox.AttrUnderline,
+				bg: termbox.ColorCyan,
+			},
+			SavedSelection: Style{
+				fg: termbox.ColorBlack | termbox.AttrBold,
+				bg: termbox.ColorCyan,
+			},
+		},
+	}
+
+	if !assert.Equal(t, expected, cfg, "configuration matches expected") {
+		return
+	}
 }
 
 type stringsToStyleTest struct {
@@ -68,10 +105,15 @@ func TestStringsToStyle(t *testing.T) {
 	}
 
 	t.Logf("Checking strings -> color mapping...")
+	var a Style
 	for _, test := range tests {
 		t.Logf("    checking %s...", test.strings)
-		if a := stringsToStyle(test.strings); *a != *test.style {
-			t.Errorf("Expected '%s' to be '%#v', but got '%#v'", test.strings, test.style, a)
+		if !assert.NoError(t, stringsToStyle(&a, test.strings), "stringsToStyle should succeed") {
+			return
+		}
+
+		if !assert.Equal(t, test.style, &a, "Expected '%s' to be '%#v', but got '%#v'", test.strings, test.style, a) {
+			return
 		}
 	}
 }

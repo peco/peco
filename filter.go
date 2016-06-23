@@ -181,6 +181,7 @@ func (rf RegexpFilter) Clone() LineFilter {
 }
 
 const filterBufSize = 1000
+
 var filterBufPool = sync.Pool{
 	New: func() interface{} {
 		return make([]Line, 0, filterBufSize)
@@ -224,7 +225,7 @@ func (rf *RegexpFilter) Accept(ctx context.Context, p pipeline.Producer) {
 	buf := getRegexpFilterBuf()
 	defer func() { releaseRegexpFilterBuf(buf) }()
 	defer func() { <-flushDone }() // Wait till the flush goroutine is done
-	defer close(flush) // Kill the flush goroutine
+	defer close(flush)             // Kill the flush goroutine
 
 	lines := 0
 	for {
@@ -239,10 +240,10 @@ func (rf *RegexpFilter) Accept(ctx context.Context, p pipeline.Producer) {
 			case error:
 				if pipeline.IsEndMark(v.(error)) {
 					if pdebug.Enabled {
-						pdebug.Printf("RegexpFilter received end mark (read %d lines)", lines + len(buf))
+						pdebug.Printf("RegexpFilter received end mark (read %d lines)", lines+len(buf))
 					}
 					if len(buf) > 0 {
-						flush <-buf
+						flush <- buf
 						buf = nil
 					}
 				}
@@ -251,6 +252,10 @@ func (rf *RegexpFilter) Accept(ctx context.Context, p pipeline.Producer) {
 				if pdebug.Enabled {
 					lines++
 				}
+				// We buffer the lines so that we can receive more lines to
+				// process while we filter what we already have. The buffer
+				// size is fairly big, because this really only makes a
+				// difference if we have a lot of lines to process.
 				buf = append(buf, v.(Line))
 				if len(buf) >= cap(buf) {
 					flush <- buf

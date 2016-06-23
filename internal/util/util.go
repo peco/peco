@@ -25,3 +25,25 @@ var reANSIEscapeChars = regexp.MustCompile("\x1B\\[(?:[0-9]{1,2}(?:;[0-9]{1,2})?
 func StripANSISequence(s string) string {
 	return reANSIEscapeChars.ReplaceAllString(s, "")
 }
+
+type causer interface {
+	Cause() error
+}
+
+type ignorable interface {
+	Ignorable() bool
+}
+
+func IsIgnorable(err error) bool {
+	for e := err; e != nil; {
+		switch e.(type) {
+		case ignorable:
+			return e.(ignorable).Ignorable()
+		case causer:
+			e = e.(causer).Cause()
+		default:
+			return false
+		}
+	}
+	return false
+}

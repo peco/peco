@@ -7,6 +7,7 @@ import (
 	"runtime"
 
 	"github.com/peco/peco"
+	"github.com/peco/peco/internal/util"
 	"golang.org/x/net/context"
 )
 
@@ -20,28 +21,6 @@ func main() {
 	os.Exit(_main())
 }
 
-type causer interface {
-	Cause() error
-}
-
-type ignorable interface {
-	Ignorable() bool
-}
-
-func isIgnorable(err error) bool {
-	for e := err; e != nil; {
-		switch e.(type) {
-		case ignorable:
-			return e.(ignorable).Ignorable()
-		case causer:
-			e = e.(causer).Cause()
-		default:
-			return false
-		}
-	}
-	return false
-}
-
 func _main() int {
 	if envvar := os.Getenv("GOMAXPROCS"); envvar == "" {
 		runtime.GOMAXPROCS(runtime.NumCPU())
@@ -50,7 +29,7 @@ func _main() int {
 
 	cli := peco.New()
 	if err := cli.Run(ctx); err != nil {
-		if isIgnorable(err) {
+		if util.IsIgnorable(err) {
 			return 0
 		}
 		fmt.Fprintf(os.Stderr, "Error: %s\n", err)

@@ -25,7 +25,7 @@ type errIgnorable struct {
 }
 
 func (e errIgnorable) Ignorable() bool { return true }
-func (e errIgnorable) Causer() error {
+func (e errIgnorable) Cause() error {
 	return e.err
 }
 func (e errIgnorable) Error() string {
@@ -486,7 +486,7 @@ func (p *Peco) populateKeymap() error {
 }
 
 func (p *Peco) populateStyles() error {
-	p.styles = *(p.config.Style)
+	p.styles = p.config.Style
 	return nil
 }
 

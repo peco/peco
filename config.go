@@ -22,7 +22,7 @@ var homedirFunc = util.Homedir
 func (c *Config) Init() error {
 	c.Keymap = make(map[string]string)
 	c.InitialMatcher = IgnoreCaseMatch
-	c.Style = NewStyleSet()
+	c.Style.Init()
 	c.SingleKeyJump = SingleKeyJumpConfig{
 		ShowPrefix: false,
 		PrefixMap:  make(map[rune]uint),
@@ -105,13 +105,22 @@ var (
 
 // NewStyleSet creates a new StyleSet struct
 func NewStyleSet() *StyleSet {
-	return &StyleSet{
-		Basic:          Style{fg: termbox.ColorDefault, bg: termbox.ColorDefault},
-		Query:          Style{fg: termbox.ColorDefault, bg: termbox.ColorDefault},
-		Matched:        Style{fg: termbox.ColorCyan, bg: termbox.ColorDefault},
-		SavedSelection: Style{fg: termbox.ColorBlack | termbox.AttrBold, bg: termbox.ColorCyan},
-		Selected:       Style{fg: termbox.ColorDefault | termbox.AttrUnderline, bg: termbox.ColorMagenta},
-	}
+	ss := &StyleSet{}
+	ss.Init()
+	return ss
+}
+
+func (ss *StyleSet) Init() {
+	ss.Basic.fg = termbox.ColorDefault
+	ss.Basic.bg = termbox.ColorDefault
+	ss.Query.fg = termbox.ColorDefault
+	ss.Query.bg = termbox.ColorDefault
+	ss.Matched.fg = termbox.ColorCyan
+	ss.Matched.bg = termbox.ColorDefault
+	ss.SavedSelection.fg = termbox.ColorBlack | termbox.AttrBold
+	ss.SavedSelection.bg = termbox.ColorCyan
+	ss.Selected.fg = termbox.ColorDefault | termbox.AttrUnderline
+	ss.Selected.bg = termbox.ColorMagenta
 }
 
 // UnmarshalJSON satisfies json.RawMessage.
@@ -120,15 +129,12 @@ func (s *Style) UnmarshalJSON(buf []byte) error {
 	if err := json.Unmarshal(buf, &raw); err != nil {
 		return errors.Wrapf(err, "failed to unmarshal Style")
 	}
-	*s = *stringsToStyle(raw)
-	return nil
+	return stringsToStyle(s, raw)
 }
 
-func stringsToStyle(raw []string) *Style {
-	style := &Style{
-		fg: termbox.ColorDefault,
-		bg: termbox.ColorDefault,
-	}
+func stringsToStyle(style *Style, raw []string) error {
+	style.fg = termbox.ColorDefault
+	style.bg = termbox.ColorDefault
 
 	for _, s := range raw {
 		fg, ok := stringToFg[s]
@@ -152,7 +158,7 @@ func stringsToStyle(raw []string) *Style {
 		}
 	}
 
-	return style
+	return nil
 }
 
 // This is a variable because we want to change its behavior
