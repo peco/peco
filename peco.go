@@ -97,10 +97,14 @@ func (p *Peco) Location() *Location {
 }
 
 func (p *Peco) ResultCh() chan Line {
+	p.mutex.Lock()
+	defer p.mutex.Unlock()
 	return p.resultCh
 }
 
 func (p *Peco) SetResultCh(ch chan Line) {
+	p.mutex.Lock()
+	defer p.mutex.Unlock()
 	p.resultCh = ch
 }
 
@@ -358,7 +362,6 @@ func (p *Peco) SetupSource() (s *Source, err error) {
 		if err != nil {
 			return nil, errors.Wrap(err, "failed to open file for input")
 		}
-		defer f.Close() // ONLY do this here, you don't want to close Stdin
 		in = f
 	case !util.IsTty(p.Stdin):
 		in = p.Stdin
@@ -483,10 +486,14 @@ func (p *Peco) populateStyles() error {
 }
 
 func (p *Peco) CurrentLineBuffer() Buffer {
+	p.mutex.Lock()
+	defer p.mutex.Unlock()
 	return p.currentLineBuffer
 }
 
 func (p *Peco) SetCurrentLineBuffer(b Buffer) {
+	p.mutex.Lock()
+	defer p.mutex.Unlock()
 	if pdebug.Enabled {
 		g := pdebug.Marker("Peco.SetCurrentLineBuffer %s", reflect.TypeOf(b).String())
 		defer g.End()

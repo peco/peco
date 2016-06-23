@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/lestrrat/go-pdebug"
+	"github.com/peco/peco/internal/util"
 	"github.com/peco/peco/pipeline"
 	"github.com/pkg/errors"
 	"golang.org/x/net/context"
@@ -180,6 +181,14 @@ func (s *Source) Setup(state *Peco) {
 			close(s.ready)
 		}
 		scanner := bufio.NewScanner(s.in)
+		defer func() {
+			if util.IsTty(s.in) {
+				return
+			}
+			if closer, ok := s.in.(io.Closer); ok {
+				closer.Close()
+			}
+		}()
 
 		readCount := 0
 		for scanner.Scan() {

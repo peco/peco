@@ -72,6 +72,7 @@ type Peco struct {
 	inputseq                Inputseq // current key sequence (just the names)
 	layoutType              string
 	location                Location
+	mutex                   sync.Mutex
 	prompt                  string
 	query                   Query
 	queryExecDelay          time.Duration
