@@ -63,7 +63,6 @@ type Peco struct {
 	caret Caret
 	// Config contains the values read in from config file
 	config                  Config
-	ctx                     context.Context
 	currentLineBuffer       Buffer
 	filters                 FilterSet
 	keymap                  Keymap
@@ -73,6 +72,7 @@ type Peco struct {
 	inputseq                Inputseq // current key sequence (just the names)
 	layoutType              string
 	location                Location
+	mutex                   sync.Mutex
 	prompt                  string
 	query                   Query
 	queryExecDelay          time.Duration
@@ -167,7 +167,10 @@ type JumpToLineRequest int
 // Selection stores the line ids that were selected by the user.
 // The contents of the Selection is always sorted from smallest to
 // largest line ID
-type Selection struct{ *btree.BTree }
+type Selection struct {
+	mutex sync.Mutex
+	tree  *btree.BTree
+}
 
 // StatusMsgRequest specifies the string to be drawn
 // on the status message bar and an optional delay that tells
@@ -387,6 +390,11 @@ type Style struct {
 	bg termbox.Attribute
 }
 
+type Caret struct {
+	mutex sync.Mutex
+	pos   int
+}
+
 type Location struct {
 	col     int
 	lineno  int
@@ -406,8 +414,9 @@ type Query struct {
 type FilterQuery Query
 
 type FilterSet struct {
-	filters []LineFilter
 	current int
+	filters []LineFilter
+	mutex   sync.Mutex
 }
 
 // Source implements pipline.Source, and is the buffer for the input
@@ -497,6 +506,7 @@ type RegexpFilter struct {
 	flags         regexpFlags
 	quotemeta     bool
 	query         string
+	mutex         sync.Mutex
 	name          string
 	onEnd         func()
 	outCh         pipeline.OutputChannel

@@ -73,7 +73,7 @@ func TestDoDeleteForwardChar(t *testing.T) {
 
 	<-state.Ready()
 
-	q.query = []rune("Hello, World!")
+	q.Set("Hello, World!")
 	c.SetPos(5)
 
 	doDeleteForwardChar(ctx, state, termbox.Event{})
@@ -109,7 +109,7 @@ func TestDoDeleteForwardWord(t *testing.T) {
 
 	<-state.Ready()
 
-	q.query = []rune("Hello, World!")
+	q.Set("Hello, World!")
 	c.SetPos(5)
 
 	// delete the comma
@@ -165,7 +165,7 @@ func TestDoDeleteBackwardChar(t *testing.T) {
 
 	<-state.Ready()
 
-	q.query = []rune("Hello, World!")
+	q.Set("Hello, World!")
 	c.SetPos(5)
 
 	doDeleteBackwardChar(ctx, state, termbox.Event{})
@@ -198,14 +198,14 @@ func TestDoDeleteBackwardWord(t *testing.T) {
 	<-state.Ready()
 
 	// In case of an overflow (bug)
-	q.query = []rune("foo")
+	q.Set("foo")
 	c.SetPos(5)
 	doDeleteBackwardWord(ctx, state, termbox.Event{})
 
 	// https://github.com/peco/peco/pull/184#issuecomment-54026739
 
 	// Case 1. " foo<caret>" -> " "
-	q.query = []rune(" foo")
+	q.Set(" foo")
 	c.SetPos(4)
 	doDeleteBackwardWord(ctx, state, termbox.Event{})
 
@@ -218,7 +218,7 @@ func TestDoDeleteBackwardWord(t *testing.T) {
 	}
 
 	// Case 2. "foo bar<caret>" -> "foo "
-	q.query = []rune("foo bar")
+	q.Set("foo bar")
 	c.SetPos(7)
 	doDeleteBackwardWord(ctx, state, termbox.Event{})
 
@@ -353,19 +353,19 @@ func TestBackToInitialFilter(t *testing.T) {
 		return
 	}
 
-	if !assert.Equal(t, state.Filters().current, 0, "Expected filter to be at position 0, got %d", state.Filters().current) {
+	if !assert.Equal(t, state.Filters().Index(), 0, "Expected filter to be at position 0, got %d", state.Filters().Index()) {
 		return
 	}
 
 	state.screen.SendEvent(termbox.Event{Key: termbox.KeyCtrlR})
 	time.Sleep(time.Second)
-	if !assert.Equal(t, state.Filters().current, 1, "Expected filter to be at position 1, got %d", state.Filters().current) {
+	if !assert.Equal(t, state.Filters().Index(), 1, "Expected filter to be at position 1, got %d", state.Filters().Index()) {
 		return
 	}
 
 	state.screen.SendEvent(termbox.Event{Key: termbox.KeyCtrlQ})
 	time.Sleep(time.Second)
-	if !assert.Equal(t, state.Filters().current, 0, "Expected filter to be at position 0, got %d", state.Filters().current) {
+	if !assert.Equal(t, state.Filters().Index(), 0, "Expected filter to be at position 0, got %d", state.Filters().Index()) {
 		return
 	}
 }

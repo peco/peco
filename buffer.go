@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/lestrrat/go-pdebug"
+	"github.com/peco/peco/internal/util"
 	"github.com/peco/peco/pipeline"
 	"github.com/pkg/errors"
 	"golang.org/x/net/context"
@@ -62,19 +63,27 @@ func NewMemoryBuffer() *MemoryBuffer {
 }
 
 func (mb *MemoryBuffer) Size() int {
+	mb.mutex.Lock()
+	defer mb.mutex.Unlock()
 	return len(mb.lines)
 }
 
 func (mb *MemoryBuffer) Reset() {
+	mb.mutex.Lock()
+	defer mb.mutex.Unlock()
 	mb.done = make(chan struct{})
 	mb.lines = []Line(nil)
 }
 
 func (mb *MemoryBuffer) Done() <-chan struct{} {
+	mb.mutex.Lock()
+	defer mb.mutex.Unlock()
 	return mb.done
 }
 
 func (mb *MemoryBuffer) Accept(ctx context.Context, p pipeline.Producer) {
+	mb.mutex.Lock()
+	defer mb.mutex.Unlock()
 	if pdebug.Enabled {
 		g := pdebug.Marker("MemoryBuffer.Accept")
 		defer g.End()
@@ -93,7 +102,7 @@ func (mb *MemoryBuffer) Accept(ctx context.Context, p pipeline.Producer) {
 			case error:
 				if pipeline.IsEndMark(v.(error)) {
 					if pdebug.Enabled {
-						pdebug.Printf("MemoryBuffer received end mark (read %d lines)", mb.Size())
+						pdebug.Printf("MemoryBuffer received end mark (read %d lines)", len(mb.lines))
 					}
 					return
 				}
@@ -108,7 +117,7 @@ func (mb *MemoryBuffer) LineAt(n int) (Line, error) {
 	mb.mutex.Lock()
 	defer mb.mutex.Unlock()
 
-	if s := mb.Size(); s <= 0 || n >= s {
+	if s := len(mb.lines); s <= 0 || n >= s {
 		return nil, errors.New("empty buffer")
 	}
 
@@ -172,6 +181,14 @@ func (s *Source) Setup(state *Peco) {
 			close(s.ready)
 		}
 		scanner := bufio.NewScanner(s.in)
+		defer func() {
+			if util.IsTty(s.in) {
+				return
+			}
+			if closer, ok := s.in.(io.Closer); ok {
+				closer.Close()
+			}
+		}()
 
 		readCount := 0
 		for scanner.Scan() {

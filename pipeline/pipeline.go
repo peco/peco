@@ -131,6 +131,8 @@ func (p *Pipeline) Run(ctx context.Context) error {
 	return nil
 }
 
-func (p Pipeline) Done() <-chan struct{} {
+func (p *Pipeline) Done() <-chan struct{} {
+	p.mutex.Lock()
+	defer p.mutex.Unlock()
 	return p.done
 }

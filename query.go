@@ -1,30 +1,41 @@
 package peco
 
 func (q *Query) Set(s string) {
+	q.mutex.Lock()
+	defer q.mutex.Unlock()
 	q.query = []rune(s)
 }
 
 func (q *Query) Reset() {
+	q.mutex.Lock()
+	defer q.mutex.Unlock()
 	q.query = []rune(nil)
 }
 
 func (q *Query) RestoreSavedQuery() {
+	q.mutex.Lock()
+	defer q.mutex.Unlock()
 	q.query = q.savedQuery
 	q.query = []rune(nil)
 }
 
 func (q *Query) SaveQuery() {
+	q.mutex.Lock()
+	defer q.mutex.Unlock()
 	q.savedQuery = q.query
 	q.savedQuery = []rune(nil)
 }
 
 func (q *Query) DeleteRange(start, end int) {
+	q.mutex.Lock()
+	defer q.mutex.Unlock()
 	if start == -1 {
 		return
 	}
 
-	if end > q.Len() {
-		end = q.Len()
+	l := len(q.query)
+	if end > l {
+		end = l
 	}
 
 	if start > end {
@@ -36,14 +47,18 @@ func (q *Query) DeleteRange(start, end int) {
 	// everything up to "start" is left in tact
 	// everything between start <-> end is deleted
 	copy(q.query[start:], q.query[end:])
-	q.query = q.query[:q.Len()-(end-start)]
+	q.query = q.query[:l-(end-start)]
 }
 
 func (q *Query) String() string {
+	q.mutex.Lock()
+	defer q.mutex.Unlock()
 	return string(q.query)
 }
 
 func (q *Query) Len() int {
+	q.mutex.Lock()
+	defer q.mutex.Unlock()
 	return len(q.query)
 }
 
@@ -55,21 +70,25 @@ func (q *Query) Append(r rune) {
 }
 
 func (q *Query) Runes() []rune {
+	q.mutex.Lock()
+	defer q.mutex.Unlock()
 	return q.query
 }
 
 func (q *Query) RuneAt(where int) rune {
+	q.mutex.Lock()
+	defer q.mutex.Unlock()
 	return q.query[where]
 }
 
 func (q *Query) InsertAt(ch rune, where int) {
-	if where == q.Len() {
-		q.Append(ch)
-		return
-	}
-
 	q.mutex.Lock()
 	defer q.mutex.Unlock()
+
+	if where == len(q.query) {
+		q.query = append(q.query, ch)
+		return
+	}
 
 	sq := q.query
 	buf := make([]rune, len(sq)+1)
