@@ -167,7 +167,10 @@ type JumpToLineRequest int
 // Selection stores the line ids that were selected by the user.
 // The contents of the Selection is always sorted from smallest to
 // largest line ID
-type Selection struct{ *btree.BTree }
+type Selection struct {
+	mutex sync.Mutex
+	tree  *btree.BTree
+}
 
 // StatusMsgRequest specifies the string to be drawn
 // on the status message bar and an optional delay that tells
@@ -389,7 +392,7 @@ type Style struct {
 
 type Caret struct {
 	mutex sync.Mutex
-	pos int
+	pos   int
 }
 
 type Location struct {
