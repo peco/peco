@@ -322,7 +322,7 @@ type Config struct {
 	Matcher             string            `json:"Matcher"`        // Deprecated.
 	InitialMatcher      string            `json:"InitialMatcher"` // Use this instead of Matcher
 	InitialFilter       string            `json:"InitialFilter"`
-	Style               *StyleSet         `json:"Style"`
+	Style               StyleSet          `json:"Style"`
 	Prompt              string            `json:"Prompt"`
 	Layout              string            `json:"Layout"`
 	CustomMatcher       map[string][]string

@@ -486,7 +486,7 @@ func (p *Peco) populateKeymap() error {
 }
 
 func (p *Peco) populateStyles() error {
-	p.styles = *(p.config.Style)
+	p.styles = p.config.Style
 	return nil
 }
 
