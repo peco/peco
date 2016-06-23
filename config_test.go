@@ -41,12 +41,12 @@ func TestReadRC(t *testing.T) {
 
 	expected := Config{
 		Keymap: map[string]string{
-			"C-j": "peco.Finish",
+			"C-j":     "peco.Finish",
 			"C-x,C-c": "peco.Finish",
 		},
 		InitialMatcher: IgnoreCaseMatch,
-		Layout: DefaultLayoutType,
-		Prompt: "[peco]",
+		Layout:         DefaultLayoutType,
+		Prompt:         "[peco]",
 		SingleKeyJump: SingleKeyJumpConfig{
 			PrefixMap: map[rune]uint{},
 		},
@@ -60,7 +60,7 @@ func TestReadRC(t *testing.T) {
 				bg: termbox.ColorDefault,
 			},
 			Selected: Style{
-				fg: termbox.ColorBlack|termbox.AttrUnderline,
+				fg: termbox.ColorBlack | termbox.AttrUnderline,
 				bg: termbox.ColorCyan,
 			},
 			SavedSelection: Style{
