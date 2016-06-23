@@ -386,6 +386,11 @@ type Style struct {
 	bg termbox.Attribute
 }
 
+type Caret struct {
+	mutex sync.Mutex
+	pos int
+}
+
 type Location struct {
 	col     int
 	lineno  int
