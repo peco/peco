@@ -63,7 +63,6 @@ type Peco struct {
 	caret Caret
 	// Config contains the values read in from config file
 	config                  Config
-	ctx                     context.Context
 	currentLineBuffer       Buffer
 	filters                 FilterSet
 	keymap                  Keymap

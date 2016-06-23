@@ -88,10 +88,6 @@ func (p *Peco) Inputseq() *Inputseq {
 	return &p.inputseq
 }
 
-func (p *Peco) Context() context.Context {
-	return p.ctx
-}
-
 func (p *Peco) LayoutType() string {
 	return p.layoutType
 }
@@ -261,10 +257,6 @@ func (p *Peco) Run(ctx context.Context) (err error) {
 		}
 		_cancel()
 	}
-
-	// keep *this* ctx (not the Background one), as calling `cancel`
-	// only affects the wrapped context
-	p.ctx = ctx
 
 	// remember this cancel func so p.Exit works (XXX requires locking?)
 	p.cancelFunc = cancel
