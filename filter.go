@@ -17,20 +17,28 @@ import (
 	"golang.org/x/net/context"
 )
 
-func (fx *FilterSet) Reset() {
-	fx.current = 0
+func (fs *FilterSet) Reset() {
+	fs.mutex.Lock()
+	defer fs.mutex.Unlock()
+	fs.current = 0
 }
 
 func (fs *FilterSet) Size() int {
+	fs.mutex.Lock()
+	defer fs.mutex.Unlock()
 	return len(fs.filters)
 }
 
 func (fs *FilterSet) Add(lf LineFilter) error {
+	fs.mutex.Lock()
+	defer fs.mutex.Unlock()
 	fs.filters = append(fs.filters, lf)
 	return nil
 }
 
 func (fs *FilterSet) Rotate() {
+	fs.mutex.Lock()
+	defer fs.mutex.Unlock()
 	fs.current++
 	if fs.current >= len(fs.filters) {
 		fs.current = 0
@@ -41,6 +49,8 @@ func (fs *FilterSet) Rotate() {
 }
 
 func (fs *FilterSet) SetCurrentByName(name string) error {
+	fs.mutex.Lock()
+	defer fs.mutex.Unlock()
 	for i, f := range fs.filters {
 		if f.String() == name {
 			fs.current = i
@@ -51,6 +61,8 @@ func (fs *FilterSet) SetCurrentByName(name string) error {
 }
 
 func (fs *FilterSet) Current() LineFilter {
+	fs.mutex.Lock()
+	defer fs.mutex.Unlock()
 	return fs.filters[fs.current]
 }
 

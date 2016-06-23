@@ -405,8 +405,9 @@ type Query struct {
 type FilterQuery Query
 
 type FilterSet struct {
-	filters []LineFilter
 	current int
+	filters []LineFilter
+	mutex   sync.Mutex
 }
 
 // Source implements pipline.Source, and is the buffer for the input
