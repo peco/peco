@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/nsf/termbox-go"
+	"github.com/peco/peco/internal/util"
 	"github.com/stretchr/testify/assert"
 	"golang.org/x/net/context"
 )
@@ -138,19 +139,7 @@ func TestPecoHelp(t *testing.T) {
 	time.AfterFunc(time.Second, cancel)
 
 	err := p.Run(ctx)
-	for err != nil {
-		if ec, ok := err.(testCauser); ok {
-			err = ec.Cause()
-		} else {
-			break
-		}
-	}
-
-	if !assert.Implements(t, (*testIgnorableError)(nil), err, "p.Run() should return error") {
-		return
-	}
-
-	if !assert.True(t, err.(testIgnorableError).Ignorable(), "error from Run() should be ignorable") {
+	if !assert.True(t, util.IsIgnorable(err), "p.Run() should return error with Ignorable() method, and it should return true") {
 		return
 	}
 }

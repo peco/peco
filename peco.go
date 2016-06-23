@@ -25,7 +25,7 @@ type errIgnorable struct {
 }
 
 func (e errIgnorable) Ignorable() bool { return true }
-func (e errIgnorable) Causer() error {
+func (e errIgnorable) Cause() error {
 	return e.err
 }
 func (e errIgnorable) Error() string {
