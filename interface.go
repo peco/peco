@@ -503,6 +503,7 @@ type RegexpFilter struct {
 	flags         regexpFlags
 	quotemeta     bool
 	query         string
+	mutex         sync.Mutex
 	name          string
 	onEnd         func()
 	outCh         pipeline.OutputChannel

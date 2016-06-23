@@ -60,6 +60,12 @@ func (fs *FilterSet) SetCurrentByName(name string) error {
 	return ErrFilterNotFound
 }
 
+func (fs *FilterSet) Index() int {
+	fs.mutex.Lock()
+	defer fs.mutex.Unlock()
+	return fs.current
+}
+
 func (fs *FilterSet) Current() LineFilter {
 	fs.mutex.Lock()
 	defer fs.mutex.Unlock()
@@ -178,7 +184,9 @@ func NewRegexpFilter() *RegexpFilter {
 	}
 }
 
-func (rf RegexpFilter) OutCh() <-chan interface{} {
+func (rf *RegexpFilter) OutCh() <-chan interface{} {
+	rf.mutex.Lock()
+	defer rf.mutex.Unlock()
 	return rf.outCh
 }
 
@@ -279,6 +287,9 @@ func (rf *RegexpFilter) Accept(ctx context.Context, p pipeline.Producer) {
 }
 
 func (rf *RegexpFilter) filter(l Line) (Line, error) {
+	rf.mutex.Lock()
+	defer rf.mutex.Unlock()
+
 	regexps, err := rf.getQueryAsRegexps()
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to compile queries as regular expression")
@@ -345,6 +356,9 @@ func (rf *RegexpFilter) getQueryAsRegexps() ([]*regexp.Regexp, error) {
 }
 
 func (rf *RegexpFilter) SetQuery(q string) {
+	rf.mutex.Lock()
+	defer rf.mutex.Unlock()
+
 	rf.query = q
 	rf.compiledQuery = nil
 }

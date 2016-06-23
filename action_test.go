@@ -359,7 +359,7 @@ func TestBackToInitialFilter(t *testing.T) {
 
 	state.screen.SendEvent(termbox.Event{Key: termbox.KeyCtrlR})
 	time.Sleep(time.Second)
-	if !assert.Equal(t, state.Filters().current, 1, "Expected filter to be at position 1, got %d", state.Filters().current) {
+	if !assert.Equal(t, state.Filters().Index(), 1, "Expected filter to be at position 1, got %d", state.Filters().current) {
 		return
 	}
 
