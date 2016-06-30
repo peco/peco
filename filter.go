@@ -154,7 +154,6 @@ func (f *Filter) Loop(ctx context.Context, cancel func()) error {
 	// and the previous query is discarded anyway
 	var mutex sync.Mutex
 	var previous func()
-	previous = func() {} // no op func
 	for {
 		select {
 		case <-ctx.Done():
@@ -163,15 +162,18 @@ func (f *Filter) Loop(ctx context.Context, cancel func()) error {
 			workctx, workcancel := context.WithCancel(ctx)
 
 			mutex.Lock()
-			previous()
+			if previous != nil {
+				if pdebug.Enabled {
+					pdebug.Printf("Canceling previous query")
+				}
+				previous()
+			}
 			previous = workcancel
 			mutex.Unlock()
 
 			f.state.Hub().SendStatusMsg("Running query...")
 
-			go func() {
-				f.Work(workctx, q)
-			}()
+			go f.Work(workctx, q)
 		}
 	}
 }
