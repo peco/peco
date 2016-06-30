@@ -227,14 +227,6 @@ func (p *Peco) Setup() (err error) {
 	// XXX p.Keymap et al should be initialized around here
 	p.hub = hub.New(5)
 
-	// Setup source buffer
-	src, err := p.SetupSource()
-	if err != nil {
-		return errors.Wrap(err, "failed to setup input source")
-	}
-	p.source = src
-	p.ResetCurrentLineBuffer()
-
 	return nil
 }
 
@@ -279,6 +271,18 @@ func (p *Peco) Run(ctx context.Context) (err error) {
 	for _, l := range loopers {
 		go l.Loop(ctx, cancel)
 	}
+
+	// SetupSource is done AFTER other components are ready, otherwise
+	// we can't draw onto the screen while we are reading a really big
+	// buffer.
+	// Setup source buffer
+	src, err := p.SetupSource()
+	if err != nil {
+		return errors.Wrap(err, "failed to setup input source")
+	}
+	p.source = src
+	p.ResetCurrentLineBuffer()
+
 
 	if pdebug.Enabled {
 		pdebug.Printf("peco is now ready, go go go!")
@@ -499,7 +503,7 @@ func (p *Peco) SetCurrentLineBuffer(b Buffer) {
 		defer g.End()
 	}
 	p.currentLineBuffer = b
-	p.Hub().SendDraw(false)
+	go p.Hub().SendDraw(false)
 }
 
 func (p *Peco) ResetCurrentLineBuffer() {

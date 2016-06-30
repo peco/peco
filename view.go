@@ -3,6 +3,7 @@ package peco
 import (
 	"time"
 
+	"github.com/peco/peco/hub"
 	"golang.org/x/net/context"
 )
 
@@ -45,59 +46,65 @@ func (v *View) Loop(ctx context.Context, cancel func()) error {
 		select {
 		case <-ctx.Done():
 			return nil
-		case m := <-h.StatusMsgCh():
-			v.printStatus(m.Data().(statusMsgReq))
-			m.Done()
+		case r := <-h.StatusMsgCh():
+			v.printStatus(r, r.Data().(statusMsgReq))
 		case r := <-h.PagingCh():
-			v.movePage(r.Data().(PagingRequest))
-			r.Done()
-		case lines := <-h.DrawCh():
-			tmp := lines.Data()
+			v.movePage(r, r.Data().(PagingRequest))
+		case r := <-h.DrawCh():
+			tmp := r.Data()
 			switch tmp.(type) {
 			case string:
 				switch tmp.(string) {
 				case "prompt":
-					v.drawPrompt()
+					v.drawPrompt(r)
 				case "purgeCache":
-					v.purgeDisplayCache()
+					v.purgeDisplayCache(r)
 				}
 			case bool:
-				v.drawScreen(tmp.(bool))
+				v.drawScreen(r, tmp.(bool))
 			default:
-				v.drawScreen(false)
+				v.drawScreen(r, false)
 			}
-			lines.Done()
 		}
 	}
 }
 
-func (v *View) printStatus(r statusMsgReq) {
+func (v *View) printStatus(p hub.Payload, r statusMsgReq) {
+	defer p.Done()
 	v.layout.PrintStatus(r.Message(), r.Delay())
 }
 
-func (v *View) purgeDisplayCache() {
+func (v *View) purgeDisplayCache(p hub.Payload) {
+	defer p.Done()
+
 	v.mutex.Lock()
 	defer v.mutex.Unlock()
 	v.layout.PurgeDisplayCache()
 }
 
-func (v *View) drawScreen(runningQuery bool) {
+func (v *View) drawScreen(p hub.Payload, runningQuery bool) {
+	defer p.Done()
+
 	v.mutex.Lock()
 	defer v.mutex.Unlock()
 	v.layout.DrawScreen(v.state, runningQuery)
 }
 
-func (v *View) drawPrompt() {
+func (v *View) drawPrompt(p hub.Payload) {
+	defer p.Done()
+
 	v.mutex.Lock()
 	defer v.mutex.Unlock()
 	v.layout.DrawPrompt(v.state)
 }
 
-func (v *View) movePage(p PagingRequest) {
+func (v *View) movePage(p hub.Payload, r PagingRequest) {
+	defer p.Done()
+
 	v.mutex.Lock()
 	defer v.mutex.Unlock()
 
-	if v.layout.MovePage(v.state, p) {
+	if v.layout.MovePage(v.state, r) {
 		v.layout.DrawScreen(v.state, false)
 	}
 }

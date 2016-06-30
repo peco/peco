@@ -62,6 +62,13 @@ func NewMemoryBuffer() *MemoryBuffer {
 	}
 }
 
+func (mb *MemoryBuffer) Append(l Line) {
+	mb.mutex.Lock()
+	defer mb.mutex.Unlock()
+
+	mb.lines = append(mb.lines, l)
+}
+
 func (mb *MemoryBuffer) Size() int {
 	mb.mutex.Lock()
 	defer mb.mutex.Unlock()
@@ -140,9 +147,6 @@ func NewSource(in io.Reader, enableSep bool) *Source {
 // Setup reads from the input os.File.
 func (s *Source) Setup(state *Peco) {
 	s.setupOnce.Do(func() {
-		s.mutex.Lock()
-		defer s.mutex.Unlock()
-
 		done := make(chan struct{})
 		refresh := make(chan struct{}, 1)
 		defer close(done)
@@ -194,7 +198,7 @@ func (s *Source) Setup(state *Peco) {
 		for scanner.Scan() {
 			txt := scanner.Text()
 			readCount++
-			s.lines = append(s.lines, NewRawLine(txt, s.enableSep))
+			s.Append(NewRawLine(txt, s.enableSep))
 			notify.Do(notifycb)
 		}
 
