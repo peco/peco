@@ -4,6 +4,7 @@ import (
 	"io"
 	"os"
 	"reflect"
+	"sync"
 	"time"
 	"unicode/utf8"
 
@@ -54,6 +55,34 @@ func (is *Inputseq) Reset() {
 	*is = []string(nil)
 }
 
+func newIDGen() *idgen {
+	return &idgen{
+		ch: make(chan uint64),
+	}
+}
+
+func (ig *idgen) Run(ctx context.Context) {
+	var i uint64
+	for ; ; i++ {
+		select {
+		case <-ctx.Done():
+			return
+		case ig.ch <- i:
+		}
+
+		if i >= uint64(1<<63)-1 {
+			// If this happens, it's a disaster, but what can we do...
+			i = 0
+		}
+	}
+}
+
+func (ig *idgen) next() uint64 {
+	return <-ig.ch
+}
+
+var idGenerator = newIDGen()
+
 func New() *Peco {
 	return &Peco{
 		Argv:              os.Args,
@@ -61,6 +90,7 @@ func New() *Peco {
 		Stdin:             os.Stdin,
 		Stdout:            os.Stdout,
 		currentLineBuffer: NewMemoryBuffer(), // XXX revisit this
+		idgen: newIDGen(),
 		queryExecDelay:    50 * time.Millisecond,
 		readyCh:           make(chan struct{}),
 		screen:            &Termbox{},
@@ -245,14 +275,20 @@ func (p *Peco) Run(ctx context.Context) (err error) {
 	p.screen.Init()
 	defer p.screen.Close()
 
+	var _cancelOnce sync.Once
 	var _cancel func()
 	ctx, _cancel = context.WithCancel(ctx)
 	cancel := func() {
+		_cancelOnce.Do(func() {
 		if pdebug.Enabled {
 			pdebug.Printf("Peco.Run cancel called")
 		}
 		_cancel()
+		})
 	}
+
+	// start the ID generator
+	go p.idgen.Run(ctx)
 
 	// remember this cancel func so p.Exit works (XXX requires locking?)
 	p.cancelFunc = cancel
@@ -467,7 +503,7 @@ func (p *Peco) populateFilters() error {
 	p.filters.Add(NewRegexpFilter())
 
 	for name, c := range p.config.CustomFilter {
-		f := NewExternalCmdFilter(name, c.Cmd, c.Args, c.BufferThreshold, p.enableSep)
+		f := NewExternalCmdFilter(p, name, c.Cmd, c.Args, c.BufferThreshold, p.enableSep)
 		p.filters.Add(f)
 	}
 
@@ -575,4 +611,8 @@ func (p *Peco) CollectResults() {
 		return true
 	})
 	close(p.resultCh)
+}
+
+func (p *Peco) NewRawLine(s string, enableSep bool) *RawLine {
+	return NewRawLine(p.idgen.next(), s, enableSep)
 }

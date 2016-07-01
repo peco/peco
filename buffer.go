@@ -156,7 +156,7 @@ func (s *Source) Setup(state *Peco) {
 			// Not a great thing to do, allowing nil to be passed
 			// as state, but for testing I couldn't come up with anything
 			// better for the moment
-			if state != nil && !state.ExecQuery() {
+			if state != nil {
 				state.Hub().SendDraw(false)
 			}
 		}
@@ -198,7 +198,7 @@ func (s *Source) Setup(state *Peco) {
 		for scanner.Scan() {
 			txt := scanner.Text()
 			readCount++
-			s.Append(NewRawLine(txt, s.enableSep))
+			s.Append(state.NewRawLine(txt, s.enableSep))
 			notify.Do(notifycb)
 		}
 
@@ -217,11 +217,15 @@ func (s *Source) Setup(state *Peco) {
 
 // Start starts
 func (s *Source) Start(ctx context.Context) {
+	// I should be the only one running this method until I bail out
 	if pdebug.Enabled {
 		g := pdebug.Marker("Source.Start")
 		defer g.End()
 		defer pdebug.Printf("Source sent %d lines", len(s.lines))
 	}
+	s.start<-struct{}{}
+	defer func() { <-s.start }()
+
 	defer s.OutputChannel.SendEndMark("end of input")
 	defer close(s.done)
 

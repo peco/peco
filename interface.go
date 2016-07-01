@@ -46,8 +46,8 @@ const (
 	RegexpMatch        = "Regexp"
 )
 
-type idGen struct {
-	genCh chan uint64
+type idgen struct {
+	ch chan uint64
 }
 
 // Peco is the global object containing everything required to run peco.
@@ -64,12 +64,13 @@ type Peco struct {
 	// Config contains the values read in from config file
 	config                  Config
 	currentLineBuffer       Buffer
-	filters                 FilterSet
-	keymap                  Keymap
 	enableSep               bool     // Enable parsing on separators
+	filters                 FilterSet
+	idgen                   *idgen
 	initialFilter           string   // populated if --initial-filter is specified
 	initialQuery            string   // populated if --query is specified
 	inputseq                Inputseq // current key sequence (just the names)
+	keymap                  Keymap
 	layoutType              string
 	location                Location
 	mutex                   sync.Mutex
@@ -428,6 +429,7 @@ type Source struct {
 	enableSep bool
 	done      chan struct{}
 	ready     chan struct{}
+	start     chan struct{}
 	setupOnce sync.Once
 }
 
@@ -518,6 +520,7 @@ type ExternalCmdFilter struct {
 	args            []string
 	name            string
 	query           string
+	state *Peco
 	thresholdBufsiz int
 	outCh           pipeline.OutputChannel
 }
