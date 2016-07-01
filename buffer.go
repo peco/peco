@@ -70,8 +70,8 @@ func (mb *MemoryBuffer) Append(l Line) {
 }
 
 func (mb *MemoryBuffer) Size() int {
-	mb.mutex.Lock()
-	defer mb.mutex.Unlock()
+	mb.mutex.RLock()
+	defer mb.mutex.RUnlock()
 	return len(mb.lines)
 }
 
@@ -83,8 +83,8 @@ func (mb *MemoryBuffer) Reset() {
 }
 
 func (mb *MemoryBuffer) Done() <-chan struct{} {
-	mb.mutex.Lock()
-	defer mb.mutex.Unlock()
+	mb.mutex.RLock()
+	defer mb.mutex.RUnlock()
 	return mb.done
 }
 
@@ -121,8 +121,8 @@ func (mb *MemoryBuffer) Accept(ctx context.Context, p pipeline.Producer) {
 }
 
 func (mb *MemoryBuffer) LineAt(n int) (Line, error) {
-	mb.mutex.Lock()
-	defer mb.mutex.Unlock()
+	mb.mutex.RLock()
+	defer mb.mutex.RUnlock()
 
 	if s := len(mb.lines); s <= 0 || n >= s {
 		return nil, errors.New("empty buffer")
@@ -139,6 +139,7 @@ func NewSource(in io.Reader, enableSep bool) *Source {
 		enableSep:     enableSep,
 		done:          make(chan struct{}),
 		ready:         make(chan struct{}),
+		start:         make(chan struct{}, 1),
 		setupOnce:     sync.Once{},
 		OutputChannel: pipeline.OutputChannel(make(chan interface{})),
 	}

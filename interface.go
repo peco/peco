@@ -480,7 +480,7 @@ type Buffer interface {
 type MemoryBuffer struct {
 	done  chan struct{}
 	lines []Line
-	mutex sync.Mutex
+	mutex sync.RWMutex
 }
 
 type ActionMap interface {
