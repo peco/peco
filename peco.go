@@ -563,7 +563,7 @@ func (p *Peco) ExecQuery() bool {
 	return true
 }
 
-func (p *Peco) collectResults() {
+func (p *Peco) CollectResults() {
 	// In rare cases where the result channel is not setup
 	// prior to call to this method, bail out
 	if p.resultCh == nil {

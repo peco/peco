@@ -89,7 +89,8 @@ func (f *Filter) Work(ctx context.Context, q hub.Payload) {
 	}
 
 	if pdebug.Enabled {
-		pdebug.Printf("New query '%s'", query)
+		g := pdebug.Marker("Filter.Work query '%s'", query)
+		defer g.End()
 	}
 
 	state := f.state

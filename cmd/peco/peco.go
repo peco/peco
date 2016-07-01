@@ -29,11 +29,23 @@ func _main() int {
 
 	cli := peco.New()
 	if err := cli.Run(ctx); err != nil {
-		if util.IsIgnorable(err) {
+		switch {
+		case util.IsCollectResultsError(err):
+			selection := cli.Selection()
+			if selection.Len() == 0 {
+				if l, err := cli.CurrentLineBuffer().LineAt(cli.Location().LineNumber()); err == nil {
+					selection.Add(l)
+				}
+			}
+
+			cli.SetResultCh(make(chan peco.Line))
+			go cli.CollectResults()
+		case util.IsIgnorableError(err):
 			return 0
+		default:
+			fmt.Fprintf(os.Stderr, "Error: %s\n", err)
+			return 1
 		}
-		fmt.Fprintf(os.Stderr, "Error: %s\n", err)
-		return 1
 	}
 
 	buf := bytes.Buffer{}
