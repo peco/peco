@@ -282,24 +282,20 @@ func doSelectVisible(ctx context.Context, state *Peco, _ termbox.Event) {
 	state.Hub().SendDraw(false)
 }
 
+type errCollectResults struct{}
+func (err errCollectResults) Error() string {
+	return "collect results"
+}
+func (err errCollectResults) CollectResults() bool {
+	return true
+}
 func doFinish(ctx context.Context, state *Peco, _ termbox.Event) {
 	if pdebug.Enabled {
 		g := pdebug.Marker("doFinish")
 		defer g.End()
 	}
 
-	selection := state.Selection()
-	// Must end with all the selected lines.
-	if selection.Len() == 0 {
-		if l, err := state.CurrentLineBuffer().LineAt(state.Location().LineNumber()); err == nil {
-			selection.Add(l)
-		}
-	}
-
-	state.SetResultCh(make(chan Line))
-	go state.collectResults()
-
-	state.Exit(nil)
+	state.Exit(errCollectResults{})
 }
 
 func doCancel(ctx context.Context, state *Peco, e termbox.Event) {
