@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	"golang.org/x/net/context"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -35,10 +36,14 @@ func TestSource(t *testing.T) {
 		"bar",
 		"baz",
 	}
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	ig := newIDGen()
+	go ig.Run(ctx)
 
 	r := addReadDelay(strings.NewReader(strings.Join(lines, "\n")), 2*time.Second)
-	s := NewSource(r, false)
-
+	s := NewSource(r, ig, false)
 	go s.Setup(nil)
 
 	timeout := time.After(5 * time.Second)

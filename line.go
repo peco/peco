@@ -7,34 +7,11 @@ import (
 	"github.com/peco/peco/internal/util"
 )
 
-func newIDGen() *idGen {
-	ch := make(chan uint64)
-	go func() {
-		var i uint64
-		for ; ; i++ {
-			ch <- i
-			if i >= uint64(1<<63)-1 {
-				i = 0
-			}
-		}
-	}()
-	return &idGen{
-		genCh: ch,
-	}
-}
-
-func (ig *idGen) create() uint64 {
-	return <-ig.genCh
-}
-
-var idGenerator = newIDGen()
-
 // NewRawLine creates a new RawLine. The `enableSep` flag tells
 // it if we should search for a null character to split the
 // string to display and the string to emit upon selection of
 // of said line
-func NewRawLine(v string, enableSep bool) *RawLine {
-	id := idGenerator.create()
+func NewRawLine(id uint64, v string, enableSep bool) *RawLine {
 	rl := &RawLine{
 		id:            id,
 		buf:           v,

@@ -101,9 +101,14 @@ func (d dummyScreen) Size() (int, int) {
 }
 
 func TestIDGen(t *testing.T) {
+	idgen := newIDGen()
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	go idgen.Run(ctx)
+
 	lines := []*RawLine{}
 	for i := 0; i < 1000000; i++ {
-		lines = append(lines, NewRawLine(fmt.Sprintf("%d", i), false))
+		lines = append(lines, NewRawLine(idgen.next(), fmt.Sprintf("%d", i), false))
 	}
 
 	sel := NewSelection()

@@ -46,8 +46,14 @@ const (
 	RegexpMatch        = "Regexp"
 )
 
-type idGen struct {
-	genCh chan uint64
+// lineIDGenerator defines an interface for things that generate
+// unique IDs for lines used within peco.
+type lineIDGenerator interface {
+	next() uint64
+}
+
+type idgen struct {
+	ch chan uint64
 }
 
 // Peco is the global object containing everything required to run peco.
@@ -64,12 +70,13 @@ type Peco struct {
 	// Config contains the values read in from config file
 	config                  Config
 	currentLineBuffer       Buffer
-	filters                 FilterSet
-	keymap                  Keymap
 	enableSep               bool     // Enable parsing on separators
+	filters                 FilterSet
+	idgen                   *idgen
 	initialFilter           string   // populated if --initial-filter is specified
 	initialQuery            string   // populated if --query is specified
 	inputseq                Inputseq // current key sequence (just the names)
+	keymap                  Keymap
 	layoutType              string
 	location                Location
 	mutex                   sync.Mutex
@@ -424,10 +431,12 @@ type Source struct {
 	pipeline.OutputChannel
 	MemoryBuffer
 
-	in        io.Reader
-	enableSep bool
 	done      chan struct{}
+	enableSep bool
+	idgen     lineIDGenerator
+	in        io.Reader
 	ready     chan struct{}
+	start     chan struct{}
 	setupOnce sync.Once
 }
 
@@ -478,7 +487,7 @@ type Buffer interface {
 type MemoryBuffer struct {
 	done  chan struct{}
 	lines []Line
-	mutex sync.Mutex
+	mutex sync.RWMutex
 }
 
 type ActionMap interface {
@@ -513,11 +522,12 @@ type RegexpFilter struct {
 }
 
 type ExternalCmdFilter struct {
-	enableSep       bool
-	cmd             string
 	args            []string
+	cmd             string
+	enableSep       bool
+	idgen           lineIDGenerator
+	outCh           pipeline.OutputChannel
 	name            string
 	query           string
 	thresholdBufsiz int
-	outCh           pipeline.OutputChannel
 }

@@ -70,8 +70,8 @@ func (mb *MemoryBuffer) Append(l Line) {
 }
 
 func (mb *MemoryBuffer) Size() int {
-	mb.mutex.Lock()
-	defer mb.mutex.Unlock()
+	mb.mutex.RLock()
+	defer mb.mutex.RUnlock()
 	return len(mb.lines)
 }
 
@@ -83,8 +83,8 @@ func (mb *MemoryBuffer) Reset() {
 }
 
 func (mb *MemoryBuffer) Done() <-chan struct{} {
-	mb.mutex.Lock()
-	defer mb.mutex.Unlock()
+	mb.mutex.RLock()
+	defer mb.mutex.RUnlock()
 	return mb.done
 }
 
@@ -121,8 +121,8 @@ func (mb *MemoryBuffer) Accept(ctx context.Context, p pipeline.Producer) {
 }
 
 func (mb *MemoryBuffer) LineAt(n int) (Line, error) {
-	mb.mutex.Lock()
-	defer mb.mutex.Unlock()
+	mb.mutex.RLock()
+	defer mb.mutex.RUnlock()
 
 	if s := len(mb.lines); s <= 0 || n >= s {
 		return nil, errors.New("empty buffer")
@@ -133,12 +133,14 @@ func (mb *MemoryBuffer) LineAt(n int) (Line, error) {
 
 // Creates a new Source. Does not start processing the input until you
 // call Setup()
-func NewSource(in io.Reader, enableSep bool) *Source {
+func NewSource(in io.Reader, idgen lineIDGenerator, enableSep bool) *Source {
 	return &Source{
 		in:            in, // Note that this may be closed, so do not rely on it
 		enableSep:     enableSep,
 		done:          make(chan struct{}),
+		idgen:         idgen,
 		ready:         make(chan struct{}),
+		start:         make(chan struct{}, 1),
 		setupOnce:     sync.Once{},
 		OutputChannel: pipeline.OutputChannel(make(chan interface{})),
 	}
@@ -156,7 +158,7 @@ func (s *Source) Setup(state *Peco) {
 			// Not a great thing to do, allowing nil to be passed
 			// as state, but for testing I couldn't come up with anything
 			// better for the moment
-			if state != nil && !state.ExecQuery() {
+			if state != nil {
 				state.Hub().SendDraw(false)
 			}
 		}
@@ -198,7 +200,7 @@ func (s *Source) Setup(state *Peco) {
 		for scanner.Scan() {
 			txt := scanner.Text()
 			readCount++
-			s.Append(NewRawLine(txt, s.enableSep))
+			s.Append(NewRawLine(s.idgen.next(), txt, s.enableSep))
 			notify.Do(notifycb)
 		}
 
@@ -217,11 +219,15 @@ func (s *Source) Setup(state *Peco) {
 
 // Start starts
 func (s *Source) Start(ctx context.Context) {
+	// I should be the only one running this method until I bail out
 	if pdebug.Enabled {
 		g := pdebug.Marker("Source.Start")
 		defer g.End()
 		defer pdebug.Printf("Source sent %d lines", len(s.lines))
 	}
+	s.start<-struct{}{}
+	defer func() { <-s.start }()
+
 	defer s.OutputChannel.SendEndMark("end of input")
 	defer close(s.done)
 

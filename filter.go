@@ -402,7 +402,7 @@ func NewSmartCaseFilter() *RegexpFilter {
 	return rf
 }
 
-func NewExternalCmdFilter(name string, cmd string, args []string, threshold int, enableSep bool) *ExternalCmdFilter {
+func NewExternalCmdFilter(name string, cmd string, args []string, threshold int, idgen lineIDGenerator, enableSep bool) *ExternalCmdFilter {
 	if len(args) == 0 {
 		args = []string{"$QUERY"}
 	}
@@ -415,6 +415,7 @@ func NewExternalCmdFilter(name string, cmd string, args []string, threshold int,
 		args:            args,
 		cmd:             cmd,
 		enableSep:       enableSep,
+		idgen:           idgen,
 		name:            name,
 		outCh:           pipeline.OutputChannel(make(chan interface{})),
 		thresholdBufsiz: threshold,
@@ -545,7 +546,7 @@ func (ecf *ExternalCmdFilter) launchExternalCmd(ctx context.Context, buf []Line)
 				// This is the ONLY location where we need to actually
 				// RECREATE a RawLine, and thus the only place where
 				// ctx.enableSep is required.
-				cmdCh <- NewMatchedLine(NewRawLine(string(b), ecf.enableSep), nil)
+				cmdCh <- NewMatchedLine(NewRawLine(ecf.idgen.next(), string(b), ecf.enableSep), nil)
 			}
 			if err != nil {
 				break
