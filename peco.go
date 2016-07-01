@@ -409,7 +409,7 @@ func (p *Peco) SetupSource() (s *Source, err error) {
 		return nil, errors.New("you must supply something to work with via filename or stdin")
 	}
 
-	src := NewSource(in, p.enableSep)
+	src := NewSource(in, p.idgen, p.enableSep)
 
 	// Block until we receive something from `in`
 	if pdebug.Enabled {
@@ -503,7 +503,7 @@ func (p *Peco) populateFilters() error {
 	p.filters.Add(NewRegexpFilter())
 
 	for name, c := range p.config.CustomFilter {
-		f := NewExternalCmdFilter(p, name, c.Cmd, c.Args, c.BufferThreshold, p.enableSep)
+		f := NewExternalCmdFilter( name, c.Cmd, c.Args, c.BufferThreshold, p.idgen, p.enableSep)
 		p.filters.Add(f)
 	}
 
@@ -613,6 +613,3 @@ func (p *Peco) CollectResults() {
 	close(p.resultCh)
 }
 
-func (p *Peco) NewRawLine(s string, enableSep bool) *RawLine {
-	return NewRawLine(p.idgen.next(), s, enableSep)
-}

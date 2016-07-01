@@ -133,11 +133,12 @@ func (mb *MemoryBuffer) LineAt(n int) (Line, error) {
 
 // Creates a new Source. Does not start processing the input until you
 // call Setup()
-func NewSource(in io.Reader, enableSep bool) *Source {
+func NewSource(in io.Reader, idgen lineIDGenerator, enableSep bool) *Source {
 	return &Source{
 		in:            in, // Note that this may be closed, so do not rely on it
 		enableSep:     enableSep,
 		done:          make(chan struct{}),
+		idgen:         idgen,
 		ready:         make(chan struct{}),
 		start:         make(chan struct{}, 1),
 		setupOnce:     sync.Once{},
@@ -199,7 +200,7 @@ func (s *Source) Setup(state *Peco) {
 		for scanner.Scan() {
 			txt := scanner.Text()
 			readCount++
-			s.Append(state.NewRawLine(txt, s.enableSep))
+			s.Append(NewRawLine(s.idgen.next(), txt, s.enableSep))
 			notify.Do(notifycb)
 		}
 

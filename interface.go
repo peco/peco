@@ -46,6 +46,12 @@ const (
 	RegexpMatch        = "Regexp"
 )
 
+// lineIDGenerator defines an interface for things that generate
+// unique IDs for lines used within peco.
+type lineIDGenerator interface {
+	next() uint64
+}
+
 type idgen struct {
 	ch chan uint64
 }
@@ -425,9 +431,10 @@ type Source struct {
 	pipeline.OutputChannel
 	MemoryBuffer
 
-	in        io.Reader
-	enableSep bool
 	done      chan struct{}
+	enableSep bool
+	idgen     lineIDGenerator
+	in        io.Reader
 	ready     chan struct{}
 	start     chan struct{}
 	setupOnce sync.Once
@@ -515,12 +522,12 @@ type RegexpFilter struct {
 }
 
 type ExternalCmdFilter struct {
-	enableSep       bool
-	cmd             string
 	args            []string
+	cmd             string
+	enableSep       bool
+	idgen           lineIDGenerator
+	outCh           pipeline.OutputChannel
 	name            string
 	query           string
-	state *Peco
 	thresholdBufsiz int
-	outCh           pipeline.OutputChannel
 }
