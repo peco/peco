@@ -89,13 +89,15 @@ func (mb *MemoryBuffer) Done() <-chan struct{} {
 }
 
 func (mb *MemoryBuffer) Accept(ctx context.Context, p pipeline.Producer) {
-	mb.mutex.Lock()
-	defer mb.mutex.Unlock()
 	if pdebug.Enabled {
 		g := pdebug.Marker("MemoryBuffer.Accept")
 		defer g.End()
 	}
-	defer close(mb.done)
+	defer func() {
+		mb.mutex.Lock()
+		close(mb.done)
+		mb.mutex.Unlock()
+	}()
 
 	for {
 		select {
@@ -114,7 +116,9 @@ func (mb *MemoryBuffer) Accept(ctx context.Context, p pipeline.Producer) {
 					return
 				}
 			case Line:
+				mb.mutex.Lock()
 				mb.lines = append(mb.lines, v.(Line))
+				mb.mutex.Unlock()
 			}
 		}
 	}
