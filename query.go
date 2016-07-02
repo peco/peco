@@ -69,10 +69,16 @@ func (q *Query) Append(r rune) {
 	q.query = append(q.query, r)
 }
 
+// Runes returns a copy of the underlying query as an array of runes.
 func (q *Query) Runes() []rune {
 	q.mutex.Lock()
 	defer q.mutex.Unlock()
-	return q.query
+	ret := make([]rune, len(q.query))
+	copy(ret, q.query)
+
+	// Because this is a copy, the user of this function does not need
+	// to know about locking and stuff
+	return ret
 }
 
 func (q *Query) RuneAt(where int) rune {
