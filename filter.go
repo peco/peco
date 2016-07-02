@@ -128,11 +128,13 @@ func (f *Filter) Work(ctx context.Context, q hub.Payload) {
 		t := time.NewTicker(100 * time.Millisecond)
 		defer t.Stop()
 		defer state.Hub().SendStatusMsg("")
+		defer state.Hub().SendDraw(true)
 		for {
 			select {
 			case <-p.Done():
 				return
 			case <-t.C:
+				pdebug.Printf("Sending draw while waiting for filter to end")
 				state.Hub().SendDraw(true)
 			}
 		}

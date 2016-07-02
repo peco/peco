@@ -342,6 +342,9 @@ func (l *ListArea) Draw(state *Peco, parent Layout, perPage int, runningQuery bo
 	}
 
 	pf := loc.PageCrop()
+	if pdebug.Enabled {
+		pdebug.Printf("Cropping linebuf which contains %d lines at page %d (%d entries per page)", linebuf.Size(), pf.currentPage, pf.perPage)
+	}
 	buf := pf.Crop(linebuf)
 	bufsiz := buf.Size()
 

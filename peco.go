@@ -329,7 +329,7 @@ func (p *Peco) Run(ctx context.Context) (err error) {
 	if p.selectOneAndExit {
 		go func() {
 			// Wait till source has read all lines
-			<-p.source.Done()
+			<-p.source.SetupDone()
 			// If we have only one line, we just want to bail out
 			// printing that one line as the result
 			if b := p.CurrentLineBuffer(); b.Size() == 1 {

@@ -2,11 +2,9 @@
 package pipeline
 
 import (
-	"reflect"
+	"time"
 
-	"github.com/lestrrat/go-pdebug"
 	"github.com/pkg/errors"
-
 	"golang.org/x/net/context"
 )
 
@@ -36,14 +34,19 @@ func (oc OutputChannel) OutCh() <-chan interface{} {
 
 // Send sends the data `v` through this channel
 func (oc OutputChannel) Send(v interface{}) (err error) {
-	if pdebug.Enabled {
-		g := pdebug.Marker("OutputChannel.Send %s", reflect.TypeOf(v).String()).BindError(&err)
-		defer g.End()
-	}
 	if oc == nil {
 		return errors.New("nil channel")
 	}
-	oc <- v
+
+	// We allow ourselves a timeout of 1 second. 
+	t := time.NewTimer(time.Second)
+	defer t.Stop()
+
+	select {
+	case oc <- v:
+	case <-t.C:
+		return errors.New("failed to send (not listening)")
+	}
 	return nil
 }
 

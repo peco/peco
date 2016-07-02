@@ -1,13 +1,7 @@
 package peco
 
 import (
-	"bufio"
-	"io"
-	"sync"
-	"time"
-
 	"github.com/lestrrat/go-pdebug"
-	"github.com/peco/peco/internal/util"
 	"github.com/peco/peco/pipeline"
 	"github.com/pkg/errors"
 	"golang.org/x/net/context"
@@ -57,27 +51,38 @@ func (flb FilteredBuffer) Size() int {
 }
 
 func NewMemoryBuffer() *MemoryBuffer {
-	return &MemoryBuffer{
-		done: make(chan struct{}),
-	}
+	mb := &MemoryBuffer{}
+	mb.Reset()
+	return mb
 }
 
 func (mb *MemoryBuffer) Append(l Line) {
 	mb.mutex.Lock()
 	defer mb.mutex.Unlock()
+	bufferAppend(&mb.lines, l)
+}
 
-	mb.lines = append(mb.lines, l)
+func bufferAppend(lines *[]Line, l Line) {
+	*lines = append(*lines, l)
 }
 
 func (mb *MemoryBuffer) Size() int {
 	mb.mutex.RLock()
 	defer mb.mutex.RUnlock()
-	return len(mb.lines)
+	return bufferSize(mb.lines)
+}
+
+func bufferSize(lines []Line) int {
+	return len(lines)
 }
 
 func (mb *MemoryBuffer) Reset() {
 	mb.mutex.Lock()
 	defer mb.mutex.Unlock()
+	if pdebug.Enabled {
+		g := pdebug.Marker("MemoryBuffer.Reset")
+		defer g.End()
+	}
 	mb.done = make(chan struct{})
 	mb.lines = []Line(nil)
 }
@@ -127,142 +132,13 @@ func (mb *MemoryBuffer) Accept(ctx context.Context, p pipeline.Producer) {
 func (mb *MemoryBuffer) LineAt(n int) (Line, error) {
 	mb.mutex.RLock()
 	defer mb.mutex.RUnlock()
+	return bufferLineAt(mb.lines, n)
+}
 
-	if s := len(mb.lines); s <= 0 || n >= s {
+func bufferLineAt(lines []Line, n int) (Line, error) {
+	if s := len(lines); s <= 0 || n >= s {
 		return nil, errors.New("empty buffer")
 	}
 
-	return mb.lines[n], nil
-}
-
-// Creates a new Source. Does not start processing the input until you
-// call Setup()
-func NewSource(in io.Reader, idgen lineIDGenerator, enableSep bool) *Source {
-	return &Source{
-		in:            in, // Note that this may be closed, so do not rely on it
-		enableSep:     enableSep,
-		done:          make(chan struct{}),
-		idgen:         idgen,
-		ready:         make(chan struct{}),
-		start:         make(chan struct{}, 1),
-		setupOnce:     sync.Once{},
-		OutputChannel: pipeline.OutputChannel(make(chan interface{})),
-	}
-}
-
-// Setup reads from the input os.File.
-func (s *Source) Setup(state *Peco) {
-	s.setupOnce.Do(func() {
-		done := make(chan struct{})
-		refresh := make(chan struct{}, 1)
-		defer close(done)
-		defer close(refresh)
-
-		draw := func(state *Peco) {
-			// Not a great thing to do, allowing nil to be passed
-			// as state, but for testing I couldn't come up with anything
-			// better for the moment
-			if state != nil {
-				state.Hub().SendDraw(false)
-			}
-		}
-
-		go func() {
-			ticker := time.NewTicker(100 * time.Millisecond)
-			defer ticker.Stop()
-
-			for {
-				select {
-				case <-done:
-					draw(state)
-					return
-				case <-ticker.C:
-					draw(state)
-				}
-			}
-		}()
-
-		// This sync.Once var is used to receive the notification
-		// that there was at least 1 line read from the source
-		var notify sync.Once
-		notifycb := func() {
-			// close the ready channel so others can be notified
-			// that there's at least 1 line in the buffer
-			close(s.ready)
-		}
-		scanner := bufio.NewScanner(s.in)
-		defer func() {
-			if util.IsTty(s.in) {
-				return
-			}
-			if closer, ok := s.in.(io.Closer); ok {
-				closer.Close()
-			}
-		}()
-
-		readCount := 0
-		for scanner.Scan() {
-			txt := scanner.Text()
-			readCount++
-			s.Append(NewRawLine(s.idgen.next(), txt, s.enableSep))
-			notify.Do(notifycb)
-		}
-
-		// XXX Just in case scanner.Scan() did not return a single line...
-		// Note: this will be a no-op if notify.Do has been called before
-		notify.Do(notifycb)
-		// And also, close the done channel so we can tell the consumers
-		// we have finished reading everything
-		close(s.done)
-
-		if pdebug.Enabled {
-			pdebug.Printf("Read all %d lines from source", readCount)
-		}
-	})
-}
-
-// Start starts
-func (s *Source) Start(ctx context.Context) {
-	// I should be the only one running this method until I bail out
-	if pdebug.Enabled {
-		g := pdebug.Marker("Source.Start")
-		defer g.End()
-		defer pdebug.Printf("Source sent %d lines", len(s.lines))
-	}
-	s.start<-struct{}{}
-	defer func() { <-s.start }()
-
-	defer s.OutputChannel.SendEndMark("end of input")
-	defer close(s.done)
-
-	for _, l := range s.lines {
-		select {
-		case <-ctx.Done():
-			if pdebug.Enabled {
-				pdebug.Printf("Source: context.Done detected")
-			}
-			return
-		case s.OutputChannel <- l:
-			// no op
-		}
-	}
-}
-
-// Reset resets the state of the source object so that it
-// is ready to feed the filters
-func (s *Source) Reset() {
-	s.done = make(chan struct{})
-	s.OutputChannel = pipeline.OutputChannel(make(chan interface{}))
-}
-
-// Ready returns the "input ready" channel. It will be closed as soon as
-// the first line of input is processed via Setup()
-func (s *Source) Ready() <-chan struct{} {
-	return s.ready
-}
-
-// Done returns the "read all lines" channel. It will be closed as soon as
-// the all input has been read
-func (s *Source) Done() <-chan struct{} {
-	return s.done
+	return lines[n], nil
 }
