@@ -128,11 +128,13 @@ func (f *Filter) Work(ctx context.Context, q hub.Payload) {
 		t := time.NewTicker(100 * time.Millisecond)
 		defer t.Stop()
 		defer state.Hub().SendStatusMsg("")
+		defer state.Hub().SendDraw(true)
 		for {
 			select {
 			case <-p.Done():
 				return
 			case <-t.C:
+				pdebug.Printf("Sending draw while waiting for filter to end")
 				state.Hub().SendDraw(true)
 			}
 		}
@@ -290,9 +292,6 @@ func (rf *RegexpFilter) Accept(ctx context.Context, p pipeline.Producer) {
 }
 
 func (rf *RegexpFilter) filter(l Line) (Line, error) {
-	rf.mutex.Lock()
-	defer rf.mutex.Unlock()
-
 	regexps, err := rf.getQueryAsRegexps()
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to compile queries as regular expression")
@@ -346,6 +345,9 @@ TryRegexps:
 }
 
 func (rf *RegexpFilter) getQueryAsRegexps() ([]*regexp.Regexp, error) {
+	rf.mutex.Lock()
+	defer rf.mutex.Unlock()
+
 	if q := rf.compiledQuery; q != nil {
 		return q, nil
 	}

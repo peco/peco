@@ -207,7 +207,6 @@ type Termbox struct {
 
 // View handles the drawing/updating the screen
 type View struct {
-	mutex  sync.Mutex
 	layout Layout
 	state  *Peco
 }
@@ -429,15 +428,17 @@ type FilterSet struct {
 // Source implements pipline.Source, and is the buffer for the input
 type Source struct {
 	pipeline.OutputChannel
-	MemoryBuffer
 
 	done      chan struct{}
 	enableSep bool
 	idgen     lineIDGenerator
 	in        io.Reader
+	lines     []Line
+	mutex     sync.RWMutex
 	ready     chan struct{}
-	start     chan struct{}
+	setupDone chan struct{}
 	setupOnce sync.Once
+	start     chan struct{}
 }
 
 type State interface {
@@ -488,6 +489,7 @@ type MemoryBuffer struct {
 	done  chan struct{}
 	lines []Line
 	mutex sync.RWMutex
+	PeriodicFunc func()
 }
 
 type ActionMap interface {

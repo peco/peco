@@ -77,32 +77,23 @@ func (v *View) printStatus(p hub.Payload, r statusMsgReq) {
 func (v *View) purgeDisplayCache(p hub.Payload) {
 	defer p.Done()
 
-	v.mutex.Lock()
-	defer v.mutex.Unlock()
 	v.layout.PurgeDisplayCache()
 }
 
 func (v *View) drawScreen(p hub.Payload, runningQuery bool) {
 	defer p.Done()
 
-	v.mutex.Lock()
-	defer v.mutex.Unlock()
 	v.layout.DrawScreen(v.state, runningQuery)
 }
 
 func (v *View) drawPrompt(p hub.Payload) {
 	defer p.Done()
 
-	v.mutex.Lock()
-	defer v.mutex.Unlock()
 	v.layout.DrawPrompt(v.state)
 }
 
 func (v *View) movePage(p hub.Payload, r PagingRequest) {
 	defer p.Done()
-
-	v.mutex.Lock()
-	defer v.mutex.Unlock()
 
 	if v.layout.MovePage(v.state, r) {
 		v.layout.DrawScreen(v.state, false)
