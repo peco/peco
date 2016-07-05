@@ -69,16 +69,23 @@ func (q *Query) Append(r rune) {
 	q.query = append(q.query, r)
 }
 
-// Runes returns a copy of the underlying query as an array of runes.
-func (q *Query) Runes() []rune {
+// Runes returns a channel that gives you the list of runes in the query
+func (q *Query) Runes() <-chan rune {
 	q.mutex.Lock()
 	defer q.mutex.Unlock()
-	ret := make([]rune, len(q.query))
-	copy(ret, q.query)
+	c := make(chan rune, len(q.query))
 
-	// Because this is a copy, the user of this function does not need
-	// to know about locking and stuff
-	return ret
+	go func() {
+		defer close(c)
+		q.mutex.Lock()
+		defer q.mutex.Unlock()
+
+		for _, r := range q.query {
+			c<-r
+		}
+	}()
+
+	return c
 }
 
 func (q *Query) RuneAt(where int) rune {

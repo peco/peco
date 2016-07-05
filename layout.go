@@ -154,7 +154,8 @@ func (u UserPrompt) Draw(state *Peco) {
 	default:
 		// the caret is in the middle of the string
 		prev := int(0)
-		for i, r := range q.Runes() {
+		var i int
+		for r := range q.Runes() {
 			fg := u.styles.Query.fg
 			bg := u.styles.Query.bg
 			if i == c.Pos() {
@@ -163,6 +164,7 @@ func (u UserPrompt) Draw(state *Peco) {
 			}
 			u.screen.SetCell(int(u.promptLen+1+prev), int(location), r, fg, bg)
 			prev += int(runewidth.RuneWidth(r))
+			i++
 		}
 		fg := u.styles.Query.fg
 		bg := u.styles.Query.bg
