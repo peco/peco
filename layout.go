@@ -219,9 +219,12 @@ func (s *StatusBar) setClearTimer(t *time.Timer) {
 // PrintStatus prints a new status message. This also resets the
 // timer created by ClearStatus()
 func (s *StatusBar) PrintStatus(msg string, clearDelay time.Duration) {
-	s.stopTimer()
+	if pdebug.Enabled {
+		g := pdebug.Marker("StatusBar.PrintStatus")
+		defer g.End()
+	}
 
-	s.timerMutex.Lock()
+	s.stopTimer()
 
 	location := s.AnchorPosition()
 
@@ -263,8 +266,6 @@ func (s *StatusBar) PrintStatus(msg string, clearDelay time.Duration) {
 		})
 	}
 	s.screen.Flush()
-
-	s.timerMutex.Unlock()
 
 	// if everything is successful AND the clearDelay timer is specified,
 	// then set a timer to clear the status
