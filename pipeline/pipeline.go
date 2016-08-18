@@ -4,6 +4,7 @@ package pipeline
 import (
 	"time"
 
+	pdebug "github.com/lestrrat/go-pdebug"
 	"github.com/pkg/errors"
 	"golang.org/x/net/context"
 )
@@ -38,7 +39,7 @@ func (oc OutputChannel) Send(v interface{}) (err error) {
 		return errors.New("nil channel")
 	}
 
-	// We allow ourselves a timeout of 1 second. 
+	// We allow ourselves a timeout of 1 second.
 	t := time.NewTimer(time.Second)
 	defer t.Stop()
 
@@ -71,9 +72,9 @@ func (p *Pipeline) SetSource(s Source) {
 	p.src = s
 }
 
-// Add adds new ProcNodes that work on data that goes through the Pipeline.
+// Add adds new Acceptor that work on data that goes through the Pipeline.
 // If called during `Run`, this method will block.
-func (p *Pipeline) Add(n ProcNode) {
+func (p *Pipeline) Add(n Acceptor) {
 	p.mutex.Lock()
 	defer p.mutex.Unlock()
 
@@ -91,7 +92,11 @@ func (p *Pipeline) SetDestination(d Destination) {
 
 // Run starts the processing. Mutator methods for `Pipeline` cannot be
 // called while `Run` is running.
-func (p *Pipeline) Run(ctx context.Context) error {
+func (p *Pipeline) Run(ctx context.Context) (err error) {
+	if pdebug.Enabled {
+		g := pdebug.Marker("Pipeline.Run (%s)", ctx.Value("query")).BindError(&err)
+		defer g.End()
+	}
 	p.mutex.Lock()
 	defer p.mutex.Unlock()
 	defer close(p.done)
@@ -110,23 +115,22 @@ func (p *Pipeline) Run(ctx context.Context) error {
 	p.src.Reset()
 	p.dst.Reset()
 
-	// Setup the ProcNodes, effectively chaining all nodes
+	// Setup the Acceptors, effectively chaining all nodes
 	// starting from the destination, working all the way
 	// up to the Source
-	var prev Acceptor // Explicit type here
-	prev = p.dst
+	var prevCh OutputChannel = OutputChannel(make(chan interface{}))
+	go p.dst.Accept(ctx, prevCh, nil)
+
 	for i := len(p.nodes) - 1; i >= 0; i-- {
 		cur := p.nodes[i]
-		go prev.Accept(ctx, cur)
-		prev = cur
+		ch := make(chan interface{}) // 
+		go cur.Accept(ctx, ch, prevCh)
+		prevCh = OutputChannel(ch)
 	}
-
-	// Chain to Source...
-	go prev.Accept(ctx, p.src)
 
 	// And now tell the Source to send the values so data chugs
 	// through the pipeline
-	go p.src.Start(ctx)
+	go p.src.Start(ctx, prevCh)
 
 	// Wait till we're done
 	<-p.dst.Done()
