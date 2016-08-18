@@ -116,7 +116,6 @@ func (s *Source) Start(ctx context.Context, out pipeline.OutputChannel) {
 			}
 			return
 		default:
-			pdebug.Printf("Source.Start sending line")
 			out.Send(l)
 		}
 	}
