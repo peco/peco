@@ -22,7 +22,6 @@ func NewSource(in io.Reader, idgen lineIDGenerator, enableSep bool) *Source {
 		ready:         make(chan struct{}),
 		setupDone:     make(chan struct{}),
 		setupOnce:     sync.Once{},
-		start:         make(chan struct{}, 1),
 		OutputChannel: pipeline.OutputChannel(make(chan interface{})),
 	}
 	s.Reset()
@@ -101,15 +100,13 @@ func (s *Source) Setup(state *Peco) {
 }
 
 // Start starts
-func (s *Source) Start(ctx context.Context) {
+func (s *Source) Start(ctx context.Context, out pipeline.OutputChannel) {
 	// I should be the only one running this method until I bail out
 	if pdebug.Enabled {
 		g := pdebug.Marker("Source.Start")
 		defer g.End()
 		defer pdebug.Printf("Source sent %d lines", len(s.lines))
 	}
-	s.start <- struct{}{}
-	defer func() { <-s.start }()
 
 	for _, l := range s.lines {
 		select {
@@ -119,10 +116,10 @@ func (s *Source) Start(ctx context.Context) {
 			}
 			return
 		default:
-			s.OutputChannel.Send(l)
+			out.Send(l)
 		}
 	}
-	s.OutputChannel.SendEndMark("end of input")
+	out.SendEndMark("end of input")
 }
 
 // Reset resets the state of the source object so that it

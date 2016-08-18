@@ -1,6 +1,8 @@
 package peco
 
 import (
+	"time"
+
 	"github.com/lestrrat/go-pdebug"
 	"github.com/peco/peco/pipeline"
 	"github.com/pkg/errors"
@@ -93,7 +95,7 @@ func (mb *MemoryBuffer) Done() <-chan struct{} {
 	return mb.done
 }
 
-func (mb *MemoryBuffer) Accept(ctx context.Context, p pipeline.Producer) {
+func (mb *MemoryBuffer) Accept(ctx context.Context, in chan interface{}, _ pipeline.OutputChannel) {
 	if pdebug.Enabled {
 		g := pdebug.Marker("MemoryBuffer.Accept")
 		defer g.End()
@@ -104,6 +106,7 @@ func (mb *MemoryBuffer) Accept(ctx context.Context, p pipeline.Producer) {
 		mb.mutex.Unlock()
 	}()
 
+	start := time.Now()
 	for {
 		select {
 		case <-ctx.Done():
@@ -111,12 +114,12 @@ func (mb *MemoryBuffer) Accept(ctx context.Context, p pipeline.Producer) {
 				pdebug.Printf("MemoryBuffer received context done")
 			}
 			return
-		case v := <-p.OutCh():
+		case v := <-in:
 			switch v.(type) {
 			case error:
 				if pipeline.IsEndMark(v.(error)) {
 					if pdebug.Enabled {
-						pdebug.Printf("MemoryBuffer received end mark (read %d lines)", len(mb.lines))
+						pdebug.Printf("MemoryBuffer received end mark (read %d lines, %s since starting accept loop)", len(mb.lines), time.Since(start).String())
 					}
 					return
 				}

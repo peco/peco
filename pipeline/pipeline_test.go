@@ -13,25 +13,23 @@ import (
 )
 
 type RegexpFilter struct {
-	OutputChannel
 	rx *regexp.Regexp
 }
 
 func NewRegexpFilter(rx *regexp.Regexp) *RegexpFilter {
 	return &RegexpFilter{
-		OutputChannel: make(chan interface{}),
-		rx:            rx,
+		rx: rx,
 	}
 }
 
-func (rf *RegexpFilter) Accept(ctx context.Context, p Producer) {
+func (rf *RegexpFilter) Accept(ctx context.Context, in chan interface{}, out OutputChannel) {
 	defer fmt.Println("END RegexpFilter.Accept")
-	defer rf.SendEndMark("end of RegexpFilter")
+	defer out.SendEndMark("end of RegexpFilter")
 	for {
 		select {
 		case <-ctx.Done():
 			return
-		case v := <-p.OutCh():
+		case v := <-in:
 			if err, ok := v.(error); ok {
 				if IsEndMark(err) {
 					return
@@ -40,7 +38,7 @@ func (rf *RegexpFilter) Accept(ctx context.Context, p Producer) {
 
 			if s, ok := v.(string); ok {
 				if rf.rx.MatchString(s) {
-					rf.Send(s)
+					out.Send(s)
 				}
 			}
 		}
@@ -48,7 +46,6 @@ func (rf *RegexpFilter) Accept(ctx context.Context, p Producer) {
 }
 
 type LineFeeder struct {
-	OutputChannel
 	lines []string
 }
 
@@ -59,17 +56,19 @@ func NewLineFeeder(rdr io.Reader) *LineFeeder {
 		lines = append(lines, scan.Text())
 	}
 	return &LineFeeder{
-		OutputChannel: make(chan interface{}),
-		lines:         lines,
+		lines: lines,
 	}
 }
 
-func (f *LineFeeder) Start(ctx context.Context) {
+func (f *LineFeeder) Reset() {
+}
+
+func (f *LineFeeder) Start(ctx context.Context, out OutputChannel) {
 	fmt.Println("START LineFeeder.Start")
 	defer fmt.Println("END LineFeeder.Start")
-	defer f.SendEndMark("end of LineFeeder")
+	defer out.SendEndMark("end of LineFeeder")
 	for _, s := range f.lines {
-		f.Send(s)
+		out.Send(s)
 	}
 }
 
@@ -93,7 +92,7 @@ func (r *Receiver) Done() <-chan struct{} {
 	return r.done
 }
 
-func (r *Receiver) Accept(ctx context.Context, p Producer) {
+func (r *Receiver) Accept(ctx context.Context, in chan interface{}, out OutputChannel) {
 	defer fmt.Println("END Receiver.Accept")
 	defer close(r.done)
 
@@ -101,7 +100,7 @@ func (r *Receiver) Accept(ctx context.Context, p Producer) {
 		select {
 		case <-ctx.Done():
 			return
-		case v := <-p.OutCh():
+		case v := <-in:
 			if err, ok := v.(error); ok {
 				if IsEndMark(err) {
 					return

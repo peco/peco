@@ -16,27 +16,18 @@ type EndMarker interface {
 // EndMark is a dummy struct that gets send as an EOL mark of sorts
 type EndMark struct{}
 
-// Producer is an object that can generated output to be consumed
-// by reading from `OutCh`
-type Producer interface {
-	OutCh() <-chan interface{}
-}
-
-// Source is a special type of Producer that has no previous Producers
-// chained to feed it more data.
 type Source interface {
-	Producer
-
 	// Start should be able to be called repeatedly, producing the
 	// same data to be consumed by the chained Acceptors
-	Start(context.Context)
+	Start(context.Context, OutputChannel)
 
 	Reset()
 }
 
-// Acceptor is an object that can accept output from Producers
+// Acceptor is an object that can accept input, and send to
+// an optional output
 type Acceptor interface {
-	Accept(context.Context, Producer)
+	Accept(context.Context, chan interface{}, OutputChannel)
 }
 
 // Destination is a special case Acceptor that has no more Acceptors
@@ -51,16 +42,10 @@ type Destination interface {
 type Pipeline struct {
 	done  chan struct{}
 	mutex sync.Mutex
-	nodes []ProcNode
+	nodes []Acceptor
 	src   Source
 	dst   Destination
 }
 
 // OutputChannel is an alias to `chan interface{}`
 type OutputChannel chan interface{}
-
-// ProcNode is an interface that goes in between `Source` and `Destination`
-type ProcNode interface {
-	Producer
-	Acceptor
-}
