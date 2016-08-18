@@ -115,6 +115,7 @@ func (f *Filter) Work(ctx context.Context, q hub.Payload) {
 
 	go func() {
 		defer state.Hub().SendDraw(true)
+		ctx = context.WithValue(ctx, "query", query)
 		if err := p.Run(ctx); err != nil {
 			state.Hub().SendStatusMsg(err.Error())
 		}
@@ -122,10 +123,10 @@ func (f *Filter) Work(ctx context.Context, q hub.Payload) {
 
 	go func() {
 		if pdebug.Enabled {
-			pdebug.Printf("waiting for query to finish")
-			defer pdebug.Printf("Filter.Work: finished running query")
+			g := pdebug.Marker("Periodic draw request for '%s'", query)
+			defer g.End()
 		}
-		t := time.NewTicker(100 * time.Millisecond)
+		t := time.NewTicker(5*time.Millisecond)
 		defer t.Stop()
 		defer state.Hub().SendStatusMsg("")
 		defer state.Hub().SendDraw(true)
@@ -134,11 +135,12 @@ func (f *Filter) Work(ctx context.Context, q hub.Payload) {
 			case <-p.Done():
 				return
 			case <-t.C:
-				pdebug.Printf("Sending draw while waiting for filter to end")
 				state.Hub().SendDraw(true)
 			}
 		}
 	}()
+
+	<-p.Done()
 
 	if !state.config.StickySelection {
 		state.Selection().Reset()
@@ -226,21 +228,25 @@ func getRegexpFilterBuf() []Line {
 	return l
 }
 
-func (rf *RegexpFilter) Accept(ctx context.Context, p pipeline.Producer) {
+func (rf *RegexpFilter) Accept(ctx context.Context, in chan interface{}, out pipeline.OutputChannel) {
 	if pdebug.Enabled {
 		g := pdebug.Marker("RegexpFilter.Accept")
 		defer g.End()
 	}
-	defer rf.outCh.SendEndMark("end of RegexpFilter")
 
 	flush := make(chan []Line)
 	flushDone := make(chan struct{})
 	go func() {
+		if pdebug.Enabled {
+			g := pdebug.Marker("RegexpFilter.Accept flusher goroutine")
+			defer g.End()
+		}
 		defer close(flushDone)
+		defer out.SendEndMark("end of RegexpFilter")
 		for buf := range flush {
 			for _, in := range buf {
 				if l, err := rf.filter(in); err == nil {
-					rf.outCh.Send(l)
+					out.Send(l)
 				}
 			}
 			releaseRegexpFilterBuf(buf)
@@ -252,6 +258,10 @@ func (rf *RegexpFilter) Accept(ctx context.Context, p pipeline.Producer) {
 	defer func() { <-flushDone }() // Wait till the flush goroutine is done
 	defer close(flush)             // Kill the flush goroutine
 
+	flushTicker := time.NewTicker(50*time.Millisecond)
+	defer flushTicker.Stop()
+
+	start := time.Now()
 	lines := 0
 	for {
 		select {
@@ -260,12 +270,12 @@ func (rf *RegexpFilter) Accept(ctx context.Context, p pipeline.Producer) {
 				pdebug.Printf("RegexpFilter received done")
 			}
 			return
-		case v := <-p.OutCh():
+		case v := <-in:
 			switch v.(type) {
 			case error:
 				if pipeline.IsEndMark(v.(error)) {
 					if pdebug.Enabled {
-						pdebug.Printf("RegexpFilter received end mark (read %d lines)", lines+len(buf))
+						pdebug.Printf("RegexpFilter received end mark (read %d lines, %s since starting accept loop)", lines+len(buf), time.Since(start).String())
 					}
 					if len(buf) > 0 {
 						flush <- buf
@@ -282,9 +292,15 @@ func (rf *RegexpFilter) Accept(ctx context.Context, p pipeline.Producer) {
 				// size is fairly big, because this really only makes a
 				// difference if we have a lot of lines to process.
 				buf = append(buf, v.(Line))
-				if len(buf) >= cap(buf) {
+				select {
+				case <-flushTicker.C:
 					flush <- buf
 					buf = getRegexpFilterBuf()
+				default:
+					if len(buf) >= cap(buf) {
+						flush <- buf
+						buf = getRegexpFilterBuf()
+					}
 				}
 			}
 		}
@@ -446,12 +462,12 @@ func (ecf *ExternalCmdFilter) Verify() error {
 	return nil
 }
 
-func (ecf *ExternalCmdFilter) Accept(ctx context.Context, p pipeline.Producer) {
+func (ecf *ExternalCmdFilter) Accept(ctx context.Context, in chan interface{}, out pipeline.OutputChannel) {
 	if pdebug.Enabled {
 		g := pdebug.Marker("ExternalCmdFilter.Accept")
 		defer g.End()
 	}
-	defer ecf.outCh.SendEndMark("end of ExternalCmdFilter")
+	defer out.SendEndMark("end of ExternalCmdFilter")
 
 	buf := make([]Line, 0, ecf.thresholdBufsiz)
 	for {
@@ -461,7 +477,7 @@ func (ecf *ExternalCmdFilter) Accept(ctx context.Context, p pipeline.Producer) {
 				pdebug.Printf("ExternalCmdFilter received done")
 			}
 			return
-		case v := <-p.OutCh():
+		case v := <-in:
 			switch v.(type) {
 			case error:
 				if pipeline.IsEndMark(v.(error)) {
@@ -469,7 +485,7 @@ func (ecf *ExternalCmdFilter) Accept(ctx context.Context, p pipeline.Producer) {
 						pdebug.Printf("ExternalCmdFilter received end mark")
 					}
 					if len(buf) > 0 {
-						ecf.launchExternalCmd(ctx, buf)
+						ecf.launchExternalCmd(ctx, buf, out)
 					}
 				}
 				return
@@ -482,15 +498,11 @@ func (ecf *ExternalCmdFilter) Accept(ctx context.Context, p pipeline.Producer) {
 					continue
 				}
 
-				ecf.launchExternalCmd(ctx, buf)
+				ecf.launchExternalCmd(ctx, buf, out)
 				buf = buf[0:0]
 			}
 		}
 	}
-}
-
-func (ecf ExternalCmdFilter) OutCh() <-chan interface{} {
-	return ecf.outCh
 }
 
 func (ecf *ExternalCmdFilter) SetQuery(q string) {
@@ -501,7 +513,7 @@ func (ecf ExternalCmdFilter) String() string {
 	return ecf.name
 }
 
-func (ecf *ExternalCmdFilter) launchExternalCmd(ctx context.Context, buf []Line) {
+func (ecf *ExternalCmdFilter) launchExternalCmd(ctx context.Context, buf []Line, out pipeline.OutputChannel) {
 	defer func() { recover() }() // ignore errors
 	if pdebug.Enabled {
 		g := pdebug.Marker("ExternalCmdFilter.launchExternalCmd")
@@ -570,7 +582,7 @@ func (ecf *ExternalCmdFilter) launchExternalCmd(ctx context.Context, buf []Line)
 			if l == nil || !ok {
 				return
 			}
-			ecf.outCh.Send(l)
+			out.Send(l)
 		}
 	}
 }

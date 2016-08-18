@@ -47,9 +47,9 @@ func (i *Input) handleInputEvent(ctx context.Context, ev termbox.Event) error {
 
 		// Smells like Esc or Alt. mod == nil checks for the presense
 		// of a previous timer
+		m.Lock()
 		if ev.Ch == 0 && ev.Key == 27 && i.mod == nil {
 			tmp := ev
-			m.Lock()
 			i.mod = time.AfterFunc(50*time.Millisecond, func() {
 				m.Lock()
 				i.mod = nil
@@ -59,6 +59,7 @@ func (i *Input) handleInputEvent(ctx context.Context, ev termbox.Event) error {
 			m.Unlock()
 			return nil
 		}
+		m.Unlock()
 
 		// it doesn't look like this is Esc or Alt. If we have a previous
 		// timer, stop it because this is probably Alt+ this new key

@@ -1,6 +1,10 @@
 package hub
 
-import "time"
+import (
+	"time"
+
+	pdebug "github.com/lestrrat/go-pdebug"
+)
 
 func NewPayload(data interface{}) *payload {
 	p := &payload{data: data}
@@ -83,6 +87,8 @@ func (h *Hub) SendDrawPrompt() {
 
 // SendDraw sends a request to redraw the terminal display
 func (h *Hub) SendDraw(runningQuery bool) {
+	pdebug.Printf("START Hub.SendDraw %t", runningQuery)
+	defer pdebug.Printf("END Hub.SendDraw %t", runningQuery)
 	send(h.DrawCh(), NewPayload(runningQuery), h.isSync)
 }
 

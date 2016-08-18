@@ -70,7 +70,7 @@ type Peco struct {
 	// Config contains the values read in from config file
 	config                  Config
 	currentLineBuffer       Buffer
-	enableSep               bool     // Enable parsing on separators
+	enableSep               bool // Enable parsing on separators
 	filters                 FilterSet
 	idgen                   *idgen
 	initialFilter           string   // populated if --initial-filter is specified
@@ -425,7 +425,7 @@ type FilterSet struct {
 	mutex   sync.Mutex
 }
 
-// Source implements pipline.Source, and is the buffer for the input
+// Source implements pipeline.Source, and is the buffer for the input
 type Source struct {
 	pipeline.OutputChannel
 
@@ -486,9 +486,9 @@ type Buffer interface {
 
 // MemoryBuffer is an implementation of Buffer
 type MemoryBuffer struct {
-	done  chan struct{}
-	lines []Line
-	mutex sync.RWMutex
+	done         chan struct{}
+	lines        []Line
+	mutex        sync.RWMutex
 	PeriodicFunc func()
 }
 
@@ -505,8 +505,7 @@ type Input struct {
 }
 
 type LineFilter interface {
-	pipeline.ProcNode
-
+	pipeline.Acceptor
 	SetQuery(string)
 	Clone() LineFilter
 	String() string
