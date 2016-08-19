@@ -1,6 +1,16 @@
 Changes
 =======
 
+v0.4.0 - 19 Aug 2016
+  Miscellaneous:
+  * There is no real user visible change for this release
+  * Build using go 1.7
+  * LOTS of internal cleanup
+    * Eliminated (hopefully) all of potential races
+    * Remove silly embedded structs that existed all over the place
+    * New pipeline mechanism should allow slightly faster filtering
+    * Many fixes to properly release resources acquired by goroutines
+
 v0.3.6 - 11 May 2016
   Features:
   * Implement way to execute arbitrary commands via ExecuteCommand config
