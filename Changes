@@ -1,6 +1,10 @@
 Changes
 =======
 
+v0.4.1 - 21 Aug 2016
+  Bugs/Fixes
+  * Fix a panic that went unnoticed (#328, #329)
+
 v0.4.0 - 19 Aug 2016
   Miscellaneous:
   * There is no real user visible change for this release
