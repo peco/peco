@@ -445,6 +445,7 @@ func (ecf ExternalCmdFilter) Clone() LineFilter {
 		args:            ecf.args,
 		cmd:             ecf.cmd,
 		enableSep:       ecf.enableSep,
+		idgen:           ecf.idgen,
 		name:            ecf.name,
 		outCh:           pipeline.OutputChannel(make(chan interface{})),
 		thresholdBufsiz: ecf.thresholdBufsiz,
