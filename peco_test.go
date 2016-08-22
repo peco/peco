@@ -148,3 +148,22 @@ func TestPecoHelp(t *testing.T) {
 		return
 	}
 }
+
+func TestGHIssue331(t *testing.T) {
+	// Note: we should check that the drawing process did not
+	// use cached display, but ATM this seemed hard to do,
+	// so we just check that the proper fields were populated
+	// when peco was instantiated
+	ctx, cancel := context.WithCancel(context.Background())
+	time.AfterFunc(time.Second, cancel)
+
+	p := newPeco()
+	p.Run(ctx)
+
+	if !assert.NotEmpty(t, p.singleKeyJumpPrefixes, "singleKeyJumpPrefixes is not empty") {
+		return
+	}
+	if !assert.NotEmpty(t, p.singleKeyJumpPrefixMap, "singleKeyJumpPrefixMap is not empty") {
+		return
+	}
+}
