@@ -107,5 +107,5 @@ test: installdeps
 	@PATH=$(INTERNAL_BIN_DIR)/$(GOOS)/$(GOARCH):$(PATH) go test -v $(shell glide nv)
 
 clean:
-	-rm $(RELEASE_DIR)/*/*
-	-rm $(ARTIFACTS_DIR)/*
+	-rm -rf $(RELEASE_DIR)/*/*
+	-rm -rf $(ARTIFACTS_DIR)/*
