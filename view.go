@@ -60,10 +60,10 @@ func (v *View) Loop(ctx context.Context, cancel func()) error {
 				case "purgeCache":
 					v.purgeDisplayCache(r)
 				}
-			case bool:
-				v.drawScreen(r, tmp.(bool))
+			case *DrawOptions:
+				v.drawScreen(r, tmp.(*DrawOptions))
 			default:
-				v.drawScreen(r, false)
+				v.drawScreen(r, nil)
 			}
 		}
 	}
@@ -80,10 +80,10 @@ func (v *View) purgeDisplayCache(p hub.Payload) {
 	v.layout.PurgeDisplayCache()
 }
 
-func (v *View) drawScreen(p hub.Payload, runningQuery bool) {
+func (v *View) drawScreen(p hub.Payload, options *DrawOptions) {
 	defer p.Done()
 
-	v.layout.DrawScreen(v.state, runningQuery)
+	v.layout.DrawScreen(v.state, options)
 }
 
 func (v *View) drawPrompt(p hub.Payload) {
@@ -96,6 +96,6 @@ func (v *View) movePage(p hub.Payload, r PagingRequest) {
 	defer p.Done()
 
 	if v.layout.MovePage(v.state, r) {
-		v.layout.DrawScreen(v.state, false)
+		v.layout.DrawScreen(v.state, nil)
 	}
 }

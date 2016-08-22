@@ -23,11 +23,6 @@ func (c *Config) Init() error {
 	c.Keymap = make(map[string]string)
 	c.InitialMatcher = IgnoreCaseMatch
 	c.Style.Init()
-	c.SingleKeyJump = SingleKeyJumpConfig{
-		ShowPrefix: false,
-		PrefixMap:  make(map[rune]uint),
-		PrefixList: []rune(nil),
-	}
 	c.Prompt = "QUERY>"
 	c.Layout = LayoutTypeTopDown
 	return nil

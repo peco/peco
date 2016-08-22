@@ -306,10 +306,14 @@ func selectionContains(state *Peco, n int) bool {
 	return false
 }
 
+type DrawOptions struct {
+	RunningQuery bool
+	DisableCache bool
+}
 // Draw displays the ListArea on the screen
-func (l *ListArea) Draw(state *Peco, parent Layout, perPage int, runningQuery bool) {
+func (l *ListArea) Draw(state *Peco, parent Layout, perPage int, options *DrawOptions) {
 	if pdebug.Enabled {
-		g := pdebug.Marker("ListArea.Draw pp = %d, q = %t", perPage, runningQuery)
+		g := pdebug.Marker("ListArea.Draw pp = %d, options = %#v", perPage, options)
 		defer g.End()
 	}
 
@@ -326,7 +330,7 @@ func (l *ListArea) Draw(state *Peco, parent Layout, perPage int, runningQuery bo
 	// makes sure that we never have an empty screen when we are
 	// at a large enough page, but we don't have enough entries
 	// to fill that many pages in the buffer
-	if runningQuery {
+	if options != nil && options.RunningQuery {
 		bufsiz := linebuf.Size()
 		page := loc.Page()
 
@@ -375,7 +379,6 @@ func (l *ListArea) Draw(state *Peco, parent Layout, perPage int, runningQuery bo
 	}
 
 	for n := bufsiz; n < perPage; n++ {
-		l.displayCache[n] = nil
 		if l.sortTopDown {
 			y = n + start
 		} else {
@@ -420,7 +423,7 @@ func (l *ListArea) Draw(state *Peco, parent Layout, perPage int, runningQuery bo
 			break
 		}
 
-		if l.IsDirty() || target.IsDirty() {
+		if (options != nil && options.DisableCache) || l.IsDirty() || target.IsDirty() {
 			target.SetDirty(false)
 		} else if l.displayCache[n] == target {
 			cached++
@@ -434,6 +437,8 @@ func (l *ListArea) Draw(state *Peco, parent Layout, perPage int, runningQuery bo
 		xOffset := loc.Column()
 		line := target.DisplayString()
 
+		pdebug.Printf("state.SingleKeyJumpMode = %t", state.SingleKeyJumpMode())
+		pdebug.Printf("state.SingleKeyJumpShowPrefix = %t", state.SingleKeyJumpShowPrefix())
 		if state.SingleKeyJumpMode() || state.SingleKeyJumpShowPrefix() {
 			prefixes := state.SingleKeyJumpPrefixes()
 			if n < int(len(prefixes)) {
@@ -606,7 +611,7 @@ func (l *BasicLayout) DrawPrompt(state *Peco) {
 }
 
 // DrawScreen draws the entire screen
-func (l *BasicLayout) DrawScreen(state *Peco, runningQuery bool) {
+func (l *BasicLayout) DrawScreen(state *Peco, options *DrawOptions) {
 	if pdebug.Enabled {
 		g := pdebug.Marker("BasicLayout.DrawScreen")
 		defer g.End()
@@ -619,7 +624,7 @@ func (l *BasicLayout) DrawScreen(state *Peco, runningQuery bool) {
 	}
 
 	l.DrawPrompt(state)
-	l.list.Draw(state, l, perPage, runningQuery)
+	l.list.Draw(state, l, perPage, options)
 
 	if err := l.screen.Flush(); err != nil {
 		return

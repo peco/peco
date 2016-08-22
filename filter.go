@@ -114,7 +114,7 @@ func (f *Filter) Work(ctx context.Context, q hub.Payload) {
 	state.SetCurrentLineBuffer(buf)
 
 	go func() {
-		defer state.Hub().SendDraw(true)
+		defer state.Hub().SendDraw(&DrawOptions{RunningQuery: true})
 		ctx = context.WithValue(ctx, "query", query)
 		if err := p.Run(ctx); err != nil {
 			state.Hub().SendStatusMsg(err.Error())
@@ -129,13 +129,13 @@ func (f *Filter) Work(ctx context.Context, q hub.Payload) {
 		t := time.NewTicker(5*time.Millisecond)
 		defer t.Stop()
 		defer state.Hub().SendStatusMsg("")
-		defer state.Hub().SendDraw(true)
+		defer state.Hub().SendDraw(&DrawOptions{RunningQuery: true})
 		for {
 			select {
 			case <-p.Done():
 				return
 			case <-t.C:
-				state.Hub().SendDraw(true)
+				state.Hub().SendDraw(&DrawOptions{RunningQuery: true})
 			}
 		}
 	}()

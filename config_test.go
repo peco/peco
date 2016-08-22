@@ -47,9 +47,6 @@ func TestReadRC(t *testing.T) {
 		InitialMatcher: IgnoreCaseMatch,
 		Layout:         DefaultLayoutType,
 		Prompt:         "[peco]",
-		SingleKeyJump: SingleKeyJumpConfig{
-			PrefixMap: map[rune]uint{},
-		},
 		Style: StyleSet{
 			Matched: Style{
 				fg: termbox.ColorCyan | termbox.AttrBold,

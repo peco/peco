@@ -86,10 +86,10 @@ func (h *Hub) SendDrawPrompt() {
 }
 
 // SendDraw sends a request to redraw the terminal display
-func (h *Hub) SendDraw(runningQuery bool) {
-	pdebug.Printf("START Hub.SendDraw %t", runningQuery)
-	defer pdebug.Printf("END Hub.SendDraw %t", runningQuery)
-	send(h.DrawCh(), NewPayload(runningQuery), h.isSync)
+func (h *Hub) SendDraw(options interface{}) {
+	pdebug.Printf("START Hub.SendDraw %v", options)
+	defer pdebug.Printf("END Hub.SendDraw %v", options)
+	send(h.DrawCh(), NewPayload(options), h.isSync)
 }
 
 // StatusMsgCh returns the channel to update the status message

@@ -90,7 +90,7 @@ func New() *Peco {
 		Stdin:             os.Stdin,
 		Stdout:            os.Stdout,
 		currentLineBuffer: NewMemoryBuffer(), // XXX revisit this
-		idgen: newIDGen(),
+		idgen:             newIDGen(),
 		queryExecDelay:    50 * time.Millisecond,
 		readyCh:           make(chan struct{}),
 		screen:            &Termbox{},
@@ -181,11 +181,11 @@ func (p *Peco) SetSingleKeyJumpMode(b bool) {
 
 func (p *Peco) ToggleSingleKeyJumpMode() {
 	p.singleKeyJumpMode = !p.singleKeyJumpMode
+	go p.Hub().SendDraw(&DrawOptions{DisableCache: true})
 }
 
 func (p *Peco) SingleKeyJumpIndex(ch rune) (uint, bool) {
-	// FIXME: use p.keyjump or something instead of p.config
-	n, ok := p.config.SingleKeyJump.PrefixMap[ch]
+	n, ok := p.singleKeyJumpPrefixMap[ch]
 	return n, ok
 }
 
@@ -280,10 +280,10 @@ func (p *Peco) Run(ctx context.Context) (err error) {
 	ctx, _cancel = context.WithCancel(ctx)
 	cancel := func() {
 		_cancelOnce.Do(func() {
-		if pdebug.Enabled {
-			pdebug.Printf("Peco.Run cancel called")
-		}
-		_cancel()
+			if pdebug.Enabled {
+				pdebug.Printf("Peco.Run cancel called")
+			}
+			_cancel()
 		})
 	}
 
@@ -318,7 +318,6 @@ func (p *Peco) Run(ctx context.Context) (err error) {
 	}
 	p.source = src
 	p.ResetCurrentLineBuffer()
-
 
 	if pdebug.Enabled {
 		pdebug.Printf("peco is now ready, go go go!")
@@ -493,6 +492,27 @@ func (p *Peco) ApplyConfig(opts CLIOptions) error {
 		}
 	}
 
+	if err := p.populateSingleKeyJump(); err != nil {
+		return errors.Wrap(err, "failed to populate single key jump configuration")
+	}
+
+	return nil
+}
+
+func (p *Peco) populateSingleKeyJump() error {
+	p.singleKeyJumpShowPrefix = p.config.SingleKeyJump.ShowPrefix
+
+	jumpMap := make(map[rune]uint)
+	chrs := "asdfghjklzxcvbnmqwertyuiop"
+	for i := 0; i < len(chrs); i++ {
+		jumpMap[rune(chrs[i])] = uint(i)
+	}
+	p.singleKeyJumpPrefixMap = jumpMap
+
+	p.singleKeyJumpPrefixes = make([]rune, len(jumpMap))
+	for k, v := range p.singleKeyJumpPrefixMap {
+		p.singleKeyJumpPrefixes[v] = k
+	}
 	return nil
 }
 
@@ -503,7 +523,7 @@ func (p *Peco) populateFilters() error {
 	p.filters.Add(NewRegexpFilter())
 
 	for name, c := range p.config.CustomFilter {
-		f := NewExternalCmdFilter( name, c.Cmd, c.Args, c.BufferThreshold, p.idgen, p.enableSep)
+		f := NewExternalCmdFilter(name, c.Cmd, c.Args, c.BufferThreshold, p.idgen, p.enableSep)
 		p.filters.Add(f)
 	}
 
@@ -539,7 +559,7 @@ func (p *Peco) SetCurrentLineBuffer(b Buffer) {
 		defer g.End()
 	}
 	p.currentLineBuffer = b
-	go p.Hub().SendDraw(false)
+	go p.Hub().SendDraw(nil)
 }
 
 func (p *Peco) ResetCurrentLineBuffer() {
@@ -612,4 +632,3 @@ func (p *Peco) CollectResults() {
 	})
 	close(p.resultCh)
 }
-
