@@ -41,7 +41,7 @@ func (s *Source) Setup(state *Peco) {
 			// as state, but for testing I couldn't come up with anything
 			// better for the moment
 			if state != nil {
-				state.Hub().SendDraw(false)
+				state.Hub().SendDraw(nil)
 			}
 		}
 

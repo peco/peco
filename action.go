@@ -257,7 +257,7 @@ func doSelectAll(ctx context.Context, state *Peco, _ termbox.Event) {
 			selection.Remove(l)
 		}
 	}
-	state.Hub().SendDraw(false)
+	state.Hub().SendDraw(nil)
 }
 
 func doSelectVisible(ctx context.Context, state *Peco, _ termbox.Event) {
@@ -279,7 +279,7 @@ func doSelectVisible(ctx context.Context, state *Peco, _ termbox.Event) {
 		l.SetDirty(true)
 		selection.Add(l)
 	}
-	state.Hub().SendDraw(false)
+	state.Hub().SendDraw(nil)
 }
 
 type errCollectResults struct{}
@@ -374,7 +374,7 @@ func doInvertSelection(ctx context.Context, state *Peco, _ termbox.Event) {
 		}
 	}
 
-	state.Hub().SendDraw(false)
+	state.Hub().SendDraw(nil)
 }
 
 func doDeleteBackwardWord(ctx context.Context, state *Peco, _ termbox.Event) {

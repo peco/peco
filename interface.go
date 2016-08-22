@@ -93,6 +93,7 @@ type Peco struct {
 	selectOneAndExit        bool // True if --select-1 is enabled
 	singleKeyJumpMode       bool
 	singleKeyJumpPrefixes   []rune
+	singleKeyJumpPrefixMap  map[rune]uint
 	singleKeyJumpShowPrefix bool
 	styles                  StyleSet
 
@@ -229,7 +230,7 @@ type VerticalAnchor int
 type Layout interface {
 	PrintStatus(string, time.Duration)
 	DrawPrompt(*Peco)
-	DrawScreen(*Peco, bool)
+	DrawScreen(*Peco, *DrawOptions)
 	MovePage(*Peco, PagingRequest) (moved bool)
 	PurgeDisplayCache()
 }
@@ -346,9 +347,7 @@ type Config struct {
 }
 
 type SingleKeyJumpConfig struct {
-	ShowPrefix bool          `json:"ShowPrefix"`
-	PrefixList []rune        `json:"-"`
-	PrefixMap  map[rune]uint `json:"-"`
+	ShowPrefix bool `json:"ShowPrefix"`
 }
 
 type CommandConfig struct {
