@@ -1,6 +1,10 @@
 Changes
 =======
 
+v0.4.2 - 23 Aug 2016
+  Bugs/Fixes
+  * Fix single key jump mode (#331, #332)
+
 v0.4.1 - 21 Aug 2016
   Bugs/Fixes
   * Fix a panic that went unnoticed (#328, #329)
