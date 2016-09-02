@@ -461,6 +461,11 @@ func (p *Peco) ApplyConfig(opts CLIOptions) error {
 		p.layoutType = v
 	}
 
+	p.prompt = p.config.Prompt
+	if v := opts.OptPrompt; v != "" {
+		p.prompt = v
+	}
+
 	p.selectOneAndExit = opts.OptSelect1
 	p.initialQuery = opts.OptQuery
 
