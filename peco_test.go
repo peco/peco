@@ -167,3 +167,22 @@ func TestGHIssue331(t *testing.T) {
 		return
 	}
 }
+
+func TestApplyConfig(t *testing.T) {
+	// XXX We should add all the possible configurations that needs to be
+	// propagated to Peco from config
+
+	// This is a placeholder test address
+	// https://github.com/peco/peco/pull/338#issuecomment-244462220
+	var opts CLIOptions
+
+	opts.OptPrompt = "tpmorp>"
+	p := newPeco()
+	if !assert.NoError(t, p.ApplyConfig(opts), "p.ApplyConfig should succeed") {
+		return
+	}
+
+	if !assert.Equal(t, opts.OptPrompt, p.prompt, "p.Prompt should be equal to opts.PRompt") {
+		return
+	}
+}
