@@ -65,8 +65,9 @@ type Peco struct {
 	Stderr io.Writer
 	hub    *hub.Hub
 
-	args  []string
-	caret Caret
+	args       []string
+	bufferSize int
+	caret      Caret
 	// Config contains the values read in from config file
 	config                  Config
 	currentLineBuffer       Buffer
@@ -429,6 +430,7 @@ type Source struct {
 	pipeline.OutputChannel
 
 	done      chan struct{}
+	capacity  int
 	enableSep bool
 	idgen     lineIDGenerator
 	in        io.Reader

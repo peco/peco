@@ -413,7 +413,7 @@ func (p *Peco) SetupSource() (s *Source, err error) {
 		return nil, errors.New("you must supply something to work with via filename or stdin")
 	}
 
-	src := NewSource(in, p.idgen, p.enableSep)
+	src := NewSource(in, p.idgen, p.bufferSize, p.enableSep)
 
 	// Block until we receive something from `in`
 	if pdebug.Enabled {
@@ -471,6 +471,7 @@ func (p *Peco) ApplyConfig(opts CLIOptions) error {
 		p.prompt = v
 	}
 
+	p.bufferSize = opts.OptBufferSize
 	p.selectOneAndExit = opts.OptSelect1
 	p.initialQuery = opts.OptQuery
 
