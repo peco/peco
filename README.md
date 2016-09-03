@@ -536,12 +536,19 @@ See --layout.
 }
 ```
 
+FAQ
+===
+
+## Does peco work on (msys2|cygwin)?
+
+No. https://github.com/peco/peco/issues/336#issuecomment-243939696
+
 Hacking
 =======
 
 First, fork this repo, and get your clone locally.
 
-1. Make sure you have [go 1.x](http://golang.org) installed, with GOPATH appropriately set
+1. Make sure you have [go](http://golang.org) installed, with GOPATH appropriately set
 2. Make sure you have `make` installed
 3. Run `make installdeps` (You only need to do this once, or when you update glide.yml/glide.lock)
 
