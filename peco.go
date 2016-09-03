@@ -383,6 +383,11 @@ func (p *Peco) parseCommandLine(opts *CLIOptions, args *[]string, argv []string)
 		}
 	}
 
+	if opts.OptTTY != "" {
+		p.Stderr.Write([]byte("Warning: --tty was never supported, and it will be removed in 0.5.x\n"))
+		time.Sleep(500 * time.Millisecond) // Wait, so that the user can see it
+	}
+
 	*args = remaining
 
 	return nil
