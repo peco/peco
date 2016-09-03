@@ -14,9 +14,10 @@ import (
 
 // Creates a new Source. Does not start processing the input until you
 // call Setup()
-func NewSource(in io.Reader, idgen lineIDGenerator, enableSep bool) *Source {
+func NewSource(in io.Reader, idgen lineIDGenerator, capacity int, enableSep bool) *Source {
 	s := &Source{
 		in:            in, // Note that this may be closed, so do not rely on it
+		capacity:      capacity,
 		enableSep:     enableSep,
 		idgen:         idgen,
 		ready:         make(chan struct{}),
@@ -141,7 +142,7 @@ func (s *Source) Ready() <-chan struct{} {
 // SetupDone returns the "read all lines" channel. It will be closed as soon as
 // the all input has been read
 func (s *Source) SetupDone() <-chan struct{} {
-	return s.done
+	return s.setupDone
 }
 
 func (s *Source) LineAt(n int) (Line, error) {
@@ -159,5 +160,12 @@ func (s *Source) Size() int {
 func (s *Source) Append(l Line) {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
+
 	bufferAppend(&s.lines, l)
+	if s.capacity > 0 && len(s.lines) > s.capacity {
+		diff := len(s.lines) - s.capacity
+
+		// Golang's version of array realloc
+		s.lines = s.lines[diff:s.capacity:s.capacity]
+	}
 }

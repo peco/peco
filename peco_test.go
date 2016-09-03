@@ -177,12 +177,47 @@ func TestApplyConfig(t *testing.T) {
 	var opts CLIOptions
 
 	opts.OptPrompt = "tpmorp>"
+	opts.OptQuery = "Hello, World"
+	opts.OptBufferSize = 256
+	opts.OptInitialIndex = 2
+	opts.OptInitialFilter = "Regexp"
+	opts.OptLayout = "bottom-up"
+	opts.OptSelect1 = true
+
 	p := newPeco()
 	if !assert.NoError(t, p.ApplyConfig(opts), "p.ApplyConfig should succeed") {
 		return
 	}
 
-	if !assert.Equal(t, opts.OptPrompt, p.prompt, "p.Prompt should be equal to opts.PRompt") {
+	if !assert.Equal(t, opts.OptQuery, p.initialQuery, "p.initialQuery should be equal to opts.Query") {
+		return
+	}
+
+	if !assert.Equal(t, opts.OptBufferSize, p.bufferSize, "p.bufferSize should be equal to opts.BufferSize") {
+		return
+	}
+
+	if !assert.Equal(t, opts.OptEnableNullSep, p.enableSep, "p.enableSep should be equal to opts.OptEnableNullSep") {
+		return
+	}
+
+	if !assert.Equal(t, opts.OptInitialIndex, p.Location().LineNumber(), "p.Location().LineNumber() should be equal to opts.OptInitialIndex") {
+		return
+	}
+
+	if !assert.Equal(t, opts.OptInitialFilter, p.initialFilter, "p.initialFilter should be equal to opts.OptInitialFilter") {
+		return
+	}
+
+	if !assert.Equal(t, opts.OptPrompt, p.prompt, "p.prompt should be equal to opts.OptPrompt") {
+		return
+	}
+
+	if !assert.Equal(t, opts.OptLayout, p.layoutType, "p.layoutType should be equal to opts.OptLayout") {
+		return
+	}
+
+	if !assert.Equal(t, opts.OptSelect1, p.selectOneAndExit, "p.selectOneAndExit should be equal to opts.OptSelect1") {
 		return
 	}
 }

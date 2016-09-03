@@ -383,6 +383,11 @@ func (p *Peco) parseCommandLine(opts *CLIOptions, args *[]string, argv []string)
 		}
 	}
 
+	if opts.OptTTY != "" {
+		p.Stderr.Write([]byte("Warning: --tty was never supported, and it will be removed in 0.5.x\n"))
+		time.Sleep(500 * time.Millisecond) // Wait, so that the user can see it
+	}
+
 	*args = remaining
 
 	return nil
@@ -408,7 +413,7 @@ func (p *Peco) SetupSource() (s *Source, err error) {
 		return nil, errors.New("you must supply something to work with via filename or stdin")
 	}
 
-	src := NewSource(in, p.idgen, p.enableSep)
+	src := NewSource(in, p.idgen, p.bufferSize, p.enableSep)
 
 	// Block until we receive something from `in`
 	if pdebug.Enabled {
@@ -466,6 +471,7 @@ func (p *Peco) ApplyConfig(opts CLIOptions) error {
 		p.prompt = v
 	}
 
+	p.bufferSize = opts.OptBufferSize
 	p.selectOneAndExit = opts.OptSelect1
 	p.initialQuery = opts.OptQuery
 
