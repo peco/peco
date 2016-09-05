@@ -543,6 +543,10 @@ FAQ
 
 No. https://github.com/peco/peco/issues/336#issuecomment-243939696
 
+## Non-latin fonts (e.g. Japanese) look weird on my Windows machine...?
+
+Are you using raster fonts? https://github.com/peco/peco/issues/341
+
 Hacking
 =======
 
