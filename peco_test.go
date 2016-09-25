@@ -205,7 +205,7 @@ func TestApplyConfig(t *testing.T) {
 		return
 	}
 
-	if !assert.Equal(t, opts.OptInitialFilter, p.initialFilter, "p.initialFilter should be equal to opts.OptInitialFilter") {
+	if !assert.Equal(t, opts.OptInitialFilter, p.filters.Current().String(), "p.initialFilter should be equal to opts.OptInitialFilter") {
 		return
 	}
 
