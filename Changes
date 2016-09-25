@@ -1,6 +1,12 @@
 Changes
 =======
 
+v0.4.3 - Unreleased
+  Bugs/Fixes
+  * Fix to apply InitialFilter setting from config file (#343)
+  * Fix --buffer-size option
+  * Fix --prompt option
+
 v0.4.2 - 23 Aug 2016
   Bugs/Fixes
   * Fix single key jump mode (#331, #332)
