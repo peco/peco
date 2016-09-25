@@ -467,7 +467,9 @@ func (p *Peco) ApplyConfig(opts CLIOptions) error {
 	}
 
 	p.prompt = p.config.Prompt
-	if v := opts.OptPrompt; v != "" {
+	if v := opts.OptPrompt; len(v) > 0 {
+		p.prompt = v
+	} else if v := p.config.Prompt; len(v) > 0 {
 		p.prompt = v
 	}
 
