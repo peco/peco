@@ -495,6 +495,8 @@ func (p *Peco) ApplyConfig(opts CLIOptions) error {
 		p.initialFilter = opts.OptInitialMatcher
 	} else if len(opts.OptInitialFilter) > 0 {
 		p.initialFilter = opts.OptInitialFilter
+	} else if p.config.InitialFilter != "" {
+		p.initialFilter = p.config.InitialFilter
 	}
 
 	if v := p.initialFilter; v != "" {
