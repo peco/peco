@@ -467,13 +467,22 @@ func (p *Peco) ApplyConfig(opts CLIOptions) error {
 	}
 
 	p.prompt = p.config.Prompt
-	if v := opts.OptPrompt; v != "" {
+	if v := opts.OptPrompt; len(v) > 0 {
+		p.prompt = v
+	} else if v := p.config.Prompt; len(v) > 0 {
 		p.prompt = v
 	}
 
 	p.bufferSize = opts.OptBufferSize
 	p.selectOneAndExit = opts.OptSelect1
 	p.initialQuery = opts.OptQuery
+	p.initialFilter = opts.OptInitialFilter
+	if len(p.initialFilter) <= 0 {
+		p.initialFilter = p.config.InitialFilter
+	}
+	if len(p.initialFilter) <= 0 {
+		p.initialFilter = opts.OptInitialMatcher
+	}
 
 	if err := p.populateCommandList(); err != nil {
 		return errors.Wrap(err, "failed to populate command list")
@@ -491,22 +500,23 @@ func (p *Peco) ApplyConfig(opts CLIOptions) error {
 		return errors.Wrap(err, "failed to populate styles")
 	}
 
-	if len(opts.OptInitialFilter) <= 0 && len(opts.OptInitialMatcher) > 0 {
-		p.initialFilter = opts.OptInitialMatcher
-	} else if len(opts.OptInitialFilter) > 0 {
-		p.initialFilter = opts.OptInitialFilter
-	}
-
-	if v := p.initialFilter; v != "" {
-		if err := p.filters.SetCurrentByName(v); err != nil {
-			return errors.Wrap(err, "failed to set filter")
-		}
+	if err := p.populateInitialFilter(); err != nil {
+		return errors.Wrap(err, "failed to populate initial filter")
 	}
 
 	if err := p.populateSingleKeyJump(); err != nil {
 		return errors.Wrap(err, "failed to populate single key jump configuration")
 	}
 
+	return nil
+}
+
+func (p *Peco) populateInitialFilter() error {
+	if v := p.initialFilter; len(v) > 0 {
+		if err := p.filters.SetCurrentByName(v); err != nil {
+			return errors.Wrap(err, "failed to set filter")
+		}
+	}
 	return nil
 }
 

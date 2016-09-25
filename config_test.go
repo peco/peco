@@ -30,7 +30,7 @@ func TestReadRC(t *testing.T) {
 	"Prompt": "[peco]"
 }
 `
-	cfg := Config{}
+	var cfg Config
 	if !assert.NoError(t, cfg.Init(), "Config.Init should succeed") {
 		return
 	}

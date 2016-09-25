@@ -74,7 +74,7 @@ type Peco struct {
 	enableSep               bool // Enable parsing on separators
 	filters                 FilterSet
 	idgen                   *idgen
-	initialFilter           string   // populated if --initial-filter is specified
+	initialFilter           string
 	initialQuery            string   // populated if --query is specified
 	inputseq                Inputseq // current key sequence (just the names)
 	keymap                  Keymap
