@@ -39,10 +39,16 @@ func New(bufsiz int) *Hub {
 
 // Batch allows you to synchronously send messages during the
 // scope of f() being executed.
-func (h *Hub) Batch(f func()) {
-	// lock during this operation
-	h.mutex.Lock()
-	defer h.mutex.Unlock()
+func (h *Hub) Batch(f func(), shouldLock bool) {
+	if pdebug.Enabled {
+		g := pdebug.Marker("Batch %t", shouldLock)
+		defer g.End()
+	}
+	if shouldLock {
+		// lock during this operation
+		h.mutex.Lock()
+		defer h.mutex.Unlock()
+	}
 
 	// temporarily set isSync = true
 	o := h.isSync

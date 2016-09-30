@@ -324,6 +324,10 @@ func doSelectDown(ctx context.Context, state *Peco, e termbox.Event) {
 }
 
 func doSelectUp(ctx context.Context, state *Peco, e termbox.Event) {
+	if pdebug.Enabled {
+		g := pdebug.Marker("doSelectUp")
+		defer g.End()
+	}
 	state.Hub().SendPaging(ToLineAbove)
 }
 
@@ -344,7 +348,9 @@ func doScrollRight(ctx context.Context, state *Peco, e termbox.Event) {
 }
 
 func doToggleSelectionAndSelectNext(ctx context.Context, state *Peco, e termbox.Event) {
+	toplevel, _ := ctx.Value(isTopLevelActionCall).(bool)
 	state.Hub().Batch(func() {
+		ctx = context.WithValue(ctx, isTopLevelActionCall, false)
 		doToggleSelection(ctx, state, e)
 		// XXX This is sucky. Fix later
 		if state.LayoutType() == "top-down" {
@@ -352,7 +358,7 @@ func doToggleSelectionAndSelectNext(ctx context.Context, state *Peco, e termbox.
 		} else {
 			doSelectUp(ctx, state, e)
 		}
-	})
+	}, toplevel)
 }
 
 func doInvertSelection(ctx context.Context, state *Peco, _ termbox.Event) {
@@ -652,6 +658,11 @@ func doRefreshScreen(ctx context.Context, state *Peco, _ termbox.Event) {
 }
 
 func doToggleQuery(ctx context.Context, state *Peco, _ termbox.Event) {
+	if pdebug.Enabled {
+		g := pdebug.Marker("doToggleQuery")
+		defer g.End()
+	}
+
 	q := state.Query()
 	if q.Len() == 0 {
 		q.RestoreSavedQuery()
@@ -688,19 +699,23 @@ func doSingleKeyJump(ctx context.Context, state *Peco, e termbox.Event) {
 		return
 	}
 
+	toplevel, _ := ctx.Value(isTopLevelActionCall).(bool)
 	state.Hub().Batch(func() {
+		ctx = context.WithValue(ctx, isTopLevelActionCall, false)
 		state.Hub().SendPaging(JumpToLineRequest(index))
 		doFinish(ctx, state, e)
-	})
+	}, toplevel)
 }
 
 func makeCombinedAction(actions ...Action) ActionFunc {
 	return ActionFunc(func(ctx context.Context, state *Peco, e termbox.Event) {
+		toplevel, _ := ctx.Value(isTopLevelActionCall).(bool)
 		state.Hub().Batch(func() {
+			ctx = context.WithValue(ctx, isTopLevelActionCall, false)
 			for _, a := range actions {
 				a.Execute(ctx, state, e)
 			}
-		})
+		}, toplevel)
 	})
 }
 

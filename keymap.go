@@ -25,13 +25,21 @@ func (km Keymap) Sequence() Keyseq {
 	return km.seq
 }
 
-func (km Keymap) ExecuteAction(ctx context.Context, state *Peco, ev termbox.Event) error {
+const isTopLevelActionCall = "peco.isTopLevelActionCall"
+
+func (km Keymap) ExecuteAction(ctx context.Context, state *Peco, ev termbox.Event) (err error) {
+	if pdebug.Enabled {
+		g := pdebug.Marker("Keymap.ExecuteAction %v", ev).BindError(&err)
+		defer g.End()
+	}
+
 	a := km.LookupAction(ev)
 	if a == nil {
 		return errors.New("action not found")
 	}
 
-	a.(Action).Execute(ctx, state, ev)
+	ctx = context.WithValue(ctx, isTopLevelActionCall, true)
+	a.Execute(ctx, state, ev)
 	return nil
 }
 
