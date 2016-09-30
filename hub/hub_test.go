@@ -50,7 +50,7 @@ func TestHub(t *testing.T) {
 		h.SendDraw(true)
 		h.SendStatusMsg("Hello, World!")
 		h.SendPaging(1)
-	})
+	}, true)
 
 	phases := []string{
 		"query",
