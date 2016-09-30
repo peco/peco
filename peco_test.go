@@ -3,6 +3,8 @@ package peco
 import (
 	"bytes"
 	"fmt"
+	"io"
+	"io/ioutil"
 	"runtime"
 	"sync"
 	"testing"
@@ -44,6 +46,17 @@ func (i *interceptor) record(name string, args []interface{}) {
 	}
 
 	events[name] = append(v, interceptorArgs(args))
+}
+
+func newConfig(s string) (string, error) {
+	f, err := ioutil.TempFile("", "peco-test-config-")
+	if err != nil {
+		return "", err
+	}
+
+	io.WriteString(f, s)
+	f.Close()
+	return f.Name(), nil
 }
 
 func newPeco() *Peco {

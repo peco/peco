@@ -5,7 +5,9 @@ import (
 	"io/ioutil"
 	"os"
 	"testing"
+	"time"
 
+	termbox "github.com/nsf/termbox-go"
 	"github.com/stretchr/testify/assert"
 	"golang.org/x/net/context"
 )
@@ -67,4 +69,46 @@ func TestIssue212_SanityCheck(t *testing.T) {
 	if !assert.Equal(t, state.config.Layout, "bottom-up", "Default layout type should be 'bottom-up', got '%s'", state.config.Layout) {
 		return
 	}
+}
+
+func TestIssue345(t *testing.T) {
+	cfg, err := newConfig(`{
+	"Keymap": {
+    "C-t": "my.ToggleSelectionInAboveLine"
+	},
+	"Action": {
+		"my.ToggleSelectionInAboveLine": [
+			"peco.SelectUp",
+			"peco.ToggleSelectionAndSelectNext"
+		]
+	}
+}`)
+	if !assert.NoError(t, err, "newConfig should succeed") {
+		return
+	}
+	defer os.Remove(cfg)
+
+	state := newPeco()
+	if !assert.NoError(t, state.config.Init(), "Config.Init should succeed") {
+		return
+	}
+
+	state.Argv = append(state.Argv, []string{"--rcfile", cfg}...)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	go state.Run(ctx)
+	defer cancel()
+
+	<-state.Ready()
+
+	ev := termbox.Event{
+		Type: termbox.EventKey,
+		Key:  termbox.KeyCtrlT,
+	}
+	if !assert.NoError(t, state.Keymap().ExecuteAction(ctx, state, ev), "ExecuteAction should succeed") {
+		return
+	}
+
+	time.Sleep(time.Second)
+
 }
