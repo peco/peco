@@ -10,6 +10,7 @@ v0.4.3 - Unreleased
     action sequence. This bug probably existed for a long time,
     but probably nobody bothered to report or didn't use the
     combinations that causes the deadlock (#345)
+  * Force redraw when SelectNone/RefreshScreen is called
 
 v0.4.2 - 23 Aug 2016
   Bugs/Fixes
