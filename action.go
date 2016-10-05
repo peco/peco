@@ -244,6 +244,7 @@ func doCancelRangeMode(ctx context.Context, state *Peco, _ termbox.Event) {
 
 func doSelectNone(ctx context.Context, state *Peco, _ termbox.Event) {
 	state.Selection().Reset()
+	state.Hub().SendDraw(&DrawOptions{DisableCache: true})
 }
 
 func doSelectAll(ctx context.Context, state *Peco, _ termbox.Event) {
@@ -283,6 +284,7 @@ func doSelectVisible(ctx context.Context, state *Peco, _ termbox.Event) {
 }
 
 type errCollectResults struct{}
+
 func (err errCollectResults) Error() string {
 	return "collect results"
 }
@@ -654,7 +656,7 @@ func doDeleteBackwardChar(ctx context.Context, state *Peco, e termbox.Event) {
 }
 
 func doRefreshScreen(ctx context.Context, state *Peco, _ termbox.Event) {
-	state.ExecQuery()
+	state.Hub().SendDraw(&DrawOptions{DisableCache: true})
 }
 
 func doToggleQuery(ctx context.Context, state *Peco, _ termbox.Event) {
