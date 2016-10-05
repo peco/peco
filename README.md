@@ -18,15 +18,15 @@ For basic usage, continue down below. For more cool elaborate usage samples, [pl
 
 Demos speak more than a thousand words! Here's me looking for a process on my mac. As you can see, you can page through your results, and you can keep changing the query:
 
-![optimized](http://peco.github.io/images/peco-demo-ps.gif)
+![Executed `ps -ef | peco`, then the query `root` was typed. This shows all lines containing the word root](http://peco.github.io/images/peco-demo-ps.gif)
 
 Here's me trying to figure out which file to open:
 
-![optimized](http://peco.github.io/images/peco-demo-filename.gif)
+![Executed `find . -name '*.go' | peco` (within camlistore repository), then the query `camget` was typed. This shows all lines including the word `camget`](http://peco.github.io/images/peco-demo-filename.gif)
 
 When you combine tools like zsh, peco, and [ghq](https://github.com/motemen/ghq), you can make managing/moving around your huge dev area a piece of cake! (this example doesn't use zsh functions so you can see what I'm doing)
 
-![optimized](http://peco.github.io/images/peco-demo-ghq.gif)
+![Executed `cd $(ghq list --full-path | peco --query peco)` to show all repositories containing the word `peco`, then to change directories into the one selected](http://peco.github.io/images/peco-demo-ghq.gif)
 
 
 Features
@@ -39,7 +39,7 @@ line you are looking for
 
 Multiple terms turn the query into an "AND" query:
 
-![optimized](http://peco.github.io/images/peco-demo-multiple-queries.gif)
+![Executed `ps aux | peco`, then the query `root app` was typed. This shows all lines containing both `root` and `app`](http://peco.github.io/images/peco-demo-multiple-queries.gif)
 
 When you find that line that you want, press enter, and the resulting line
 is printed to stdout, which allows you to pipe it to other tools
@@ -48,13 +48,13 @@ is printed to stdout, which allows you to pipe it to other tools
 
 You can select multiple lines! 
 
-![optimized](http://peco.github.io/images/peco-demo-multiple-selection.gif)
+![Executed `ls -l | peco`, then used peco.ToggleSelection to select multiple lines](http://peco.github.io/images/peco-demo-multiple-selection.gif)
 
 ## Select Range Of Lines
 
 Not only can you select multiple lines one by one, you can select a range of lines (Note: The ToggleRangeMode action is not enabled by default. You need to put a custom key binding in your config file)
 
-![optimized](http://peco.github.io/images/peco-demo-range-mode.gif)
+![Executed `ps -ef | peco`, then used peco.ToggleRangeMode to select a range of lines](http://peco.github.io/images/peco-demo-range-mode.gif)
 
 ## Select Filters
 
@@ -64,19 +64,19 @@ The SmartCase filter uses case-*insensitive* matching when all of the queries ar
 
 The RegExp filter allows you to use any valid regular expression to match lines
 
-![optimized](http://peco.github.io/images/peco-demo-matcher.gif)
+![Executed `ps aux | peco`, then typed `google`, which matches the Chrome.app under IgnoreCase filter type. Whenyou change it to Regexp filter, this is no longer the case. But you can type `(?i)google` instead to toggle case-insensitive mode](http://peco.github.io/images/peco-demo-matcher.gif)
 
 ## Selectable Layout
 
 As of v0.2.5, if you would rather not move your eyes off of the bottom of the screen, you can change the screen layout by either providing the `--layout=bottom-up` command line option, or set the `Layout` variable in your configuration file
 
-![optmized](http://peco.github.io/images/peco-demo-layout-bottom-up.gif)
+![Executed `ps -ef | peco --layout=bottom-up` to toggle inverted layout mode](http://peco.github.io/images/peco-demo-layout-bottom-up.gif)
 
 ## Works on Windows!
 
 I have been told that peco even works on windows :) Look ma! I'm not lying!
 
-![optimized](https://gist.githubusercontent.com/taichi/26814518d8b00352693b/raw/b7745987de32dbf068e81a8308c0c5ed38138649/peco.gif)
+![Showing peco running on Windows cmd.exe](https://gist.githubusercontent.com/taichi/26814518d8b00352693b/raw/b7745987de32dbf068e81a8308c0c5ed38138649/peco.gif)
 
 Installation
 ============
