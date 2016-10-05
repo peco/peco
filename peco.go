@@ -244,8 +244,10 @@ func (p *Peco) Setup() (err error) {
 	}
 
 	// Read config
-	if err := readConfig(&p.config, opts.OptRcfile); err != nil {
-		return errors.Wrap(err, "failed to setup configuration")
+	if !p.skipReadConfig { // This can only be set via test
+		if err := readConfig(&p.config, opts.OptRcfile); err != nil {
+			return errors.Wrap(err, "failed to setup configuration")
+		}
 	}
 
 	// Take Args, Config, Options, and apply the configuration to

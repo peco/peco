@@ -64,6 +64,7 @@ func newPeco() *Peco {
 	state := New()
 	state.Argv = []string{"peco", file}
 	state.screen = NewDummyScreen()
+	state.skipReadConfig = true
 	return state
 }
 
