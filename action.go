@@ -370,13 +370,16 @@ func doInvertSelection(ctx context.Context, state *Peco, _ termbox.Event) {
 	}
 
 	selection := state.Selection()
-	selection.Reset()
 	b := state.CurrentLineBuffer()
 
 	for x := 0; x < b.Size(); x++ {
 		if l, err := b.LineAt(x); err == nil {
 			l.SetDirty(true)
-			selection.Add(l)
+			if selection.Has(l) {
+				selection.Remove(l)
+			} else {
+				selection.Add(l)
+			}
 		} else {
 			selection.Remove(l)
 		}
