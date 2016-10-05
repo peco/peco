@@ -656,7 +656,7 @@ func doDeleteBackwardChar(ctx context.Context, state *Peco, e termbox.Event) {
 }
 
 func doRefreshScreen(ctx context.Context, state *Peco, _ termbox.Event) {
-	state.ExecQuery()
+	state.Hub().SendDraw(&DrawOptions{DisableCache: true})
 }
 
 func doToggleQuery(ctx context.Context, state *Peco, _ termbox.Event) {
