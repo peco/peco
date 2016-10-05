@@ -1,7 +1,7 @@
 Changes
 =======
 
-v0.4.3 - Unreleased
+v0.4.3 - 05 Oct 2016
   Bugs/Fixes
   * Fix to apply InitialFilter setting from config file (#343)
   * Fix --buffer-size option
@@ -10,7 +10,7 @@ v0.4.3 - Unreleased
     action sequence. This bug probably existed for a long time,
     but probably nobody bothered to report or didn't use the
     combinations that causes the deadlock (#345)
-  * Force redraw when SelectNone/RefreshScreen is called
+  * Force redraw when SelectNone/RefreshScreen is called (#346)
 
 v0.4.2 - 23 Aug 2016
   Bugs/Fixes
