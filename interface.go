@@ -96,6 +96,7 @@ type Peco struct {
 	singleKeyJumpPrefixes   []rune
 	singleKeyJumpPrefixMap  map[rune]uint
 	singleKeyJumpShowPrefix bool
+	skipReadConfig          bool
 	styles                  StyleSet
 
 	// Source is where we buffer input. It gets reused when a new query is
