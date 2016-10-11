@@ -616,6 +616,7 @@ func (p *Peco) ExecQuery() bool {
 			pdebug.Printf("empty query, reset buffer")
 		}
 		p.ResetCurrentLineBuffer()
+		p.Hub().SendDraw(&DrawOptions{DisableCache: true})
 		return true
 	}
 
