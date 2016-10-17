@@ -367,6 +367,8 @@ func (l *ListArea) Draw(state *Peco, parent Layout, perPage int, options *DrawOp
 		newCache := make([]Line, perPage)
 		copy(newCache, l.displayCache)
 		l.displayCache = newCache
+	} else if perPage > bufsiz {
+		l.displayCache = l.displayCache[:bufsiz]
 	}
 
 	var y int
