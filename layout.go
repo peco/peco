@@ -640,7 +640,18 @@ func (l *BasicLayout) linesPerPage() int {
 	reservedLines := 2 + extraOffset
 	pp := height - reservedLines
 	if pp < 1 {
-		panic("linesPerPage is < 1 (height = " + strconv.Itoa(height) + ", reservedLines = " + strconv.Itoa(reservedLines) + ")")
+		// This is an error condition, and while we probably should handle this
+		// error more gracefully, the consumers of this method do not really
+		// do anything with this error. I think it's just safe to "2", which just
+		// means no space left to draw anything
+		if pdebug.Enabled {
+			pdebug.Printf(
+				"linesPerPage is < 1 (height = %d, reservedLines = %d), forcing return value of 2",
+				strconv.Itoa(height),
+				strconv.Itoa(reservedLines),
+			)
+		}
+		return 2
 	}
 	return pp
 }
