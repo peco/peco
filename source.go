@@ -75,6 +75,12 @@ func (s *Source) Setup(ctx context.Context, state *Peco) {
 			state.Hub().SendStatusMsg("")
 			close(s.ready)
 		}
+
+		// Register this to be called in a defer, just in case we could bailed
+		// out without reading a single line.
+		// Note: this will be a no-op if notify.Do has been called before
+		defer notify.Do(notifycb)
+
 		scanner := bufio.NewScanner(s.in)
 		defer func() {
 			if util.IsTty(s.in) {
@@ -102,7 +108,6 @@ func (s *Source) Setup(ctx context.Context, state *Peco) {
 				if pdebug.Enabled {
 					pdebug.Printf("Bailing out of source setup, because ctx was canceled")
 				}
-				notify.Do(notifycb)
 				return
 			case l, ok := <-lines:
 				if !ok {
@@ -117,10 +122,6 @@ func (s *Source) Setup(ctx context.Context, state *Peco) {
 				notify.Do(notifycb)
 			}
 		}
-		// Call this after the for loop, just in case scanner.Scan()
-		// did not return a single line.
-		// Note: this will be a no-op if notify.Do has been called before
-		notify.Do(notifycb)
 
 		if pdebug.Enabled {
 			pdebug.Printf("Read all %d lines from source", readCount)
