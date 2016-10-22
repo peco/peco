@@ -1,6 +1,10 @@
 Changes
 =======
 
+v0.4.4 - Unreleased 
+  Bugs/Fixes
+  * Fix to force a redraw of the screen when the query becomes empty (#346)
+
 v0.4.3 - 05 Oct 2016
   Bugs/Fixes
   * Fix to apply InitialFilter setting from config file (#343)

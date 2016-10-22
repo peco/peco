@@ -318,7 +318,7 @@ func (p *Peco) Run(ctx context.Context) (err error) {
 	// we can't draw onto the screen while we are reading a really big
 	// buffer.
 	// Setup source buffer
-	src, err := p.SetupSource()
+	src, err := p.SetupSource(ctx)
 	if err != nil {
 		return errors.Wrap(err, "failed to setup input source")
 	}
@@ -333,7 +333,10 @@ func (p *Peco) Run(ctx context.Context) (err error) {
 	// in the buffer. If we do, we select that line and bail out
 	if p.selectOneAndExit {
 		go func() {
-			// Wait till source has read all lines
+			// Wait till source has read all lines. We should not wait
+			// source.Ready(), because Ready returns as soon as we get
+			// a line, where as SetupDone waits until we're completely
+			// done reading the input
 			<-p.source.SetupDone()
 			// If we have only one line, we just want to bail out
 			// printing that one line as the result
@@ -399,7 +402,7 @@ func (p *Peco) parseCommandLine(opts *CLIOptions, args *[]string, argv []string)
 	return nil
 }
 
-func (p *Peco) SetupSource() (s *Source, err error) {
+func (p *Peco) SetupSource(ctx context.Context) (s *Source, err error) {
 	if pdebug.Enabled {
 		g := pdebug.Marker("Peco.SetupSource").BindError(&err)
 		defer g.End()
@@ -425,7 +428,8 @@ func (p *Peco) SetupSource() (s *Source, err error) {
 	if pdebug.Enabled {
 		pdebug.Printf("Blocking until we read something in source...")
 	}
-	go src.Setup(p)
+
+	go src.Setup(ctx, p)
 	<-src.Ready()
 
 	return src, nil
