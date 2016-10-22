@@ -11,10 +11,25 @@ import (
 	"time"
 
 	"github.com/nsf/termbox-go"
+	"github.com/peco/peco/hub"
 	"github.com/peco/peco/internal/util"
 	"github.com/stretchr/testify/assert"
 	"golang.org/x/net/context"
 )
+
+type nullHub struct{}
+
+func (h nullHub) Batch(_ func(), _ bool)                          {}
+func (h nullHub) DrawCh() chan hub.Payload                        { return nil }
+func (h nullHub) PagingCh() chan hub.Payload                      { return nil }
+func (h nullHub) QueryCh() chan hub.Payload                       { return nil }
+func (h nullHub) SendDraw(_ interface{})                          {}
+func (h nullHub) SendDrawPrompt()                                 {}
+func (h nullHub) SendPaging(_ interface{})                        {}
+func (h nullHub) SendQuery(_ string)                              {}
+func (h nullHub) SendStatusMsg(_ string)                          {}
+func (h nullHub) SendStatusMsgAndClear(_ string, _ time.Duration) {}
+func (h nullHub) StatusMsgCh() chan hub.Payload                   { return nil }
 
 type interceptorArgs []interface{}
 type interceptor struct {

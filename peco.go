@@ -209,7 +209,7 @@ func (p *Peco) Caret() *Caret {
 	return &p.caret
 }
 
-func (p *Peco) Hub() *hub.Hub {
+func (p *Peco) Hub() MessageHub {
 	return p.hub
 }
 

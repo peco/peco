@@ -41,12 +41,7 @@ func (s *Source) Setup(ctx context.Context, state *Peco) {
 		defer close(s.setupDone)
 
 		draw := func(state *Peco) {
-			// Not a great thing to do, allowing nil to be passed
-			// as state, but for testing I couldn't come up with anything
-			// better for the moment
-			if state != nil {
-				state.Hub().SendDraw(nil)
-			}
+			state.Hub().SendDraw(nil)
 		}
 
 		go func() {
