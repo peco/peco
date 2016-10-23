@@ -30,20 +30,18 @@ func NewSource(in io.Reader, idgen lineIDGenerator, capacity int, enableSep bool
 }
 
 // Setup reads from the input os.File.
-func (s *Source) Setup(state *Peco) {
+func (s *Source) Setup(ctx context.Context, state *Peco) {
 	s.setupOnce.Do(func() {
 		done := make(chan struct{})
 		refresh := make(chan struct{}, 1)
 		defer close(done)
 		defer close(refresh)
+		// And also, close the done channel so we can tell the consumers
+		// we have finished reading everything
+		defer close(s.setupDone)
 
 		draw := func(state *Peco) {
-			// Not a great thing to do, allowing nil to be passed
-			// as state, but for testing I couldn't come up with anything
-			// better for the moment
-			if state != nil {
-				state.Hub().SendDraw(nil)
-			}
+			state.Hub().SendDraw(nil)
 		}
 
 		go func() {
@@ -63,12 +61,21 @@ func (s *Source) Setup(state *Peco) {
 
 		// This sync.Once var is used to receive the notification
 		// that there was at least 1 line read from the source
+		// This is wrapped in a sync.Notify so we can safely call
+		// it in multiple places
 		var notify sync.Once
 		notifycb := func() {
 			// close the ready channel so others can be notified
 			// that there's at least 1 line in the buffer
+			state.Hub().SendStatusMsg("")
 			close(s.ready)
 		}
+
+		// Register this to be called in a defer, just in case we could bailed
+		// out without reading a single line.
+		// Note: this will be a no-op if notify.Do has been called before
+		defer notify.Do(notifycb)
+
 		scanner := bufio.NewScanner(s.in)
 		defer func() {
 			if util.IsTty(s.in) {
@@ -79,20 +86,37 @@ func (s *Source) Setup(state *Peco) {
 			}
 		}()
 
-		readCount := 0
-		for scanner.Scan() {
-			txt := scanner.Text()
-			readCount++
-			s.Append(NewRawLine(s.idgen.next(), txt, s.enableSep))
-			notify.Do(notifycb)
-		}
+		lines := make(chan string)
+		go func() {
+			defer close(lines)
+			for scanner.Scan() {
+				lines <- scanner.Text()
+			}
+		}()
 
-		// XXX Just in case scanner.Scan() did not return a single line...
-		// Note: this will be a no-op if notify.Do has been called before
-		notify.Do(notifycb)
-		// And also, close the done channel so we can tell the consumers
-		// we have finished reading everything
-		close(s.setupDone)
+		state.Hub().SendStatusMsg("Waiting for input...")
+
+		readCount := 0
+		for {
+			select {
+			case <-ctx.Done():
+				if pdebug.Enabled {
+					pdebug.Printf("Bailing out of source setup, because ctx was canceled")
+				}
+				return
+			case l, ok := <-lines:
+				if !ok {
+					if pdebug.Enabled {
+						pdebug.Printf("No more lines to read...")
+					}
+					break
+				}
+
+				readCount++
+				s.Append(NewRawLine(s.idgen.next(), l, s.enableSep))
+				notify.Do(notifycb)
+			}
+		}
 
 		if pdebug.Enabled {
 			pdebug.Printf("Read all %d lines from source", readCount)

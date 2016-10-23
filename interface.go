@@ -63,7 +63,7 @@ type Peco struct {
 	Stdin  io.Reader
 	Stdout io.Writer
 	Stderr io.Writer
-	hub    *hub.Hub
+	hub    MessageHub
 
 	args       []string
 	bufferSize int
@@ -533,4 +533,21 @@ type ExternalCmdFilter struct {
 	name            string
 	query           string
 	thresholdBufsiz int
+}
+
+// MessageHub is the interface that must be satisfied by the
+// message hub component. Unless we're in testing, github.com/peco/peco/hub.Hub
+// is used.
+type MessageHub interface {
+	Batch(func(), bool)
+	DrawCh() chan hub.Payload
+	PagingCh() chan hub.Payload
+	QueryCh() chan hub.Payload
+	SendDraw(interface{})
+	SendDrawPrompt()
+	SendPaging(interface{})
+	SendQuery(string)
+	SendStatusMsg(string)
+	SendStatusMsgAndClear(string, time.Duration)
+	StatusMsgCh() chan hub.Payload
 }
