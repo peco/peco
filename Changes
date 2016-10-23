@@ -4,6 +4,10 @@ Changes
 v0.4.4 - Unreleased 
   Bugs/Fixes
   * Fix to force a redraw of the screen when the query becomes empty (#346)
+  * Fix blocking when read from an slow input source is interrupted in
+    the middle (#359)
+  * Remove gratuitous use of panic that could happen occasionally when we
+    bail out of setup (like the scenario above)
 
 v0.4.3 - 05 Oct 2016
   Bugs/Fixes
