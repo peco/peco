@@ -95,13 +95,6 @@ If you're on OS X and want to use homebrew:
 brew install peco
 ```
 
-The above homebrew formula is maintained by the folks working on Homebrew. There is a custom tap maintained by the authors of peco, just in case something goes wrong in the homebrew formula. In general you *DO NOT* need to use this custom tap:
-
-```
-brew tap peco/peco
-brew install peco
-```
-
 ### Windows (Chocolatey NuGet Users)
 
 There's a third-party [peco package available](https://chocolatey.org/packages/peco) for Chocolatey NuGet.
@@ -110,13 +103,25 @@ There's a third-party [peco package available](https://chocolatey.org/packages/p
 C:\> choco install peco
 ```
 
-### go get
+### Building peco yourself
 
-If you want to go the Go way (install in GOPATH/bin) and just want the command:
+From the root of your cloned peco repository, run:
 
 ```
-go get github.com/peco/peco/cmd/peco
+glide install
 ```
+
+This installs the correct versions of peco's dependencies. Then build it:
+
+```
+go build cmd/peco/peco.go
+```
+
+This compiles a peco binary in the root of the cloned peco repository. Copy this file to an appropriate location.
+
+### go get IS NOT RECOMMENDED
+
+Please DO NOT use `go get` to install this tool. It bypasses the developers' intention of controlling the dependency versioning. 
 
 Command Line Options
 ====================
