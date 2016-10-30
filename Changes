@@ -1,6 +1,10 @@
 Changes
 =======
 
+v0.4.5 - Unreleased
+  Bugs/Fixes
+  * v0.4.4 broke --select-1 :/ (#363)
+
 v0.4.4 - 23 Oct 2016 
   Bugs/Fixes
   * Fix to force a redraw of the screen when the query becomes empty (#346)

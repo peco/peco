@@ -97,7 +97,7 @@ func (s *Source) Setup(ctx context.Context, state *Peco) {
 		state.Hub().SendStatusMsg("Waiting for input...")
 
 		readCount := 0
-		for {
+		for loop := true; loop; {
 			select {
 			case <-ctx.Done():
 				if pdebug.Enabled {
@@ -109,6 +109,7 @@ func (s *Source) Setup(ctx context.Context, state *Peco) {
 					if pdebug.Enabled {
 						pdebug.Printf("No more lines to read...")
 					}
+					loop = false
 					break
 				}
 

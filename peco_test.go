@@ -250,3 +250,28 @@ func TestApplyConfig(t *testing.T) {
 		return
 	}
 }
+
+func TestGHIssue363(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+
+	p := newPeco()
+	p.Argv = []string{"--select-1"}
+	p.Stdin = bytes.NewBufferString("foo\n")
+	var out bytes.Buffer
+	p.Stdout = &out
+	if !assert.NoError(t, p.Run(ctx), "p.Run should succeed") {
+		return
+	}
+
+	select {
+	case <-ctx.Done():
+		t.Errorf("we should get here before being canceled")
+		return
+	default:
+	}
+
+	if !assert.NotEqual(t, "foo\n", out.String(), "output should match") {
+		return
+	}
+}
