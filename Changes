@@ -1,7 +1,7 @@
 Changes
 =======
 
-v0.4.5 - Unreleased
+v0.4.5 - 30 Oct 2016
   Bugs/Fixes
   * v0.4.4 broke --select-1 :/ (#363)
 
