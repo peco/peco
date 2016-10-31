@@ -6,7 +6,7 @@ VERSION=$(patsubst "%",%,$(lastword $(shell grep 'const version' peco.go)))
 RELEASE_DIR=releases
 ARTIFACTS_DIR=$(RELEASE_DIR)/artifacts/$(VERSION)
 SRC_FILES = $(wildcard *.go cmd/peco/*.go internal/*/*.go)
-HAVE_GLIDE:=$(shell which glide >& /dev/null)
+HAVE_GLIDE:=$(shell which glide >/dev/null 2>&1)
 GITHUB_USERNAME=peco
 
 .PHONY: clean build build-windows-amd64 build-windows-386 build-linux-amd64 $(RELEASE_DIR)/$(GOOS)/$(GOARCH)/peco$(SUFFIX)
