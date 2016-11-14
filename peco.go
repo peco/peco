@@ -323,7 +323,11 @@ func (p *Peco) Run(ctx context.Context) (err error) {
 		return errors.Wrap(err, "failed to setup input source")
 	}
 	p.source = src
-	p.ResetCurrentLineBuffer()
+
+	if p.Query().Len() <= 0 {
+		// Re-set the source only if there are no queries
+		p.ResetCurrentLineBuffer()
+	}
 
 	if pdebug.Enabled {
 		pdebug.Printf("peco is now ready, go go go!")
@@ -358,6 +362,9 @@ func (p *Peco) Run(ctx context.Context) (err error) {
 	if q := p.initialQuery; q != "" {
 		p.Query().Set(q)
 		p.Caret().SetPos(utf8.RuneCountInString(q))
+	}
+
+	if p.Query().Len() > 0 {
 		p.ExecQuery()
 	}
 
