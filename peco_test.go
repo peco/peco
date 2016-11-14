@@ -326,7 +326,6 @@ func TestGHIssue367(t *testing.T) {
 
 	<-waitCh
 
-	go p.CollectResults()
 	p.PrintResults()
 
 	curbuf := p.CurrentLineBuffer()
