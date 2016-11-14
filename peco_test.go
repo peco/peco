@@ -275,3 +275,74 @@ func TestGHIssue363(t *testing.T) {
 		return
 	}
 }
+
+type readerFunc func([]byte) (int, error)
+
+func (f readerFunc) Read(p []byte) (int, error) {
+	return f(p)
+}
+
+func TestGHIssue367(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	p := newPeco()
+	p.Argv = []string{}
+	src := [][]byte{
+		[]byte("foo\n"),
+		[]byte("bar\n"),
+	}
+	ac := time.After(50 * time.Millisecond)
+	p.Stdin = readerFunc(func(p []byte) (int, error) {
+		if ac != nil {
+			<-ac
+			ac = nil
+		}
+
+		if len(src) == 0 {
+			return 0, io.EOF
+		}
+
+		l := len(src[0])
+		copy(p, src[0])
+		src = src[1:]
+		return l, nil
+	})
+	buf := bytes.Buffer{}
+	p.Stdout = &buf
+
+	waitCh := make(chan struct{})
+	go func() {
+		defer close(waitCh)
+		p.Run(ctx)
+	}()
+
+	p.Query().Set("bar")
+
+	select {
+	case <-time.After(900 * time.Millisecond):
+		p.screen.SendEvent(termbox.Event{Key: termbox.KeyEnter})
+	}
+
+	<-waitCh
+
+	go p.CollectResults()
+	p.PrintResults()
+
+	curbuf := p.CurrentLineBuffer()
+
+	if !assert.Equal(t, curbuf.Size(), 1, "There should be one element in buffer") {
+		return
+	}
+
+	for i := 0; i < curbuf.Size(); i++ {
+		_, err := curbuf.LineAt(i)
+		if !assert.NoError(t, err, "LineAt(%d) should succeed", i) {
+			return
+		}
+	}
+
+	if !assert.Equal(t, "bar\n", buf.String(), "output should match") {
+		return
+	}
+}

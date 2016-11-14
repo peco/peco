@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bytes"
 	"fmt"
 	"os"
 	"runtime"
@@ -31,15 +30,8 @@ func _main() int {
 	if err := cli.Run(ctx); err != nil {
 		switch {
 		case util.IsCollectResultsError(err):
-			selection := cli.Selection()
-			if selection.Len() == 0 {
-				if l, err := cli.CurrentLineBuffer().LineAt(cli.Location().LineNumber()); err == nil {
-					selection.Add(l)
-				}
-			}
-
-			cli.SetResultCh(make(chan peco.Line))
-			go cli.CollectResults()
+			cli.PrintResults()
+			return 0
 		case util.IsIgnorableError(err):
 			return 0
 		default:
@@ -48,11 +40,5 @@ func _main() int {
 		}
 	}
 
-	buf := bytes.Buffer{}
-	for line := range cli.ResultCh() {
-		buf.WriteString(line.Output())
-		buf.WriteByte('\n')
-	}
-	os.Stdout.Write(buf.Bytes())
 	return 0
 }

@@ -1,6 +1,7 @@
 package peco
 
 import (
+	"bytes"
 	"io"
 	"os"
 	"reflect"
@@ -422,8 +423,14 @@ func (p *Peco) SetupSource(ctx context.Context) (s *Source, err error) {
 		if err != nil {
 			return nil, errors.Wrap(err, "failed to open file for input")
 		}
+		if pdebug.Enabled {
+			pdebug.Printf("Using %s as input", p.args[1])
+		}
 		in = f
 	case !util.IsTty(p.Stdin):
+		if pdebug.Enabled {
+			pdebug.Printf("Using p.Stdin as input")
+		}
 		in = p.Stdin
 	default:
 		return nil, errors.New("you must supply something to work with via filename or stdin")
@@ -633,6 +640,9 @@ func (p *Peco) ExecQuery() bool {
 
 	delay := p.QueryExecDelay()
 	if delay <= 0 {
+		if pdebug.Enabled {
+			pdebug.Printf("sending query (immediate)")
+		}
 		// No delay, execute immediately
 		p.Hub().SendQuery(q.String())
 		return true
@@ -642,12 +652,21 @@ func (p *Peco) ExecQuery() bool {
 	defer p.queryExecMutex.Unlock()
 
 	if p.queryExecTimer != nil {
+		if pdebug.Enabled {
+			pdebug.Printf("timer is non-nil")
+		}
 		return true
 	}
 
 	// Wait $delay millisecs before sending the query
 	// if a new input comes in, batch them up
+	if pdebug.Enabled {
+		pdebug.Printf("sending query with delay)")
+	}
 	p.queryExecTimer = time.AfterFunc(delay, func() {
+		if pdebug.Enabled {
+			pdebug.Printf("delayed query sent")
+		}
 		p.Hub().SendQuery(q.String())
 
 		p.queryExecMutex.Lock()
@@ -658,16 +677,30 @@ func (p *Peco) ExecQuery() bool {
 	return true
 }
 
-func (p *Peco) CollectResults() {
-	// In rare cases where the result channel is not setup
-	// prior to call to this method, bail out
-	if p.resultCh == nil {
-		return
+func (p *Peco) PrintResults() {
+	if pdebug.Enabled {
+		g := pdebug.Marker("Peco.PrintResults")
+		defer g.End()
 	}
+	selection := p.Selection()
+	if selection.Len() == 0 {
+		if l, err := p.CurrentLineBuffer().LineAt(p.Location().LineNumber()); err == nil {
+			selection.Add(l)
+		}
+	}
+	p.SetResultCh(make(chan Line))
+	go func() {
+		defer close(p.resultCh)
+		p.selection.Ascend(func(it btree.Item) bool {
+			p.ResultCh() <- it.(Line)
+			return true
+		})
+	}()
 
-	p.selection.Ascend(func(it btree.Item) bool {
-		p.resultCh <- it.(Line)
-		return true
-	})
-	close(p.resultCh)
+	var buf bytes.Buffer
+	for line := range p.ResultCh() {
+		buf.WriteString(line.Output())
+		buf.WriteByte('\n')
+	}
+	p.Stdout.Write(buf.Bytes())
 }
