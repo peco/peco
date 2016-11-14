@@ -1,6 +1,11 @@
 Changes
 =======
 
+v0.4.6 - Not yet released
+  Bugs/Fixes
+  * A very subtle timing issue that causes the search to be reset
+    has been resolved (#364)
+
 v0.4.5 - 30 Oct 2016
   Bugs/Fixes
   * v0.4.4 broke --select-1 :/ (#363)
