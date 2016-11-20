@@ -297,6 +297,16 @@ type regexpFlagList []string
 
 type regexpFlagFunc func(string) []string
 
+// queryTransformer is able to transform a query from one form to another.
+// This is used by the FuzzyFilter to transform the user query to a regular
+// expression.
+type queryTransformer interface {
+	transform(string) string
+}
+
+// type queryTransformerFunc implements queryTransformer.
+type queryTransformerFunc func(string) string
+
 // Filter is responsible for the actual "grep" part of peco
 type Filter struct {
 	state *Peco
@@ -324,7 +334,7 @@ type FilteredBuffer struct {
 }
 
 // Config holds all the data that can be configured in the
-// external configuran file
+// external configuration file
 type Config struct {
 	Action map[string][]string `json:"Action"`
 	// Keymap used to be directly responsible for dispatching
@@ -518,6 +528,7 @@ type RegexpFilter struct {
 	flags         regexpFlags
 	quotemeta     bool
 	query         string
+	queryTrans    queryTransformer
 	mutex         sync.Mutex
 	name          string
 	onEnd         func()

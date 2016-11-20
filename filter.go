@@ -126,7 +126,7 @@ func (f *Filter) Work(ctx context.Context, q hub.Payload) {
 			g := pdebug.Marker("Periodic draw request for '%s'", query)
 			defer g.End()
 		}
-		t := time.NewTicker(5*time.Millisecond)
+		t := time.NewTicker(5 * time.Millisecond)
 		defer t.Stop()
 		defer state.Hub().SendStatusMsg("")
 		defer state.Hub().SendDraw(&DrawOptions{RunningQuery: true})
@@ -199,11 +199,12 @@ func (rf *RegexpFilter) OutCh() <-chan interface{} {
 
 func (rf RegexpFilter) Clone() LineFilter {
 	return &RegexpFilter{
-		flags:     rf.flags,
-		quotemeta: rf.quotemeta,
-		query:     rf.query,
-		name:      rf.name,
-		outCh:     pipeline.OutputChannel(make(chan interface{})),
+		flags:      rf.flags,
+		quotemeta:  rf.quotemeta,
+		query:      rf.query,
+		queryTrans: rf.queryTrans,
+		name:       rf.name,
+		outCh:      pipeline.OutputChannel(make(chan interface{})),
 	}
 }
 
@@ -258,7 +259,7 @@ func (rf *RegexpFilter) Accept(ctx context.Context, in chan interface{}, out pip
 	defer func() { <-flushDone }() // Wait till the flush goroutine is done
 	defer close(flush)             // Kill the flush goroutine
 
-	flushTicker := time.NewTicker(50*time.Millisecond)
+	flushTicker := time.NewTicker(50 * time.Millisecond)
 	defer flushTicker.Stop()
 
 	start := time.Now()
@@ -367,7 +368,7 @@ func (rf *RegexpFilter) getQueryAsRegexps() ([]*regexp.Regexp, error) {
 	if q := rf.compiledQuery; q != nil {
 		return q, nil
 	}
-	q, err := queryToRegexps(rf.flags, rf.quotemeta, rf.query)
+	q, err := queryToRegexps(rf.flags, rf.quotemeta, rf.query, rf.queryTrans)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to compile queries as regular expression")
 	}
@@ -416,6 +417,41 @@ func NewSmartCaseFilter() *RegexpFilter {
 			return defaultFlags
 		}
 		return []string{"i"}
+	})
+	return rf
+}
+
+// NewFuzzyFilter builds a fuzzy-finder type of filter.
+// In effect, this uses a smart case filter, and
+// transforms the query from "ABC" to "A(.*)B(.*)C(.*)"
+func NewFuzzyFilter() *RegexpFilter {
+	rf := NewRegexpFilter()
+	rf.flags = regexpFlagFunc(func(q string) []string {
+		if util.ContainsUpper(q) {
+			return defaultFlags
+		}
+		return []string{"i"}
+	})
+	rf.quotemeta = true
+	rf.name = "FuzzySearch"
+	rf.queryTrans = queryTransformerFunc(func(q string) string {
+		// Assume that all characters are runes
+		qr := []rune(q)
+		res := make([]rune, 5*len(qr))
+		i := 0
+		for _, r := range qr {
+			res[i] = r
+			i++
+			res[i] = '('
+			i++
+			res[i] = '.'
+			i++
+			res[i] = '*'
+			i++
+			res[i] = ')'
+			i++
+		}
+		return string(res)
 	})
 	return rf
 }
