@@ -46,6 +46,11 @@ const (
 	RegexpMatch        = "Regexp"
 )
 
+// Filter names, used in the config file
+const (
+	FuzzyFilter = "Fuzzy"
+)
+
 // lineIDGenerator defines an interface for things that generate
 // unique IDs for lines used within peco.
 type lineIDGenerator interface {
@@ -55,6 +60,11 @@ type lineIDGenerator interface {
 type idgen struct {
 	ch chan uint64
 }
+
+const (
+	OptionEnabled  = "enabled"
+	OptionDisabled = "disabled"
+)
 
 // Peco is the global object containing everything required to run peco.
 // It also contains the global state of the program.
@@ -74,6 +84,7 @@ type Peco struct {
 	enableSep               bool // Enable parsing on separators
 	filters                 FilterSet
 	idgen                   *idgen
+	enableFuzzy             bool
 	initialFilter           string
 	initialQuery            string   // populated if --query is specified
 	inputseq                Inputseq // current key sequence (just the names)
@@ -343,6 +354,7 @@ type Config struct {
 	Keymap              map[string]string `json:"Keymap"`
 	Matcher             string            `json:"Matcher"`        // Deprecated.
 	InitialMatcher      string            `json:"InitialMatcher"` // Use this instead of Matcher
+	FuzzyFilter         string            `json:"FuzzyFilter"`
 	InitialFilter       string            `json:"InitialFilter"`
 	Style               StyleSet          `json:"Style"`
 	Prompt              string            `json:"Prompt"`
@@ -475,6 +487,7 @@ type CLIOptions struct {
 	OptEnableNullSep  bool   `long:"null" description:"expect NUL (\\0) as separator for target/output"`
 	OptInitialIndex   int    `long:"initial-index" description:"position of the initial index of the selection (0 base)"`
 	OptInitialMatcher string `long:"initial-matcher" description:"specify the default matcher (deprecated)"`
+	OptFuzzyFilter    string `short:"z" long:"fuzzy-filter" description:"enable/disable the Fuzzy filter"`
 	OptInitialFilter  string `long:"initial-filter" description:"specify the default filter"`
 	OptPrompt         string `long:"prompt" description:"specify the prompt string"`
 	OptLayout         string `long:"layout" description:"layout to be used 'top-down' or 'bottom-up'. default is 'top-down'"`

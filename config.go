@@ -25,6 +25,7 @@ func (c *Config) Init() error {
 	c.Style.Init()
 	c.Prompt = "QUERY>"
 	c.Layout = LayoutTypeTopDown
+	c.FuzzyFilter = OptionDisabled
 	return nil
 }
 

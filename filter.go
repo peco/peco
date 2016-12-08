@@ -433,9 +433,8 @@ func NewFuzzyFilter() *RegexpFilter {
 		return []string{"i"}
 	})
 	rf.quotemeta = true
-	rf.name = "FuzzySearch"
+	rf.name = FuzzyFilter
 	rf.queryTrans = queryTransformerFunc(func(q string) string {
-		// Assume that all characters are runes
 		qr := []rune(q)
 		res := make([]rune, 5*len(qr))
 		i := 0

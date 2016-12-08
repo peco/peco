@@ -500,12 +500,29 @@ func (p *Peco) ApplyConfig(opts CLIOptions) error {
 	p.bufferSize = opts.OptBufferSize
 	p.selectOneAndExit = opts.OptSelect1
 	p.initialQuery = opts.OptQuery
+	// Option EnableFuzzy is a string to allow overriding the value on the command line
+	fuzzyFilter := opts.OptFuzzyFilter
+	if len(fuzzyFilter) <= 0 {
+		fuzzyFilter = p.config.FuzzyFilter
+	}
+	if len(fuzzyFilter) > 0 {
+		if fuzzyFilter == OptionEnabled {
+			p.enableFuzzy = true
+		} else if fuzzyFilter == OptionDisabled {
+			p.enableFuzzy = false
+		} else {
+			return errors.Errorf("Unexpected value for FuzzyFilter option: %v (expected %v/%v)", fuzzyFilter, OptionEnabled, OptionDisabled)
+		}
+	}
 	p.initialFilter = opts.OptInitialFilter
 	if len(p.initialFilter) <= 0 {
 		p.initialFilter = p.config.InitialFilter
 	}
 	if len(p.initialFilter) <= 0 {
 		p.initialFilter = opts.OptInitialMatcher
+	}
+	if len(p.initialFilter) > 0 && !p.enableFuzzy && p.initialFilter == FuzzyFilter {
+		return errors.New("Fuzzy filter is not enabled, can not set it to the initial filter.")
 	}
 
 	if err := p.populateCommandList(); err != nil {
@@ -566,7 +583,9 @@ func (p *Peco) populateFilters() error {
 	p.filters.Add(NewCaseSensitiveFilter())
 	p.filters.Add(NewSmartCaseFilter())
 	p.filters.Add(NewRegexpFilter())
-	p.filters.Add(NewFuzzyFilter())
+	if p.enableFuzzy {
+		p.filters.Add(NewFuzzyFilter())
+	}
 
 	for name, c := range p.config.CustomFilter {
 		f := NewExternalCmdFilter(name, c.Cmd, c.Args, c.BufferThreshold, p.idgen, p.enableSep)
