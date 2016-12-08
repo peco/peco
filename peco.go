@@ -500,17 +500,17 @@ func (p *Peco) ApplyConfig(opts CLIOptions) error {
 	p.bufferSize = opts.OptBufferSize
 	p.selectOneAndExit = opts.OptSelect1
 	p.initialQuery = opts.OptQuery
-	// Option EnableFuzzy is a string to allow overriding the value on the command line
 	fuzzyFilter := opts.OptFuzzyFilter
 	if len(fuzzyFilter) <= 0 {
 		fuzzyFilter = p.config.FuzzyFilter
 	}
 	if len(fuzzyFilter) > 0 {
-		if fuzzyFilter == OptionEnabled {
+		switch fuzzyFilter {
+		case OptionEnabled:
 			p.enableFuzzy = true
-		} else if fuzzyFilter == OptionDisabled {
+		case OptionDisabled:
 			p.enableFuzzy = false
-		} else {
+		default:
 			return errors.Errorf("Unexpected value for FuzzyFilter option: %v (expected %v/%v)", fuzzyFilter, OptionEnabled, OptionDisabled)
 		}
 	}
