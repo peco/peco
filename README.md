@@ -64,7 +64,7 @@ The SmartCase filter uses case-*insensitive* matching when all of the queries ar
 
 The RegExp filter allows you to use any valid regular expression to match lines
 
-The Fuzzy filter allows you to find matches using partial patterns. For example, when searching for `ALongString`, you can enable the Fuzzy filter and search `ALS` to find it. The Fuzzy filter uses smart case search like the SmartCase filter. The Fuzzy filter is not enabled by default, but can be enabled using option `--enable-fuzzy`.
+The Fuzzy filter allows you to find matches using partial patterns. For example, when searching for `ALongString`, you can enable the Fuzzy filter and search `ALS` to find it. The Fuzzy filter uses smart case search like the SmartCase filter. The Fuzzy filter is not enabled by default, but can be enabled using option `--fuzzy-filter`.
 
 ![Executed `ps aux | peco`, then typed `google`, which matches the Chrome.app under IgnoreCase filter type. When you change it to Regexp filter, this is no longer the case. But you can type `(?i)google` instead to toggle case-insensitive mode](http://peco.github.io/images/peco-demo-matcher.gif)
 
@@ -225,7 +225,7 @@ You can change the query line's prompt, which is `QUERY>` by default.
 
 ### FuzzyFilter
 
-Set to `enabled` to make the Fuzzy filter available. Default is `disabled`.
+Set to `enabled` to make the Fuzzy filter available, or `disabled` to disable it. Default is `disabled`.
 
 ### InitialFilter
 
