@@ -9,7 +9,6 @@ import (
 	"strings"
 	"sync"
 	"time"
-	"unicode"
 	"unicode/utf8"
 
 	"github.com/lestrrat/go-pdebug"
@@ -479,7 +478,7 @@ func (ff *FuzzyFilter) filter(l Line) (Line, error) {
 	txt := l.DisplayString()
 	matches := [][]int{}
 
-	hasUpper := strings.IndexFunc(query, unicode.IsUpper) > -1
+	hasUpper := util.ContainsUpper(query)
 
 	for len(query) > 0 {
 		r, n := utf8.DecodeRuneInString(query)
@@ -493,9 +492,7 @@ func (ff *FuzzyFilter) filter(l Line) (Line, error) {
 		if hasUpper { // explicit match
 			i = strings.IndexRune(txt, r)
 		} else {
-			i = strings.IndexFunc(txt, func(v rune) bool {
-				return unicode.ToUpper(r) == v || unicode.ToLower(r) == v
-			})
+			i = strings.IndexFunc(txt, util.CaseInsensitiveIndexFunc(r))
 		}
 		if i == -1 {
 			return nil, errors.New("filter did not match against given line")
