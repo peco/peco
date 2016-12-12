@@ -202,12 +202,11 @@ func (rf *RegexpFilter) OutCh() <-chan interface{} {
 
 func (rf RegexpFilter) Clone() LineFilter {
 	return &RegexpFilter{
-		flags:      rf.flags,
-		quotemeta:  rf.quotemeta,
-		query:      rf.query,
-		queryTrans: rf.queryTrans,
-		name:       rf.name,
-		outCh:      pipeline.OutputChannel(make(chan interface{})),
+		flags:     rf.flags,
+		quotemeta: rf.quotemeta,
+		query:     rf.query,
+		name:      rf.name,
+		outCh:     pipeline.OutputChannel(make(chan interface{})),
 	}
 }
 
@@ -384,7 +383,7 @@ func (rf *RegexpFilter) getQueryAsRegexps() ([]*regexp.Regexp, error) {
 	if q := rf.compiledQuery; q != nil {
 		return q, nil
 	}
-	q, err := queryToRegexps(rf.flags, rf.quotemeta, rf.query, rf.queryTrans)
+	q, err := queryToRegexps(rf.flags, rf.quotemeta, rf.query)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to compile queries as regular expression")
 	}
@@ -505,7 +504,7 @@ func (ff *FuzzyFilter) filter(l Line) (Line, error) {
 		// otherwise we have a match, but the next match must match against
 		// something AFTER the current match
 		txt = txt[i+n:]
-		matches = append(matches, []int{base + i, base+i+n})
+		matches = append(matches, []int{base + i, base + i + n})
 		base = base + i + n
 	}
 	return NewMatchedLine(l, matches), nil

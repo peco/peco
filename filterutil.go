@@ -19,18 +19,10 @@ func (r regexpFlagFunc) flags(s string) []string {
 	return r(s)
 }
 
-func (t queryTransformerFunc) transform(s string) string {
-	return t(s)
-}
-
-func regexpFor(q string, flags []string, quotemeta bool, queryTrans queryTransformer) (*regexp.Regexp, error) {
+func regexpFor(q string, flags []string, quotemeta bool) (*regexp.Regexp, error) {
 	reTxt := q
 	if quotemeta {
 		reTxt = regexp.QuoteMeta(q)
-	}
-
-	if queryTrans != nil {
-		reTxt = queryTrans.transform(reTxt)
 	}
 
 	if flags != nil && len(flags) > 0 {
@@ -44,12 +36,12 @@ func regexpFor(q string, flags []string, quotemeta bool, queryTrans queryTransfo
 	return re, nil
 }
 
-func queryToRegexps(flags regexpFlags, quotemeta bool, query string, queryTrans queryTransformer) ([]*regexp.Regexp, error) {
+func queryToRegexps(flags regexpFlags, quotemeta bool, query string) ([]*regexp.Regexp, error) {
 	queries := strings.Split(strings.TrimSpace(query), " ")
 	regexps := make([]*regexp.Regexp, 0)
 
 	for _, q := range queries {
-		re, err := regexpFor(q, flags.flags(query), quotemeta, queryTrans)
+		re, err := regexpFor(q, flags.flags(query), quotemeta)
 		if err != nil {
 			return nil, errors.Wrapf(err, "failed to compile regular expression '%s'", q)
 		}
