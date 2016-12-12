@@ -46,11 +46,6 @@ const (
 	RegexpMatch        = "Regexp"
 )
 
-// Filter names, used in the config file
-const (
-	FuzzyFilter = "Fuzzy"
-)
-
 // lineIDGenerator defines an interface for things that generate
 // unique IDs for lines used within peco.
 type lineIDGenerator interface {
@@ -487,7 +482,6 @@ type CLIOptions struct {
 	OptEnableNullSep  bool   `long:"null" description:"expect NUL (\\0) as separator for target/output"`
 	OptInitialIndex   int    `long:"initial-index" description:"position of the initial index of the selection (0 base)"`
 	OptInitialMatcher string `long:"initial-matcher" description:"specify the default matcher (deprecated)"`
-	OptFuzzyFilter    string `short:"z" long:"fuzzy-filter" description:"enable/disable the Fuzzy filter"`
 	OptInitialFilter  string `long:"initial-filter" description:"specify the default filter"`
 	OptPrompt         string `long:"prompt" description:"specify the prompt string"`
 	OptLayout         string `long:"layout" description:"layout to be used 'top-down' or 'bottom-up'. default is 'top-down'"`
@@ -534,6 +528,11 @@ type LineFilter interface {
 	SetQuery(string)
 	Clone() LineFilter
 	String() string
+}
+
+type FuzzyFilter struct {
+	mutex sync.Mutex
+	query string
 }
 
 type RegexpFilter struct {

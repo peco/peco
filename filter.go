@@ -6,8 +6,11 @@ import (
 	"os/exec"
 	"regexp"
 	"sort"
+	"strings"
 	"sync"
 	"time"
+	"unicode"
+	"unicode/utf8"
 
 	"github.com/lestrrat/go-pdebug"
 	"github.com/peco/peco/hub"
@@ -216,7 +219,7 @@ var filterBufPool = sync.Pool{
 	},
 }
 
-func releaseRegexpFilterBuf(l []Line) {
+func releaseFilterLineBuf(l []Line) {
 	if l == nil {
 		return
 	}
@@ -224,9 +227,33 @@ func releaseRegexpFilterBuf(l []Line) {
 	filterBufPool.Put(l)
 }
 
-func getRegexpFilterBuf() []Line {
+func getFilterLineBuf() []Line {
 	l := filterBufPool.Get().([]Line)
 	return l
+}
+
+type filter interface {
+	filter(Line) (Line, error)
+}
+
+// This flusher is run in a separate goroutine so that the filter can
+// run separately from accepting incoming messages
+func flusher(f filter, incoming chan []Line, done chan struct{}, out pipeline.OutputChannel) {
+	if pdebug.Enabled {
+		g := pdebug.Marker("flusher goroutine")
+		defer g.End()
+	}
+
+	defer close(done)
+	defer out.SendEndMark("end of filter")
+	for buf := range incoming {
+		for _, in := range buf {
+			if l, err := f.filter(in); err == nil {
+				out.Send(l)
+			}
+		}
+		releaseFilterLineBuf(buf)
+	}
 }
 
 func (rf *RegexpFilter) Accept(ctx context.Context, in chan interface{}, out pipeline.OutputChannel) {
@@ -235,27 +262,16 @@ func (rf *RegexpFilter) Accept(ctx context.Context, in chan interface{}, out pip
 		defer g.End()
 	}
 
+	filterAcceptAndFilter(ctx, rf, in, out)
+}
+
+func filterAcceptAndFilter(ctx context.Context, f filter, in chan interface{}, out pipeline.OutputChannel) {
 	flush := make(chan []Line)
 	flushDone := make(chan struct{})
-	go func() {
-		if pdebug.Enabled {
-			g := pdebug.Marker("RegexpFilter.Accept flusher goroutine")
-			defer g.End()
-		}
-		defer close(flushDone)
-		defer out.SendEndMark("end of RegexpFilter")
-		for buf := range flush {
-			for _, in := range buf {
-				if l, err := rf.filter(in); err == nil {
-					out.Send(l)
-				}
-			}
-			releaseRegexpFilterBuf(buf)
-		}
-	}()
+	go flusher(f, flush, flushDone, out)
 
-	buf := getRegexpFilterBuf()
-	defer func() { releaseRegexpFilterBuf(buf) }()
+	buf := getFilterLineBuf()
+	defer func() { releaseFilterLineBuf(buf) }()
 	defer func() { <-flushDone }() // Wait till the flush goroutine is done
 	defer close(flush)             // Kill the flush goroutine
 
@@ -268,7 +284,7 @@ func (rf *RegexpFilter) Accept(ctx context.Context, in chan interface{}, out pip
 		select {
 		case <-ctx.Done():
 			if pdebug.Enabled {
-				pdebug.Printf("RegexpFilter received done")
+				pdebug.Printf("filter received done")
 			}
 			return
 		case v := <-in:
@@ -276,7 +292,7 @@ func (rf *RegexpFilter) Accept(ctx context.Context, in chan interface{}, out pip
 			case error:
 				if pipeline.IsEndMark(v.(error)) {
 					if pdebug.Enabled {
-						pdebug.Printf("RegexpFilter received end mark (read %d lines, %s since starting accept loop)", lines+len(buf), time.Since(start).String())
+						pdebug.Printf("filter received end mark (read %d lines, %s since starting accept loop)", lines+len(buf), time.Since(start).String())
 					}
 					if len(buf) > 0 {
 						flush <- buf
@@ -296,11 +312,11 @@ func (rf *RegexpFilter) Accept(ctx context.Context, in chan interface{}, out pip
 				select {
 				case <-flushTicker.C:
 					flush <- buf
-					buf = getRegexpFilterBuf()
+					buf = getFilterLineBuf()
 				default:
 					if len(buf) >= cap(buf) {
 						flush <- buf
-						buf = getRegexpFilterBuf()
+						buf = getFilterLineBuf()
 					}
 				}
 			}
@@ -423,36 +439,76 @@ func NewSmartCaseFilter() *RegexpFilter {
 
 // NewFuzzyFilter builds a fuzzy-finder type of filter.
 // In effect, this uses a smart case filter, and
-// transforms the query from "ABC" to "A(.*)B(.*)C(.*)"
-func NewFuzzyFilter() *RegexpFilter {
-	rf := NewRegexpFilter()
-	rf.flags = regexpFlagFunc(func(q string) []string {
-		if util.ContainsUpper(q) {
-			return defaultFlags
+// transforms the query from "ABC" to the equivalent of "A(.*)B(.*)C(.*)"
+func NewFuzzyFilter() *FuzzyFilter {
+	return &FuzzyFilter{}
+}
+
+func (ff FuzzyFilter) Clone() LineFilter {
+	return &FuzzyFilter{
+		query: ff.query,
+	}
+}
+
+func (ff *FuzzyFilter) SetQuery(q string) {
+	ff.mutex.Lock()
+	defer ff.mutex.Unlock()
+
+	ff.query = q
+}
+
+func (ff FuzzyFilter) String() string {
+	return "Fuzzy"
+}
+
+func (ff *FuzzyFilter) Accept(ctx context.Context, in chan interface{}, out pipeline.OutputChannel) {
+	if pdebug.Enabled {
+		g := pdebug.Marker("FuzzyFilter.Accept")
+		defer g.End()
+	}
+
+	filterAcceptAndFilter(ctx, ff, in, out)
+}
+
+func (ff *FuzzyFilter) filter(l Line) (Line, error) {
+	query := ""
+	ff.mutex.Lock()
+	query = ff.query
+	ff.mutex.Unlock()
+
+	base := 0
+	txt := l.DisplayString()
+	matches := [][]int{}
+
+	hasUpper := strings.IndexFunc(query, unicode.IsUpper) > -1
+
+	for len(query) > 0 {
+		r, n := utf8.DecodeRuneInString(query)
+		if r == utf8.RuneError {
+			// "Silently" ignore (just return a no match)
+			return nil, errors.New("failed to decode input string")
 		}
-		return []string{"i"}
-	})
-	rf.quotemeta = true
-	rf.name = FuzzyFilter
-	rf.queryTrans = queryTransformerFunc(func(q string) string {
-		qr := []rune(q)
-		res := make([]rune, 5*len(qr))
-		i := 0
-		for _, r := range qr {
-			res[i] = r
-			i++
-			res[i] = '('
-			i++
-			res[i] = '.'
-			i++
-			res[i] = '*'
-			i++
-			res[i] = ')'
-			i++
+		query = query[n:]
+
+		var i int
+		if hasUpper { // explicit match
+			i = strings.IndexRune(txt, r)
+		} else {
+			i = strings.IndexFunc(txt, func(v rune) bool {
+				return unicode.ToUpper(r) == v || unicode.ToLower(r) == v
+			})
 		}
-		return string(res)
-	})
-	return rf
+		if i == -1 {
+			return nil, errors.New("filter did not match against given line")
+		}
+
+		// otherwise we have a match, but the next match must match against
+		// something AFTER the current match
+		txt = txt[i+n:]
+		matches = append(matches, []int{base + i, base+i+n})
+		base = base + i + n
+	}
+	return NewMatchedLine(l, matches), nil
 }
 
 func NewExternalCmdFilter(name string, cmd string, args []string, threshold int, idgen lineIDGenerator, enableSep bool) *ExternalCmdFilter {

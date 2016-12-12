@@ -202,35 +202,8 @@ func TestConfigFuzzyFilter(t *testing.T) {
 	p := newPeco()
 
 	// Ensure that it's possible to enable the Fuzzy filter
-	opts.OptFuzzyFilter = "enabled"
-	if !assert.NoError(t, p.ApplyConfig(opts), "p.ApplyConfig should succeed") {
-		return
-	}
-	if !assert.Equal(t, true, p.enableFuzzy, "p.enableFuzzy should be equal to opts.OptEnableFuzzy") {
-		return
-	}
-	opts.OptFuzzyFilter = "abc"
-	if !assert.Error(t, p.ApplyConfig(opts), "p.ApplyConfig should not succeed") {
-		return
-	}
-}
-
-func TestConfigInitialFilterFuzzy(t *testing.T) {
-	var opts CLIOptions
-	p := newPeco()
-
-	// If Fuzzy is not enabled, initialFilter=Fuzzy should cause peco to fail
-	opts.OptFuzzyFilter = "disabled"
 	opts.OptInitialFilter = "Fuzzy"
-	if !assert.Error(t, p.ApplyConfig(opts), "p.ApplyConfig should not succeed") {
-		return
-	}
-	// If Fuzzy is enabled, it should be possible to set the initial filter to Fuzzy
-	opts.OptFuzzyFilter = "enabled"
 	if !assert.NoError(t, p.ApplyConfig(opts), "p.ApplyConfig should succeed") {
-		return
-	}
-	if !assert.Equal(t, true, p.enableFuzzy, "p.enableFuzzy should be equal to opts.OptEnableFuzzy") {
 		return
 	}
 }

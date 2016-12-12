@@ -1,6 +1,11 @@
 package peco
 
-import "testing"
+import (
+	"fmt"
+	"testing"
+
+	"github.com/stretchr/testify/assert"
+)
 
 // TestFuzzyFilter tests a fuzzy filter against various inputs
 func TestFuzzyFilter(t *testing.T) {
@@ -23,20 +28,29 @@ func TestFuzzyFilter(t *testing.T) {
 	}
 	filter := NewFuzzyFilter()
 	for i, v := range testValues {
-		filter.SetQuery(v.query)
-		l := NewRawLine(uint64(i), v.input, false)
-		res, err := filter.filter(l)
-		if v.selected && err != nil {
-			t.Log("Filtering failed.", "input", v.input, "query", v.query, "err", err)
-			t.Fail()
-		}
-		if v.selected && res == nil {
-			t.Log("The line should have been selected.", "input", v.input, "query", v.query)
-			t.Fail()
-		}
-		if !v.selected && res != nil {
-			t.Log("The line should not have been selected.", "input", v.input, "query", v.query)
-			t.Fail()
-		}
+		t.Run(fmt.Sprintf(`"%s" against "%s", expect "%t"`, v.input, v.query, v.selected), func(t *testing.T) {
+			filter.SetQuery(v.query)
+			l := NewRawLine(uint64(i), v.input, false)
+			res, err := filter.filter(l)
+
+			if !v.selected {
+				if !assert.Error(t, err, "filter should fail") {
+					return
+				}
+				if !assert.Nil(t, res, "return value should be nil") {
+					return
+				}
+				return
+			}
+
+			if !assert.NoError(t, err, "filtering failed") {
+				return
+			}
+
+			if !assert.NotNil(t, res, "return value should NOT be nil") {
+				return
+			}
+			t.Logf("%#v", res.Indices())
+		})
 	}
 }

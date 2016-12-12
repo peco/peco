@@ -64,7 +64,7 @@ The SmartCase filter uses case-*insensitive* matching when all of the queries ar
 
 The RegExp filter allows you to use any valid regular expression to match lines
 
-The Fuzzy filter allows you to find matches using partial patterns. For example, when searching for `ALongString`, you can enable the Fuzzy filter and search `ALS` to find it. The Fuzzy filter uses smart case search like the SmartCase filter. The Fuzzy filter is not enabled by default, but can be enabled using the option `--fuzzy-filter`.
+The Fuzzy filter allows you to find matches using partial patterns. For example, when searching for `ALongString`, you can enable the Fuzzy filter and search `ALS` to find it. The Fuzzy filter uses smart case search like the SmartCase filter.
 
 ![Executed `ps aux | peco`, then typed `google`, which matches the Chrome.app under IgnoreCase filter type. When you change it to Regexp filter, this is no longer the case. But you can type `(?i)google` instead to toggle case-insensitive mode](http://peco.github.io/images/peco-demo-matcher.gif)
 
@@ -160,13 +160,9 @@ Changes how peco interprets incoming data. When this flag is set, you may insert
 
 Specifies the initial line position upon start up. E.g. If you want to start out with the second line selected, set it to "1" (because the index is 0 based)
 
-### --fuzzy-filter `enabled|disabled`
-
-Make the Fuzzy filter available. The command line option can override the value in the configuration file. Default is `disabled`.
-
 ### --initial-filter `IgnoreCase|CaseSensitive|SmartCase|Regexp|Fuzzy`
 
-Specifies the initial filter to use upon start up. You should specify the name of the filter like `IgnoreCase`, `CaseSensitive`, `SmartCase`, `Regexp` and `Fuzzy` (if enabled). Default is `IgnoreCase`.
+Specifies the initial filter to use upon start up. You should specify the name of the filter like `IgnoreCase`, `CaseSensitive`, `SmartCase`, `Regexp` and `Fuzzy`. Default is `IgnoreCase`.
 
 ### --prompt
 
@@ -223,13 +219,9 @@ You can change the query line's prompt, which is `QUERY>` by default.
 
 *InitialMatcher* has been deprecated. Please use `InitialFilter` instead.
 
-### FuzzyFilter
-
-Set to `enabled` to make the Fuzzy filter available, or `disabled` to disable it. Default is `disabled`.
-
 ### InitialFilter
 
-Specifies the filter name to start peco with. You should specify the name of the filter, such as `IgnoreCase`, `CaseSensitive`, `SmartCase`, `Regexp` and `Fuzzy` (if [enabled](#FuzzyFilter)).
+Specifies the filter name to start peco with. You should specify the name of the filter, such as `IgnoreCase`, `CaseSensitive`, `SmartCase`, `Regexp` and `Fuzzy`.
 
 ### StickySelection
 
