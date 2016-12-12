@@ -436,8 +436,8 @@ func NewSmartCaseFilter() *RegexpFilter {
 }
 
 // NewFuzzyFilter builds a fuzzy-finder type of filter.
-// In effect, this uses a smart case filter, and
-// transforms the query from "ABC" to the equivalent of "A(.*)B(.*)C(.*)"
+// In effect, this uses a smart case filter, and for q query 
+// like "ABC" it matches the equivalent of "A(.*)B(.*)C(.*)"
 func NewFuzzyFilter() *FuzzyFilter {
 	return &FuzzyFilter{}
 }
