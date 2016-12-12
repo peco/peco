@@ -47,7 +47,6 @@ func TestReadRC(t *testing.T) {
 		InitialMatcher: IgnoreCaseMatch,
 		Layout:         DefaultLayoutType,
 		Prompt:         "[peco]",
-		FuzzyFilter:    "disabled",
 		Style: StyleSet{
 			Matched: Style{
 				fg: termbox.ColorCyan | termbox.AttrBold,

@@ -56,11 +56,6 @@ type idgen struct {
 	ch chan uint64
 }
 
-const (
-	OptionEnabled  = "enabled"
-	OptionDisabled = "disabled"
-)
-
 // Peco is the global object containing everything required to run peco.
 // It also contains the global state of the program.
 type Peco struct {
@@ -79,7 +74,6 @@ type Peco struct {
 	enableSep               bool // Enable parsing on separators
 	filters                 FilterSet
 	idgen                   *idgen
-	enableFuzzy             bool
 	initialFilter           string
 	initialQuery            string   // populated if --query is specified
 	inputseq                Inputseq // current key sequence (just the names)
@@ -349,7 +343,6 @@ type Config struct {
 	Keymap              map[string]string `json:"Keymap"`
 	Matcher             string            `json:"Matcher"`        // Deprecated.
 	InitialMatcher      string            `json:"InitialMatcher"` // Use this instead of Matcher
-	FuzzyFilter         string            `json:"FuzzyFilter"`
 	InitialFilter       string            `json:"InitialFilter"`
 	Style               StyleSet          `json:"Style"`
 	Prompt              string            `json:"Prompt"`
