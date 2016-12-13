@@ -1,7 +1,7 @@
 Changes
 =======
 
-v0.4.6 - Not yet released
+v0.4.6 - 14 Dec 2016
   Features:
   * A new fuzzy filter has now been added. See README for details (#369, #370)
   Bugs/Fixes
