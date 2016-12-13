@@ -6,7 +6,7 @@ v0.4.6 - 14 Dec 2016
   * A new fuzzy filter has now been added. See README for details (#369, #370)
   Bugs/Fixes
   * A very subtle timing issue that causes the search to be reset
-    has been resolved (#364)
+    has been resolved (#368)
 
 v0.4.5 - 30 Oct 2016
   Bugs/Fixes
