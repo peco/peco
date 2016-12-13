@@ -77,12 +77,6 @@ func (rl RawLine) Output() string {
 	return rl.buf
 }
 
-// Indices fulfills the Line interface, but for RawLine it always
-// returns nil
-func (rl RawLine) Indices() [][]int {
-	return nil
-}
-
 // NewMatchedLine creates a new MatchedLine
 func NewMatchedLine(rl Line, matches [][]int) *MatchedLine {
 	return &MatchedLine{rl, matches}

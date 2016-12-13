@@ -474,8 +474,8 @@ func (l *ListArea) Draw(state *Peco, parent Layout, perPage int, options *DrawOp
 			x += 2
 		}
 
-		matches := target.Indices()
-		if matches == nil {
+		ix, ok := target.(MatchIndexer)
+		if !ok {
 			l.screen.Print(PrintArgs{
 				X:       x,
 				Y:       y,
@@ -488,6 +488,7 @@ func (l *ListArea) Draw(state *Peco, parent Layout, perPage int, options *DrawOp
 			continue
 		}
 
+		matches := ix.Indices()
 		prev := x
 		index := 0
 
