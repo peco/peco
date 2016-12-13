@@ -269,7 +269,7 @@ func filterAcceptAndFilter(ctx context.Context, f filter, in chan interface{}, o
 	go flusher(f, flush, flushDone, out)
 
 	buf := getFilterLineBuf()
-	defer func() { releaseFilterLineBuf(buf) }()
+	defer releaseFilterLineBuf(buf)
 	defer func() { <-flushDone }() // Wait till the flush goroutine is done
 	defer close(flush)             // Kill the flush goroutine
 

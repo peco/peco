@@ -10,8 +10,9 @@ type fder interface {
 }
 
 func CaseInsensitiveIndexFunc(r rune) func(rune) bool {
+	lr := unicode.ToUpper(r)
 	return func(v rune) bool {
-		return unicode.ToUpper(r) == v || unicode.ToLower(r) == v
+		return lr == unicode.ToUpper(v)
 	}
 }
 
