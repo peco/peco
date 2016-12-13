@@ -197,6 +197,17 @@ func TestGHIssue331(t *testing.T) {
 	}
 }
 
+func TestConfigFuzzyFilter(t *testing.T) {
+	var opts CLIOptions
+	p := newPeco()
+
+	// Ensure that it's possible to enable the Fuzzy filter
+	opts.OptInitialFilter = "Fuzzy"
+	if !assert.NoError(t, p.ApplyConfig(opts), "p.ApplyConfig should succeed") {
+		return
+	}
+}
+
 func TestApplyConfig(t *testing.T) {
 	// XXX We should add all the possible configurations that needs to be
 	// propagated to Peco from config

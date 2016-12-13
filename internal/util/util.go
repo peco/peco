@@ -9,6 +9,13 @@ type fder interface {
 	Fd() uintptr
 }
 
+func CaseInsensitiveIndexFunc(r rune) func(rune) bool {
+	lr := unicode.ToUpper(r)
+	return func(v rune) bool {
+		return lr == unicode.ToUpper(v)
+	}
+}
+
 func ContainsUpper(query string) bool {
 	for _, c := range query {
 		if unicode.IsUpper(c) {

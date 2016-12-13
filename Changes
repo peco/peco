@@ -2,6 +2,8 @@ Changes
 =======
 
 v0.4.6 - Not yet released
+  Features:
+  * A new fuzzy filter has now been added. See README for details (#369, #370)
   Bugs/Fixes
   * A very subtle timing issue that causes the search to be reset
     has been resolved (#364)

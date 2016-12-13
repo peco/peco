@@ -324,7 +324,7 @@ type FilteredBuffer struct {
 }
 
 // Config holds all the data that can be configured in the
-// external configuran file
+// external configuration file
 type Config struct {
 	Action map[string][]string `json:"Action"`
 	// Keymap used to be directly responsible for dispatching
@@ -511,6 +511,11 @@ type LineFilter interface {
 	SetQuery(string)
 	Clone() LineFilter
 	String() string
+}
+
+type FuzzyFilter struct {
+	mutex sync.Mutex
+	query string
 }
 
 type RegexpFilter struct {
