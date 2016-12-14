@@ -35,10 +35,6 @@ func NewFilteredBuffer(src Buffer, page, perPage int) *FilteredBuffer {
 	return &fb
 }
 
-func (flb *FilteredBuffer) Append(l line.Line) (line.Line, error) {
-	return l, nil
-}
-
 // LineAt returns the line at index `i`. Note that the i-th element
 // in this filtered buffer may actually correspond to a totally
 // different line number in the source buffer.
@@ -58,16 +54,6 @@ func NewMemoryBuffer() *MemoryBuffer {
 	mb := &MemoryBuffer{}
 	mb.Reset()
 	return mb
-}
-
-func (mb *MemoryBuffer) Append(l line.Line) {
-	mb.mutex.Lock()
-	defer mb.mutex.Unlock()
-	bufferAppend(&mb.lines, l)
-}
-
-func bufferAppend(lines *[]line.Line, l line.Line) {
-	*lines = append(*lines, l)
 }
 
 func (mb *MemoryBuffer) Size() int {
