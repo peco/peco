@@ -188,7 +188,7 @@ func (s *Source) Append(l line.Line) {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
 
-	bufferAppend(&s.lines, l)
+	s.lines = append(s.lines, l)
 	if s.capacity > 0 && len(s.lines) > s.capacity {
 		diff := len(s.lines) - s.capacity
 

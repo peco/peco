@@ -62,13 +62,6 @@ func (q *Query) Len() int {
 	return len(q.query)
 }
 
-func (q *Query) Append(r rune) {
-	q.mutex.Lock()
-	defer q.mutex.Unlock()
-
-	q.query = append(q.query, r)
-}
-
 // Runes returns a channel that gives you the list of runes in the query
 func (q *Query) Runes() <-chan rune {
 	q.mutex.Lock()
