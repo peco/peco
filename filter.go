@@ -77,8 +77,10 @@ func acceptAndFilter(ctx context.Context, f filter.Filter, in chan interface{}, 
 			}
 			return
 		case <-flushTicker.C:
-			flush <- buf
-			buf = buffer.GetLineListBuf()
+			if len(buf) > 0 {
+				flush <- buf
+				buf = buffer.GetLineListBuf()
+			}
 		case v := <-in:
 			switch v.(type) {
 			case error:

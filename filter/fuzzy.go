@@ -33,6 +33,7 @@ func (ff *Fuzzy) Apply(ctx context.Context, lines []line.Line, out pipeline.Chan
 	originalQuery := ctx.Value(queryKey).(string)
 	hasUpper := util.ContainsUpper(originalQuery)
 
+OUTER:
 	for _, l := range lines {
 		base := 0
 		matches := [][]int{}
@@ -43,7 +44,7 @@ func (ff *Fuzzy) Apply(ctx context.Context, lines []line.Line, out pipeline.Chan
 			query = query[n:]
 			if r == utf8.RuneError {
 				// "Silently" ignore
-				continue
+				continue OUTER
 			}
 
 			var i int
@@ -53,7 +54,7 @@ func (ff *Fuzzy) Apply(ctx context.Context, lines []line.Line, out pipeline.Chan
 				i = strings.IndexFunc(txt, util.CaseInsensitiveIndexFunc(r))
 			}
 			if i == -1 {
-				continue
+				continue OUTER
 			}
 
 			// otherwise we have a match, but the next match must match against
