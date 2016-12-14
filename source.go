@@ -6,15 +6,17 @@ import (
 	"sync"
 	"time"
 
+	"context"
+
 	"github.com/lestrrat/go-pdebug"
 	"github.com/peco/peco/internal/util"
+	"github.com/peco/peco/line"
 	"github.com/peco/peco/pipeline"
-	"golang.org/x/net/context"
 )
 
 // Creates a new Source. Does not start processing the input until you
 // call Setup()
-func NewSource(in io.Reader, idgen lineIDGenerator, capacity int, enableSep bool) *Source {
+func NewSource(in io.Reader, idgen line.IDGenerator, capacity int, enableSep bool) *Source {
 	s := &Source{
 		in:            in, // Note that this may be closed, so do not rely on it
 		capacity:      capacity,
@@ -23,7 +25,7 @@ func NewSource(in io.Reader, idgen lineIDGenerator, capacity int, enableSep bool
 		ready:         make(chan struct{}),
 		setupDone:     make(chan struct{}),
 		setupOnce:     sync.Once{},
-		OutputChannel: pipeline.OutputChannel(make(chan interface{})),
+		ChanOutput: pipeline.ChanOutput(make(chan interface{})),
 	}
 	s.Reset()
 	return s
@@ -114,7 +116,7 @@ func (s *Source) Setup(ctx context.Context, state *Peco) {
 				}
 
 				readCount++
-				s.Append(NewRawLine(s.idgen.next(), l, s.enableSep))
+				s.Append(line.NewRaw(s.idgen.Next(), l, s.enableSep))
 				notify.Do(notifycb)
 			}
 		}
@@ -126,7 +128,7 @@ func (s *Source) Setup(ctx context.Context, state *Peco) {
 }
 
 // Start starts
-func (s *Source) Start(ctx context.Context, out pipeline.OutputChannel) {
+func (s *Source) Start(ctx context.Context, out pipeline.ChanOutput) {
 	// I should be the only one running this method until I bail out
 	if pdebug.Enabled {
 		g := pdebug.Marker("Source.Start")
@@ -155,7 +157,7 @@ func (s *Source) Reset() {
 		g := pdebug.Marker("Source.Reset")
 		defer g.End()
 	}
-	s.OutputChannel = pipeline.OutputChannel(make(chan interface{}))
+	s.ChanOutput = pipeline.ChanOutput(make(chan interface{}))
 }
 
 // Ready returns the "input ready" channel. It will be closed as soon as
@@ -170,7 +172,7 @@ func (s *Source) SetupDone() <-chan struct{} {
 	return s.setupDone
 }
 
-func (s *Source) LineAt(n int) (Line, error) {
+func (s *Source) LineAt(n int) (line.Line, error) {
 	s.mutex.RLock()
 	defer s.mutex.RUnlock()
 	return bufferLineAt(s.lines, n)
@@ -182,7 +184,7 @@ func (s *Source) Size() int {
 	return bufferSize(s.lines)
 }
 
-func (s *Source) Append(l Line) {
+func (s *Source) Append(l line.Line) {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
 

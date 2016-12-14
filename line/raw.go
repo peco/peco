@@ -1,4 +1,4 @@
-package peco
+package line
 
 import (
 	"strings"
@@ -7,12 +7,12 @@ import (
 	"github.com/peco/peco/internal/util"
 )
 
-// NewRawLine creates a new RawLine. The `enableSep` flag tells
+// NewRaw creates a new Raw. The `enableSep` flag tells
 // it if we should search for a null character to split the
 // string to display and the string to emit upon selection of
 // of said line
-func NewRawLine(id uint64, v string, enableSep bool) *RawLine {
-	rl := &RawLine{
+func NewRaw(id uint64, v string, enableSep bool) *Raw {
+	rl := &Raw{
 		id:            id,
 		buf:           v,
 		sepLoc:        -1,
@@ -31,32 +31,32 @@ func NewRawLine(id uint64, v string, enableSep bool) *RawLine {
 }
 
 // Less implements the btree.Item interface
-func (rl *RawLine) Less(b btree.Item) bool {
+func (rl *Raw) Less(b btree.Item) bool {
 	return rl.id < b.(Line).ID()
 }
 
 // ID returns the unique ID of this line
-func (rl *RawLine) ID() uint64 {
+func (rl *Raw) ID() uint64 {
 	return rl.id
 }
 
 // IsDirty returns true if this line must be redrawn on the terminal
-func (rl RawLine) IsDirty() bool {
+func (rl Raw) IsDirty() bool {
 	return rl.dirty
 }
 
 // SetDirty sets the dirty flag
-func (rl *RawLine) SetDirty(b bool) {
+func (rl *Raw) SetDirty(b bool) {
 	rl.dirty = b
 }
 
 // Buffer returns the raw buffer. May contain null
-func (rl RawLine) Buffer() string {
+func (rl Raw) Buffer() string {
 	return rl.buf
 }
 
 // DisplayString returns the string to be displayed
-func (rl RawLine) DisplayString() string {
+func (rl Raw) DisplayString() string {
 	if rl.displayString != "" {
 		return rl.displayString
 	}
@@ -70,25 +70,10 @@ func (rl RawLine) DisplayString() string {
 }
 
 // Output returns the string to be displayed *after peco is done
-func (rl RawLine) Output() string {
+func (rl Raw) Output() string {
 	if i := rl.sepLoc; i > -1 {
 		return rl.buf[i+1:]
 	}
 	return rl.buf
 }
 
-// Indices fulfills the Line interface, but for RawLine it always
-// returns nil
-func (rl RawLine) Indices() [][]int {
-	return nil
-}
-
-// NewMatchedLine creates a new MatchedLine
-func NewMatchedLine(rl Line, matches [][]int) *MatchedLine {
-	return &MatchedLine{rl, matches}
-}
-
-// Indices returns the indices in the buffer that matched
-func (ml MatchedLine) Indices() [][]int {
-	return ml.indices
-}

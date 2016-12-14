@@ -4,9 +4,10 @@ package pipeline
 import (
 	"time"
 
+	"context"
+
 	pdebug "github.com/lestrrat/go-pdebug"
 	"github.com/pkg/errors"
-	"golang.org/x/net/context"
 )
 
 // EndMark returns true
@@ -28,13 +29,28 @@ func IsEndMark(err error) bool {
 	return false
 }
 
+func NilOutput(ctx context.Context) ChanOutput {
+	ch := make(chan interface{})
+	go func() {
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case <-ch:
+			}
+		}
+	}()
+
+	return ChanOutput(ch)
+}
+
 // OutCh returns the channel that acceptors can listen to
-func (oc OutputChannel) OutCh() <-chan interface{} {
+func (oc ChanOutput) OutCh() <-chan interface{} {
 	return oc
 }
 
 // Send sends the data `v` through this channel
-func (oc OutputChannel) Send(v interface{}) (err error) {
+func (oc ChanOutput) Send(v interface{}) (err error) {
 	if oc == nil {
 		return errors.New("nil channel")
 	}
@@ -52,7 +68,7 @@ func (oc OutputChannel) Send(v interface{}) (err error) {
 }
 
 // SendEndMark sends an end mark
-func (oc OutputChannel) SendEndMark(s string) error {
+func (oc ChanOutput) SendEndMark(s string) error {
 	return errors.Wrap(oc.Send(errors.Wrap(EndMark{}, s)), "failed to send end mark")
 }
 
@@ -118,14 +134,14 @@ func (p *Pipeline) Run(ctx context.Context) (err error) {
 	// Setup the Acceptors, effectively chaining all nodes
 	// starting from the destination, working all the way
 	// up to the Source
-	var prevCh OutputChannel = OutputChannel(make(chan interface{}))
+	var prevCh ChanOutput = ChanOutput(make(chan interface{}))
 	go p.dst.Accept(ctx, prevCh, nil)
 
 	for i := len(p.nodes) - 1; i >= 0; i-- {
 		cur := p.nodes[i]
-		ch := make(chan interface{}) // 
+		ch := make(chan interface{}) //
 		go cur.Accept(ctx, ch, prevCh)
-		prevCh = OutputChannel(ch)
+		prevCh = ChanOutput(ch)
 	}
 
 	// And now tell the Source to send the values so data chugs

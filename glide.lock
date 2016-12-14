@@ -21,10 +21,6 @@ imports:
   version: 976c720a22c8eb4eb6a0b4348ad85ad12491a506
   subpackages:
   - assert
-- name: golang.org/x/net
-  version: daba796358cd2742b75aae05761f1b898c9f6a5c
-  subpackages:
-  - context
 testImports:
 - name: github.com/pmezard/go-difflib
   version: 792786c7400a136282c1664665ae0a8db921c6c2

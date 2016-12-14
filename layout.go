@@ -9,6 +9,7 @@ import (
 	"github.com/lestrrat/go-pdebug"
 	"github.com/mattn/go-runewidth"
 	"github.com/nsf/termbox-go"
+	"github.com/peco/peco/line"
 	"github.com/pkg/errors"
 )
 
@@ -280,7 +281,7 @@ func (s *StatusBar) PrintStatus(msg string, clearDelay time.Duration) {
 func NewListArea(screen Screen, anchor VerticalAnchor, anchorOffset int, sortTopDown bool, styles *StyleSet) *ListArea {
 	return &ListArea{
 		AnchorSettings: NewAnchorSettings(screen, anchor, anchorOffset),
-		displayCache:   []Line{},
+		displayCache:   []line.Line{},
 		dirty:          false,
 		sortTopDown:    sortTopDown,
 		styles:         styles,
@@ -288,7 +289,7 @@ func NewListArea(screen Screen, anchor VerticalAnchor, anchorOffset int, sortTop
 }
 
 func (l *ListArea) purgeDisplayCache() {
-	l.displayCache = []Line{}
+	l.displayCache = []line.Line{}
 }
 
 func (l *ListArea) IsDirty() bool {
@@ -310,6 +311,7 @@ type DrawOptions struct {
 	RunningQuery bool
 	DisableCache bool
 }
+
 // Draw displays the ListArea on the screen
 func (l *ListArea) Draw(state *Peco, parent Layout, perPage int, options *DrawOptions) {
 	if pdebug.Enabled {
@@ -364,7 +366,7 @@ func (l *ListArea) Draw(state *Peco, parent Layout, perPage int, options *DrawOp
 	// previously drawn lines are cached. first, truncate the cache
 	// to current size of the drawable area
 	if ldc := int(len(l.displayCache)); ldc != perPage {
-		newCache := make([]Line, perPage)
+		newCache := make([]line.Line, perPage)
 		copy(newCache, l.displayCache)
 		l.displayCache = newCache
 	} else if perPage > bufsiz {
@@ -439,8 +441,6 @@ func (l *ListArea) Draw(state *Peco, parent Layout, perPage int, options *DrawOp
 		xOffset := loc.Column()
 		line := target.DisplayString()
 
-		pdebug.Printf("state.SingleKeyJumpMode = %t", state.SingleKeyJumpMode())
-		pdebug.Printf("state.SingleKeyJumpShowPrefix = %t", state.SingleKeyJumpShowPrefix())
 		if state.SingleKeyJumpMode() || state.SingleKeyJumpShowPrefix() {
 			prefixes := state.SingleKeyJumpPrefixes()
 			if n < int(len(prefixes)) {
@@ -474,8 +474,8 @@ func (l *ListArea) Draw(state *Peco, parent Layout, perPage int, options *DrawOp
 			x += 2
 		}
 
-		matches := target.Indices()
-		if matches == nil {
+		ix, ok := target.(MatchIndexer)
+		if !ok {
 			l.screen.Print(PrintArgs{
 				X:       x,
 				Y:       y,
@@ -488,6 +488,7 @@ func (l *ListArea) Draw(state *Peco, parent Layout, perPage int, options *DrawOp
 			continue
 		}
 
+		matches := ix.Indices()
 		prev := x
 		index := 0
 
