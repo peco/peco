@@ -1,5 +1,13 @@
 package filter
 
+import "context"
+
+// newContext initializes the context so that it is suitable
+// to be passed to `Run()`
+func newContext(ctx context.Context, query string) context.Context {
+	return context.WithValue(ctx, queryKey, query)
+}
+
 // sort related stuff
 type byMatchStart [][]int
 

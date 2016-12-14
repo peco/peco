@@ -369,7 +369,7 @@ type FilterQuery Query
 
 // Source implements pipeline.Source, and is the buffer for the input
 type Source struct {
-	pipeline.OutputChannel
+	pipeline.ChanOutput
 
 	done      chan struct{}
 	capacity  int

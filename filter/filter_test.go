@@ -4,8 +4,10 @@ import (
 	"context"
 	"fmt"
 	"testing"
+	"time"
 
 	"github.com/peco/peco/line"
+	"github.com/peco/peco/pipeline"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -15,7 +17,8 @@ type indexer interface {
 
 // TestFuzzy tests a fuzzy filter against various inputs
 func TestFuzzy(t *testing.T) {
-	ctx := context.Background()
+	octx, ocancel := context.WithCancel(context.Background())
+	defer ocancel()
 
 	testValues := []struct {
 		input    string
@@ -38,32 +41,32 @@ func TestFuzzy(t *testing.T) {
 	filter := NewFuzzy()
 	for i, v := range testValues {
 		t.Run(fmt.Sprintf(`"%s" against "%s", expect "%t"`, v.input, v.query, v.selected), func(t *testing.T) {
-			ctx = NewContext(ctx, v.query)
+			ctx, cancel := context.WithTimeout(filter.NewContext(octx, v.query), 10*time.Second)
+			defer cancel()
+
+			ch := make(chan interface{}, 1)
 			l := line.NewRaw(uint64(i), v.input, false)
-			res, err := filter.Apply(ctx, l)
+			err := filter.Apply(ctx, []line.Line{l}, pipeline.ChanOutput(ch))
+			if !assert.NoError(t, err, `filter.Apply should succeeed`) {
+				return
+			}
 
-			if !v.selected {
-				if !assert.Error(t, err, "filter should fail") {
+			select {
+			case l, ok := <-ch:
+				if !assert.True(t, ok, `channel read should succeed`) {
 					return
 				}
-				if !assert.Nil(t, res, "return value should be nil") {
+
+				if !assert.Implements(t, (*line.Line)(nil), l, "result is a line") {
 					return
 				}
-				return
-			}
 
-			if !assert.NoError(t, err, "filtering failed") {
-				return
+				t.Logf("%#v", l.(indexer).Indices())
+			case <-ctx.Done():
+				if !assert.False(t, v.selected, "did NOT expect to timeout") { // shouldn't happen if we're expecting a result
+					return
+				}
 			}
-
-			if !assert.NotNil(t, res, "return value should NOT be nil") {
-				return
-			}
-
-			if !assert.Implements(t, (*indexer)(nil), res, "can call Indices()") {
-				return
-			}
-			t.Logf("%#v", res.(indexer).Indices())
 		})
 	}
 }

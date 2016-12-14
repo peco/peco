@@ -25,7 +25,7 @@ func NewSource(in io.Reader, idgen line.IDGenerator, capacity int, enableSep boo
 		ready:         make(chan struct{}),
 		setupDone:     make(chan struct{}),
 		setupOnce:     sync.Once{},
-		OutputChannel: pipeline.OutputChannel(make(chan interface{})),
+		ChanOutput: pipeline.ChanOutput(make(chan interface{})),
 	}
 	s.Reset()
 	return s
@@ -128,7 +128,7 @@ func (s *Source) Setup(ctx context.Context, state *Peco) {
 }
 
 // Start starts
-func (s *Source) Start(ctx context.Context, out pipeline.OutputChannel) {
+func (s *Source) Start(ctx context.Context, out pipeline.ChanOutput) {
 	// I should be the only one running this method until I bail out
 	if pdebug.Enabled {
 		g := pdebug.Marker("Source.Start")
@@ -157,7 +157,7 @@ func (s *Source) Reset() {
 		g := pdebug.Marker("Source.Reset")
 		defer g.End()
 	}
-	s.OutputChannel = pipeline.OutputChannel(make(chan interface{}))
+	s.ChanOutput = pipeline.ChanOutput(make(chan interface{}))
 }
 
 // Ready returns the "input ready" channel. It will be closed as soon as

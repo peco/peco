@@ -19,7 +19,7 @@ type EndMark struct{}
 type Source interface {
 	// Start should be able to be called repeatedly, producing the
 	// same data to be consumed by the chained Acceptors
-	Start(context.Context, OutputChannel)
+	Start(context.Context, ChanOutput)
 
 	Reset()
 }
@@ -27,7 +27,7 @@ type Source interface {
 // Acceptor is an object that can accept input, and send to
 // an optional output
 type Acceptor interface {
-	Accept(context.Context, chan interface{}, OutputChannel)
+	Accept(context.Context, chan interface{}, ChanOutput)
 }
 
 // Destination is a special case Acceptor that has no more Acceptors
@@ -47,5 +47,9 @@ type Pipeline struct {
 	dst   Destination
 }
 
-// OutputChannel is an alias to `chan interface{}`
-type OutputChannel chan interface{}
+type Output interface {
+	Send(interface{}) error
+}
+
+// ChanOutput is an alias to `chan interface{}`
+type ChanOutput chan interface{}

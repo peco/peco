@@ -21,13 +21,13 @@ func newFilterProcessor(f filter.Filter, q string) *filterProcessor {
 	}
 }
 
-func (fp *filterProcessor) Accept(ctx context.Context, in chan interface{}, out pipeline.OutputChannel) {
+func (fp *filterProcessor) Accept(ctx context.Context, in chan interface{}, out pipeline.ChanOutput) {
 	acceptAndFilter(ctx, fp.filter, in, out)
 }
 
 // This flusher is run in a separate goroutine so that the filter can
 // run separately from accepting incoming messages
-func flusher(ctx context.Context, f filter.Filter, incoming chan []line.Line, done chan struct{}, out pipeline.OutputChannel) {
+func flusher(ctx context.Context, f filter.Filter, incoming chan []line.Line, done chan struct{}, out pipeline.ChanOutput) {
 	if pdebug.Enabled {
 		g := pdebug.Marker("flusher goroutine")
 		defer g.End()
@@ -35,23 +35,32 @@ func flusher(ctx context.Context, f filter.Filter, incoming chan []line.Line, do
 
 	defer close(done)
 	defer out.SendEndMark("end of filter")
-	for buf := range incoming {
-		for _, in := range buf {
-			if l, err := f.Apply(ctx, in); err == nil {
-				out.Send(l)
+
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case buf, ok := <-incoming:
+			if !ok {
+				return
 			}
+			pdebug.Printf("flusher: %#v", buf)
+			f.Apply(ctx, buf, out)
+			buffer.ReleaseLineListBuf(buf)
 		}
-		buffer.ReleaseLineListBuf(buf)
 	}
 }
 
-func acceptAndFilter(ctx context.Context, f filter.Filter, in chan interface{}, out pipeline.OutputChannel) {
+func acceptAndFilter(ctx context.Context, f filter.Filter, in chan interface{}, out pipeline.ChanOutput) {
 	flush := make(chan []line.Line)
 	flushDone := make(chan struct{})
 	go flusher(ctx, f, flush, flushDone, out)
 
 	buf := buffer.GetLineListBuf()
-	defer buffer.ReleaseLineListBuf(buf)
+	bufsiz := f.BufSize()
+	if bufsiz <= 0 {
+		bufsiz = cap(buf)
+	}
 	defer func() { <-flushDone }() // Wait till the flush goroutine is done
 	defer close(flush)             // Kill the flush goroutine
 
@@ -67,6 +76,9 @@ func acceptAndFilter(ctx context.Context, f filter.Filter, in chan interface{}, 
 				pdebug.Printf("filter received done")
 			}
 			return
+		case <-flushTicker.C:
+			flush <- buf
+			buf = buffer.GetLineListBuf()
 		case v := <-in:
 			switch v.(type) {
 			case error:
@@ -82,6 +94,7 @@ func acceptAndFilter(ctx context.Context, f filter.Filter, in chan interface{}, 
 				return
 			case line.Line:
 				if pdebug.Enabled {
+					pdebug.Printf("incoming line")
 					lines++
 				}
 				// We buffer the lines so that we can receive more lines to
@@ -89,15 +102,9 @@ func acceptAndFilter(ctx context.Context, f filter.Filter, in chan interface{}, 
 				// size is fairly big, because this really only makes a
 				// difference if we have a lot of lines to process.
 				buf = append(buf, v.(line.Line))
-				select {
-				case <-flushTicker.C:
+				if len(buf) >= bufsiz {
 					flush <- buf
 					buf = buffer.GetLineListBuf()
-				default:
-					if len(buf) >= cap(buf) {
-						flush <- buf
-						buf = buffer.GetLineListBuf()
-					}
 				}
 			}
 		}
@@ -139,7 +146,9 @@ func (f *Filter) Work(ctx context.Context, q hub.Payload) {
 	p.SetSource(state.Source())
 
 	// Wraps the actual filter
-	p.Add(newFilterProcessor(state.Filters().Current(), query))
+	selectedFilter := state.Filters().Current()
+	ctx = selectedFilter.NewContext(ctx, query)
+	p.Add(newFilterProcessor(selectedFilter, query))
 
 	buf := NewMemoryBuffer()
 	p.SetDestination(buf)
@@ -147,7 +156,6 @@ func (f *Filter) Work(ctx context.Context, q hub.Payload) {
 
 	go func() {
 		defer state.Hub().SendDraw(&DrawOptions{RunningQuery: true})
-		ctx = filter.NewContext(ctx, query)
 		if err := p.Run(ctx); err != nil {
 			state.Hub().SendStatusMsg(err.Error())
 		}

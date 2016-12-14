@@ -441,8 +441,6 @@ func (l *ListArea) Draw(state *Peco, parent Layout, perPage int, options *DrawOp
 		xOffset := loc.Column()
 		line := target.DisplayString()
 
-		pdebug.Printf("state.SingleKeyJumpMode = %t", state.SingleKeyJumpMode())
-		pdebug.Printf("state.SingleKeyJumpShowPrefix = %t", state.SingleKeyJumpShowPrefix())
 		if state.SingleKeyJumpMode() || state.SingleKeyJumpShowPrefix() {
 			prefixes := state.SingleKeyJumpPrefixes()
 			if n < int(len(prefixes)) {

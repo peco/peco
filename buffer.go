@@ -97,7 +97,7 @@ func (mb *MemoryBuffer) Done() <-chan struct{} {
 	return mb.done
 }
 
-func (mb *MemoryBuffer) Accept(ctx context.Context, in chan interface{}, _ pipeline.OutputChannel) {
+func (mb *MemoryBuffer) Accept(ctx context.Context, in chan interface{}, _ pipeline.ChanOutput) {
 	if pdebug.Enabled {
 		g := pdebug.Marker("MemoryBuffer.Accept")
 		defer g.End()

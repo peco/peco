@@ -54,10 +54,8 @@ func queryToRegexps(query string, flags regexpFlags, quotemeta bool) ([]*regexp.
 	return regexps, nil
 }
 
-// NewContext initializes the context so that it is suitable
-// to be passed to `Run()`
-func NewContext(ctx context.Context, query string) context.Context {
-	return context.WithValue(ctx, queryKey, query)
+func (rf *Regexp) NewContext(ctx context.Context, query string) context.Context {
+	return newContext(ctx, query)
 }
 
 // NewRegexp creates a new regexp based filter
@@ -70,8 +68,12 @@ func NewRegexp() *Regexp {
 		flags:     regexpFlagList(defaultFlags),
 		quotemeta: false,
 		name:      "Regexp",
-		outCh:     pipeline.OutputChannel(make(chan interface{})),
+		outCh:     pipeline.ChanOutput(make(chan interface{})),
 	}
+}
+
+func (rf Regexp) BufSize() int {
+	return 0
 }
 
 func (rf *Regexp) OutCh() <-chan interface{} {
@@ -103,58 +105,62 @@ func (f *regexpQueryFactory) Compile(s string, flags regexpFlags, quotemeta bool
 	return rxs, nil
 }
 
-func (rf *Regexp) Apply(ctx context.Context, l line.Line) (line.Line, error) {
+func (rf *Regexp) Apply(ctx context.Context, lines []line.Line, out pipeline.ChanOutput) error {
 	query := ctx.Value(queryKey).(string)
 	regexps, err := rf.factory.Compile(query, rf.flags, rf.quotemeta)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to compile queries as regular expression")
+		return errors.Wrap(err, "failed to compile queries as regular expression")
 	}
-	v := l.DisplayString()
-	allMatched := true
-	matches := [][]int{}
-TryRegexps:
-	for _, rx := range regexps {
-		match := rx.FindAllStringSubmatchIndex(v, -1)
-		if match == nil {
-			allMatched = false
-			break TryRegexps
+
+	for _, l := range lines {
+		v := l.DisplayString()
+		allMatched := true
+		matches := [][]int{}
+	TryRegexps:
+		for _, rx := range regexps {
+			match := rx.FindAllStringSubmatchIndex(v, -1)
+			if match == nil {
+				allMatched = false
+				break TryRegexps
+			}
+			matches = append(matches, match...)
 		}
-		matches = append(matches, match...)
-	}
 
-	if !allMatched {
-		return nil, errors.New("filter did not match against given line")
-	}
-
-	sort.Sort(byMatchStart(matches))
-
-	// We need to "dedupe" the results. For example, if we matched the
-	// same region twice, we don't want that to be drawn
-
-	deduped := make([][]int, 0, len(matches))
-
-	for i, m := range matches {
-		// Always push the first one
-		if i == 0 {
-			deduped = append(deduped, m)
+		if !allMatched {
 			continue
 		}
 
-		prev := deduped[len(deduped)-1]
-		switch {
-		case matchContains(prev, m):
-			// If the previous match contains this one, then
-			// don't do anything
-			continue
-		case matchOverlaps(prev, m):
-			// If the previous match overlaps with this one,
-			// merge the results and make it a bigger one
-			deduped[len(deduped)-1] = mergeMatches(prev, m)
-		default:
-			deduped = append(deduped, m)
+		sort.Sort(byMatchStart(matches))
+
+		// We need to "dedupe" the results. For example, if we matched the
+		// same region twice, we don't want that to be drawn
+
+		deduped := make([][]int, 0, len(matches))
+
+		for i, m := range matches {
+			// Always push the first one
+			if i == 0 {
+				deduped = append(deduped, m)
+				continue
+			}
+
+			prev := deduped[len(deduped)-1]
+			switch {
+			case matchContains(prev, m):
+				// If the previous match contains this one, then
+				// don't do anything
+				continue
+			case matchOverlaps(prev, m):
+				// If the previous match overlaps with this one,
+				// merge the results and make it a bigger one
+				deduped[len(deduped)-1] = mergeMatches(prev, m)
+			default:
+				deduped = append(deduped, m)
+			}
 		}
+		out.Send(line.NewMatched(l, deduped))
 	}
-	return line.NewMatched(l, deduped), nil
+	return nil
 }
 
 func (rf Regexp) String() string {

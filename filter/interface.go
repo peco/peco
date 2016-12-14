@@ -15,7 +15,8 @@ var ErrFilterNotFound = errors.New("specified filter was not found")
 
 var ignoreCaseFlags = regexpFlagList([]string{"i"})
 var defaultFlags = regexpFlagList{}
-var queryKey = struct{}{}
+var queryKey = &struct{}{}
+var incomingBufferKey = &struct{}{}
 
 // DefaultCustomFilterBufferThreshold is the default value
 // for BufferThreshold setting on CustomFilters.
@@ -56,7 +57,7 @@ type Regexp struct {
 	mutex     sync.Mutex
 	name      string
 	onEnd     func()
-	outCh     pipeline.OutputChannel
+	outCh     pipeline.ChanOutput
 }
 
 type ExternalCmd struct {
@@ -64,12 +65,14 @@ type ExternalCmd struct {
 	cmd             string
 	enableSep       bool
 	idgen           line.IDGenerator
-	outCh           pipeline.OutputChannel
+	outCh           pipeline.ChanOutput
 	name            string
 	thresholdBufsiz int
 }
 
 type Filter interface {
-	Apply(context.Context, line.Line) (line.Line, error)
+	Apply(context.Context, []line.Line, pipeline.ChanOutput) error
+	BufSize() int
+	NewContext(context.Context, string) context.Context
 	String() string
 }
