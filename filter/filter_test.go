@@ -33,6 +33,7 @@ func TestFuzzy(t *testing.T) {
 		{"あ、日本語は難しいですよ", "あい", true},                             // hiragana
 		{"パソコンは遅いですネ", "ソネ", true},                               // katakana
 		{"🚴🏻 abcd efgh", "🚴🏻e", true},                            // unicode
+		{"This is a test to Test the fuzzy filteR", "TTR", true},
 	}
 	filter := NewFuzzy()
 	for i, v := range testValues {
