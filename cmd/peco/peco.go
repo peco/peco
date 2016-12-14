@@ -7,7 +7,7 @@ import (
 
 	"github.com/peco/peco"
 	"github.com/peco/peco/internal/util"
-	"golang.org/x/net/context"
+	"context"
 )
 
 func main() {
