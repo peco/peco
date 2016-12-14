@@ -3,7 +3,7 @@ package pipeline
 import (
 	"sync"
 
-	"golang.org/x/net/context"
+	"context"
 )
 
 // EndMarker is an interface for things that tell us the input

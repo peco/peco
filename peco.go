@@ -9,12 +9,14 @@ import (
 	"time"
 	"unicode/utf8"
 
-	"golang.org/x/net/context"
+	"context"
 
 	"github.com/google/btree"
 	"github.com/lestrrat/go-pdebug"
+	"github.com/peco/peco/filter"
 	"github.com/peco/peco/hub"
 	"github.com/peco/peco/internal/util"
+	"github.com/peco/peco/line"
 	"github.com/peco/peco/pipeline"
 	"github.com/peco/peco/sig"
 	"github.com/pkg/errors"
@@ -78,7 +80,7 @@ func (ig *idgen) Run(ctx context.Context) {
 	}
 }
 
-func (ig *idgen) next() uint64 {
+func (ig *idgen) Next() uint64 {
 	return <-ig.ch
 }
 
@@ -127,13 +129,13 @@ func (p *Peco) Location() *Location {
 	return &p.location
 }
 
-func (p *Peco) ResultCh() chan Line {
+func (p *Peco) ResultCh() chan line.Line {
 	p.mutex.Lock()
 	defer p.mutex.Unlock()
 	return p.resultCh
 }
 
-func (p *Peco) SetResultCh(ch chan Line) {
+func (p *Peco) SetResultCh(ch chan line.Line) {
 	p.mutex.Lock()
 	defer p.mutex.Unlock()
 	p.resultCh = ch
@@ -194,7 +196,7 @@ func (p *Peco) Source() pipeline.Source {
 	return p.source
 }
 
-func (p *Peco) Filters() *FilterSet {
+func (p *Peco) Filters() *filter.Set {
 	return &p.filters
 }
 
@@ -347,7 +349,7 @@ func (p *Peco) Run(ctx context.Context) (err error) {
 			// printing that one line as the result
 			if b := p.CurrentLineBuffer(); b.Size() == 1 {
 				if l, err := b.LineAt(0); err == nil {
-					p.resultCh = make(chan Line)
+					p.resultCh = make(chan line.Line)
 					p.Exit(nil)
 					p.resultCh <- l
 					close(p.resultCh)
@@ -562,14 +564,14 @@ func (p *Peco) populateSingleKeyJump() error {
 }
 
 func (p *Peco) populateFilters() error {
-	p.filters.Add(NewIgnoreCaseFilter())
-	p.filters.Add(NewCaseSensitiveFilter())
-	p.filters.Add(NewSmartCaseFilter())
-	p.filters.Add(NewRegexpFilter())
-	p.filters.Add(NewFuzzyFilter())
+	p.filters.Add(filter.NewIgnoreCase())
+	p.filters.Add(filter.NewCaseSensitive())
+	p.filters.Add(filter.NewSmartCase())
+	p.filters.Add(filter.NewRegexp())
+	p.filters.Add(filter.NewFuzzy())
 
 	for name, c := range p.config.CustomFilter {
-		f := NewExternalCmdFilter(name, c.Cmd, c.Args, c.BufferThreshold, p.idgen, p.enableSep)
+		f := filter.NewExternalCmd(name, c.Cmd, c.Args, c.BufferThreshold, p.idgen, p.enableSep)
 		p.filters.Add(f)
 	}
 
@@ -689,11 +691,11 @@ func (p *Peco) PrintResults() {
 			selection.Add(l)
 		}
 	}
-	p.SetResultCh(make(chan Line))
+	p.SetResultCh(make(chan line.Line))
 	go func() {
 		defer close(p.resultCh)
 		p.selection.Ascend(func(it btree.Item) bool {
-			p.ResultCh() <- it.(Line)
+			p.ResultCh() <- it.(line.Line)
 			return true
 		})
 	}()

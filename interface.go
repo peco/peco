@@ -2,16 +2,17 @@ package peco
 
 import (
 	"io"
-	"regexp"
 	"sync"
 	"time"
 
-	"golang.org/x/net/context"
+	"context"
 
 	"github.com/google/btree"
 	"github.com/nsf/termbox-go"
+	"github.com/peco/peco/filter"
 	"github.com/peco/peco/hub"
 	"github.com/peco/peco/internal/keyseq"
+	"github.com/peco/peco/line"
 	"github.com/peco/peco/pipeline"
 )
 
@@ -46,12 +47,6 @@ const (
 	RegexpMatch        = "Regexp"
 )
 
-// lineIDGenerator defines an interface for things that generate
-// unique IDs for lines used within peco.
-type lineIDGenerator interface {
-	next() uint64
-}
-
 type idgen struct {
 	ch chan uint64
 }
@@ -72,7 +67,7 @@ type Peco struct {
 	config                  Config
 	currentLineBuffer       Buffer
 	enableSep               bool // Enable parsing on separators
-	filters                 FilterSet
+	filters                 filter.Set
 	idgen                   *idgen
 	initialFilter           string
 	initialQuery            string   // populated if --query is specified
@@ -87,7 +82,7 @@ type Peco struct {
 	queryExecMutex          sync.Mutex
 	queryExecTimer          *time.Timer
 	readyCh                 chan struct{}
-	resultCh                chan Line
+	resultCh                chan line.Line
 	screen                  Screen
 	selection               *Selection
 	selectionRangeStart     RangeStart
@@ -109,53 +104,11 @@ type Peco struct {
 	err error
 }
 
-// Line represents each of the line that peco uses to display
-// and match against queries.
-type Line interface {
-	btree.Item
-
-	ID() uint64
-
-	// Buffer returns the raw buffer
-	Buffer() string
-
-	// DisplayString returns the string to be displayed. This means if you have
-	// a null separator, the contents after the separator are not included
-	// in this string
-	DisplayString() string
-
-	// Output returns the string to be display as peco finishes up doing its
-	// thing. This means if you have null separator, the contents before the
-	// separator are not included in this string
-	Output() string
-
-	// IsDirty returns true if this line should be forcefully redrawn
-	IsDirty() bool
-
-	// SetDirty sets the dirty flag on or off
-	SetDirty(bool)
-}
-
 type MatchIndexer interface {
 	// Indices return the matched portion(s) of a string after filtering.
 	// Note that while Indices may return nil, that just means that there are
 	// no substrings to be highlighted. It doesn't mean there were no matches
 	Indices() [][]int
-}
-
-// RawLine is the input line as sent to peco, before filtering and what not.
-type RawLine struct {
-	id            uint64
-	buf           string
-	sepLoc        int
-	displayString string
-	dirty         bool
-}
-
-// MatchedLine contains the indices to the matches
-type MatchedLine struct {
-	Line
-	indices [][]int
 }
 
 type Keyseq interface {
@@ -268,7 +221,7 @@ type StatusBar struct {
 type ListArea struct {
 	*AnchorSettings
 	sortTopDown  bool
-	displayCache []Line
+	displayCache []line.Line
 	dirty        bool
 	styles       *StyleSet
 }
@@ -290,14 +243,6 @@ type Keymap struct {
 	seq    Keyseq
 	state  *Peco
 }
-
-// internal stuff
-type regexpFlags interface {
-	flags(string) []string
-}
-type regexpFlagList []string
-
-type regexpFlagFunc func(string) []string
 
 // Filter is responsible for the actual "grep" part of peco
 type Filter struct {
@@ -422,12 +367,6 @@ type Query struct {
 
 type FilterQuery Query
 
-type FilterSet struct {
-	current int
-	filters []LineFilter
-	mutex   sync.Mutex
-}
-
 // Source implements pipeline.Source, and is the buffer for the input
 type Source struct {
 	pipeline.OutputChannel
@@ -435,9 +374,9 @@ type Source struct {
 	done      chan struct{}
 	capacity  int
 	enableSep bool
-	idgen     lineIDGenerator
+	idgen     line.IDGenerator
 	in        io.Reader
-	lines     []Line
+	lines     []line.Line
 	mutex     sync.RWMutex
 	ready     chan struct{}
 	setupDone chan struct{}
@@ -484,14 +423,14 @@ type RangeStart struct {
 // Buffer interface is used for containers for lines to be
 // processed by peco.
 type Buffer interface {
-	LineAt(int) (Line, error)
+	LineAt(int) (line.Line, error)
 	Size() int
 }
 
 // MemoryBuffer is an implementation of Buffer
 type MemoryBuffer struct {
 	done         chan struct{}
-	lines        []Line
+	lines        []line.Line
 	mutex        sync.RWMutex
 	PeriodicFunc func()
 }
@@ -506,40 +445,6 @@ type Input struct {
 	mod     *time.Timer
 	mutex   sync.Mutex
 	state   *Peco
-}
-
-type LineFilter interface {
-	pipeline.Acceptor
-	SetQuery(string)
-	Clone() LineFilter
-	String() string
-}
-
-type FuzzyFilter struct {
-	mutex sync.Mutex
-	query string
-}
-
-type RegexpFilter struct {
-	compiledQuery []*regexp.Regexp
-	flags         regexpFlags
-	quotemeta     bool
-	query         string
-	mutex         sync.Mutex
-	name          string
-	onEnd         func()
-	outCh         pipeline.OutputChannel
-}
-
-type ExternalCmdFilter struct {
-	args            []string
-	cmd             string
-	enableSep       bool
-	idgen           lineIDGenerator
-	outCh           pipeline.OutputChannel
-	name            string
-	query           string
-	thresholdBufsiz int
 }
 
 // MessageHub is the interface that must be satisfied by the
@@ -557,4 +462,9 @@ type MessageHub interface {
 	SendStatusMsg(string)
 	SendStatusMsgAndClear(string, time.Duration)
 	StatusMsgCh() chan hub.Payload
+}
+
+type filterProcessor struct {
+	filter filter.Filter
+	query  string
 }

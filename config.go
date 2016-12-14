@@ -8,13 +8,10 @@ import (
 	"strings"
 
 	"github.com/nsf/termbox-go"
+	"github.com/peco/peco/filter"
 	"github.com/peco/peco/internal/util"
 	"github.com/pkg/errors"
 )
-
-// DefaultCustomFilterBufferThreshold is the default value
-// for BufferThreshold setting on CustomFilters.
-const DefaultCustomFilterBufferThreshold = 100
 
 var homedirFunc = util.Homedir
 
@@ -57,7 +54,7 @@ func (c *Config) ReadFilename(filename string) error {
 			c.CustomFilter[n] = CustomFilterConfig{
 				Cmd:             cfg[0],
 				Args:            cfg[1:],
-				BufferThreshold: DefaultCustomFilterBufferThreshold,
+				BufferThreshold: filter.DefaultCustomFilterBufferThreshold,
 			}
 		}
 	}

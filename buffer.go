@@ -3,10 +3,12 @@ package peco
 import (
 	"time"
 
+	"context"
+
 	"github.com/lestrrat/go-pdebug"
+	"github.com/peco/peco/line"
 	"github.com/peco/peco/pipeline"
 	"github.com/pkg/errors"
-	"golang.org/x/net/context"
 )
 
 func NewFilteredBuffer(src Buffer, page, perPage int) *FilteredBuffer {
@@ -33,14 +35,14 @@ func NewFilteredBuffer(src Buffer, page, perPage int) *FilteredBuffer {
 	return &fb
 }
 
-func (flb *FilteredBuffer) Append(l Line) (Line, error) {
+func (flb *FilteredBuffer) Append(l line.Line) (line.Line, error) {
 	return l, nil
 }
 
 // LineAt returns the line at index `i`. Note that the i-th element
 // in this filtered buffer may actually correspond to a totally
 // different line number in the source buffer.
-func (flb FilteredBuffer) LineAt(i int) (Line, error) {
+func (flb FilteredBuffer) LineAt(i int) (line.Line, error) {
 	if i >= len(flb.selection) {
 		return nil, errors.Errorf("specified index %d is out of range", len(flb.selection))
 	}
@@ -58,13 +60,13 @@ func NewMemoryBuffer() *MemoryBuffer {
 	return mb
 }
 
-func (mb *MemoryBuffer) Append(l Line) {
+func (mb *MemoryBuffer) Append(l line.Line) {
 	mb.mutex.Lock()
 	defer mb.mutex.Unlock()
 	bufferAppend(&mb.lines, l)
 }
 
-func bufferAppend(lines *[]Line, l Line) {
+func bufferAppend(lines *[]line.Line, l line.Line) {
 	*lines = append(*lines, l)
 }
 
@@ -74,7 +76,7 @@ func (mb *MemoryBuffer) Size() int {
 	return bufferSize(mb.lines)
 }
 
-func bufferSize(lines []Line) int {
+func bufferSize(lines []line.Line) int {
 	return len(lines)
 }
 
@@ -86,7 +88,7 @@ func (mb *MemoryBuffer) Reset() {
 		defer g.End()
 	}
 	mb.done = make(chan struct{})
-	mb.lines = []Line(nil)
+	mb.lines = []line.Line(nil)
 }
 
 func (mb *MemoryBuffer) Done() <-chan struct{} {
@@ -123,22 +125,22 @@ func (mb *MemoryBuffer) Accept(ctx context.Context, in chan interface{}, _ pipel
 					}
 					return
 				}
-			case Line:
+			case line.Line:
 				mb.mutex.Lock()
-				mb.lines = append(mb.lines, v.(Line))
+				mb.lines = append(mb.lines, v.(line.Line))
 				mb.mutex.Unlock()
 			}
 		}
 	}
 }
 
-func (mb *MemoryBuffer) LineAt(n int) (Line, error) {
+func (mb *MemoryBuffer) LineAt(n int) (line.Line, error) {
 	mb.mutex.RLock()
 	defer mb.mutex.RUnlock()
 	return bufferLineAt(mb.lines, n)
 }
 
-func bufferLineAt(lines []Line, n int) (Line, error) {
+func bufferLineAt(lines []line.Line, n int) (line.Line, error) {
 	if s := len(lines); s <= 0 || n >= s {
 		return nil, errors.New("empty buffer")
 	}

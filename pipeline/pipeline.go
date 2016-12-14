@@ -6,7 +6,7 @@ import (
 
 	pdebug "github.com/lestrrat/go-pdebug"
 	"github.com/pkg/errors"
-	"golang.org/x/net/context"
+	"context"
 )
 
 // EndMark returns true

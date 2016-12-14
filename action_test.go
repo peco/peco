@@ -5,9 +5,11 @@ import (
 	"time"
 	"unicode/utf8"
 
+	"context"
+
 	"github.com/nsf/termbox-go"
+	"github.com/peco/peco/filter"
 	"github.com/stretchr/testify/assert"
-	"golang.org/x/net/context"
 )
 
 func TestActionFunc(t *testing.T) {
@@ -291,7 +293,7 @@ func TestRotateFilter(t *testing.T) {
 		return
 	}
 
-	var prev LineFilter
+	var prev filter.Filter
 	first := state.Filters().Current()
 	prev = first
 	for i := 0; i < size; i++ {

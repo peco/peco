@@ -5,7 +5,7 @@ import (
 	"os/signal"
 	"syscall"
 
-	"golang.org/x/net/context"
+	"context"
 )
 
 type SigReceivedHandler interface {

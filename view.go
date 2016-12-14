@@ -4,7 +4,7 @@ import (
 	"time"
 
 	"github.com/peco/peco/hub"
-	"golang.org/x/net/context"
+	"context"
 )
 
 type statusMsgReq interface {

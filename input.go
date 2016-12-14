@@ -4,7 +4,7 @@ import (
 	"time"
 
 	"github.com/nsf/termbox-go"
-	"golang.org/x/net/context"
+	"context"
 )
 
 func NewInput(state *Peco, am ActionMap, src chan termbox.Event) *Input {

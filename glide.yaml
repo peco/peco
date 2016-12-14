@@ -5,9 +5,6 @@ import:
 - package: github.com/mattn/go-runewidth
 - package: github.com/nsf/termbox-go
 - package: github.com/pkg/errors
-- package: golang.org/x/net
-  subpackages:
-  - context
 - package: github.com/stretchr/testify
   subpackages:
   - assert

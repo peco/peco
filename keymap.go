@@ -9,7 +9,7 @@ import (
 	"github.com/nsf/termbox-go"
 	"github.com/peco/peco/internal/keyseq"
 	"github.com/pkg/errors"
-	"golang.org/x/net/context"
+	"context"
 )
 
 // NewKeymap creates a new Keymap struct

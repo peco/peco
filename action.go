@@ -7,12 +7,14 @@ import (
 	"os/exec"
 	"unicode"
 
+	"context"
+
 	"github.com/google/btree"
 	"github.com/lestrrat/go-pdebug"
 	"github.com/nsf/termbox-go"
 	"github.com/peco/peco/internal/keyseq"
+	"github.com/peco/peco/line"
 	"github.com/pkg/errors"
-	"golang.org/x/net/context"
 )
 
 // This is the global map of canonical action name to actions
@@ -734,7 +736,7 @@ func makeCommandAction(state *Peco, cc *CommandConfig) ActionFunc {
 		}
 
 		sel.Ascend(func(it btree.Item) bool {
-			line := it.(Line)
+			line := it.(line.Line)
 
 			var f *os.File
 			var err error

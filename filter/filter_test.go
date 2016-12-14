@@ -1,14 +1,22 @@
-package peco
+package filter
 
 import (
+	"context"
 	"fmt"
 	"testing"
 
+	"github.com/peco/peco/line"
 	"github.com/stretchr/testify/assert"
 )
 
-// TestFuzzyFilter tests a fuzzy filter against various inputs
-func TestFuzzyFilter(t *testing.T) {
+type indexer interface {
+	Indices() [][]int
+}
+
+// TestFuzzy tests a fuzzy filter against various inputs
+func TestFuzzy(t *testing.T) {
+	ctx := context.Background()
+
 	testValues := []struct {
 		input    string
 		query    string
@@ -26,12 +34,12 @@ func TestFuzzyFilter(t *testing.T) {
 		{"パソコンは遅いですネ", "ソネ", true},                               // katakana
 		{"🚴🏻 abcd efgh", "🚴🏻e", true},                            // unicode
 	}
-	filter := NewFuzzyFilter()
+	filter := NewFuzzy()
 	for i, v := range testValues {
 		t.Run(fmt.Sprintf(`"%s" against "%s", expect "%t"`, v.input, v.query, v.selected), func(t *testing.T) {
-			filter.SetQuery(v.query)
-			l := NewRawLine(uint64(i), v.input, false)
-			res, err := filter.filter(l)
+			ctx = NewContext(ctx, v.query)
+			l := line.NewRaw(uint64(i), v.input, false)
+			res, err := filter.Apply(ctx, l)
 
 			if !v.selected {
 				if !assert.Error(t, err, "filter should fail") {
@@ -50,10 +58,11 @@ func TestFuzzyFilter(t *testing.T) {
 			if !assert.NotNil(t, res, "return value should NOT be nil") {
 				return
 			}
-			if !assert.Implements(t, (*MatchIndexer)(nil), res, "can call Indices()") {
+
+			if !assert.Implements(t, (*indexer)(nil), res, "can call Indices()") {
 				return
 			}
-			t.Logf("%#v", res.(MatchIndexer).Indices())
+			t.Logf("%#v", res.(indexer).Indices())
 		})
 	}
 }

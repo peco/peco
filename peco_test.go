@@ -10,11 +10,13 @@ import (
 	"testing"
 	"time"
 
+	"context"
+
 	"github.com/nsf/termbox-go"
 	"github.com/peco/peco/hub"
 	"github.com/peco/peco/internal/util"
+	"github.com/peco/peco/line"
 	"github.com/stretchr/testify/assert"
-	"golang.org/x/net/context"
 )
 
 type nullHub struct{}
@@ -135,9 +137,9 @@ func TestIDGen(t *testing.T) {
 	defer cancel()
 	go idgen.Run(ctx)
 
-	lines := []*RawLine{}
+	lines := []*line.Raw{}
 	for i := 0; i < 1000000; i++ {
-		lines = append(lines, NewRawLine(idgen.next(), fmt.Sprintf("%d", i), false))
+		lines = append(lines, line.NewRaw(idgen.Next(), fmt.Sprintf("%d", i), false))
 	}
 
 	sel := NewSelection()

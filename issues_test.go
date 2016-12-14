@@ -9,7 +9,7 @@ import (
 
 	termbox "github.com/nsf/termbox-go"
 	"github.com/stretchr/testify/assert"
-	"golang.org/x/net/context"
+	"context"
 )
 
 func TestIssue212_SanityCheck(t *testing.T) {

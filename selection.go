@@ -1,6 +1,9 @@
 package peco
 
-import "github.com/google/btree"
+import (
+	"github.com/google/btree"
+	"github.com/peco/peco/line"
+)
 
 // NewSelection creates a new empty Selection
 func NewSelection() *Selection {
@@ -11,14 +14,14 @@ func NewSelection() *Selection {
 
 // Add adds a new line to the selection. If the line already
 // exists in the selection, it is silently ignored
-func (s *Selection) Add(l Line) {
+func (s *Selection) Add(l line.Line) {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
 	s.tree.ReplaceOrInsert(l)
 }
 
 // Remove removes the specified line from the selection
-func (s *Selection) Remove(l Line) {
+func (s *Selection) Remove(l line.Line) {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
 	s.tree.Delete(l)
@@ -30,7 +33,7 @@ func (s *Selection) Reset() {
 	s.tree = btree.New(32)
 }
 
-func (s *Selection) Has(x Line) bool {
+func (s *Selection) Has(x line.Line) bool {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
 	return s.tree.Has(x)
@@ -47,4 +50,3 @@ func (s *Selection) Ascend(i btree.ItemIterator) {
 	defer s.mutex.Unlock()
 	s.tree.Ascend(i)
 }
-
