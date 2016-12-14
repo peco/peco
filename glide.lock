@@ -1,28 +1,24 @@
-hash: 854854a28c7bbb8124d302c88b30d65c4ed6a15eee43b9c7f32d4bf9e3cc4465
-updated: 2016-10-21T17:33:31.487524933+09:00
+hash: 3ce65eedf36489cf8210f31a499d744db368aeb0add09df5483a87c185b344b5
+updated: 2016-12-14T18:28:21.292809662+09:00
 imports:
 - name: github.com/davecgh/go-spew
-  version: 6d212800a42e8ab5c146b8ace3490ee17e5225f9
+  version: 346938d642f2ec3594ed81d874461961cd0faa76
   subpackages:
   - spew
 - name: github.com/google/btree
-  version: 925471ac9e2131377a91e1595defec898166fe49
+  version: 0c3044bc8bada22db67b93f5760fe3f05d6a5c25
 - name: github.com/jessevdk/go-flags
-  version: 4cc2832a6e6d1d3b815e2b9d544b2a4dfb3ce8fa
+  version: 8bc97d602c3bfeb5fc6fc9b5a9c898f245495637
 - name: github.com/lestrrat/go-pdebug
   version: 2e6eaaa5717f81bda41d27070d3c966f40a1e75f
 - name: github.com/mattn/go-runewidth
   version: 737072b4e32b7a5018b4a7125da8d12de90e8045
 - name: github.com/nsf/termbox-go
-  version: b6acae516ace002cb8105a89024544a1480655a5
+  version: abe82ce5fb7a42fbd6784a5ceb71aff977e09ed8
 - name: github.com/pkg/errors
-  version: 839d9e913e063e28dfd0e6c7b7512793e0a48be9
+  version: 248dadf4e9068a0b3e79f02ed0a610d935de5302
 - name: github.com/stretchr/testify
-  version: 976c720a22c8eb4eb6a0b4348ad85ad12491a506
+  version: 18a02ba4a312f95da08ff4cfc0055750ce50ae9e
   subpackages:
   - assert
-testImports:
-- name: github.com/pmezard/go-difflib
-  version: 792786c7400a136282c1664665ae0a8db921c6c2
-  subpackages:
-  - difflib
+devImports: []
