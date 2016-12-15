@@ -648,8 +648,8 @@ func (l *BasicLayout) linesPerPage() int {
 		if pdebug.Enabled {
 			pdebug.Printf(
 				"linesPerPage is < 1 (height = %d, reservedLines = %d), forcing return value of 2",
-				strconv.Itoa(height),
-				strconv.Itoa(reservedLines),
+				height,
+				reservedLines,
 			)
 		}
 		return 2
