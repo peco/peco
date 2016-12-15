@@ -16,8 +16,6 @@ import (
 	"github.com/peco/peco/pipeline"
 )
 
-const invalidSelectionRange = -1
-
 const (
 	ToLineAbove      PagingRequestType = iota // ToLineAbove moves the selection to the line above
 	ToScrollPageDown                          // ToScrollPageDown moves the selection to the next page

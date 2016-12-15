@@ -84,8 +84,6 @@ func (ig *idgen) Next() uint64 {
 	return <-ig.ch
 }
 
-var idGenerator = newIDGen()
-
 func New() *Peco {
 	return &Peco{
 		Argv:              os.Args,
