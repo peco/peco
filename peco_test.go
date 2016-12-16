@@ -264,6 +264,9 @@ func TestApplyConfig(t *testing.T) {
 	}
 }
 
+// While this issue is labeled for Issue363, it tests against 376 as well.
+// The test should have caught the bug for 376, but the premise of the test
+// itself was wrong
 func TestGHIssue363(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
@@ -273,15 +276,25 @@ func TestGHIssue363(t *testing.T) {
 	p.Stdin = bytes.NewBufferString("foo\n")
 	var out bytes.Buffer
 	p.Stdout = &out
-	if !assert.NoError(t, p.Run(ctx), "p.Run should succeed") {
-		return
-	}
+
+	resultCh := make(chan error)
+	go func() {
+		defer close(resultCh)
+		select {
+		case <-ctx.Done():
+			return
+		case resultCh <- p.Run(ctx):
+			return
+		}
+	}()
 
 	select {
 	case <-ctx.Done():
-		t.Errorf("we should get here before being canceled")
-		return
-	default:
+		t.Errorf("timeout reached")
+	case err := <-resultCh:
+		if !assert.True(t, util.IsCollectResultsError(err), "isCollectResultsError") {
+			return
+		}
 	}
 
 	if !assert.NotEqual(t, "foo\n", out.String(), "output should match") {
