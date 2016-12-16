@@ -291,6 +291,7 @@ func TestGHIssue363(t *testing.T) {
 	select {
 	case <-ctx.Done():
 		t.Errorf("timeout reached")
+		return
 	case err := <-resultCh:
 		if !assert.True(t, util.IsCollectResultsError(err), "isCollectResultsError") {
 			return
