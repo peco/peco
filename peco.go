@@ -219,6 +219,10 @@ func (p *Peco) Err() error {
 }
 
 func (p *Peco) Exit(err error) {
+	if pdebug.Enabled {
+		g := pdebug.Marker("Peco.Exit (err = %s)", err)
+		defer g.End()
+	}
 	p.err = err
 	if cf := p.cancelFunc; cf != nil {
 		cf()
@@ -348,7 +352,7 @@ func (p *Peco) Run(ctx context.Context) (err error) {
 			if b := p.CurrentLineBuffer(); b.Size() == 1 {
 				if l, err := b.LineAt(0); err == nil {
 					p.resultCh = make(chan line.Line)
-					p.Exit(nil)
+					p.Exit(errCollectResults{})
 					p.resultCh <- l
 					close(p.resultCh)
 				}
