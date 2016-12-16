@@ -1,6 +1,13 @@
 Changes
 =======
 
+v0.4.7 - 17 Dec 2016
+  Bugs/Fixes
+  * A regression of #363 appeared again, because the test was not testing
+    for the correct behavior (#376)
+  Miscellaneous
+  * Internal house cleaning
+
 v0.4.6 - 14 Dec 2016
   Features:
   * A new fuzzy filter has now been added. See README for details (#369, #370)
