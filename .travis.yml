@@ -1,8 +1,12 @@
 language: go
 go:
-  - 1.7
+  - 1.7.x
   - tip
 sudo: false
+cache:
+  directories:
+    - vendor
+    - _internal_bin/$(go version | awk '{ print $NF }')
 install:
   - make installdeps
 script:
