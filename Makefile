@@ -104,7 +104,7 @@ release-upload: release-windows-386 release-windows-amd64 release-linux-386 rele
 
 test: installdeps
 	@echo "Running tests..."
-	@PATH=$(INTERNAL_BIN_DIR)/$(GOOS)/$(GOARCH):$(PATH) go test -v $(shell glide nv)
+	@PATH=$(INTERNAL_BIN_DIR)/$(GOOS)/$(GOARCH):$(PATH) go test -v $(shell $(INTERNAL_BIN_DIR)/$(GOOS)/$(GOARCH)/glide nv)
 
 clean:
 	-rm -rf $(RELEASE_DIR)/*/*

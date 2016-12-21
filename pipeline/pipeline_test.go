@@ -22,7 +22,7 @@ func NewRegexpFilter(rx *regexp.Regexp) *RegexpFilter {
 	}
 }
 
-func (rf *RegexpFilter) Accept(ctx context.Context, in chan interface{}, out OutputChannel) {
+func (rf *RegexpFilter) Accept(ctx context.Context, in chan interface{}, out ChanOutput) {
 	defer fmt.Println("END RegexpFilter.Accept")
 	defer out.SendEndMark("end of RegexpFilter")
 	for {
@@ -63,7 +63,7 @@ func NewLineFeeder(rdr io.Reader) *LineFeeder {
 func (f *LineFeeder) Reset() {
 }
 
-func (f *LineFeeder) Start(ctx context.Context, out OutputChannel) {
+func (f *LineFeeder) Start(ctx context.Context, out ChanOutput) {
 	fmt.Println("START LineFeeder.Start")
 	defer fmt.Println("END LineFeeder.Start")
 	defer out.SendEndMark("end of LineFeeder")
@@ -92,7 +92,7 @@ func (r *Receiver) Done() <-chan struct{} {
 	return r.done
 }
 
-func (r *Receiver) Accept(ctx context.Context, in chan interface{}, out OutputChannel) {
+func (r *Receiver) Accept(ctx context.Context, in chan interface{}, out ChanOutput) {
 	defer fmt.Println("END Receiver.Accept")
 	defer close(r.done)
 
