@@ -47,7 +47,7 @@ func TestFuzzy(t *testing.T) {
 			ch := make(chan interface{}, 1)
 			l := line.NewRaw(uint64(i), v.input, false)
 			err := filter.Apply(ctx, []line.Line{l}, pipeline.ChanOutput(ch))
-			if !assert.NoError(t, err, `filter.Apply should succeeed`) {
+			if !assert.NoError(t, err, `filter.Apply should succeed`) {
 				return
 			}
 

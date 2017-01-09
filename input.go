@@ -45,7 +45,7 @@ func (i *Input) handleInputEvent(ctx context.Context, ev termbox.Event) error {
 
 		m := &i.mutex
 
-		// Smells like Esc or Alt. mod == nil checks for the presense
+		// Smells like Esc or Alt. mod == nil checks for the presence
 		// of a previous timer
 		m.Lock()
 		if ev.Ch == 0 && ev.Key == 27 && i.mod == nil {
