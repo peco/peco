@@ -1,6 +1,13 @@
 Changes
 =======
 
+v0.4.8 - unreleased
+  Features:
+  * A new command line option `--on-cancel` has been added. This allows you
+    to determine if the user has canceled the query, which can be useful in
+    a pipeline of commands.
+  * `OnCancel` does the equivalent of `--on-cancel` in the config file
+
 v0.4.7 - 17 Dec 2016
   Bugs/Fixes
   * A regression of #363 appeared again, because the test was not testing
