@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"reflect"
+	"strings"
 
 	"github.com/jessevdk/go-flags"
 	"github.com/pkg/errors"
@@ -54,11 +55,35 @@ Options:
 			o = fmt.Sprintf("--%s", tag.Get("long"))
 		}
 
+		// if multiline, we need to indent the proceeding lines
+		desc := tag.Get("description")
+		if i := strings.Index(desc, "\n"); i >= 0 {
+			// first line does not need indenting, so get that out of the way
+			var buf bytes.Buffer
+			buf.WriteString(desc[:i+1])
+			desc = desc[i+1:]
+			const indent = "                        "
+			for {
+				if i = strings.Index(desc, "\n"); i >= 0 {
+					buf.WriteString(indent)
+					buf.WriteString(desc[:i+1])
+					desc = desc[i+1:]
+					continue
+				}
+				break
+			}
+			if len(desc) > 0 {
+				buf.WriteString(indent)
+				buf.WriteString(desc)
+			}
+			desc = buf.String()
+		}
+
 		fmt.Fprintf(
 			&buf,
 			"  %-21s %s\n",
 			o,
-			tag.Get("description"),
+			desc,
 		)
 	}
 

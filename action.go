@@ -316,7 +316,11 @@ func doCancel(ctx context.Context, state *Peco, e termbox.Event) {
 	}
 
 	// peco.Cancel -> end program, exit with failure
-	state.Exit(makeIgnorable(errors.New("user canceled")))
+	err := makeIgnorable(errors.New("user canceled"))
+	if state.onCancel == errorKey {
+		err = setExitStatus(err, 1)
+	}
+	state.Exit(err)
 }
 
 func doSelectDown(ctx context.Context, state *Peco, e termbox.Event) {

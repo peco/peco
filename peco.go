@@ -36,7 +36,26 @@ func (e errIgnorable) Error() string {
 	return e.err.Error()
 }
 func makeIgnorable(err error) error {
-	return errIgnorable{err: err}
+	return &errIgnorable{err: err}
+}
+
+type errWithExitStatus struct {
+	err    error
+	status int
+}
+
+func (e errWithExitStatus) Error() string {
+	return e.err.Error()
+}
+func (e errWithExitStatus) Cause() error {
+	return e.err
+}
+func (e errWithExitStatus) ExitStatus() int {
+	return e.status
+}
+
+func setExitStatus(err error, status int) error {
+	return &errWithExitStatus{err: err, status: status}
 }
 
 // Inputseq is a list of keys that the user typed
@@ -501,6 +520,10 @@ func (p *Peco) ApplyConfig(opts CLIOptions) error {
 		p.prompt = v
 	}
 
+	p.onCancel = successKey
+	if opts.OptOnCancel == errorKey || p.config.OnCancel == errorKey {
+		p.onCancel = errorKey
+	}
 	p.bufferSize = opts.OptBufferSize
 	p.selectOneAndExit = opts.OptSelect1
 	p.initialQuery = opts.OptQuery

@@ -17,6 +17,11 @@ import (
 )
 
 const (
+	successKey = "success"
+	errorKey   = "error"
+)
+
+const (
 	ToLineAbove      PagingRequestType = iota // ToLineAbove moves the selection to the line above
 	ToScrollPageDown                          // ToScrollPageDown moves the selection to the next page
 	ToLineBelow                               // ToLineBelow moves the selection to the line below
@@ -74,6 +79,7 @@ type Peco struct {
 	layoutType              string
 	location                Location
 	mutex                   sync.Mutex
+	onCancel                string
 	prompt                  string
 	query                   Query
 	queryExecDelay          time.Duration
@@ -282,6 +288,7 @@ type Config struct {
 	Style               StyleSet          `json:"Style"`
 	Prompt              string            `json:"Prompt"`
 	Layout              string            `json:"Layout"`
+	OnCancel            string            `json:"OnCancel"`
 	CustomMatcher       map[string][]string
 	CustomFilter        map[string]CustomFilterConfig
 	Command             []CommandConfig
@@ -406,8 +413,9 @@ type CLIOptions struct {
 	OptInitialMatcher string `long:"initial-matcher" description:"specify the default matcher (deprecated)"`
 	OptInitialFilter  string `long:"initial-filter" description:"specify the default filter"`
 	OptPrompt         string `long:"prompt" description:"specify the prompt string"`
-	OptLayout         string `long:"layout" description:"layout to be used 'top-down' or 'bottom-up'. default is 'top-down'"`
+	OptLayout         string `long:"layout" description:"layout to be used. 'top-down' or 'bottom-up'. default is 'top-down'"`
 	OptSelect1        bool   `long:"select-1" description:"select first item and immediately exit if the input contains only 1 item"`
+	OptOnCancel       string `long:"on-cancel" description:"specify action on user cancel. 'success' or 'error'.\ndefault is 'success'. This may change in future versions"`
 }
 
 type CLI struct {

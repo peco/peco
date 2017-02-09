@@ -225,6 +225,7 @@ func TestApplyConfig(t *testing.T) {
 	opts.OptInitialFilter = "Regexp"
 	opts.OptLayout = "bottom-up"
 	opts.OptSelect1 = true
+	opts.OptOnCancel = "error"
 
 	p := newPeco()
 	if !assert.NoError(t, p.ApplyConfig(opts), "p.ApplyConfig should succeed") {
@@ -260,6 +261,10 @@ func TestApplyConfig(t *testing.T) {
 	}
 
 	if !assert.Equal(t, opts.OptSelect1, p.selectOneAndExit, "p.selectOneAndExit should be equal to opts.OptSelect1") {
+		return
+	}
+
+	if !assert.Equal(t, opts.OptOnCancel, p.onCancel, "p.onCancel should be equal to opts.OptOnCancel") {
 		return
 	}
 }

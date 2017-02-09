@@ -45,6 +45,10 @@ type collectResults interface {
 	CollectResults() bool
 }
 
+type exitStatuser interface {
+	ExitStatus() int
+}
+
 func IsIgnorableError(err error) bool {
 	for e := err; e != nil; {
 		switch e.(type) {
@@ -71,4 +75,18 @@ func IsCollectResultsError(err error) bool {
 		}
 	}
 	return false
+}
+
+func GetExitStatus(err error) (int, bool) {
+	for e := err; e != nil; {
+		if ese, ok := e.(exitStatuser); ok {
+			return ese.ExitStatus(), true
+		}
+		if cerr, ok := e.(causer); ok {
+			e = cerr.Cause()
+			continue
+		}
+		break
+	}
+	return 1, false
 }

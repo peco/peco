@@ -180,6 +180,11 @@ When specified *and* the input contains exactly 1 line, peco skips prompting you
 
 If there are multiple lines in the input, the usual selection view is displayed.
 
+### --on-cancel `success|error`
+
+Specifies the exit status to use when the user cancels the query execution.
+For historical and back-compatibility reasons, the default is `success`, meaning if the user cancels the query, the exit status is 0. When you choose `error`, peco will exit with a non-zero value.
+
 Configuration File
 ==================
 
@@ -238,6 +243,16 @@ the lines that you selected before and after the modification to the query are
 left in tact.
 
 Default value for StickySelection is false.
+
+### OnCancel
+
+```json
+{
+    "OnCancel": "error"
+}
+```
+
+OnCancel is equivalent to `--on-cancel` command line option.
 
 ## Keymaps
 
