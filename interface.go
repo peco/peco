@@ -17,6 +17,11 @@ import (
 )
 
 const (
+	successKey = "success"
+	errorKey   = "error"
+)
+
+const (
 	ToLineAbove      PagingRequestType = iota // ToLineAbove moves the selection to the line above
 	ToScrollPageDown                          // ToScrollPageDown moves the selection to the next page
 	ToLineBelow                               // ToLineBelow moves the selection to the line below
@@ -74,6 +79,7 @@ type Peco struct {
 	layoutType              string
 	location                Location
 	mutex                   sync.Mutex
+	onCancel                string
 	prompt                  string
 	query                   Query
 	queryExecDelay          time.Duration
@@ -282,6 +288,7 @@ type Config struct {
 	Style               StyleSet          `json:"Style"`
 	Prompt              string            `json:"Prompt"`
 	Layout              string            `json:"Layout"`
+	OnCancel            string            `json:"OnCancel"`
 	CustomMatcher       map[string][]string
 	CustomFilter        map[string]CustomFilterConfig
 	Command             []CommandConfig

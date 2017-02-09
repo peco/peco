@@ -501,6 +501,10 @@ func (p *Peco) ApplyConfig(opts CLIOptions) error {
 		p.prompt = v
 	}
 
+	p.onCancel = successKey
+	if opts.OptOnCancel == errorKey || p.config.OnCancel == errorKey {
+		p.onCancel = errorKey
+	}
 	p.bufferSize = opts.OptBufferSize
 	p.selectOneAndExit = opts.OptSelect1
 	p.initialQuery = opts.OptQuery
