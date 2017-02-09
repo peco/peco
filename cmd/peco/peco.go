@@ -33,11 +33,16 @@ func _main() int {
 			cli.PrintResults()
 			return 0
 		case util.IsIgnorableError(err):
+			if st, ok := util.GetExitStatus(err); ok {
+				return st
+			}
 			return 0
 		default:
 			fmt.Fprintf(os.Stderr, "Error: %s\n", err)
 			return 1
 		}
+
+
 	}
 
 	return 0

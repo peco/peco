@@ -36,7 +36,26 @@ func (e errIgnorable) Error() string {
 	return e.err.Error()
 }
 func makeIgnorable(err error) error {
-	return errIgnorable{err: err}
+	return &errIgnorable{err: err}
+}
+
+type errWithExitStatus struct {
+	err    error
+	status int
+}
+
+func (e errWithExitStatus) Error() string {
+	return e.err.Error()
+}
+func (e errWithExitStatus) Cause() error {
+	return e.err
+}
+func (e errWithExitStatus) ExitStatus() int {
+	return e.status
+}
+
+func setExitStatus(err error, status int) error {
+	return &errWithExitStatus{err: err, status: status}
 }
 
 // Inputseq is a list of keys that the user typed
