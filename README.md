@@ -1,12 +1,10 @@
-peco
-======
+# peco
 
 Simplistic interactive filtering tool
 
 *NOTE*: If you are viewing this on Github, this document refers to the state of `peco` in whatever current branch you are viewing, _not_ necessarily the state of a currently released version. Please make sure to checkout the [Changes](./Changes) file for features and changes.
 
-Description
-===========
+# Description
 
 `peco` (pronounced *peh-koh*) is based on a python tool, [percol](https://github.com/mooz/percol). `percol` was darn useful, but I wanted a tool that was a single binary, and forget about python. `peco` is written in Go, and therefore you can just grab [the binary releases](https://github.com/peco/peco/releases) and drop it in your $PATH.
 
@@ -29,8 +27,7 @@ When you combine tools like zsh, peco, and [ghq](https://github.com/motemen/ghq)
 ![Executed `cd $(ghq list --full-path | peco --query peco)` to show all repositories containing the word `peco`, then to change directories into the one selected](http://peco.github.io/images/peco-demo-ghq.gif)
 
 
-Features
-========
+# Features
 
 ## Incremental Search
 
@@ -80,8 +77,7 @@ I have been told that peco even works on windows :) Look ma! I'm not lying!
 
 ![Showing peco running on Windows cmd.exe](https://gist.githubusercontent.com/taichi/26814518d8b00352693b/raw/b7745987de32dbf068e81a8308c0c5ed38138649/peco.gif)
 
-Installation
-============
+# Installation
 
 ### Just want the binary?
 
@@ -125,8 +121,7 @@ This compiles a peco binary in the root of the cloned peco repository. Copy this
 
 Please DO NOT use `go get` to install this tool. It bypasses the developers' intention of controlling the dependency versioning. 
 
-Command Line Options
-====================
+# Command Line Options
 
 ### -h, --help
 
@@ -185,8 +180,7 @@ If there are multiple lines in the input, the usual selection view is displayed.
 Specifies the exit status to use when the user cancels the query execution.
 For historical and back-compatibility reasons, the default is `success`, meaning if the user cancels the query, the exit status is 0. When you choose `error`, peco will exit with a non-zero value.
 
-Configuration File
-==================
+# Configuration File
 
 peco by default consults a few locations for the config files.
 
@@ -558,8 +552,7 @@ See --layout.
 }
 ```
 
-FAQ
-===
+# FAQ
 
 ## Does peco work on (msys2|cygwin)?
 
@@ -569,8 +562,7 @@ No. https://github.com/peco/peco/issues/336#issuecomment-243939696
 
 Are you using raster fonts? https://github.com/peco/peco/issues/341
 
-Hacking
-=======
+# Hacking
 
 First, fork this repo, and get your clone locally.
 
@@ -598,22 +590,19 @@ go build cmd/peco/peco.go
 
 which will create the binary in the local directory.
 
-TODO
-====
+# TODO
 
 Test it. In doing so, we may change the repo structure
 
 Implement all(?) of the original percol options
 
-AUTHORS
-=======
+# AUTHORS
 
 * Daisuke Maki (lestrrat)
 * mattn
 * syohex
 
-CONTRIBUTORS
-============
+# CONTRIBUTORS
 
 * HIROSE Masaaki
 * Joel Segerlind
@@ -638,8 +627,7 @@ CONTRIBUTORS
 * Linda\_pp
 * Tomohiro Nishimura (Sixeight)
 
-Notes
-=====
+# Notes
 
 Obviously, kudos to the original percol: https://github.com/mooz/percol
 Much code stolen from https://github.com/mattn/gof
