@@ -4,6 +4,9 @@ Simplistic interactive filtering tool
 
 *NOTE*: If you are viewing this on Github, this document refers to the state of `peco` in whatever current branch you are viewing, _not_ necessarily the state of a currently released version. Please make sure to checkout the [Changes](./Changes) file for features and changes.
 
+This README is long and comprehensive. Use the [Table of Contents](#table-of-contents) to navigate to the section that interests you. It has been placed at the bottom of the README file because of its length.
+
+
 # Description
 
 `peco` (pronounced *peh-koh*) is based on a python tool, [percol](https://github.com/mooz/percol). `percol` was darn useful, but I wanted a tool that was a single binary, and forget about python. `peco` is written in Go, and therefore you can just grab [the binary releases](https://github.com/peco/peco/releases) and drop it in your $PATH.
@@ -631,3 +634,67 @@ Implement all(?) of the original percol options
 
 Obviously, kudos to the original percol: https://github.com/mooz/percol
 Much code stolen from https://github.com/mattn/gof
+
+# Table of Contents
+
+* [peco](#peco)
+* [Description](#description)
+	* [Demo](#demo)
+* [Features](#features)
+	* [Incremental Search](#incremental-search)
+	* [Select Multiple Lines](#select-multiple-lines)
+	* [Select Range Of Lines](#select-range-of-lines)
+	* [Select Filters](#select-filters)
+	* [Selectable Layout](#selectable-layout)
+	* [Works on Windows!](#works-on-windows)
+* [Installation](#installation)
+	* [Just want the binary?](#just-want-the-binary)
+	* [Mac OS X / Homebrew](#mac-os-x--homebrew)
+	* [Windows (Chocolatey NuGet Users)](#windows-chocolatey-nuget-users)
+	* [Building peco yourself](#building-peco-yourself)
+	* [go get IS NOT RECOMMENDED](#go-get-is-not-recommended)
+* [Command Line Options](#command-line-options)
+	* [-h, --help](#-h---help)
+	* [--version](#--version)
+	* [--query <query>](#--query-query)
+	* [--rcfile <filename>](#--rcfile-filename)
+	* [-b, --buffer-size <num>](#-b---buffer-size-num)
+	* [--null](#--null)
+	* [--initial-index](#--initial-index)
+	* [--initial-filter `IgnoreCase|CaseSensitive|SmartCase|Regexp|Fuzzy`](#--initial-filter-ignorecasecasesensitivesmartcaseregexpfuzzy)
+	* [--prompt](#--prompt)
+	* [--layout `top-down|bottom-up`](#--layout-top-downbottom-up)
+	* [--select-1](#--select-1)
+	* [--on-cancel `success|error`](#--on-cancel-successerror)
+* [Configuration File](#configuration-file)
+	* [Global](#global)
+		* [Prompt](#prompt)
+		* [InitialMatcher](#initialmatcher)
+		* [InitialFilter](#initialfilter)
+		* [StickySelection](#stickyselection)
+		* [OnCancel](#oncancel)
+	* [Keymaps](#keymaps)
+		* [Key sequences](#key-sequences)
+		* [Combined actions](#combined-actions)
+		* [Available keys](#available-keys)
+		* [Key workarounds](#key-workarounds)
+		* [Available actions](#available-actions)
+		* [Default Keymap](#default-keymap)
+	* [Styles](#styles)
+		* [Foreground Colors](#foreground-colors)
+		* [Background Colors](#background-colors)
+		* [Attributes](#attributes)
+	* [CustomFilter](#customfilter)
+		* [Examples](#examples)
+	* [Layout](#layout)
+	* [SingleKeyJump](#singlekeyjump)
+	* [ExecuteCommand](#executecommand)
+* [FAQ](#faq)
+	* [Does peco work on (msys2|cygwin)?](#does-peco-work-on-msys2cygwin)
+	* [Non-latin fonts (e.g. Japanese) look weird on my Windows machine...?](#non-latin-fonts-eg-japanese-look-weird-on-my-windows-machine)
+* [Hacking](#hacking)
+* [TODO](#todo)
+* [AUTHORS](#authors)
+* [CONTRIBUTORS](#contributors)
+* [Notes](#notes)
+* [Table of Contents](#table-of-contents)
