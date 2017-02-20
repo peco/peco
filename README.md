@@ -1,12 +1,13 @@
-peco
-======
+# peco
 
 Simplistic interactive filtering tool
 
 *NOTE*: If you are viewing this on Github, this document refers to the state of `peco` in whatever current branch you are viewing, _not_ necessarily the state of a currently released version. Please make sure to checkout the [Changes](./Changes) file for features and changes.
 
-Description
-===========
+This README is long and comprehensive. Use the [Table of Contents](#table-of-contents) to navigate to the section that interests you. It has been placed at the bottom of the README file because of its length.
+
+
+# Description
 
 `peco` (pronounced *peh-koh*) is based on a python tool, [percol](https://github.com/mooz/percol). `percol` was darn useful, but I wanted a tool that was a single binary, and forget about python. `peco` is written in Go, and therefore you can just grab [the binary releases](https://github.com/peco/peco/releases) and drop it in your $PATH.
 
@@ -29,8 +30,7 @@ When you combine tools like zsh, peco, and [ghq](https://github.com/motemen/ghq)
 ![Executed `cd $(ghq list --full-path | peco --query peco)` to show all repositories containing the word `peco`, then to change directories into the one selected](http://peco.github.io/images/peco-demo-ghq.gif)
 
 
-Features
-========
+# Features
 
 ## Incremental Search
 
@@ -80,8 +80,7 @@ I have been told that peco even works on windows :) Look ma! I'm not lying!
 
 ![Showing peco running on Windows cmd.exe](https://gist.githubusercontent.com/taichi/26814518d8b00352693b/raw/b7745987de32dbf068e81a8308c0c5ed38138649/peco.gif)
 
-Installation
-============
+# Installation
 
 ### Just want the binary?
 
@@ -125,8 +124,7 @@ This compiles a peco binary in the root of the cloned peco repository. Copy this
 
 Please DO NOT use `go get` to install this tool. It bypasses the developers' intention of controlling the dependency versioning. 
 
-Command Line Options
-====================
+# Command Line Options
 
 ### -h, --help
 
@@ -185,8 +183,7 @@ If there are multiple lines in the input, the usual selection view is displayed.
 Specifies the exit status to use when the user cancels the query execution.
 For historical and back-compatibility reasons, the default is `success`, meaning if the user cancels the query, the exit status is 0. When you choose `error`, peco will exit with a non-zero value.
 
-Configuration File
-==================
+# Configuration File
 
 peco by default consults a few locations for the config files.
 
@@ -558,8 +555,7 @@ See --layout.
 }
 ```
 
-FAQ
-===
+# FAQ
 
 ## Does peco work on (msys2|cygwin)?
 
@@ -569,8 +565,7 @@ No. https://github.com/peco/peco/issues/336#issuecomment-243939696
 
 Are you using raster fonts? https://github.com/peco/peco/issues/341
 
-Hacking
-=======
+# Hacking
 
 First, fork this repo, and get your clone locally.
 
@@ -598,22 +593,19 @@ go build cmd/peco/peco.go
 
 which will create the binary in the local directory.
 
-TODO
-====
+# TODO
 
 Test it. In doing so, we may change the repo structure
 
 Implement all(?) of the original percol options
 
-AUTHORS
-=======
+# AUTHORS
 
 * Daisuke Maki (lestrrat)
 * mattn
 * syohex
 
-CONTRIBUTORS
-============
+# CONTRIBUTORS
 
 * HIROSE Masaaki
 * Joel Segerlind
@@ -638,8 +630,71 @@ CONTRIBUTORS
 * Linda\_pp
 * Tomohiro Nishimura (Sixeight)
 
-Notes
-=====
+# Notes
 
 Obviously, kudos to the original percol: https://github.com/mooz/percol
 Much code stolen from https://github.com/mattn/gof
+
+# Table of Contents
+
+* [peco](#peco)
+* [Description](#description)
+	* [Demo](#demo)
+* [Features](#features)
+	* [Incremental Search](#incremental-search)
+	* [Select Multiple Lines](#select-multiple-lines)
+	* [Select Range Of Lines](#select-range-of-lines)
+	* [Select Filters](#select-filters)
+	* [Selectable Layout](#selectable-layout)
+	* [Works on Windows!](#works-on-windows)
+* [Installation](#installation)
+	* [Just want the binary?](#just-want-the-binary)
+	* [Mac OS X / Homebrew](#mac-os-x--homebrew)
+	* [Windows (Chocolatey NuGet Users)](#windows-chocolatey-nuget-users)
+	* [Building peco yourself](#building-peco-yourself)
+	* [go get IS NOT RECOMMENDED](#go-get-is-not-recommended)
+* [Command Line Options](#command-line-options)
+	* [-h, --help](#-h---help)
+	* [--version](#--version)
+	* [--query <query>](#--query-query)
+	* [--rcfile <filename>](#--rcfile-filename)
+	* [-b, --buffer-size <num>](#-b---buffer-size-num)
+	* [--null](#--null)
+	* [--initial-index](#--initial-index)
+	* [--initial-filter `IgnoreCase|CaseSensitive|SmartCase|Regexp|Fuzzy`](#--initial-filter-ignorecasecasesensitivesmartcaseregexpfuzzy)
+	* [--prompt](#--prompt)
+	* [--layout `top-down|bottom-up`](#--layout-top-downbottom-up)
+	* [--select-1](#--select-1)
+	* [--on-cancel `success|error`](#--on-cancel-successerror)
+* [Configuration File](#configuration-file)
+	* [Global](#global)
+		* [Prompt](#prompt)
+		* [InitialMatcher](#initialmatcher)
+		* [InitialFilter](#initialfilter)
+		* [StickySelection](#stickyselection)
+		* [OnCancel](#oncancel)
+	* [Keymaps](#keymaps)
+		* [Key sequences](#key-sequences)
+		* [Combined actions](#combined-actions)
+		* [Available keys](#available-keys)
+		* [Key workarounds](#key-workarounds)
+		* [Available actions](#available-actions)
+		* [Default Keymap](#default-keymap)
+	* [Styles](#styles)
+		* [Foreground Colors](#foreground-colors)
+		* [Background Colors](#background-colors)
+		* [Attributes](#attributes)
+	* [CustomFilter](#customfilter)
+		* [Examples](#examples)
+	* [Layout](#layout)
+	* [SingleKeyJump](#singlekeyjump)
+	* [ExecuteCommand](#executecommand)
+* [FAQ](#faq)
+	* [Does peco work on (msys2|cygwin)?](#does-peco-work-on-msys2cygwin)
+	* [Non-latin fonts (e.g. Japanese) look weird on my Windows machine...?](#non-latin-fonts-eg-japanese-look-weird-on-my-windows-machine)
+* [Hacking](#hacking)
+* [TODO](#todo)
+* [AUTHORS](#authors)
+* [CONTRIBUTORS](#contributors)
+* [Notes](#notes)
+* [Table of Contents](#table-of-contents)
