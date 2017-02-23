@@ -560,6 +560,7 @@ See --layout.
 ## Does peco work on (msys2|cygwin)?
 
 No. https://github.com/peco/peco/issues/336#issuecomment-243939696
+(Updated Feb 23, 2017: "Maybe" on cygwin https://github.com/peco/peco/issues/336#issuecomment-281912949)
 
 ## Non-latin fonts (e.g. Japanese) look weird on my Windows machine...?
 
