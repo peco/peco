@@ -89,6 +89,7 @@ type Peco struct {
 	resultCh                chan line.Line
 	screen                  Screen
 	selection               *Selection
+	selectionPrefix         string
 	selectionRangeStart     RangeStart
 	selectOneAndExit        bool // True if --select-1 is enabled
 	singleKeyJumpMode       bool
@@ -416,6 +417,7 @@ type CLIOptions struct {
 	OptLayout         string `long:"layout" description:"layout to be used. 'top-down' or 'bottom-up'. default is 'top-down'"`
 	OptSelect1        bool   `long:"select-1" description:"select first item and immediately exit if the input contains only 1 item"`
 	OptOnCancel       string `long:"on-cancel" description:"specify action on user cancel. 'success' or 'error'.\ndefault is 'success'. This may change in future versions"`
+	OptSelectionPrefix string `long:"selection-prefix" description:"use a prefix instead of changing line color to indicate currently selected lines.\ndefault is to use colors. This option is experimental"`
 }
 
 type CLI struct {
