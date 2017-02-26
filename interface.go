@@ -406,20 +406,20 @@ type State interface {
 }
 
 type CLIOptions struct {
-	OptHelp           bool   `short:"h" long:"help" description:"show this help message and exit"`
-	OptTTY            string `long:"tty" description:"path to the TTY (usually, the value of $TTY)"`
-	OptQuery          string `long:"query" description:"initial value for query"`
-	OptRcfile         string `long:"rcfile" description:"path to the settings file"`
-	OptVersion        bool   `long:"version" description:"print the version and exit"`
-	OptBufferSize     int    `long:"buffer-size" short:"b" description:"number of lines to keep in search buffer"`
-	OptEnableNullSep  bool   `long:"null" description:"expect NUL (\\0) as separator for target/output"`
-	OptInitialIndex   int    `long:"initial-index" description:"position of the initial index of the selection (0 base)"`
-	OptInitialMatcher string `long:"initial-matcher" description:"specify the default matcher (deprecated)"`
-	OptInitialFilter  string `long:"initial-filter" description:"specify the default filter"`
-	OptPrompt         string `long:"prompt" description:"specify the prompt string"`
-	OptLayout         string `long:"layout" description:"layout to be used. 'top-down' or 'bottom-up'. default is 'top-down'"`
-	OptSelect1        bool   `long:"select-1" description:"select first item and immediately exit if the input contains only 1 item"`
-	OptOnCancel       string `long:"on-cancel" description:"specify action on user cancel. 'success' or 'error'.\ndefault is 'success'. This may change in future versions"`
+	OptHelp            bool   `short:"h" long:"help" description:"show this help message and exit"`
+	OptTTY             string `long:"tty" description:"path to the TTY (usually, the value of $TTY)"`
+	OptQuery           string `long:"query" description:"initial value for query"`
+	OptRcfile          string `long:"rcfile" description:"path to the settings file"`
+	OptVersion         bool   `long:"version" description:"print the version and exit"`
+	OptBufferSize      int    `long:"buffer-size" short:"b" description:"number of lines to keep in search buffer"`
+	OptEnableNullSep   bool   `long:"null" description:"expect NUL (\\0) as separator for target/output"`
+	OptInitialIndex    int    `long:"initial-index" description:"position of the initial index of the selection (0 base)"`
+	OptInitialMatcher  string `long:"initial-matcher" description:"specify the default matcher (deprecated)"`
+	OptInitialFilter   string `long:"initial-filter" description:"specify the default filter"`
+	OptPrompt          string `long:"prompt" description:"specify the prompt string"`
+	OptLayout          string `long:"layout" description:"layout to be used. 'top-down' or 'bottom-up'. default is 'top-down'"`
+	OptSelect1         bool   `long:"select-1" description:"select first item and immediately exit if the input contains only 1 item"`
+	OptOnCancel        string `long:"on-cancel" description:"specify action on user cancel. 'success' or 'error'.\ndefault is 'success'. This may change in future versions"`
 	OptSelectionPrefix string `long:"selection-prefix" description:"use a prefix instead of changing line color to indicate currently selected lines.\ndefault is to use colors. This option is experimental"`
 }
 
