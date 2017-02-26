@@ -6,7 +6,12 @@ v0.4.8 - unreleased
   * A new command line option `--on-cancel` has been added. This allows you
     to determine if the user has canceled the query, which can be useful in
     a pipeline of commands.
-  * `OnCancel` does the equivalent of `--on-cancel` in the config file
+  * `OnCancel` does the equivalent of `--on-cancel` in the config file.
+  * A new command line option `--selection-prefix` has been added. This
+    allows you to use a string prefix instead of highlighting currently
+    selected lines.
+  * `SelectionPrefix` does the equivalent of `--selection-prefix` in the
+    config file.
 
 v0.4.7 - 17 Dec 2016
   Bugs/Fixes
