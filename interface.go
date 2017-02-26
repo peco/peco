@@ -299,6 +299,9 @@ type Config struct {
 	// If this is true, then the prefix for single key jump mode
 	// is displayed by default.
 	SingleKeyJump SingleKeyJumpConfig `json:"SingleKeyJump"`
+
+	// Use this prefix to denote currently selected line
+	SelectionPrefix string `json:"SelectionPrefix"`
 }
 
 type SingleKeyJumpConfig struct {

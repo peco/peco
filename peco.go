@@ -525,7 +525,11 @@ func (p *Peco) ApplyConfig(opts CLIOptions) error {
 		p.onCancel = errorKey
 	}
 	p.bufferSize = opts.OptBufferSize
-	p.selectionPrefix = opts.OptSelectionPrefix
+	if v := opts.OptSelectionPrefix; len(v) > 0 {
+		p.selectionPrefix = v
+	} else {
+		p.selectionPrefix = p.config.SelectionPrefix
+	}
 	p.selectOneAndExit = opts.OptSelect1
 	p.initialQuery = opts.OptQuery
 	p.initialFilter = opts.OptInitialFilter

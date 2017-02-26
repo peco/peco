@@ -555,6 +555,16 @@ See --layout.
 }
 ```
 
+## SelectPrefix
+
+`SelectPrefix` is equivalent to using `--select-prefix` in the command line.
+
+```
+{
+  "SelectPrefix": ">"
+}
+```
+
 # FAQ
 
 ## Does peco work on (msys2|cygwin)?
@@ -667,6 +677,7 @@ Much code stolen from https://github.com/mattn/gof
 	* [--layout `top-down|bottom-up`](#--layout-top-downbottom-up)
 	* [--select-1](#--select-1)
 	* [--on-cancel `success|error`](#--on-cancel-successerror)
+        * [--select-prefix `string`](#--select-prefix-string)
 * [Configuration File](#configuration-file)
 	* [Global](#global)
 		* [Prompt](#prompt)
@@ -690,6 +701,7 @@ Much code stolen from https://github.com/mattn/gof
 	* [Layout](#layout)
 	* [SingleKeyJump](#singlekeyjump)
 	* [ExecuteCommand](#executecommand)
+	* [SelectPrefix](#selectprefix)
 * [FAQ](#faq)
 	* [Does peco work on (msys2|cygwin)?](#does-peco-work-on-msys2cygwin)
 	* [Non-latin fonts (e.g. Japanese) look weird on my Windows machine...?](#non-latin-fonts-eg-japanese-look-weird-on-my-windows-machine)
