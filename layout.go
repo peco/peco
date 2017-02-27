@@ -3,6 +3,7 @@ package peco
 import (
 	"fmt"
 	"strconv"
+	"strings"
 	"time"
 	"unicode/utf8"
 
@@ -399,17 +400,40 @@ func (l *ListArea) Draw(state *Peco, parent Layout, perPage int, options *DrawOp
 
 	var cached, written int
 	var fgAttr, bgAttr termbox.Attribute
+	var selectionPrefix = state.selectionPrefix
+	var prefix = ""
+
+	var prefixCurrentSelection string
+	var prefixSavedSelection string
+	var prefixDefault string
+	if len := len(selectionPrefix); len > 0 {
+		prefixCurrentSelection = selectionPrefix + " "
+		prefixSavedSelection = "*" + strings.Repeat(" ", len)
+		prefixDefault = strings.Repeat(" ", len+1)
+	}
+
 	for n := 0; n < perPage; n++ {
-		switch {
-		case n+loc.Offset() == loc.LineNumber():
-			fgAttr = l.styles.Selected.fg
-			bgAttr = l.styles.Selected.bg
-		case selectionContains(state, n+loc.Offset()):
-			fgAttr = l.styles.SavedSelection.fg
-			bgAttr = l.styles.SavedSelection.bg
-		default:
-			fgAttr = l.styles.Basic.fg
-			bgAttr = l.styles.Basic.bg
+		if len(selectionPrefix) > 0 {
+			switch {
+			case n+loc.Offset() == loc.LineNumber():
+				prefix = prefixCurrentSelection
+			case len(selectionPrefix) == 0 && selectionContains(state, n+loc.Offset()):
+				prefix = prefixSavedSelection
+			default:
+				prefix = prefixDefault
+			}
+		} else {
+			switch {
+			case n+loc.Offset() == loc.LineNumber():
+				fgAttr = l.styles.Selected.fg
+				bgAttr = l.styles.Selected.bg
+			case len(selectionPrefix) == 0 && selectionContains(state, n+loc.Offset()):
+				fgAttr = l.styles.SavedSelection.fg
+				bgAttr = l.styles.SavedSelection.bg
+			default:
+				fgAttr = l.styles.Basic.fg
+				bgAttr = l.styles.Basic.bg
+			}
 		}
 
 		if n >= bufsiz {
@@ -441,6 +465,17 @@ func (l *ListArea) Draw(state *Peco, parent Layout, perPage int, options *DrawOp
 		xOffset := loc.Column()
 		line := target.DisplayString()
 
+		if len := len(prefix); len > 0 {
+			l.screen.Print(PrintArgs{
+				X:       x,
+				Y:       y,
+				XOffset: xOffset,
+				Fg:      fgAttr,
+				Bg:      bgAttr,
+				Msg:     prefix,
+			})
+			x += len
+		}
 		if state.SingleKeyJumpMode() || state.SingleKeyJumpShowPrefix() {
 			prefixes := state.SingleKeyJumpPrefixes()
 			if n < int(len(prefixes)) {

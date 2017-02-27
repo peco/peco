@@ -18,13 +18,13 @@ import (
 // call Setup()
 func NewSource(in io.Reader, idgen line.IDGenerator, capacity int, enableSep bool) *Source {
 	s := &Source{
-		in:            in, // Note that this may be closed, so do not rely on it
-		capacity:      capacity,
-		enableSep:     enableSep,
-		idgen:         idgen,
-		ready:         make(chan struct{}),
-		setupDone:     make(chan struct{}),
-		setupOnce:     sync.Once{},
+		in:         in, // Note that this may be closed, so do not rely on it
+		capacity:   capacity,
+		enableSep:  enableSep,
+		idgen:      idgen,
+		ready:      make(chan struct{}),
+		setupDone:  make(chan struct{}),
+		setupOnce:  sync.Once{},
 		ChanOutput: pipeline.ChanOutput(make(chan interface{})),
 	}
 	s.Reset()
