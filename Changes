@@ -1,7 +1,7 @@
 Changes
 =======
 
-v0.4.8 - unreleased
+v0.4.8 - 26 Feb 2017
   Features:
   * A new command line option `--on-cancel` has been added. This allows you
     to determine if the user has canceled the query, which can be useful in
