@@ -22,7 +22,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-const version = "v0.4.7"
+const version = "v0.4.8"
 
 type errIgnorable struct {
 	err error
