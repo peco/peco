@@ -555,13 +555,13 @@ See --layout.
 }
 ```
 
-## SelectPrefix
+## SelectionPrefix
 
-`SelectPrefix` is equivalent to using `--select-prefix` in the command line.
+`SelectionPrefix` is equivalent to using `--select-prefix` in the command line.
 
 ```
 {
-  "SelectPrefix": ">"
+  "SelectionPrefix": ">"
 }
 ```
 
@@ -701,7 +701,7 @@ Much code stolen from https://github.com/mattn/gof
 	* [Layout](#layout)
 	* [SingleKeyJump](#singlekeyjump)
 	* [ExecuteCommand](#executecommand)
-	* [SelectPrefix](#selectprefix)
+	* [SelectionPrefix](#selectionprefix)
 * [FAQ](#faq)
 	* [Does peco work on (msys2|cygwin)?](#does-peco-work-on-msys2cygwin)
 	* [Non-latin fonts (e.g. Japanese) look weird on my Windows machine...?](#non-latin-fonts-eg-japanese-look-weird-on-my-windows-machine)
