@@ -557,7 +557,7 @@ See --layout.
 
 ## SelectionPrefix
 
-`SelectionPrefix` is equivalent to using `--select-prefix` in the command line.
+`SelectionPrefix` is equivalent to using `--selection-prefix` in the command line.
 
 ```
 {
@@ -677,7 +677,7 @@ Much code stolen from https://github.com/mattn/gof
 	* [--layout `top-down|bottom-up`](#--layout-top-downbottom-up)
 	* [--select-1](#--select-1)
 	* [--on-cancel `success|error`](#--on-cancel-successerror)
-        * [--select-prefix `string`](#--select-prefix-string)
+        * [--selection-prefix `string`](#--selection-prefix-string)
 * [Configuration File](#configuration-file)
 	* [Global](#global)
 		* [Prompt](#prompt)
