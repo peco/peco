@@ -1,6 +1,12 @@
 Changes
 =======
 
+v0.4.9 - unreleased
+  Bugs/Fixes
+  * An outstanding bug from v0.4.0 where specifying `--query` for a large
+    enough input would lose results in the first query execution has been
+    fixed (#389)
+
 v0.4.8 - 26 Feb 2017
   Features:
   * A new command line option `--on-cancel` has been added. This allows you
