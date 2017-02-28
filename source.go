@@ -24,7 +24,6 @@ func NewSource(in io.Reader, idgen line.IDGenerator, capacity int, enableSep boo
 		idgen:      idgen,
 		ready:      make(chan struct{}),
 		setupDone:  make(chan struct{}),
-		setupOnce:  sync.Once{},
 		ChanOutput: pipeline.ChanOutput(make(chan interface{})),
 	}
 	s.Reset()
@@ -90,9 +89,15 @@ func (s *Source) Setup(ctx context.Context, state *Peco) {
 
 		lines := make(chan string)
 		go func() {
+			var scanned int
+			if pdebug.Enabled {
+				defer func() { pdebug.Printf("Source scanned %d lines", scanned) }()
+			}
+
 			defer close(lines)
 			for scanner.Scan() {
 				lines <- scanner.Text()
+				scanned++
 			}
 		}()
 
@@ -129,25 +134,78 @@ func (s *Source) Setup(ctx context.Context, state *Peco) {
 
 // Start starts
 func (s *Source) Start(ctx context.Context, out pipeline.ChanOutput) {
+	var sent int
 	// I should be the only one running this method until I bail out
 	if pdebug.Enabled {
-		g := pdebug.Marker("Source.Start")
+		g := pdebug.Marker("Source.Start (%d lines in buffer)", len(s.lines))
 		defer g.End()
-		defer pdebug.Printf("Source sent %d lines", len(s.lines))
+		defer func() { pdebug.Printf("Source sent %d lines", sent) }()
+	}
+	defer out.SendEndMark("end of input")
+
+	var resume bool
+	select {
+	case <-s.setupDone:
+	default:
+		resume = true
 	}
 
-	for _, l := range s.lines {
-		select {
-		case <-ctx.Done():
-			if pdebug.Enabled {
-				pdebug.Printf("Source: context.Done detected")
+	if !resume {
+		// no fancy resume handling needed. just go
+		for _, l := range s.lines {
+			select {
+			case <-ctx.Done():
+				if pdebug.Enabled {
+					pdebug.Printf("Source: context.Done detected")
+				}
+				return
+			default:
+				out.Send(l)
+				sent++
 			}
+		}
+		return
+	}
+
+	// For the first time we get called, we may possibly be in the
+	// middle of reading a really long input stream. In this case,
+	// we should resume where we left off.
+
+	var prev = 0
+	var setupDone bool
+	for {
+		// This is where we are ready up to
+		upto := s.Size()
+
+		// We bail out if we are done with the setup, and our
+		// buffer has not grown
+		if setupDone && upto == prev {
 			return
+		}
+
+		for i := prev; i < upto; i++ {
+			select {
+			case <-ctx.Done():
+				if pdebug.Enabled {
+					pdebug.Printf("Source: context.Done detected")
+				}
+				return
+			default:
+				l, _ := s.LineAt(i)
+				out.Send(l)
+				sent++
+			}
+		}
+		// Remember how far we have processed
+		prev = upto
+
+		// Check if we're done with setup
+		select {
+		case <-s.setupDone:
+			setupDone = true
 		default:
-			out.Send(l)
 		}
 	}
-	out.SendEndMark("end of input")
 }
 
 // Reset resets the state of the source object so that it
