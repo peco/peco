@@ -3,6 +3,8 @@ Changes
 
 v0.4.9 - unreleased
   Bugs/Fixes
+  * SavedSelection under `--selection-prefix` was not properly working
+    (#388)
   * An outstanding bug from v0.4.0 where specifying `--query` for a large
     enough input would lose results in the first query execution has been
     fixed (#389)
