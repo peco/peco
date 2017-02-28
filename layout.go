@@ -417,7 +417,7 @@ func (l *ListArea) Draw(state *Peco, parent Layout, perPage int, options *DrawOp
 			switch {
 			case n+loc.Offset() == loc.LineNumber():
 				prefix = prefixCurrentSelection
-			case len(selectionPrefix) == 0 && selectionContains(state, n+loc.Offset()):
+			case selectionContains(state, n+loc.Offset()):
 				prefix = prefixSavedSelection
 			default:
 				prefix = prefixDefault
@@ -427,7 +427,7 @@ func (l *ListArea) Draw(state *Peco, parent Layout, perPage int, options *DrawOp
 			case n+loc.Offset() == loc.LineNumber():
 				fgAttr = l.styles.Selected.fg
 				bgAttr = l.styles.Selected.bg
-			case len(selectionPrefix) == 0 && selectionContains(state, n+loc.Offset()):
+			case selectionContains(state, n+loc.Offset()):
 				fgAttr = l.styles.SavedSelection.fg
 				bgAttr = l.styles.SavedSelection.bg
 			default:
