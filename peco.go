@@ -301,11 +301,6 @@ func (p *Peco) Run(ctx context.Context) (err error) {
 	if err := p.Setup(); err != nil {
 		return errors.Wrap(err, "failed to setup peco")
 	}
-	// screen.Init must be called within Run() because we
-	// want to make sure to call screen.Close() after getting
-	// out of Run()
-	p.screen.Init()
-	defer p.screen.Close()
 
 	var _cancelOnce sync.Once
 	var _cancel func()
@@ -325,20 +320,11 @@ func (p *Peco) Run(ctx context.Context) (err error) {
 	// remember this cancel func so p.Exit works (XXX requires locking?)
 	p.cancelFunc = cancel
 
-	loopers := []interface {
-		Loop(ctx context.Context, cancel func()) error
-	}{
-		NewInput(p, p.Keymap(), p.screen.PollEvent(ctx)),
-		NewView(p),
-		NewFilter(p),
-		sig.New(sig.SigReceivedHandlerFunc(func(sig os.Signal) {
-			p.Exit(errors.New("received signal: " + sig.String()))
-		})),
-	}
+	sigH := sig.New(sig.SigReceivedHandlerFunc(func(sig os.Signal) {
+		p.Exit(errors.New("received signal: " + sig.String()))
+	}))
 
-	for _, l := range loopers {
-		go l.Loop(ctx, cancel)
-	}
+	go sigH.Loop(ctx, cancel)
 
 	// SetupSource is done AFTER other components are ready, otherwise
 	// we can't draw onto the screen while we are reading a really big
@@ -349,6 +335,18 @@ func (p *Peco) Run(ctx context.Context) (err error) {
 		return errors.Wrap(err, "failed to setup input source")
 	}
 	p.source = src
+
+	go func() {
+		<-p.source.Ready()
+		// screen.Init must be called within Run() because we
+		// want to make sure to call screen.Close() after getting
+		// out of Run()
+		p.screen.Init()
+		go NewInput(p, p.Keymap(), p.screen.PollEvent(ctx)).Loop(ctx, cancel)
+		go NewView(p).Loop(ctx, cancel)
+		go NewFilter(p).Loop(ctx, cancel)
+	}()
+	defer p.screen.Close()
 
 	if p.Query().Len() <= 0 {
 		// Re-set the source only if there are no queries
@@ -391,7 +389,10 @@ func (p *Peco) Run(ctx context.Context) (err error) {
 	}
 
 	if p.Query().Len() > 0 {
-		p.ExecQuery()
+		go func() {
+			<-p.source.Ready()
+			p.ExecQuery()
+		}()
 	}
 
 	// Alright, done everything we need to do automatically. We'll let
