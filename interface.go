@@ -70,6 +70,7 @@ type Peco struct {
 	config                  Config
 	currentLineBuffer       Buffer
 	enableSep               bool // Enable parsing on separators
+	execOnFinish            string
 	filters                 filter.Set
 	idgen                   *idgen
 	initialFilter           string
@@ -297,7 +298,6 @@ type Config struct {
 	OnCancel            string            `json:"OnCancel"`
 	CustomMatcher       map[string][]string
 	CustomFilter        map[string]CustomFilterConfig
-	Command             []CommandConfig
 	QueryExecutionDelay int
 	StickySelection     bool
 	MaxScanBufferSize   int
@@ -312,17 +312,6 @@ type Config struct {
 
 type SingleKeyJumpConfig struct {
 	ShowPrefix bool `json:"ShowPrefix"`
-}
-
-type CommandConfig struct {
-	// Name is the name of the command to execute
-	Name string
-
-	// TODO: need to check if how we use this is correct
-	Args []string
-
-	// Spawn mean the command should be executed asynchronous.
-	Spawn bool
 }
 
 // CustomFilterConfig is used to specify configuration parameters
@@ -427,6 +416,7 @@ type CLIOptions struct {
 	OptSelect1         bool   `long:"select-1" description:"select first item and immediately exit if the input contains only 1 item"`
 	OptOnCancel        string `long:"on-cancel" description:"specify action on user cancel. 'success' or 'error'.\ndefault is 'success'. This may change in future versions"`
 	OptSelectionPrefix string `long:"selection-prefix" description:"use a prefix instead of changing line color to indicate currently selected lines.\ndefault is to use colors. This option is experimental"`
+	OptExec            string `long:"exec" description:"execute command instead of finishing/terminating peco.\nPlease note that this command will receive selected line(s) from stdin,\nand will be executed via '/bin/sh -c' or 'cmd /c'"`
 }
 
 type CLI struct {

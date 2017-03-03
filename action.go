@@ -3,8 +3,6 @@ package peco
 import (
 	"bytes"
 	"fmt"
-	"io"
-	"os/exec"
 	"unicode"
 
 	"context"
@@ -13,6 +11,7 @@ import (
 	"github.com/lestrrat/go-pdebug"
 	"github.com/nsf/termbox-go"
 	"github.com/peco/peco/internal/keyseq"
+	"github.com/peco/peco/internal/util"
 	"github.com/peco/peco/line"
 	"github.com/pkg/errors"
 )
@@ -299,7 +298,44 @@ func doFinish(ctx context.Context, state *Peco, _ termbox.Event) {
 		defer g.End()
 	}
 
-	state.Exit(errCollectResults{})
+	ccarg := state.execOnFinish
+	if len(ccarg) == 0 {
+		state.Exit(errCollectResults{})
+		return
+	}
+
+	sel := NewSelection()
+	state.Selection().Copy(sel)
+	if sel.Len() == 0 {
+		if l, err := state.CurrentLineBuffer().LineAt(state.Location().LineNumber()); err == nil {
+			sel.Add(l)
+		}
+	}
+
+	var stdin bytes.Buffer
+	sel.Ascend(func(it btree.Item) bool {
+		line := it.(line.Line)
+		stdin.WriteString(line.Buffer())
+		stdin.WriteRune('\n')
+		return true
+	})
+
+	var err error
+	state.Hub().SendStatusMsg("Executing " + ccarg)
+	cmd := util.Shell(ccarg)
+	cmd.Stdin = &stdin
+	cmd.Stdout = state.Stdout
+	cmd.Stderr = state.Stderr
+
+	state.screen.Suspend()
+
+	err = cmd.Run()
+	state.screen.Resume()
+	state.ExecQuery()
+	if err != nil {
+		// bail out, or otherwise the user cannot know what happened
+		state.Exit(errors.Wrap(err, `failed to execute command`))
+	}
 }
 
 func doCancel(ctx context.Context, state *Peco, e termbox.Event) {
@@ -728,54 +764,4 @@ func makeCombinedAction(actions ...Action) ActionFunc {
 			}
 		}, toplevel)
 	})
-}
-
-type nopCloseWriter struct {
-	io.Writer
-}
-
-func (nopCloseWriter) Close() error { return nil }
-func makeCommandAction(state *Peco, cc *CommandConfig) ActionFunc {
-	return func(ctx context.Context, state *Peco, _ termbox.Event) {
-		sel := NewSelection()
-		state.Selection().Copy(sel)
-		if sel.Len() == 0 {
-			if l, err := state.CurrentLineBuffer().LineAt(state.Location().LineNumber()); err == nil {
-				sel.Add(l)
-			}
-		}
-
-		var stdin bytes.Buffer
-		sel.Ascend(func(it btree.Item) bool {
-			line := it.(line.Line)
-			stdin.WriteString(line.Buffer())
-			stdin.WriteRune('\n')
-			return true
-		})
-
-		var err error
-		state.Hub().SendStatusMsg("Executing " + cc.Name)
-		cmd := exec.Command(cc.Args[0], cc.Args[1:]...)
-		cmd.Stdin = &stdin
-		if cc.Spawn {
-			err = cmd.Start()
-			go cmd.Wait()
-		} else {
-			cmd.Stdout = state.Stdout
-			cmd.Stderr = state.Stderr
-
-			state.screen.Suspend()
-
-			err = cmd.Run()
-			state.screen.Resume()
-			state.ExecQuery()
-		}
-
-		if err != nil {
-			if pdebug.Enabled {
-				pdebug.Printf("Error executing command %v", cc.Args)
-				pdebug.Printf("error: %s", err)
-			}
-		}
-	}
 }
