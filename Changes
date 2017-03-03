@@ -1,6 +1,18 @@
 Changes
 =======
 
+v0.5.0 - unreleased
+  Backwards Incompatible Changes:
+  * ExecuteCommand has been removed. 
+  Features:
+  * A new command line option `--exec` has been added. This allows you to
+    execute external commands via shell, and should be used as replacement
+    to `ExecuteCommand`
+  * A new configuration option `MaxScanBufferSize` has been added. Whereas
+    bufio.Scanner (which peco internally relies on) only accepts lines that
+    are < 64kb when reading the input, specifying this option in the config
+    allows you to change this limit.
+
 v0.4.9 - 01 Mar 2017
   Bugs/Fixes
   * SavedSelection under `--selection-prefix` was not properly working
