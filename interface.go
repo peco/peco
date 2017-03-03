@@ -78,6 +78,7 @@ type Peco struct {
 	keymap                  Keymap
 	layoutType              string
 	location                Location
+	maxScanBufferSize       int
 	mutex                   sync.Mutex
 	onCancel                string
 	prompt                  string
@@ -167,9 +168,9 @@ type Screen interface {
 
 // Termbox just hands out the processing to the termbox library
 type Termbox struct {
-	mutex sync.Mutex
-	resumeCh chan(struct{})
-	suspendCh chan(struct{})
+	mutex     sync.Mutex
+	resumeCh  chan (struct{})
+	suspendCh chan (struct{})
 }
 
 // View handles the drawing/updating the screen
@@ -299,6 +300,7 @@ type Config struct {
 	Command             []CommandConfig
 	QueryExecutionDelay int
 	StickySelection     bool
+	MaxScanBufferSize   int
 
 	// If this is true, then the prefix for single key jump mode
 	// is displayed by default.

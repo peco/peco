@@ -77,7 +77,12 @@ func (s *Source) Setup(ctx context.Context, state *Peco) {
 		// Note: this will be a no-op if notify.Do has been called before
 		defer notify.Do(notifycb)
 
+		if pdebug.Enabled {
+			pdebug.Printf("Source: using buffer size of %dkb", state.maxScanBufferSize)
+		}
+		scanbuf := make([]byte, state.maxScanBufferSize*1024)
 		scanner := bufio.NewScanner(s.in)
+		scanner.Buffer(scanbuf, 0)
 		defer func() {
 			if util.IsTty(s.in) {
 				return
@@ -95,7 +100,18 @@ func (s *Source) Setup(ctx context.Context, state *Peco) {
 			}
 
 			defer close(lines)
-			for scanner.Scan() {
+			for loop := true; loop; {
+				if !scanner.Scan() {
+					switch err := scanner.Err(); err {
+					case nil: // if error was io.EOF, returns nil
+						loop = false
+					default:
+						if pdebug.Enabled {
+							pdebug.Printf("err: %s", err)
+						}
+					}
+					continue
+				}
 				lines <- scanner.Text()
 				scanned++
 			}

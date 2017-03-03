@@ -251,6 +251,18 @@ Default value for StickySelection is false.
 
 OnCancel is equivalent to `--on-cancel` command line option.
 
+### MaxScanBufferSize
+
+```json
+{
+    "MaxScanBufferSize": 256
+}
+```
+
+Controls the buffer sized used by `bufio.Scanner`, which is responsible for
+reading the input lines. If you believe that your input has very long lines
+that prohibit peco from reading them, try increasing this number
+
 ## Keymaps
 
 Example:

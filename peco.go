@@ -503,6 +503,11 @@ func (p *Peco) ApplyConfig(opts CLIOptions) error {
 		}
 	}
 
+	p.maxScanBufferSize = 256
+	if v := p.config.MaxScanBufferSize; v > 0 {
+		p.maxScanBufferSize = v
+	}
+
 	p.enableSep = opts.OptEnableNullSep
 
 	if i := opts.OptInitialIndex; i >= 0 {
