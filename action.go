@@ -1,10 +1,9 @@
 package peco
 
 import (
+	"bytes"
 	"fmt"
 	"io"
-	"io/ioutil"
-	"os"
 	"os/exec"
 	"unicode"
 
@@ -746,58 +745,37 @@ func makeCommandAction(state *Peco, cc *CommandConfig) ActionFunc {
 			}
 		}
 
+		var stdin bytes.Buffer
 		sel.Ascend(func(it btree.Item) bool {
 			line := it.(line.Line)
-
-			var f *os.File
-			var err error
-
-			args := append([]string{}, cc.Args...)
-			for i, v := range args {
-				switch v {
-				case "$FILE":
-					if f == nil {
-						f, err = ioutil.TempFile("", "peco")
-						if err != nil {
-							return false
-						}
-						f.WriteString(line.Buffer())
-						f.Close()
-					}
-					args[i] = f.Name()
-				case "$LINE":
-					args[i] = line.Buffer()
-				}
-			}
-			state.Hub().SendStatusMsg("Executing " + cc.Name)
-			cmd := exec.Command(args[0], args[1:]...)
-			if cc.Spawn {
-				err = cmd.Start()
-				go func() {
-					cmd.Wait()
-					if f != nil {
-						os.Remove(f.Name())
-					}
-				}()
-			} else {
-				cmd.Stdin = state.Stdin
-				cmd.Stdout = state.Stdout
-				cmd.Stderr = state.Stderr
-
-				state.screen.Suspend()
-
-				err = cmd.Run()
-				if f != nil {
-					os.Remove(f.Name())
-				}
-				state.screen.Resume()
-				state.ExecQuery()
-			}
-			if err != nil {
-				return false
-			}
-
+			stdin.WriteString(line.Buffer())
+			stdin.WriteRune('\n')
 			return true
 		})
+
+		var err error
+		state.Hub().SendStatusMsg("Executing " + cc.Name)
+		cmd := exec.Command(cc.Args[0], cc.Args[1:]...)
+		cmd.Stdin = &stdin
+		if cc.Spawn {
+			err = cmd.Start()
+			go cmd.Wait()
+		} else {
+			cmd.Stdout = state.Stdout
+			cmd.Stderr = state.Stderr
+
+			state.screen.Suspend()
+
+			err = cmd.Run()
+			state.screen.Resume()
+			state.ExecQuery()
+		}
+
+		if err != nil {
+			if pdebug.Enabled {
+				pdebug.Printf("Error executing command %v", cc.Args)
+				pdebug.Printf("error: %s", err)
+			}
+		}
 	}
 }
