@@ -44,7 +44,9 @@ func TestSource(t *testing.T) {
 
 	r := addReadDelay(strings.NewReader(strings.Join(lines, "\n")), 2*time.Second)
 	s := NewSource(r, ig, 0, false)
-	go s.Setup(ctx, &Peco{hub: nullHub{}})
+	p := New()
+	p.hub = nullHub{}
+	go s.Setup(ctx, p)
 
 	timeout := time.After(5 * time.Second)
 	waitout := time.After(1 * time.Second)

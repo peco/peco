@@ -1,6 +1,7 @@
 package peco
 
 import (
+	"bufio"
 	"bytes"
 	"io"
 	"os"
@@ -115,6 +116,7 @@ func New() *Peco {
 		readyCh:           make(chan struct{}),
 		screen:            NewTermbox(),
 		selection:         NewSelection(),
+		maxScanBufferSize: bufio.MaxScanTokenSize,
 	}
 }
 

@@ -82,7 +82,7 @@ func (s *Source) Setup(ctx context.Context, state *Peco) {
 		}
 		scanbuf := make([]byte, state.maxScanBufferSize*1024)
 		scanner := bufio.NewScanner(s.in)
-		scanner.Buffer(scanbuf, 0)
+		scanner.Buffer(scanbuf, state.maxScanBufferSize*1024)
 		defer func() {
 			if util.IsTty(s.in) {
 				return
@@ -100,18 +100,7 @@ func (s *Source) Setup(ctx context.Context, state *Peco) {
 			}
 
 			defer close(lines)
-			for loop := true; loop; {
-				if !scanner.Scan() {
-					switch err := scanner.Err(); err {
-					case nil: // if error was io.EOF, returns nil
-						loop = false
-					default:
-						if pdebug.Enabled {
-							pdebug.Printf("err: %s", err)
-						}
-					}
-					continue
-				}
+			for scanner.Scan() {
 				lines <- scanner.Text()
 				scanned++
 			}
