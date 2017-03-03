@@ -183,6 +183,18 @@ If there are multiple lines in the input, the usual selection view is displayed.
 Specifies the exit status to use when the user cancels the query execution.
 For historical and back-compatibility reasons, the default is `success`, meaning if the user cancels the query, the exit status is 0. When you choose `error`, peco will exit with a non-zero value.
 
+### --selection-prefix `string`
+
+When specified, peco uses the specified prefix instead of changing line color to indicate currently selected line(s). default is to use colors. This option is experimental
+
+### --exec `string`
+
+When specified, peco executes the specified external command (via shell), with peco's currently selected line(s) as its input from STDIN.
+
+Upon exiting from the external command, the control goes back to peco where you can keep browsing your search buffer, and to possibly execute your external command repeatedly afterwards.
+
+To exit out of peco when running in this mode, you must execute the Cancel command, usually the escape key.
+
 # Configuration File
 
 peco by default consults a few locations for the config files.
@@ -550,23 +562,6 @@ See --layout.
 }
 ```
 
-## ExecuteCommand
-
-```
-{
-  "Keymap": {
-    "C-e": "peco.ExecuteCommand.Notepad"
-  },
-  "Command": [
-    {
-      "Name": "Notepad",
-      "Args": ["notepad", "$FILE"],
-      "Spawn": true
-    }
-  ]
-}
-```
-
 ## SelectionPrefix
 
 `SelectionPrefix` is equivalent to using `--selection-prefix` in the command line.
@@ -690,6 +685,7 @@ Much code stolen from https://github.com/mattn/gof
 	* [--select-1](#--select-1)
 	* [--on-cancel `success|error`](#--on-cancel-successerror)
         * [--selection-prefix `string`](#--selection-prefix-string)
+        * [--exec `string`](#--exec-string)
 * [Configuration File](#configuration-file)
 	* [Global](#global)
 		* [Prompt](#prompt)
@@ -712,7 +708,6 @@ Much code stolen from https://github.com/mattn/gof
 		* [Examples](#examples)
 	* [Layout](#layout)
 	* [SingleKeyJump](#singlekeyjump)
-	* [ExecuteCommand](#executecommand)
 	* [SelectionPrefix](#selectionprefix)
 * [FAQ](#faq)
 	* [Does peco work on (msys2|cygwin)?](#does-peco-work-on-msys2cygwin)
