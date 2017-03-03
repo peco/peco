@@ -259,9 +259,9 @@ OnCancel is equivalent to `--on-cancel` command line option.
 }
 ```
 
-Controls the buffer sized used by `bufio.Scanner`, which is responsible for
-reading the input lines. If you believe that your input has very long lines
-that prohibit peco from reading them, try increasing this number
+Controls the buffer sized (in kilobytes) used by `bufio.Scanner`, which is
+responsible for reading the input lines. If you believe that your input has
+very long lines that prohibit peco from reading them, try increasing this number.
 
 ## Keymaps
 
