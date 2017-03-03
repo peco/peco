@@ -1,6 +1,7 @@
 package peco
 
 import (
+	"bufio"
 	"bytes"
 	"io"
 	"os"
@@ -113,8 +114,9 @@ func New() *Peco {
 		idgen:             newIDGen(),
 		queryExecDelay:    50 * time.Millisecond,
 		readyCh:           make(chan struct{}),
-		screen:            &Termbox{},
+		screen:            NewTermbox(),
 		selection:         NewSelection(),
+		maxScanBufferSize: bufio.MaxScanTokenSize,
 	}
 }
 
@@ -326,7 +328,7 @@ func (p *Peco) Run(ctx context.Context) (err error) {
 	loopers := []interface {
 		Loop(ctx context.Context, cancel func()) error
 	}{
-		NewInput(p, p.Keymap(), p.screen.PollEvent()),
+		NewInput(p, p.Keymap(), p.screen.PollEvent(ctx)),
 		NewView(p),
 		NewFilter(p),
 		sig.New(sig.SigReceivedHandlerFunc(func(sig os.Signal) {
@@ -482,17 +484,6 @@ func readConfig(cfg *Config, filename string) error {
 	return nil
 }
 
-func (p *Peco) populateCommandList() error {
-	for _, v := range p.config.Command {
-		if len(v.Args) == 0 {
-			continue
-		}
-		makeCommandAction(p, &v).Register("ExecuteCommand." + v.Name)
-	}
-
-	return nil
-}
-
 func (p *Peco) ApplyConfig(opts CLIOptions) error {
 	// If layoutType is not set and is set in the config, set it
 	if p.layoutType == "" {
@@ -501,6 +492,15 @@ func (p *Peco) ApplyConfig(opts CLIOptions) error {
 		} else {
 			p.layoutType = DefaultLayoutType
 		}
+	}
+
+	p.maxScanBufferSize = 256
+	if v := p.config.MaxScanBufferSize; v > 0 {
+		p.maxScanBufferSize = v
+	}
+
+	if v := opts.OptExec; len(v) > 0 {
+		p.execOnFinish = v
 	}
 
 	p.enableSep = opts.OptEnableNullSep
@@ -538,10 +538,6 @@ func (p *Peco) ApplyConfig(opts CLIOptions) error {
 	}
 	if len(p.initialFilter) <= 0 {
 		p.initialFilter = opts.OptInitialMatcher
-	}
-
-	if err := p.populateCommandList(); err != nil {
-		return errors.Wrap(err, "failed to populate command list")
 	}
 
 	if err := p.populateFilters(); err != nil {

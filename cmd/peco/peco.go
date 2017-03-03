@@ -5,9 +5,11 @@ import (
 	"os"
 	"runtime"
 
+	"context"
+
+	pdebug "github.com/lestrrat/go-pdebug"
 	"github.com/peco/peco"
 	"github.com/peco/peco/internal/util"
-	"context"
 )
 
 func main() {
@@ -21,6 +23,9 @@ func main() {
 }
 
 func _main() int {
+	if pdebug.Enabled {
+		pdebug.DefaultCtx.Writer = os.Stderr
+	}
 	if envvar := os.Getenv("GOMAXPROCS"); envvar == "" {
 		runtime.GOMAXPROCS(runtime.NumCPU())
 	}
@@ -41,7 +46,6 @@ func _main() int {
 			fmt.Fprintf(os.Stderr, "Error: %s\n", err)
 			return 1
 		}
-
 
 	}
 

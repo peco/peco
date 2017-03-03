@@ -124,12 +124,14 @@ func (d dummyScreen) Flush() error {
 	d.record("Flush", interceptorArgs{})
 	return nil
 }
-func (d dummyScreen) PollEvent() chan termbox.Event {
+func (d dummyScreen) PollEvent(ctx context.Context) chan termbox.Event {
 	return d.pollCh
 }
 func (d dummyScreen) Size() (int, int) {
 	return d.width, d.height
 }
+func (d dummyScreen) Resume() {}
+func (d dummyScreen) Suspend() {}
 
 func TestIDGen(t *testing.T) {
 	idgen := newIDGen()

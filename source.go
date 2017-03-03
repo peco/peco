@@ -77,7 +77,12 @@ func (s *Source) Setup(ctx context.Context, state *Peco) {
 		// Note: this will be a no-op if notify.Do has been called before
 		defer notify.Do(notifycb)
 
+		if pdebug.Enabled {
+			pdebug.Printf("Source: using buffer size of %dkb", state.maxScanBufferSize)
+		}
+		scanbuf := make([]byte, state.maxScanBufferSize*1024)
 		scanner := bufio.NewScanner(s.in)
+		scanner.Buffer(scanbuf, state.maxScanBufferSize*1024)
 		defer func() {
 			if util.IsTty(s.in) {
 				return
