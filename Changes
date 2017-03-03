@@ -12,6 +12,9 @@ v0.5.0 - unreleased
     bufio.Scanner (which peco internally relies on) only accepts lines that
     are < 64kb when reading the input, specifying this option in the config
     allows you to change this limit.
+  Bugs/Fixes
+  * When executing external commands, the screen and the capturing of user
+    input would interfere when getting back to peco.
 
 v0.4.9 - 01 Mar 2017
   Bugs/Fixes
