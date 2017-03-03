@@ -99,7 +99,6 @@ func (t *Termbox) PollEvent(ctx context.Context) chan termbox.Event {
 }
 
 func (t *Termbox) Suspend() {
-	pdebug.Printf("termbox.Suspend")
 	select {
 	case t.suspendCh <- struct{}{}:
 	default:
