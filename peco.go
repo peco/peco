@@ -113,7 +113,7 @@ func New() *Peco {
 		idgen:             newIDGen(),
 		queryExecDelay:    50 * time.Millisecond,
 		readyCh:           make(chan struct{}),
-		screen:            &Termbox{},
+		screen:            NewTermbox(),
 		selection:         NewSelection(),
 	}
 }
@@ -326,7 +326,7 @@ func (p *Peco) Run(ctx context.Context) (err error) {
 	loopers := []interface {
 		Loop(ctx context.Context, cancel func()) error
 	}{
-		NewInput(p, p.Keymap(), p.screen.PollEvent()),
+		NewInput(p, p.Keymap(), p.screen.PollEvent(ctx)),
 		NewView(p),
 		NewFilter(p),
 		sig.New(sig.SigReceivedHandlerFunc(func(sig os.Signal) {

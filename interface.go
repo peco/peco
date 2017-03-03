@@ -156,16 +156,20 @@ type Screen interface {
 	Init() error
 	Close() error
 	Flush() error
-	PollEvent() chan termbox.Event
+	PollEvent(context.Context) chan termbox.Event
 	Print(PrintArgs) int
+	Resume()
 	SetCell(int, int, rune, termbox.Attribute, termbox.Attribute)
 	Size() (int, int)
 	SendEvent(termbox.Event)
+	Suspend()
 }
 
 // Termbox just hands out the processing to the termbox library
 type Termbox struct {
 	mutex sync.Mutex
+	resumeCh chan(struct{})
+	suspendCh chan(struct{})
 }
 
 // View handles the drawing/updating the screen

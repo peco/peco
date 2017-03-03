@@ -1,8 +1,10 @@
 package peco
 
 import (
+	"context"
 	"unicode/utf8"
 
+	pdebug "github.com/lestrrat/go-pdebug"
 	"github.com/mattn/go-runewidth"
 	"github.com/nsf/termbox-go"
 	"github.com/pkg/errors"
@@ -14,6 +16,13 @@ func (t *Termbox) Init() error {
 	}
 
 	return t.PostInit()
+}
+
+func NewTermbox() *Termbox {
+	return &Termbox{
+		suspendCh: make(chan struct{}),
+		resumeCh:  make(chan struct{}),
+	}
 }
 
 func (t *Termbox) Close() error {
@@ -38,7 +47,7 @@ func (t *Termbox) Flush() error {
 // PollEvent returns a channel that you can listen to for
 // termbox's events. The actual polling is done in a
 // separate gouroutine
-func (t *Termbox) PollEvent() chan termbox.Event {
+func (t *Termbox) PollEvent(ctx context.Context) chan termbox.Event {
 	// XXX termbox.PollEvent() can get stuck on unexpected signal
 	// handling cases. We still would like to wait until the user
 	// (termbox) has some event for us to process, but we don't
@@ -49,15 +58,59 @@ func (t *Termbox) PollEvent() chan termbox.Event {
 	// safely be implemented in terms of select {} which is
 	// safe from being stuck.
 	evCh := make(chan termbox.Event)
+
+	go func() {
+		// keep listening to suspend requests here
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case <-t.suspendCh:
+				if pdebug.Enabled {
+					pdebug.Printf("poll event suspended!")
+				}
+				termbox.Interrupt()
+				t.Close()
+			}
+		}
+	}()
+
 	go func() {
 		defer func() { recover() }()
 		defer func() { close(evCh) }()
+
 		for {
-			evCh <- termbox.PollEvent()
+			ev := termbox.PollEvent()
+			if ev.Type != termbox.EventInterrupt {
+				evCh <- ev
+				continue
+			}
+
+			select {
+			case <-ctx.Done():
+				return
+			case <-t.resumeCh:
+				t.Init()
+			}
 		}
 	}()
 	return evCh
 
+}
+
+func (t *Termbox) Suspend() {
+	pdebug.Printf("termbox.Suspend")
+	select {
+	case t.suspendCh <- struct{}{}:
+	default:
+	}
+}
+
+func (t *Termbox) Resume() {
+	select {
+	case t.resumeCh <- struct{}{}:
+	default:
+	}
 }
 
 // SetCell writes to the terminal

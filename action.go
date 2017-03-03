@@ -2,6 +2,7 @@ package peco
 
 import (
 	"fmt"
+	"io"
 	"io/ioutil"
 	"os"
 	"os/exec"
@@ -730,9 +731,15 @@ func makeCombinedAction(actions ...Action) ActionFunc {
 	})
 }
 
+type nopCloseWriter struct {
+	io.Writer
+}
+
+func (nopCloseWriter) Close() error { return nil }
 func makeCommandAction(state *Peco, cc *CommandConfig) ActionFunc {
 	return func(ctx context.Context, state *Peco, _ termbox.Event) {
-		sel := state.Selection()
+		sel := NewSelection()
+		state.Selection().Copy(sel)
 		if sel.Len() == 0 {
 			if l, err := state.CurrentLineBuffer().LineAt(state.Location().LineNumber()); err == nil {
 				sel.Add(l)
@@ -776,10 +783,14 @@ func makeCommandAction(state *Peco, cc *CommandConfig) ActionFunc {
 				cmd.Stdin = state.Stdin
 				cmd.Stdout = state.Stdout
 				cmd.Stderr = state.Stderr
+
+				state.screen.Suspend()
+
 				err = cmd.Run()
 				if f != nil {
 					os.Remove(f.Name())
 				}
+				state.screen.Resume()
 				state.ExecQuery()
 			}
 			if err != nil {

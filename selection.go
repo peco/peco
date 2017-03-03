@@ -20,6 +20,13 @@ func (s *Selection) Add(l line.Line) {
 	s.tree.ReplaceOrInsert(l)
 }
 
+func (s *Selection) Copy(dst *Selection) {
+	s.Ascend(func(it btree.Item) bool {
+		dst.Add(it.(line.Line))
+		return true
+	})
+}
+
 // Remove removes the specified line from the selection
 func (s *Selection) Remove(l line.Line) {
 	s.mutex.Lock()
