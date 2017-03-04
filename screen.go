@@ -26,6 +26,10 @@ func NewTermbox() *Termbox {
 }
 
 func (t *Termbox) Close() error {
+	if pdebug.Enabled {
+		pdebug.Printf("Termbox: Close")
+	}
+	termbox.Interrupt()
 	termbox.Close()
 	return nil
 }
@@ -69,7 +73,6 @@ func (t *Termbox) PollEvent(ctx context.Context) chan termbox.Event {
 				if pdebug.Enabled {
 					pdebug.Printf("poll event suspended!")
 				}
-				termbox.Interrupt()
 				t.Close()
 			}
 		}
