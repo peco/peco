@@ -16,8 +16,9 @@ import (
 
 // Creates a new Source. Does not start processing the input until you
 // call Setup()
-func NewSource(in io.Reader, idgen line.IDGenerator, capacity int, enableSep bool) *Source {
+func NewSource(name string, in io.Reader, idgen line.IDGenerator, capacity int, enableSep bool) *Source {
 	s := &Source{
+		name: name,
 		in:         in, // Note that this may be closed, so do not rely on it
 		capacity:   capacity,
 		enableSep:  enableSep,
@@ -28,6 +29,10 @@ func NewSource(in io.Reader, idgen line.IDGenerator, capacity int, enableSep boo
 	}
 	s.Reset()
 	return s
+}
+
+func (s *Source) Name() string {
+	return s.name
 }
 
 // Setup reads from the input os.File.

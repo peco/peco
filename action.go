@@ -3,6 +3,8 @@ package peco
 import (
 	"bytes"
 	"fmt"
+	"os"
+	"strconv"
 	"unicode"
 
 	"context"
@@ -326,6 +328,29 @@ func doFinish(ctx context.Context, state *Peco, _ termbox.Event) {
 	cmd.Stdin = &stdin
 	cmd.Stdout = state.Stdout
 	cmd.Stderr = state.Stderr
+	// Setup some enviroment variables. Start with a copy of the current
+	// environment...
+	env := os.Environ()
+
+	// Add some PECO specific ones...
+	// PECO_QUERY: current query value
+	// PECO_FILENAME: input file name, if any. "-" for stdin
+	// PECO_LINE_COUNT: number of lines in the original input
+	// PECO_MATCHED_LINE_COUNT: number of lines matched (number of lines being
+	//     sent to stdin of the command being executed)
+
+	if s, ok := state.Source().(*Source); ok {
+		env = append(env,
+			`PECO_FILENAME=`+s.Name(),
+			`PECO_LINE_COUNT=`+strconv.Itoa(s.Size()),
+		)
+	}
+
+	env = append(env,
+		`PECO_QUERY=`+state.Query().String(),
+		`PECO_MATCHED_LINE_COUNT=`+strconv.Itoa(sel.Len()),
+	)
+	cmd.Env = env
 
 	state.screen.Suspend()
 
