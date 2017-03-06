@@ -402,7 +402,6 @@ type State interface {
 
 type CLIOptions struct {
 	OptHelp            bool   `short:"h" long:"help" description:"show this help message and exit"`
-	OptTTY             string `long:"tty" description:"path to the TTY (usually, the value of $TTY)"`
 	OptQuery           string `long:"query" description:"initial value for query"`
 	OptRcfile          string `long:"rcfile" description:"path to the settings file"`
 	OptVersion         bool   `long:"version" description:"print the version and exit"`
