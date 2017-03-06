@@ -1,6 +1,10 @@
 Changes
 =======
 
+v0.5.1 - unreleased
+  Backwards Incompatible Change:
+  * --tty has been removed. it was not being used anyways.
+
 v0.5.0 - 06 Mar 2017
   Backwards Incompatible Change:
   * ExecuteCommand has been removed. 
