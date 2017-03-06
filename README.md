@@ -275,6 +275,8 @@ Controls the buffer sized (in kilobytes) used by `bufio.Scanner`, which is
 responsible for reading the input lines. If you believe that your input has
 very long lines that prohibit peco from reading them, try increasing this number.
 
+The same time, the default MaxScanBuferSize is 256kb.
+
 ## Keymaps
 
 Example:

@@ -1,8 +1,8 @@
 Changes
 =======
 
-v0.5.0 - unreleased
-  Backwards Incompatible Changes:
+v0.5.0 - 06 Mar 2017
+  Backwards Incompatible Change:
   * ExecuteCommand has been removed. 
   Features:
   * A new command line option `--exec` has been added. This allows you to
@@ -12,6 +12,7 @@ v0.5.0 - unreleased
     bufio.Scanner (which peco internally relies on) only accepts lines that
     are < 64kb when reading the input, specifying this option in the config
     allows you to change this limit.
+    The default MaxScanBuferSize is 256kb.
   Bugs/Fixes
   * When executing external commands, the screen and the capturing of user
     input would interfere when getting back to peco.
