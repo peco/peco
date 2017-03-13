@@ -29,7 +29,8 @@ func _main() int {
 	if envvar := os.Getenv("GOMAXPROCS"); envvar == "" {
 		runtime.GOMAXPROCS(runtime.NumCPU())
 	}
-	ctx := context.Background()
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 
 	cli := peco.New()
 	if err := cli.Run(ctx); err != nil {
