@@ -381,6 +381,7 @@ type Source struct {
 	idgen     line.IDGenerator
 	in        io.Reader
 	lines     []line.Line
+	name      string
 	mutex     sync.RWMutex
 	ready     chan struct{}
 	setupDone chan struct{}

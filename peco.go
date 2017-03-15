@@ -438,6 +438,7 @@ func (p *Peco) SetupSource(ctx context.Context) (s *Source, err error) {
 	}
 
 	var in io.Reader
+	var filename string
 	switch {
 	case len(p.args) > 1:
 		f, err := os.Open(p.args[1])
@@ -448,16 +449,18 @@ func (p *Peco) SetupSource(ctx context.Context) (s *Source, err error) {
 			pdebug.Printf("Using %s as input", p.args[1])
 		}
 		in = f
+		filename = p.args[1]
 	case !util.IsTty(p.Stdin):
 		if pdebug.Enabled {
 			pdebug.Printf("Using p.Stdin as input")
 		}
 		in = p.Stdin
+		filename = `-`
 	default:
 		return nil, errors.New("you must supply something to work with via filename or stdin")
 	}
 
-	src := NewSource(in, p.idgen, p.bufferSize, p.enableSep)
+	src := NewSource(filename, in, p.idgen, p.bufferSize, p.enableSep)
 
 	// Block until we receive something from `in`
 	if pdebug.Enabled {
