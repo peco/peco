@@ -50,7 +50,7 @@ glide: $(INTERNAL_BIN_DIR)/$(THIS_GOOS)/$(THIS_GOARCH)/glide
 
 installdeps: glide $(SRC_FILES)
 	@echo "Installing dependencies..."
-	@PATH=$(INTERNAL_BIN_DIR)/$(GOOS)/$(GOARCH):$(PATH) glide install
+	@$(INTERNAL_BIN_DIR)/$(THIS_GOOS)/$(THIS_GOARCH)/glide install
 
 build-windows-amd64:
 	@$(MAKE) build GOOS=windows GOARCH=amd64 SUFFIX=.exe
@@ -140,7 +140,7 @@ release-upload: release release-github-token
 
 test: installdeps
 	@echo "Running tests..."
-	@PATH=$(INTERNAL_BIN_DIR)/$(GOOS)/$(GOARCH):$(PATH) go test -v $(shell $(INTERNAL_BIN_DIR)/$(GOOS)/$(GOARCH)/glide nv)
+	@PATH=$(INTERNAL_BIN_DIR)/$(GOOS)/$(GOARCH):$(PATH) go test -v $(shell $(INTERNAL_BIN_DIR)/$(THIS_GOOS)/$(THIS_GOARCH)/glide nv)
 
 clean:
 	-rm -rf $(RELEASE_DIR)/*/*
