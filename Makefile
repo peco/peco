@@ -8,8 +8,26 @@ ARTIFACTS_DIR=$(RELEASE_DIR)/artifacts/$(VERSION)
 SRC_FILES = $(wildcard *.go cmd/peco/*.go internal/*/*.go)
 HAVE_GLIDE:=$(shell which glide >/dev/null 2>&1)
 GITHUB_USERNAME=peco
+BUILD_TARGETS= \
+	build-linux-arm64 \
+	build-linux-arm \
+	build-linux-amd64 \
+	build-linux-386 \
+	build-darwin-amd64 \
+	build-darwin-386 \
+	build-windows-amd64 \
+	build-windows-386
+RELEASE_TARGETS=\
+	release-linux-arm64 \
+	release-linux-arm \
+	release-linux-amd64 \
+	release-linux-386 \
+	release-darwin-amd64 \
+	release-darwin-386 \
+	release-windows-amd64 \
+	release-windows-386
 
-.PHONY: clean build build-windows-amd64 build-windows-386 build-linux-amd64 $(RELEASE_DIR)/$(GOOS)/$(GOARCH)/peco$(SUFFIX)
+.PHONY: clean build $(RELEASE_TARGETS) $(BUILD_TARGETS) $(RELEASE_DIR)/$(GOOS)/$(GOARCH)/peco$(SUFFIX)
 
 build: $(RELEASE_DIR)/peco_$(GOOS)_$(GOARCH)/peco$(SUFFIX)
 
@@ -37,6 +55,12 @@ build-windows-386:
 build-linux-amd64:
 	@$(MAKE) build GOOS=linux GOARCH=amd64
 
+build-linux-arm:
+	@$(MAKE) build GOOS=linux GOARCH=arm
+
+build-linux-arm64:
+	@$(MAKE) build GOOS=linux GOARCH=arm64
+
 build-linux-386:
 	@$(MAKE) build GOOS=linux GOARCH=386
 
@@ -49,9 +73,9 @@ build-darwin-386:
 $(RELEASE_DIR)/peco_$(GOOS)_$(GOARCH)/peco$(SUFFIX):
 	go build -o $(RELEASE_DIR)/peco_$(GOOS)_$(GOARCH)/peco$(SUFFIX) cmd/peco/peco.go
 
-all: build-linux-amd64 build-linux-386 build-darwin-amd64 build-darwin-386 build-windows-amd64 build-windows-386
+all: $(BUILD_TARGETS)
 
-release: release-linux-amd64 release-linux-386 release-darwin-amd64 release-darwin-386 release-windows-amd64 release-windows-386
+release: $(RELEASE_TARGETS)
 
 $(RELEASE_DIR)/peco_$(GOOS)_$(GOARCH)/Changes:
 	@cp Changes $(RELEASE_DIR)/peco_$(GOOS)_$(GOARCH)
@@ -70,6 +94,12 @@ release-windows-386: build-windows-386
 
 release-linux-amd64: build-linux-amd64
 	@$(MAKE) release-changes release-readme release-targz GOOS=linux GOARCH=amd64
+
+release-linux-arm: build-linux-arm
+	@$(MAKE) release-changes release-readme release-targz GOOS=linux GOARCH=arm
+
+release-linux-arm64: build-linux-arm64
+	@$(MAKE) release-changes release-readme release-targz GOOS=linux GOARCH=arm64
 
 release-linux-386: build-linux-386
 	@$(MAKE) release-changes release-readme release-targz GOOS=linux GOARCH=386
@@ -99,7 +129,7 @@ release-zip: $(ARTIFACTS_DIR)
 release-github-token: github_token
 	@echo "file `github_token` is required"
 
-release-upload: release-windows-386 release-windows-amd64 release-linux-386 release-linux-amd64 release-darwin-386 release-darwin-amd64 release-github-token
+release-upload: release release-github-token
 	ghr -u $(GITHUB_USERNAME) -t $(shell cat github_token) --draft --replace $(VERSION) $(ARTIFACTS_DIR)
 
 test: installdeps
