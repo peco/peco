@@ -640,6 +640,12 @@ func (l *BasicLayout) CalculatePage(state *Peco, perPage int) error {
 		loc.SetLineNumber(loc.Offset())
 	}
 
+	width, _ := l.screen.Size()
+	loc.SetMaxColumn(buf.Columns() - width)
+	if loc.MaxColumn() < 0 {
+		loc.SetMaxColumn(0)
+	}
+
 	return nil
 }
 
@@ -835,6 +841,9 @@ func horizontalScroll(state *Peco, l *BasicLayout, p PagingRequest) bool {
 	loc := state.Location()
 	if p.Type() == ToScrollRight {
 		loc.SetColumn(loc.Column() + width/2)
+		if loc.Column() > loc.MaxColumn() {
+			loc.SetColumn(loc.MaxColumn())
+		}
 	} else if loc.Column() > 0 {
 		loc.SetColumn(loc.Column() - width/2)
 		if loc.Column() < 0 {

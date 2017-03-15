@@ -345,6 +345,7 @@ type Caret struct {
 }
 
 type Location struct {
+	maxCol  int
 	col     int
 	lineno  int
 	maxPage int
@@ -421,6 +422,7 @@ type RangeStart struct {
 type Buffer interface {
 	LineAt(int) (line.Line, error)
 	Size() int
+	Columns() int
 }
 
 // MemoryBuffer is an implementation of Buffer

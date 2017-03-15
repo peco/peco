@@ -6,6 +6,7 @@ import (
 	"context"
 
 	"github.com/lestrrat/go-pdebug"
+	"github.com/mattn/go-runewidth"
 	"github.com/peco/peco/line"
 	"github.com/peco/peco/pipeline"
 	"github.com/pkg/errors"
@@ -50,6 +51,11 @@ func (flb FilteredBuffer) Size() int {
 	return len(flb.selection)
 }
 
+// Columns returns the max number of columns in the buffer
+func (flb FilteredBuffer) Columns() int {
+	return flb.src.Columns()
+}
+
 func NewMemoryBuffer() *MemoryBuffer {
 	mb := &MemoryBuffer{}
 	mb.Reset()
@@ -64,6 +70,23 @@ func (mb *MemoryBuffer) Size() int {
 
 func bufferSize(lines []line.Line) int {
 	return len(lines)
+}
+
+func (mb *MemoryBuffer) Columns() int {
+	mb.mutex.RLock()
+	defer mb.mutex.RUnlock()
+	return maxColumns(mb.lines)
+}
+
+func maxColumns(lines []line.Line) int {
+	maxCols := 0
+	for _, l := range lines {
+		cols := runewidth.StringWidth(l.DisplayString())
+		if cols > maxCols {
+			maxCols = cols
+		}
+	}
+	return maxCols
 }
 
 func (mb *MemoryBuffer) Reset() {
