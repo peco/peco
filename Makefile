@@ -1,12 +1,14 @@
 INTERNAL_BIN_DIR=_internal_bin
 GOVERSION=$(shell go version)
-GOOS=$(word 1,$(subst /, ,$(lastword $(GOVERSION))))
-GOARCH=$(word 2,$(subst /, ,$(lastword $(GOVERSION))))
+THIS_GOOS=$(word 1,$(subst /, ,$(lastword $(GOVERSION))))
+THIS_GOARCH=$(word 2,$(subst /, ,$(lastword $(GOVERSION))))
+GOOS=$(THIS_GOOS)
+GOARCH=$(THIS_GOARCH)
 VERSION=$(patsubst "%",%,$(lastword $(shell grep 'const version' peco.go)))
 RELEASE_DIR=releases
 ARTIFACTS_DIR=$(RELEASE_DIR)/artifacts/$(VERSION)
 SRC_FILES = $(wildcard *.go cmd/peco/*.go internal/*/*.go)
-HAVE_GLIDE:=$(shell which glide >/dev/null 2>&1)
+HAVE_GLIDE:=$(shell which glide >/dev/null 2>&1 && echo "yes")
 GITHUB_USERNAME=peco
 BUILD_TARGETS= \
 	build-linux-arm64 \
@@ -31,20 +33,24 @@ RELEASE_TARGETS=\
 
 build: $(RELEASE_DIR)/peco_$(GOOS)_$(GOARCH)/peco$(SUFFIX)
 
-$(INTERNAL_BIN_DIR)/$(GOOS)/$(GOARCH)/glide:
-ifndef HAVE_GLIDE
-	@echo "Installing glide for $(GOOS)/$(GOARCH)..."
-	@mkdir -p $(INTERNAL_BIN_DIR)/$(GOOS)/$(GOARCH)
-	@wget -q -O - https://github.com/Masterminds/glide/releases/download/0.10.2/glide-0.10.2-$(GOOS)-$(GOARCH).tar.gz | tar xvz
-	@mv $(GOOS)-$(GOARCH)/glide $(INTERNAL_BIN_DIR)/$(GOOS)/$(GOARCH)/glide
-	@rm -rf $(GOOS)-$(GOARCH)
+$(INTERNAL_BIN_DIR):
+	@echo "Creating $(INTERNAL_BIN_DIR)"
+	@mkdir -p $(INTERNAL_BIN_DIR)
+
+$(INTERNAL_BIN_DIR)/$(THIS_GOOS)/$(THIS_GOARCH)/glide: $(INTERNAL_BIN_DIR)
+ifeq ($(HAVE_GLIDE),)
+	@echo "Installing glide for $(THIS_GOOS)/$(THIS_GOARCH)..."
+	@mkdir -p $(INTERNAL_BIN_DIR)/$(THIS_GOOS)/$(THIS_GOARCH)
+	@wget -q -O - https://github.com/Masterminds/glide/releases/download/0.10.2/glide-0.10.2-$(THIS_GOOS)-$(THIS_GOARCH).tar.gz | tar xvz
+	@mv $(THIS_GOOS)-$(THIS_GOARCH)/glide $(INTERNAL_BIN_DIR)/$(THIS_GOOS)/$(THIS_GOARCH)/glide
+	@rm -rf $(THIS_GOOS)-$(THIS_GOARCH)
 endif
 
-glide: $(INTERNAL_BIN_DIR)/$(GOOS)/$(GOARCH)/glide
+glide: $(INTERNAL_BIN_DIR)/$(THIS_GOOS)/$(THIS_GOARCH)/glide
 
 installdeps: glide $(SRC_FILES)
 	@echo "Installing dependencies..."
-	@PATH=$(INTERNAL_BIN_DIR)/$(GOOS)/$(GOARCH):$(PATH) glide install
+	@$(INTERNAL_BIN_DIR)/$(THIS_GOOS)/$(THIS_GOARCH)/glide install
 
 build-windows-amd64:
 	@$(MAKE) build GOOS=windows GOARCH=amd64 SUFFIX=.exe
@@ -70,7 +76,7 @@ build-darwin-amd64:
 build-darwin-386:
 	@$(MAKE) build GOOS=darwin GOARCH=386
 
-$(RELEASE_DIR)/peco_$(GOOS)_$(GOARCH)/peco$(SUFFIX):
+$(RELEASE_DIR)/peco_$(GOOS)_$(GOARCH)/peco$(SUFFIX): installdeps
 	go build -o $(RELEASE_DIR)/peco_$(GOOS)_$(GOARCH)/peco$(SUFFIX) cmd/peco/peco.go
 
 all: $(BUILD_TARGETS)
@@ -134,7 +140,7 @@ release-upload: release release-github-token
 
 test: installdeps
 	@echo "Running tests..."
-	@PATH=$(INTERNAL_BIN_DIR)/$(GOOS)/$(GOARCH):$(PATH) go test -v $(shell $(INTERNAL_BIN_DIR)/$(GOOS)/$(GOARCH)/glide nv)
+	@PATH=$(INTERNAL_BIN_DIR)/$(GOOS)/$(GOARCH):$(PATH) go test -v $(shell $(INTERNAL_BIN_DIR)/$(THIS_GOOS)/$(THIS_GOARCH)/glide nv)
 
 clean:
 	-rm -rf $(RELEASE_DIR)/*/*
