@@ -144,14 +144,6 @@ type Selection struct {
 	tree  *btree.BTree
 }
 
-// StatusMsgRequest specifies the string to be drawn
-// on the status message bar and an optional delay that tells
-// the view to clear that message
-type StatusMsgRequest struct {
-	message    string
-	clearDelay time.Duration
-}
-
 // Screen hides termbox from the consuming code so that
 // it can be swapped out for testing
 type Screen interface {
@@ -252,7 +244,6 @@ type Keymap struct {
 	Config map[string]string
 	Action map[string][]string // custom actions
 	seq    Keyseq
-	state  *Peco
 }
 
 // Filter is responsible for the actual "grep" part of peco
@@ -375,7 +366,6 @@ type FilterQuery Query
 type Source struct {
 	pipeline.ChanOutput
 
-	done      chan struct{}
 	capacity  int
 	enableSep bool
 	idgen     line.IDGenerator
@@ -386,7 +376,6 @@ type Source struct {
 	ready     chan struct{}
 	setupDone chan struct{}
 	setupOnce sync.Once
-	start     chan struct{}
 }
 
 type State interface {
