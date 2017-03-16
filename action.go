@@ -356,7 +356,7 @@ func doFinish(ctx context.Context, state *Peco, _ termbox.Event) {
 
 	err = cmd.Run()
 	state.screen.Resume()
-	state.ExecQuery()
+	state.Hub().SendDraw(&DrawOptions{DisableCache: true})
 	if err != nil {
 		// bail out, or otherwise the user cannot know what happened
 		state.Exit(errors.Wrap(err, `failed to execute command`))

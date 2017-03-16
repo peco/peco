@@ -162,8 +162,8 @@ type Screen interface {
 // Termbox just hands out the processing to the termbox library
 type Termbox struct {
 	mutex     sync.Mutex
-	resumeCh  chan (struct{})
-	suspendCh chan (struct{})
+	resumeCh  chan chan struct{}
+	suspendCh chan struct{}
 }
 
 // View handles the drawing/updating the screen
