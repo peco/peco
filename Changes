@@ -2,8 +2,17 @@ Changes
 =======
 
 v0.5.1 - unreleased
+  Bugs/Fixes
+  * When --exec is used, and you come back from the external command,
+    you lost your selected location in the peco view. #410
   Backwards Incompatible Change:
   * --tty has been removed. it was not being used anyways.
+  Miscellaneous
+  * External commands specified in --exec now receive
+    PECO_FILENAME, PECO_LINE_COUNT, PECO_QUERY, and
+    PECO_MACHED_LINE_COUNT as environment variables
+  * Removed unused structs
+  * Fixed glide related Mkaefile actions
 
 v0.5.0 - 06 Mar 2017
   Backwards Incompatible Change:
