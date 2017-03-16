@@ -21,7 +21,7 @@ func (t *Termbox) Init() error {
 func NewTermbox() *Termbox {
 	return &Termbox{
 		suspendCh: make(chan struct{}),
-		resumeCh:  make(chan struct{}),
+		resumeCh:  make(chan chan struct{}),
 	}
 }
 
@@ -92,8 +92,9 @@ func (t *Termbox) PollEvent(ctx context.Context) chan termbox.Event {
 			select {
 			case <-ctx.Done():
 				return
-			case <-t.resumeCh:
+			case replyCh := <-t.resumeCh:
 				t.Init()
+				close(replyCh)
 			}
 		}
 	}()
@@ -109,10 +110,16 @@ func (t *Termbox) Suspend() {
 }
 
 func (t *Termbox) Resume() {
+	// Resume must be a block operation, because we can't safely proceed
+	// without actually knowing that termbox has been re-initialized.
+	// So we send a channel where we expect a reply back, and wait for that
+	ch := make(chan struct{})
 	select {
-	case t.resumeCh <- struct{}{}:
+	case t.resumeCh <- ch:
 	default:
 	}
+
+	<-ch
 }
 
 // SetCell writes to the terminal
