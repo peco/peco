@@ -68,3 +68,11 @@ func (l Location) PageCrop() PageCrop {
 func (pf PageCrop) Crop(in Buffer) Buffer {
 	return NewFilteredBuffer(in, pf.currentPage, pf.perPage)
 }
+
+func (l *Location) SetMaxColumn(n int) {
+	l.maxCol = n
+}
+
+func (l Location) MaxColumn() int {
+	return l.maxCol
+}

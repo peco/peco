@@ -252,6 +252,12 @@ func (s *Source) Size() int {
 	return bufferSize(s.lines)
 }
 
+func (s *Source) Columns() int {
+	s.mutex.RLock()
+	defer s.mutex.RUnlock()
+	return maxColumns(s.lines)
+}
+
 func (s *Source) Append(l line.Line) {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
