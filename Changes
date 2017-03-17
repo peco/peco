@@ -1,7 +1,7 @@
 Changes
 =======
 
-v0.5.1 - unreleased
+v0.5.1 - 17 Mar 2017
   Bugs/Fixes
   * When --exec is used, and you come back from the external command,
     you lost your selected location in the peco view. #410
