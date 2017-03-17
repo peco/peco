@@ -8,6 +8,8 @@ v0.5.1 - unreleased
   Backwards Incompatible Change:
   * --tty has been removed. it was not being used anyways.
   Miscellaneous
+  * When scrolling right, you could potentially keep on scrolling
+    infinitely. This has bee addressed by #409, #412
   * External commands specified in --exec now receive
     PECO_FILENAME, PECO_LINE_COUNT, PECO_QUERY, and
     PECO_MACHED_LINE_COUNT as environment variables

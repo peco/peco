@@ -6,6 +6,7 @@ import (
 	"context"
 
 	"github.com/lestrrat/go-pdebug"
+	runewidth "github.com/mattn/go-runewidth"
 	"github.com/peco/peco/line"
 	"github.com/peco/peco/pipeline"
 	"github.com/pkg/errors"
@@ -16,23 +17,41 @@ func NewFilteredBuffer(src Buffer, page, perPage int) *FilteredBuffer {
 		src: src,
 	}
 
-	s := perPage * (page - 1)
-	if s > src.Size() {
+	start := perPage * (page - 1)
+
+	// if for whatever reason we wanted a page that goes over the
+	// capacity of the original buffer, we don't need to do any more
+	// calculations. bail out
+	if start > src.Size() {
 		return &fb
 	}
 
+	// Copy over the selections that are applicable to this filtered buffer.
 	selection := make([]int, 0, src.Size())
-	e := s + perPage
-	if e >= src.Size() {
-		e = src.Size()
+	end := start + perPage
+	if end >= src.Size() {
+		end = src.Size()
 	}
 
-	for i := s; i < e; i++ {
+	lines := src.linesInRange(start, end)
+	var maxcols int
+	for i := start; i < end; i++ {
 		selection = append(selection, i)
+		cols := runewidth.StringWidth(lines[i-start].DisplayString())
+		if cols > maxcols {
+			maxcols = cols
+		}
 	}
 	fb.selection = selection
+	fb.maxcols = maxcols
 
 	return &fb
+}
+
+// MaxColumn returns the max column size, which controls the amount we
+// can scroll to the right
+func (flb *FilteredBuffer) MaxColumn() int {
+	return flb.maxcols
 }
 
 // LineAt returns the line at index `i`. Note that the i-th element
@@ -124,6 +143,12 @@ func (mb *MemoryBuffer) LineAt(n int) (line.Line, error) {
 	mb.mutex.RLock()
 	defer mb.mutex.RUnlock()
 	return bufferLineAt(mb.lines, n)
+}
+
+func (mb *MemoryBuffer) linesInRange(start, end int) []line.Line {
+	mb.mutex.RLock()
+	defer mb.mutex.RUnlock()
+	return mb.lines[start:end]
 }
 
 func bufferLineAt(lines []line.Line, n int) (line.Line, error) {

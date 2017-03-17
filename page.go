@@ -65,6 +65,6 @@ func (l Location) PageCrop() PageCrop {
 
 // Crop returns a new Buffer whose contents are
 // bound within the given range
-func (pf PageCrop) Crop(in Buffer) Buffer {
+func (pf PageCrop) Crop(in Buffer) *FilteredBuffer {
 	return NewFilteredBuffer(in, pf.currentPage, pf.perPage)
 }
