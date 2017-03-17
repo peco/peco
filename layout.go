@@ -367,7 +367,8 @@ func (l *ListArea) Draw(state *Peco, parent Layout, perPage int, options *DrawOp
 	// The max column size is calculated by buf. we check against where the
 	// loc variable thinks we should be scrolling to, and make sure that this
 	// falls in range with what we got
-	if max := buf.MaxColumn(); loc.Column() > max {
+	width, _ := state.screen.Size()
+	if max := maxOf(buf.MaxColumn()-width, 0); loc.Column() > max {
 		loc.SetColumn(max)
 	}
 
@@ -590,6 +591,13 @@ func (l *ListArea) Draw(state *Peco, parent Layout, perPage int, options *DrawOp
 	if pdebug.Enabled {
 		pdebug.Printf("ListArea.Draw: Written total of %d lines (%d cached)", written+cached, cached)
 	}
+}
+
+func maxOf(a, b int) int {
+	if a > b {
+		return a
+	}
+	return b
 }
 
 // NewDefaultLayout creates a new Layout in the default format (top-down)
