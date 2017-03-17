@@ -268,6 +268,7 @@ type ActionFunc func(context.Context, *Peco, termbox.Event)
 // the source buffer (note: should be immutable) and a list of indices
 // into the source buffer
 type FilteredBuffer struct {
+	maxcols   int
 	src       Buffer
 	selection []int // maps from our index to src's index
 }
@@ -419,6 +420,7 @@ type RangeStart struct {
 // Buffer interface is used for containers for lines to be
 // processed by peco.
 type Buffer interface {
+	linesInRange(int, int) []line.Line
 	LineAt(int) (line.Line, error)
 	Size() int
 }

@@ -240,6 +240,12 @@ func (s *Source) SetupDone() <-chan struct{} {
 	return s.setupDone
 }
 
+func (s *Source) linesInRange(start, end int) []line.Line {
+	s.mutex.RLock()
+	defer s.mutex.RUnlock()
+	return s.lines[start:end]
+}
+
 func (s *Source) LineAt(n int) (line.Line, error) {
 	s.mutex.RLock()
 	defer s.mutex.RUnlock()
