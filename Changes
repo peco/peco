@@ -9,12 +9,12 @@ v0.5.1 - 17 Mar 2017
   * --tty has been removed. it was not being used anyways.
   Miscellaneous
   * When scrolling right, you could potentially keep on scrolling
-    infinitely. This has bee addressed by #409, #412
+    infinitely. This has been addressed by #409, #412
   * External commands specified in --exec now receive
     PECO_FILENAME, PECO_LINE_COUNT, PECO_QUERY, and
-    PECO_MACHED_LINE_COUNT as environment variables
+    PECO_MATCHED_LINE_COUNT as environment variables
   * Removed unused structs
-  * Fixed glide related Mkaefile actions
+  * Fixed glide related Makefile actions
 
 v0.5.0 - 06 Mar 2017
   Backwards Incompatible Change:
