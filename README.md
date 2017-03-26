@@ -585,6 +585,10 @@ No. https://github.com/peco/peco/issues/336#issuecomment-243939696
 
 Are you using raster fonts? https://github.com/peco/peco/issues/341
 
+## Seeing escape sequences `[200~` and `[201~` when pasting text?
+
+Disable bracketed paste mode. https://github.com/peco/peco/issues/417
+
 # Hacking
 
 First, fork this repo, and get your clone locally.
