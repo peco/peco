@@ -41,7 +41,7 @@ $(INTERNAL_BIN_DIR)/$(THIS_GOOS)/$(THIS_GOARCH)/glide: $(INTERNAL_BIN_DIR)
 ifeq ($(HAVE_GLIDE),)
 	@echo "Installing glide for $(THIS_GOOS)/$(THIS_GOARCH)..."
 	@mkdir -p $(INTERNAL_BIN_DIR)/$(THIS_GOOS)/$(THIS_GOARCH)
-	@wget -q -O - https://github.com/Masterminds/glide/releases/download/0.12.3/glide-0.12.3-$(THIS_GOOS)-$(THIS_GOARCH).tar.gz | tar xvz
+	@wget -q -O - https://github.com/Masterminds/glide/releases/download/v0.12.3/glide-v0.12.3-$(THIS_GOOS)-$(THIS_GOARCH).tar.gz | tar xvz
 	@mv $(THIS_GOOS)-$(THIS_GOARCH)/glide $(INTERNAL_BIN_DIR)/$(THIS_GOOS)/$(THIS_GOARCH)/glide
 	@rm -rf $(THIS_GOOS)-$(THIS_GOARCH)
 endif
