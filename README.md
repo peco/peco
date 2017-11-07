@@ -450,7 +450,7 @@ Note: If in case below keymap seems wrong, check the source code in [keymap.go](
 |C-g|peco.SelectNone|
 |C-n|peco.SelectDown|
 |C-p|peco.SelectUp|
-|C-r|peco.RotateMatcher|
+|C-r|peco.RotateFilter|
 |C-t|peco.ToggleQuery|
 |C-Space|peco.ToggleSelectionAndSelectNext|
 |ArrowUp|peco.SelectUp|
