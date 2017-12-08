@@ -3,9 +3,11 @@ package peco
 import (
 	"bufio"
 	"bytes"
+	"fmt"
 	"io"
 	"os"
 	"reflect"
+	"runtime"
 	"sync"
 	"time"
 	"unicode/utf8"
@@ -416,7 +418,7 @@ func (p *Peco) parseCommandLine(opts *CLIOptions, args *[]string, argv []string)
 	}
 
 	if opts.OptVersion {
-		p.Stdout.Write([]byte("peco version " + version + "\n"))
+		fmt.Fprintf(p.Stdout, "peco version %s (built with %s)\n", version, runtime.Version())
 		return makeIgnorable(errors.New("user asked to show version"))
 	}
 
