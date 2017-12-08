@@ -50,7 +50,7 @@ glide: $(INTERNAL_BIN_DIR)/$(THIS_GOOS)/$(THIS_GOARCH)/glide
 
 installdeps: glide $(SRC_FILES)
 	@echo "Installing dependencies..."
-	@$(INTERNAL_BIN_DIR)/$(THIS_GOOS)/$(THIS_GOARCH)/glide install
+	@$(INTERNAL_BIN_DIR)/$(THIS_GOOS)/$(THIS_GOARCH)/glide install --update-vendored
 
 build-windows-amd64:
 	@$(MAKE) build GOOS=windows GOARCH=amd64 SUFFIX=.exe
