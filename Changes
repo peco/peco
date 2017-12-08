@@ -1,6 +1,21 @@
 Changes
 =======
 
+v0.5.2 - 08 Dec 2017
+  Backwards Incompatible Change:
+  * --version flag now prints out the Go version used to build the binary
+  Micellaneous:
+  * Various doc fixes
+  * Build peco using go1.9.2.
+  * There have apparently been problems running the stock peco binary in
+    MacOS High Sierra, with an error message like "failed MSpanList_Insert...",
+    which can averted by compiling the binary with a newer Go.
+
+    Reports suggest that peco v0.5.1 is not affected by this problem, but
+    we're making this release anyway just to make sure that we're building
+    on a new-ish Go, and that users have a way to see what Go version was
+    used to build their binaries
+
 v0.5.1 - 17 Mar 2017
   Bugs/Fixes
   * When --exec is used, and you come back from the external command,
