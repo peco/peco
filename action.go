@@ -105,8 +105,8 @@ func init() {
 	ActionFunc(doScrollLeft).Register("ScrollLeft")
 	ActionFunc(doScrollRight).Register("ScrollRight")
 
-	ActionFunc(doScrollTop).Register("ScrollTop", termbox.KeyHome)
-	ActionFunc(doScrollBottom).Register("ScrollBottom", termbox.KeyEnd)
+	ActionFunc(doScrollFirstItem).Register("ScrollFirstItem", termbox.KeyHome)
+	ActionFunc(doScrollLastItem).Register("ScrollLastItem", termbox.KeyEnd)
 
 	ActionFunc(doToggleSelection).Register("ToggleSelection")
 	ActionFunc(doToggleSelectionAndSelectNext).Register(
@@ -419,12 +419,12 @@ func doScrollRight(ctx context.Context, state *Peco, e termbox.Event) {
 	state.Hub().SendPaging(ToScrollRight)
 }
 
-func doScrollTop(ctx context.Context, state *Peco, e termbox.Event) {
-	state.Hub().SendPaging(ToScrollTop)
+func doScrollFirstItem(ctx context.Context, state *Peco, e termbox.Event) {
+	state.Hub().SendPaging(ToScrollFirstItem)
 }
 
-func doScrollBottom(ctx context.Context, state *Peco, e termbox.Event) {
-	state.Hub().SendPaging(ToScrollBottom)
+func doScrollLastItem(ctx context.Context, state *Peco, e termbox.Event) {
+	state.Hub().SendPaging(ToScrollLastItem)
 }
 
 func doToggleSelectionAndSelectNext(ctx context.Context, state *Peco, e termbox.Event) {
