@@ -138,6 +138,10 @@ Display the version of peco
 
 Specifies the default query to be used upon startup. This is useful for scripts and functions where you can figure out before hand what the most likely query string is.
 
+### --print-query
+
+When exiting, prints out the query typed by the user as the first line of output. The query will be printed even if there are no matches, if the program is terminated normally (i.e. enter key). On the other hand, the query will NOT be printed if the user exits via a cancel (i.e. esc key)
+
 ### --rcfile <filename>
 
 Pass peco a configuration file, which currently must be a JSON file. If unspecified it will try a series of files by default. See `Configuration File` for the actual locations searched.
