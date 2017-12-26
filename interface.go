@@ -82,6 +82,7 @@ type Peco struct {
 	maxScanBufferSize       int
 	mutex                   sync.Mutex
 	onCancel                string
+	printQuery              bool
 	prompt                  string
 	query                   Query
 	queryExecDelay          time.Duration
@@ -407,6 +408,7 @@ type CLIOptions struct {
 	OptOnCancel        string `long:"on-cancel" description:"specify action on user cancel. 'success' or 'error'.\ndefault is 'success'. This may change in future versions"`
 	OptSelectionPrefix string `long:"selection-prefix" description:"use a prefix instead of changing line color to indicate currently selected lines.\ndefault is to use colors. This option is experimental"`
 	OptExec            string `long:"exec" description:"execute command instead of finishing/terminating peco.\nPlease note that this command will receive selected line(s) from stdin,\nand will be executed via '/bin/sh -c' or 'cmd /c'"`
+	OptPrintQuery      bool   `long:"print-query" descritpion:"print out the current query as first line of output"`
 }
 
 type CLI struct {

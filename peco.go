@@ -532,6 +532,7 @@ func (p *Peco) ApplyConfig(opts CLIOptions) error {
 		p.selectionPrefix = p.config.SelectionPrefix
 	}
 	p.selectOneAndExit = opts.OptSelect1
+	p.printQuery = opts.OptPrintQuery
 	p.initialQuery = opts.OptQuery
 	p.initialFilter = opts.OptInitialFilter
 	if len(p.initialFilter) <= 0 {
@@ -728,6 +729,11 @@ func (p *Peco) PrintResults() {
 	}()
 
 	var buf bytes.Buffer
+
+	if p.printQuery {
+		buf.WriteString(p.Query().String())
+		buf.WriteByte('\n')
+	}
 	for line := range p.ResultCh() {
 		buf.WriteString(line.Output())
 		buf.WriteByte('\n')
