@@ -758,6 +758,10 @@ func verticalScroll(state *Peco, l *BasicLayout, p PagingRequest) bool {
 			lineno -= lpp
 		case ToLineInPage:
 			lineno = loc.PerPage()*(loc.Page()-1) + p.(JumpToLineRequest).Line()
+		case ToScrollTop:
+			lineno = 0
+		case ToScrollBottom:
+			lineno = lcur - 1
 		}
 	} else {
 		switch p.Type() {

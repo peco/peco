@@ -29,6 +29,8 @@ const (
 	ToScrollLeft                              // ToScrollLeft scrolls screen to the left
 	ToScrollRight                             // ToScrollRight scrolls screen to the right
 	ToLineInPage                              // ToLineInPage jumps to a particular line on the page
+	ToScrollTop                               // ToScrollTop
+	ToScrollBottom                            // ToScrollBottom
 )
 
 const (
