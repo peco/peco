@@ -22,13 +22,15 @@ const (
 )
 
 const (
-	ToLineAbove      PagingRequestType = iota // ToLineAbove moves the selection to the line above
-	ToScrollPageDown                          // ToScrollPageDown moves the selection to the next page
-	ToLineBelow                               // ToLineBelow moves the selection to the line below
-	ToScrollPageUp                            // ToScrollPageUp moves the selection to the previous page
-	ToScrollLeft                              // ToScrollLeft scrolls screen to the left
-	ToScrollRight                             // ToScrollRight scrolls screen to the right
-	ToLineInPage                              // ToLineInPage jumps to a particular line on the page
+	ToLineAbove       PagingRequestType = iota // ToLineAbove moves the selection to the line above
+	ToScrollPageDown                           // ToScrollPageDown moves the selection to the next page
+	ToLineBelow                                // ToLineBelow moves the selection to the line below
+	ToScrollPageUp                             // ToScrollPageUp moves the selection to the previous page
+	ToScrollLeft                               // ToScrollLeft scrolls screen to the left
+	ToScrollRight                              // ToScrollRight scrolls screen to the right
+	ToLineInPage                               // ToLineInPage jumps to a particular line on the page
+	ToScrollFirstItem                          // ToScrollFirstItem
+	ToScrollLastItem                           // ToScrollLastItem
 )
 
 const (
