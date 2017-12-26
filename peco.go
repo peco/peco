@@ -730,6 +730,9 @@ func (p *Peco) PrintResults() {
 
 	var buf bytes.Buffer
 
+	if pdebug.Enabled {
+		pdebug.Printf("--print-query was %t", p.printQuery)
+	}
 	if p.printQuery {
 		buf.WriteString(p.Query().String())
 		buf.WriteByte('\n')

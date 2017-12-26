@@ -114,7 +114,14 @@ func (d dummyScreen) Print(args PrintArgs) int {
 }
 
 func (d dummyScreen) SendEvent(e termbox.Event) {
-	d.pollCh <- e
+	// XXX FIXME SendEvent should receive a context
+	t := time.NewTimer(time.Second)
+	defer t.Stop()
+	select {
+	case <-t.C:
+		panic("timed out sending an event")
+	case d.pollCh <- e:
+	}
 }
 
 func (d dummyScreen) SetCell(x, y int, ch rune, fg, bg termbox.Attribute) {
@@ -130,7 +137,7 @@ func (d dummyScreen) PollEvent(ctx context.Context) chan termbox.Event {
 func (d dummyScreen) Size() (int, int) {
 	return d.width, d.height
 }
-func (d dummyScreen) Resume() {}
+func (d dummyScreen) Resume()  {}
 func (d dummyScreen) Suspend() {}
 
 func TestIDGen(t *testing.T) {
@@ -229,6 +236,7 @@ func TestApplyConfig(t *testing.T) {
 	opts.OptSelect1 = true
 	opts.OptOnCancel = "error"
 	opts.OptSelectionPrefix = ">"
+	opts.OptPrintQuery = true
 
 	p := newPeco()
 	if !assert.NoError(t, p.ApplyConfig(opts), "p.ApplyConfig should succeed") {
@@ -274,6 +282,9 @@ func TestApplyConfig(t *testing.T) {
 	if !assert.Equal(t, opts.OptSelectionPrefix, p.selectionPrefix, "p.selectionPrefix should be equal to opts.OptSelectionPrefix") {
 		return
 	}
+	if !assert.Equal(t, opts.OptPrintQuery, p.printQuery, "p.printQuery should be equal to opts.OptPrintQuery") {
+		return
+	}
 }
 
 // While this issue is labeled for Issue363, it tests against 376 as well.
@@ -308,9 +319,10 @@ func TestGHIssue363(t *testing.T) {
 		if !assert.True(t, util.IsCollectResultsError(err), "isCollectResultsError") {
 			return
 		}
+		p.PrintResults()
 	}
 
-	if !assert.NotEqual(t, "foo\n", out.String(), "output should match") {
+	if !assert.Equal(t, "foo\n", out.String(), "output should match") {
 		return
 	}
 }
@@ -383,4 +395,85 @@ func TestGHIssue367(t *testing.T) {
 	if !assert.Equal(t, "bar\n", buf.String(), "output should match") {
 		return
 	}
+}
+
+func TestPrintQuery(t *testing.T) {
+	t.Run("Match and print query", func(t *testing.T) {
+		ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+		defer cancel()
+
+		p := newPeco()
+		p.Argv = []string{"--print-query", "--query", "oo", "--select-1"}
+		p.Stdin = bytes.NewBufferString("foo\n")
+		var out bytes.Buffer
+		p.Stdout = &out
+
+		resultCh := make(chan error)
+		go func() {
+			defer close(resultCh)
+			select {
+			case <-ctx.Done():
+				return
+			case resultCh <- p.Run(ctx):
+				return
+			}
+		}()
+
+		select {
+		case <-ctx.Done():
+			t.Errorf("timeout reached")
+			return
+		case err := <-resultCh:
+			if !assert.True(t, util.IsCollectResultsError(err), "isCollectResultsError") {
+				return
+			}
+			p.PrintResults()
+		}
+
+		if !assert.Equal(t, "oo\nfoo\n", out.String(), "output should match") {
+			return
+		}
+	})
+	t.Run("No match and print query", func(t *testing.T) {
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+
+		p := newPeco()
+		p.Argv = []string{"--print-query", "--query", "oo"}
+		p.Stdin = bytes.NewBufferString("bar\n")
+		var out bytes.Buffer
+		p.Stdout = &out
+
+		resultCh := make(chan error)
+		go func() {
+			defer close(resultCh)
+			select {
+			case <-ctx.Done():
+				return
+			case resultCh <- p.Run(ctx):
+				return
+			}
+		}()
+
+		<-p.Ready()
+
+		time.AfterFunc(100*time.Millisecond, func() {
+			p.screen.SendEvent(termbox.Event{Key: termbox.KeyEnter})
+		})
+
+		select {
+		case <-ctx.Done():
+			t.Errorf("timeout reached")
+			return
+		case err := <-resultCh:
+			if !assert.True(t, util.IsCollectResultsError(err), "isCollectResultsError") {
+				return
+			}
+			p.PrintResults()
+		}
+
+		if !assert.Equal(t, "oo\n", out.String(), "output should match") {
+			return
+		}
+	})
 }
