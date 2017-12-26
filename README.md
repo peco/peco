@@ -415,6 +415,8 @@ Some keys just... don't map correctly / too easily for various reasons. Here, we
 | peco.SelectNext         | (DEPRECATED) Alias to SelectDown |
 | peco.ScrollLeft         | Scrolls the screen to the left |
 | peco.ScrollRight        | Scrolls the screen to the right |
+| peco.ScrollFirstItem    | Scrolls to the first item (in the entire buffer, not the current screen) |
+| peco.ScrollLastItem     | Scrolls to the last item (in the entire buffer, not the current screen) |
 | peco.ToggleSelection    | Selects the current line, and saves it |
 | peco.ToggleSelectionAndSelectNext | Selects the current line, saves it, and proceeds to the next line |
 | peco.ToggleSingleKeyJump | Enables SingleKeyJump mode a.k.a. "hit-a-hint" |

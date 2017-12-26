@@ -1,3 +1,6 @@
+//go:generate stringer -type PagingRequestType -output stringer_paging_request_type.go .
+//go:generate stringer -type VerticalAnchor    -output stringer_vertical_anchor.go     .
+
 package peco
 
 import (
