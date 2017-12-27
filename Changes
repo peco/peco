@@ -1,6 +1,11 @@
 Changes
 =======
 
+v0.5.3
+  Features:
+  * New --print-query option prints out the query upon successful exit
+  * New actions ScrollFirstItem and ScrollLastItem
+
 v0.5.2 - 08 Dec 2017
   Backwards Incompatible Change:
   * --version flag now prints out the Go version used to build the binary
