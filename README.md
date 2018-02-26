@@ -215,7 +215,6 @@ Below are configuration sections that you may specify in your config file:
 * [Keymaps](#keymaps)
 * [Styles](#styles)
 * [CustomFilter](#customfilter)
-* [CustomMatcher](#custommatcher)
 * [Prompt](#prompt)
 * [InitialMatcher](#initialmatcher)
 
@@ -554,7 +553,7 @@ You may specify as many filters as you like in the `CustomFilter` section.
 ### Examples
 
 * [An example of a simple perl regexp matcher](https://gist.github.com/mattn/24712964da6e3112251c)
-* [An example using migemogrep Japanese grep using latin-1 chars](https://github.com/peco/peco/wiki/CustomMatcher)
+* [An example using migemogrep Japanese grep using latin-1 chars](https://github.com/peco/peco/wiki/CustomFilter)
 
 ## Layout
 
