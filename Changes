@@ -1,10 +1,14 @@
 Changes
 =======
 
-v0.5.3
+v0.5.3 - 12 Mar 2018
   Features:
   * New --print-query option prints out the query upon successful exit
   * New actions ScrollFirstItem and ScrollLastItem
+  Miscellaneous:
+  * Update termbox-go version (#447)
+  * Documentation fixes (#444)
+  * Build peco using go1.10
 
 v0.5.2 - 08 Dec 2017
   Backwards Incompatible Change:
