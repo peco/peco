@@ -157,6 +157,7 @@ type Screen interface {
 	Print(PrintArgs) int
 	Resume()
 	SetCell(int, int, rune, termbox.Attribute, termbox.Attribute)
+	SetCursor(int, int)
 	Size() (int, int)
 	SendEvent(termbox.Event)
 	Suspend()
