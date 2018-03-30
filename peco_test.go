@@ -101,6 +101,9 @@ func NewDummyScreen() *dummyScreen {
 	}
 }
 
+func (d dummyScreen) SetCursor(_, _ int) {
+}
+
 func (d dummyScreen) Init() error {
 	return nil
 }

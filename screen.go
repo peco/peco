@@ -34,6 +34,10 @@ func (t *Termbox) Close() error {
 	return nil
 }
 
+func (t *Termbox) SetCursor(x, y int) {
+	termbox.SetCursor(x, y)
+}
+
 // SendEvent is used to allow programmers generate random
 // events, but it's only useful for testing purposes.
 // When interactiving with termbox-go, this method is a noop

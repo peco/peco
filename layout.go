@@ -111,6 +111,10 @@ func (u UserPrompt) Draw(state *Peco) {
 
 	fg := u.styles.Query.fg
 	bg := u.styles.Query.bg
+
+	// Used to notify termbox where our cursor is
+	var posX int
+
 	switch ql {
 	case 0:
 		u.screen.Print(PrintArgs{
@@ -120,6 +124,7 @@ func (u UserPrompt) Draw(state *Peco) {
 			Bg:   bg,
 			Fill: true,
 		})
+		posX = u.promptLen + 1
 		u.screen.Print(PrintArgs{
 			X:    u.promptLen + 1,
 			Y:    location,
@@ -145,8 +150,9 @@ func (u UserPrompt) Draw(state *Peco) {
 			Msg:  qs,
 			Fill: false,
 		})
+		posX = u.promptLen + 1 + int(runewidth.StringWidth(qs))
 		u.screen.Print(PrintArgs{
-			X:    u.promptLen + 1 + int(runewidth.StringWidth(qs)),
+			X:    posX,
 			Y:    location,
 			Fg:   fg | termbox.AttrReverse,
 			Bg:   bg | termbox.AttrReverse,
@@ -154,6 +160,7 @@ func (u UserPrompt) Draw(state *Peco) {
 			Fill: false,
 		})
 	default:
+		posX = c.Pos()
 		// the caret is in the middle of the string
 		prev := int(0)
 		var i int
@@ -178,6 +185,8 @@ func (u UserPrompt) Draw(state *Peco) {
 			Fill: true,
 		})
 	}
+
+	u.screen.SetCursor(posX, location)
 
 	width, _ := u.screen.Size()
 
