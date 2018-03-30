@@ -1,6 +1,10 @@
 Changes
 =======
 
+v0.5.4 - 
+  Miscellaneous:
+  * Properly set cursor position (#450)
+
 v0.5.3 - 12 Mar 2018
   Features:
   * New --print-query option prints out the query upon successful exit
