@@ -127,6 +127,8 @@ func init() {
 	ActionFunc(doRefreshScreen).Register("RefreshScreen", termbox.KeyCtrlL)
 	ActionFunc(doToggleSingleKeyJump).Register("ToggleSingleKeyJump")
 
+	ActionFunc(doToggleViewArround).Register("ViewArround", termbox.KeyCtrlV)
+
 	ActionFunc(doKonamiCommand).RegisterKeySequence(
 		"KonamiCommand",
 		keyseq.KeyList{
@@ -769,6 +771,25 @@ func doToggleSingleKeyJump(ctx context.Context, state *Peco, e termbox.Event) {
 		defer g.End()
 	}
 	state.ToggleSingleKeyJumpMode()
+}
+
+func doToggleViewArround(ctx context.Context, state *Peco, e termbox.Event) {
+	if pdebug.Enabled {
+		g := pdebug.Marker("doToggleViewArround")
+		defer g.End()
+	}
+	q := state.Query()
+
+	if q.Len() > 0 {
+		l, err := state.CurrentLineBuffer().LineAt(state.Location().LineNumber())
+		if err != nil {
+			return
+		}
+		currentLine := l.ID()
+
+		doDeleteAll(ctx, state, e)
+		state.Hub().SendPaging(JumpToLineRequest(currentLine))
+	}
 }
 
 func doSingleKeyJump(ctx context.Context, state *Peco, e termbox.Event) {
