@@ -3,8 +3,8 @@ package peco
 import (
 	"time"
 
-	"github.com/peco/peco/hub"
 	"context"
+	"github.com/peco/peco/hub"
 )
 
 type statusMsgReq interface {

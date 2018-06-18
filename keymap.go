@@ -5,11 +5,11 @@ import (
 	"strings"
 	"time"
 
+	"context"
 	"github.com/lestrrat/go-pdebug"
 	"github.com/nsf/termbox-go"
 	"github.com/peco/peco/internal/keyseq"
 	"github.com/pkg/errors"
-	"context"
 )
 
 // NewKeymap creates a new Keymap struct
