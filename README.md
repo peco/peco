@@ -106,7 +106,7 @@ C:\> choco install peco
 
 ### Building peco yourself
 
-From the root of your cloned peco repository, run:
+From the root ($GOPATH/src/github.com/peco/peco/) of your cloned peco repository, run:
 
 ```
 glide install
