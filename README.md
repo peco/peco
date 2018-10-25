@@ -106,13 +106,32 @@ C:\> choco install peco
 
 ### Building peco yourself
 
-From the root of your cloned peco repository, run:
+Make sure to clone the source code under $GOPATH (i.e. $GOPATH/src/github.com/peco/peco). This is required
+as the main binary refers to an internal package, which requires that the the source code be located in
+the correct package location.
+
+Navigate to the directory above, then run:
+
+```
+make build
+```
+
+This will do the following:
+
+1. Install glide under `_internal_bin` directory
+2. Run glide install to fetch dependencies
+3. Run `go build` to create `releases/$VERSION_NUMBER/peco`
+
+You can copy the binary to some where in your $PATH, and it should just work.
+
+If you do not wish to have a separate installation of glide and/or want more control of the build process,
+run the following instead:
 
 ```
 glide install
 ```
 
-This installs the correct versions of peco's dependencies. Then build it:
+The above installs the correct versions of peco's dependencies. Then build it:
 
 ```
 go build cmd/peco/peco.go
