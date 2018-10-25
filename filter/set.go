@@ -1,7 +1,7 @@
 package filter
 
 import (
-	pdebug "github.com/lestrrat/go-pdebug"
+	pdebug "github.com/lestrrat-go/pdebug"
 )
 
 func (fs *Set) Reset() {

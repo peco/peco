@@ -1,24 +1,32 @@
-hash: 3ce65eedf36489cf8210f31a499d744db368aeb0add09df5483a87c185b344b5
-updated: 2016-12-14T18:28:21.292809662+09:00
+hash: a224aa3f779fa92baadee1b65a66ddede0105ddf4094b102e9f580264642f28a
+updated: 2018-10-25T09:48:37.74958+09:00
 imports:
 - name: github.com/davecgh/go-spew
-  version: 346938d642f2ec3594ed81d874461961cd0faa76
+  version: d8f796af33cc11cb798c1aaeb27a4ebc5099927d
   subpackages:
   - spew
 - name: github.com/google/btree
-  version: 0c3044bc8bada22db67b93f5760fe3f05d6a5c25
+  version: 4030bb1f1f0c35b30ca7009e9ebd06849dd45306
 - name: github.com/jessevdk/go-flags
-  version: 8bc97d602c3bfeb5fc6fc9b5a9c898f245495637
+  version: 9c49a3351d49777ccd40148b5cdf6f2998f51087
+- name: github.com/lestrrat-go/pdebug
+  version: 39f9a71bcabe9432cbdfe4d3d33f41988acd2ce6
 - name: github.com/lestrrat/go-pdebug
-  version: 2e6eaaa5717f81bda41d27070d3c966f40a1e75f
+  version: 39f9a71bcabe9432cbdfe4d3d33f41988acd2ce6
+  repo: git@github.com:/lestrrat-go/pdebug
+  vcs: git
 - name: github.com/mattn/go-runewidth
-  version: 737072b4e32b7a5018b4a7125da8d12de90e8045
+  version: 7995f652673e7b08043533df4f536d8dc9cf2fc5
 - name: github.com/nsf/termbox-go
-  version: e2050e41c8847748ec5288741c0b19a8cb26d084
+  version: b66b20ab708e289ff1eb3e218478302e6aec28ce
 - name: github.com/pkg/errors
-  version: 248dadf4e9068a0b3e79f02ed0a610d935de5302
+  version: 059132a15dd08d6704c67711dae0cf35ab991756
+testImports:
+- name: github.com/pmezard/go-difflib
+  version: 792786c7400a136282c1664665ae0a8db921c6c2
+  subpackages:
+  - difflib
 - name: github.com/stretchr/testify
-  version: 18a02ba4a312f95da08ff4cfc0055750ce50ae9e
+  version: 04af85275a5c7ac09d16bb3b9b2e751ed45154e5
   subpackages:
   - assert
-devImports: []
