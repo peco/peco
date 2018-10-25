@@ -22,7 +22,7 @@ _testmain.go
 *.exe
 *.test
 
-peco
+/peco
 
 build/src
 

@@ -3,8 +3,8 @@ package peco
 import (
 	"time"
 
-	"github.com/nsf/termbox-go"
 	"context"
+	"github.com/nsf/termbox-go"
 )
 
 func NewInput(state *Peco, am ActionMap, src chan termbox.Event) *Input {

@@ -7,9 +7,9 @@ import (
 	"testing"
 	"time"
 
+	"context"
 	termbox "github.com/nsf/termbox-go"
 	"github.com/stretchr/testify/assert"
-	"context"
 )
 
 func TestIssue212_SanityCheck(t *testing.T) {

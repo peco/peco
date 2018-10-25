@@ -4,7 +4,7 @@ import (
 	"context"
 	"unicode/utf8"
 
-	pdebug "github.com/lestrrat/go-pdebug"
+	pdebug "github.com/lestrrat-go/pdebug"
 	"github.com/mattn/go-runewidth"
 	"github.com/nsf/termbox-go"
 	"github.com/pkg/errors"
