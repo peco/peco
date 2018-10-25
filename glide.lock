@@ -1,5 +1,5 @@
-hash: a224aa3f779fa92baadee1b65a66ddede0105ddf4094b102e9f580264642f28a
-updated: 2018-10-25T09:48:37.74958+09:00
+hash: 8051e8fdb2c2665e5b7564124f001405d135b883f8f3872abe25b8f9e53637cf
+updated: 2018-10-25T15:59:43.595741+09:00
 imports:
 - name: github.com/davecgh/go-spew
   version: d8f796af33cc11cb798c1aaeb27a4ebc5099927d
@@ -11,12 +11,8 @@ imports:
   version: 9c49a3351d49777ccd40148b5cdf6f2998f51087
 - name: github.com/lestrrat-go/pdebug
   version: 39f9a71bcabe9432cbdfe4d3d33f41988acd2ce6
-- name: github.com/lestrrat/go-pdebug
-  version: 39f9a71bcabe9432cbdfe4d3d33f41988acd2ce6
-  repo: git@github.com:/lestrrat-go/pdebug
-  vcs: git
 - name: github.com/mattn/go-runewidth
-  version: 7995f652673e7b08043533df4f536d8dc9cf2fc5
+  version: b20a3daf6a39840c202fd42cc23d53607162b045
 - name: github.com/nsf/termbox-go
   version: b66b20ab708e289ff1eb3e218478302e6aec28ce
 - name: github.com/pkg/errors
