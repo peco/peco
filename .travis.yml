@@ -1,7 +1,6 @@
 language: go
 go:
-  - 1.9.x
-  - 1.10.x
+  - 1.11.x
   - tip
 sudo: false
 cache:
@@ -9,6 +8,7 @@ cache:
     - vendor
     - _internal_bin/$(go version | awk '{ print $NF }')
 install:
+  - make glidecc
   - make installdeps
 script:
   - make test

@@ -23,6 +23,7 @@ _testmain.go
 *.test
 
 peco
+!cmd/peco
 
 build/src
 

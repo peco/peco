@@ -48,9 +48,13 @@ endif
 
 glide: $(INTERNAL_BIN_DIR)/$(THIS_GOOS)/$(THIS_GOARCH)/glide
 
+glidecc: glide
+	@echo "Clearing glide cache..."
+	@$(INTERNAL_BIN_DIR)/$(THIS_GOOS)/$(THIS_GOARCH)/glide cc
+
 installdeps: glide $(SRC_FILES)
 	@echo "Installing dependencies..."
-	@$(INTERNAL_BIN_DIR)/$(THIS_GOOS)/$(THIS_GOARCH)/glide install --update-vendored
+	@$(INTERNAL_BIN_DIR)/$(THIS_GOOS)/$(THIS_GOARCH)/glide install
 
 build-windows-amd64:
 	@$(MAKE) build GOOS=windows GOARCH=amd64 SUFFIX=.exe
