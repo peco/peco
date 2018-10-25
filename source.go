@@ -18,7 +18,7 @@ import (
 // call Setup()
 func NewSource(name string, in io.Reader, idgen line.IDGenerator, capacity int, enableSep bool) *Source {
 	s := &Source{
-		name: name,
+		name:       name,
 		in:         in, // Note that this may be closed, so do not rely on it
 		capacity:   capacity,
 		enableSep:  enableSep,

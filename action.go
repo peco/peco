@@ -3,6 +3,7 @@ package peco
 import (
 	"bytes"
 	"fmt"
+	"math"
 	"os"
 	"strconv"
 	"unicode"
@@ -126,6 +127,11 @@ func init() {
 	ActionFunc(doToggleQuery).Register("ToggleQuery", termbox.KeyCtrlT)
 	ActionFunc(doRefreshScreen).Register("RefreshScreen", termbox.KeyCtrlL)
 	ActionFunc(doToggleSingleKeyJump).Register("ToggleSingleKeyJump")
+
+	ActionFunc(doToggleViewArround).Register("ViewArround", termbox.KeyCtrlV)
+
+	ActionFunc(doGoToNextSelection).Register("GoToNextSelection", termbox.KeyCtrlK)
+	ActionFunc(doGoToPreviousSelection).Register("	doGoToPreviousSelection", termbox.KeyCtrlJ)
 
 	ActionFunc(doKonamiCommand).RegisterKeySequence(
 		"KonamiCommand",
@@ -769,6 +775,125 @@ func doToggleSingleKeyJump(ctx context.Context, state *Peco, e termbox.Event) {
 		defer g.End()
 	}
 	state.ToggleSingleKeyJumpMode()
+}
+
+func doToggleViewArround(ctx context.Context, state *Peco, e termbox.Event) {
+	if pdebug.Enabled {
+		g := pdebug.Marker("doToggleViewArround")
+		defer g.End()
+	}
+	q := state.Query()
+
+	if q.Len() > 0 {
+		l, err := state.CurrentLineBuffer().LineAt(state.Location().LineNumber())
+		if err != nil {
+			return
+		}
+		currentLine := l.ID()
+
+		doDeleteAll(ctx, state, e)
+		state.Hub().SendPaging(JumpToLineRequest(currentLine))
+	}
+}
+
+func doGoToNextSelection(_ context.Context, state *Peco, _ termbox.Event) {
+	if pdebug.Enabled {
+		g := pdebug.Marker("doGoToNextSelection")
+		defer g.End()
+	}
+
+	selection := state.Selection()
+
+	if selection.Len() == 0 {
+		state.Hub().SendStatusMsg("No Selection")
+		return
+	}
+
+	b := state.CurrentLineBuffer()
+	l, err := b.LineAt(state.Location().LineNumber())
+	if err != nil {
+		return
+	}
+	currentLine := l.ID()
+	nextLine := uint64(math.MaxUint64)
+	firstLine := uint64(math.MaxUint64)
+	found := false
+
+	selection.Ascend(func(it btree.Item) bool {
+		selectedLine := it.(line.Line)
+		if selectedLine.ID() > currentLine {
+			if selectedLine.ID() < nextLine {
+				nextLine = selectedLine.ID()
+				found = true
+			}
+		}
+
+		if selectedLine.ID() <= firstLine {
+			firstLine = selectedLine.ID()
+		}
+
+		return true
+	})
+
+	if found {
+		state.Hub().SendStatusMsg("Next Selection")
+		state.Hub().SendPaging(ToScrollFirstItem)
+		state.Hub().SendPaging(JumpToLineRequest(nextLine))
+	} else {
+		state.Hub().SendStatusMsg("Next Selection (first)")
+		state.Hub().SendPaging(ToScrollFirstItem)
+		state.Hub().SendPaging(JumpToLineRequest(firstLine))
+	}
+}
+
+func doGoToPreviousSelection(_ context.Context, state *Peco, _ termbox.Event) {
+	if pdebug.Enabled {
+		g := pdebug.Marker("doGoToPreviousSelection")
+		defer g.End()
+	}
+
+	selection := state.Selection()
+
+	if selection.Len() == 0 {
+		state.Hub().SendStatusMsg("No Selection")
+		return
+	}
+
+	b := state.CurrentLineBuffer()
+	l, err := b.LineAt(state.Location().LineNumber())
+	if err != nil {
+		return
+	}
+	currentLine := l.ID()
+	previousLine := uint64(0)
+	lastLine := uint64(math.MaxUint64)
+	found := false
+
+	selection.Ascend(func(it btree.Item) bool {
+		selectedLine := it.(line.Line)
+		if selectedLine.ID() < currentLine {
+			if selectedLine.ID() > previousLine {
+				previousLine = selectedLine.ID()
+				found = true
+			}
+		}
+
+		if selectedLine.ID() >= lastLine {
+			lastLine = selectedLine.ID()
+		}
+
+		return true
+	})
+
+	if found {
+		state.Hub().SendStatusMsg("Previous Selection")
+		state.Hub().SendPaging(ToScrollFirstItem)
+		state.Hub().SendPaging(JumpToLineRequest(previousLine))
+	} else {
+		state.Hub().SendStatusMsg("Previous Selection (first)")
+		state.Hub().SendPaging(ToScrollFirstItem)
+		state.Hub().SendPaging(JumpToLineRequest(lastLine))
+	}
 }
 
 func doSingleKeyJump(ctx context.Context, state *Peco, e termbox.Event) {

@@ -74,7 +74,7 @@ func (q *Query) Runes() <-chan rune {
 		defer q.mutex.Unlock()
 
 		for _, r := range q.query {
-			c<-r
+			c <- r
 		}
 	}()
 
