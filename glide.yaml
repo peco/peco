@@ -3,7 +3,7 @@ import:
 - package: github.com/google/btree
 - package: github.com/jessevdk/go-flags
 - package: github.com/lestrrat-go/pdebug
-- package: github.com/lestrrat/go-pdebug # glide gets confused 
+- package: github.com/lestrrat-go-pdebug-legacy # glide gets confused 
   repo: git@github.com:/lestrrat-go/pdebug
   vcs: git
   version: master
