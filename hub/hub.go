@@ -3,7 +3,7 @@ package hub
 import (
 	"time"
 
-	pdebug "github.com/lestrrat/go-pdebug"
+	pdebug "github.com/lestrrat-go/pdebug"
 )
 
 func NewPayload(data interface{}) *payload {

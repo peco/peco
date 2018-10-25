@@ -7,7 +7,7 @@ import (
 
 	"context"
 
-	pdebug "github.com/lestrrat/go-pdebug"
+	"github.com/lestrrat-go/pdebug"
 	"github.com/peco/peco"
 	"github.com/peco/peco/internal/util"
 )

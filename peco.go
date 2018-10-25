@@ -18,7 +18,7 @@ import (
 	"context"
 
 	"github.com/google/btree"
-	"github.com/lestrrat/go-pdebug"
+	"github.com/lestrrat-go/pdebug"
 	"github.com/peco/peco/filter"
 	"github.com/peco/peco/hub"
 	"github.com/peco/peco/internal/util"
