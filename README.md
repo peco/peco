@@ -122,7 +122,7 @@ This will do the following:
 2. Run glide install to fetch dependencies
 3. Run `go build` to create `releases/$VERSION_NUMBER/peco`
 
-You can copy the binary to some where in your $PATH, and it should just work.
+You can copy the binary to somewhere in your $PATH, and it should just work.
 
 If you do not wish to have a separate installation of glide and/or want more control of the build process,
 run the following instead:
