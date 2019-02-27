@@ -65,7 +65,7 @@ build-darwin-386:
 	@$(MAKE) build GOOS=darwin GOARCH=386
 
 $(RELEASE_DIR)/peco_$(GOOS)_$(GOARCH)/peco$(SUFFIX): deps
-	go build -o $(RELEASE_DIR)/peco_$(GOOS)_$(GOARCH)/peco$(SUFFIX) cmd/peco/peco.go
+	@GO111MODULE=on go build -o $(RELEASE_DIR)/peco_$(GOOS)_$(GOARCH)/peco$(SUFFIX) cmd/peco/peco.go
 
 all: $(BUILD_TARGETS)
 
