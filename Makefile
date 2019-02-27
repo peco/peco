@@ -38,7 +38,7 @@ $(INTERNAL_BIN_DIR):
 
 deps: 
 	@echo "Downloading dependencies..."
-	@go mod download
+	@GO111MODULE=on go mod download
 
 build-windows-amd64:
 	@$(MAKE) build GOOS=windows GOARCH=amd64 SUFFIX=.exe
