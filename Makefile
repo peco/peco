@@ -8,7 +8,6 @@ VERSION=$(patsubst "%",%,$(lastword $(shell grep 'const version' peco.go)))
 RELEASE_DIR=releases
 ARTIFACTS_DIR=$(RELEASE_DIR)/artifacts/$(VERSION)
 SRC_FILES = $(wildcard *.go cmd/peco/*.go internal/*/*.go)
-HAVE_GLIDE:=$(shell test -e $(INTERNAL_BIN_DIR)/$(THIS_GOOS)/$(THIS_GOARCH)/glide && echo "yes")
 GITHUB_USERNAME=peco
 BUILD_TARGETS= \
 	build-linux-arm64 \
@@ -37,24 +36,9 @@ $(INTERNAL_BIN_DIR):
 	@echo "Creating $(INTERNAL_BIN_DIR)"
 	@mkdir -p $(INTERNAL_BIN_DIR)
 
-$(INTERNAL_BIN_DIR)/$(THIS_GOOS)/$(THIS_GOARCH)/glide: $(INTERNAL_BIN_DIR)
-ifeq ($(HAVE_GLIDE),)
-	@echo "Installing glide for $(THIS_GOOS)/$(THIS_GOARCH)..."
-	@mkdir -p $(INTERNAL_BIN_DIR)/$(THIS_GOOS)/$(THIS_GOARCH)
-	@wget -q -O - https://github.com/Masterminds/glide/releases/download/v0.12.3/glide-v0.12.3-$(THIS_GOOS)-$(THIS_GOARCH).tar.gz | tar xvz
-	@mv $(THIS_GOOS)-$(THIS_GOARCH)/glide $(INTERNAL_BIN_DIR)/$(THIS_GOOS)/$(THIS_GOARCH)/glide
-	@rm -rf $(THIS_GOOS)-$(THIS_GOARCH)
-endif
-
-glide: $(INTERNAL_BIN_DIR)/$(THIS_GOOS)/$(THIS_GOARCH)/glide
-
-glidecc: glide
-	@echo "Clearing glide cache..."
-	@$(INTERNAL_BIN_DIR)/$(THIS_GOOS)/$(THIS_GOARCH)/glide cc
-
-installdeps: glide $(SRC_FILES)
-	@echo "Installing dependencies..."
-	@$(INTERNAL_BIN_DIR)/$(THIS_GOOS)/$(THIS_GOARCH)/glide install
+deps: 
+	@echo "Downloading dependencies..."
+	@go mod download
 
 build-windows-amd64:
 	@$(MAKE) build GOOS=windows GOARCH=amd64 SUFFIX=.exe
@@ -80,7 +64,7 @@ build-darwin-amd64:
 build-darwin-386:
 	@$(MAKE) build GOOS=darwin GOARCH=386
 
-$(RELEASE_DIR)/peco_$(GOOS)_$(GOARCH)/peco$(SUFFIX): installdeps
+$(RELEASE_DIR)/peco_$(GOOS)_$(GOARCH)/peco$(SUFFIX): deps
 	go build -o $(RELEASE_DIR)/peco_$(GOOS)_$(GOARCH)/peco$(SUFFIX) cmd/peco/peco.go
 
 all: $(BUILD_TARGETS)
@@ -142,9 +126,9 @@ release-github-token: github_token
 release-upload: release release-github-token
 	ghr -u $(GITHUB_USERNAME) -t $(shell cat github_token) --draft --replace $(VERSION) $(ARTIFACTS_DIR)
 
-test: installdeps
+test: deps
 	@echo "Running tests..."
-	@PATH=$(INTERNAL_BIN_DIR)/$(GOOS)/$(GOARCH):$(PATH) go test -v $(shell $(INTERNAL_BIN_DIR)/$(THIS_GOOS)/$(THIS_GOARCH)/glide nv)
+	@GO111MODULE=on PATH=$(INTERNAL_BIN_DIR)/$(GOOS)/$(GOARCH):$(PATH) go test -v ./...
 
 clean:
 	-rm -rf $(RELEASE_DIR)/*/*
