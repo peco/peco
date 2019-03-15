@@ -337,7 +337,7 @@ func doFinish(ctx context.Context, state *Peco, _ termbox.Event) {
 	cmd.Stdin = &stdin
 	cmd.Stdout = state.Stdout
 	cmd.Stderr = state.Stderr
-	// Setup some enviroment variables. Start with a copy of the current
+	// Setup some environment variables. Start with a copy of the current
 	// environment...
 	env := os.Environ()
 
