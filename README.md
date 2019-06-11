@@ -96,6 +96,14 @@ If you're on OS X and want to use homebrew:
 brew install peco
 ```
 
+### Debian and Ubuntu based distributions
+
+There is an official Debian package that can be installed via APT:
+
+```
+apt install peco
+```
+
 ### Windows (Chocolatey NuGet Users)
 
 There's a third-party [peco package available](https://chocolatey.org/packages/peco) for Chocolatey NuGet.
