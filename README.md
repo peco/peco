@@ -88,12 +88,32 @@ Go to the [releases page](https://github.com/peco/peco/releases), find the versi
 
 _THIS IS THE RECOMMENDED WAY_ (except for OS X homebrew users)
 
-### Mac OS X / Homebrew
+### Mac OS X (Homebrew, Scarf)
 
 If you're on OS X and want to use homebrew:
 
 ```
 brew install peco
+```
+
+or with Scarf:
+
+```
+scarf install peco
+```
+
+### Debian / Ubuntu  (APT, Scarf)
+
+To install with apt:
+
+```
+apt install peco
+```
+
+or with Scarf:
+
+```
+scarf install peco
 ```
 
 ### Windows (Chocolatey NuGet Users)
