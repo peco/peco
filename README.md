@@ -102,15 +102,15 @@ or with Scarf:
 scarf install peco
 ```
 
-### Debian / Ubuntu  (APT, Scarf)
+### Debian and Ubuntu based distributions (APT, Scarf)
 
-To install with apt:
+There is an official Debian package that can be installed via APT:
 
 ```
 apt install peco
 ```
 
-or with Scarf:
+or with Scarf: 
 
 ```
 scarf install peco
