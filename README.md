@@ -46,7 +46,7 @@ is printed to stdout, which allows you to pipe it to other tools
 
 ## Select Multiple Lines
 
-You can select multiple lines! 
+You can select multiple lines! (this example uses C-Space)
 
 ![Executed `ls -l | peco`, then used peco.ToggleSelection to select multiple lines](http://peco.github.io/images/peco-demo-multiple-selection.gif)
 
@@ -62,7 +62,7 @@ Different types of filters are available. Default is case-insensitive filter, so
 
 The SmartCase filter uses case-*insensitive* matching when all of the queries are lower case, and case-*sensitive* matching otherwise.
 
-The Regexp filter allows you to use any valid regular expression to match lines
+The Regexp filter allows you to use any valid regular expression to match lines.
 
 The Fuzzy filter allows you to find matches using partial patterns. For example, when searching for `ALongString`, you can enable the Fuzzy filter and search `ALS` to find it. The Fuzzy filter uses smart case search like the SmartCase filter.
 
@@ -88,12 +88,32 @@ Go to the [releases page](https://github.com/peco/peco/releases), find the versi
 
 _THIS IS THE RECOMMENDED WAY_ (except for OS X homebrew users)
 
-### Mac OS X / Homebrew
+### Mac OS X (Homebrew, Scarf)
 
 If you're on OS X and want to use homebrew:
 
 ```
 brew install peco
+```
+
+or with Scarf:
+
+```
+scarf install peco
+```
+
+### Debian and Ubuntu based distributions (APT, Scarf)
+
+There is an official Debian package that can be installed via APT:
+
+```
+apt install peco
+```
+
+or with Scarf: 
+
+```
+scarf install peco
 ```
 
 ### Windows (Chocolatey NuGet Users)
@@ -107,7 +127,7 @@ C:\> choco install peco
 ### Building peco yourself
 
 Make sure to clone the source code under $GOPATH (i.e. $GOPATH/src/github.com/peco/peco). This is required
-as the main binary refers to an internal package, which requires that the the source code be located in
+as the main binary refers to an internal package, which requires that the source code be located in
 the correct package location.
 
 Navigate to the directory above, then run:
@@ -159,7 +179,7 @@ Specifies the default query to be used upon startup. This is useful for scripts 
 
 ### --print-query
 
-When exiting, prints out the query typed by the user as the first line of output. The query will be printed even if there are no matches, if the program is terminated normally (i.e. enter key). On the other hand, the query will NOT be printed if the user exits via a cancel (i.e. esc key)
+When exiting, prints out the query typed by the user as the first line of output. The query will be printed even if there are no matches, if the program is terminated normally (i.e. enter key). On the other hand, the query will NOT be printed if the user exits via a cancel (i.e. esc key).
 
 ### --rcfile <filename>
 
@@ -186,7 +206,7 @@ Changes how peco interprets incoming data. When this flag is set, you may insert
 
 ### --initial-index
 
-Specifies the initial line position upon start up. E.g. If you want to start out with the second line selected, set it to "1" (because the index is 0 based)
+Specifies the initial line position upon start up. E.g. If you want to start out with the second line selected, set it to "1" (because the index is 0 based).
 
 ### --initial-filter `IgnoreCase|CaseSensitive|SmartCase|Regexp|Fuzzy`
 
@@ -194,7 +214,7 @@ Specifies the initial filter to use upon start up. You should specify the name o
 
 ### --prompt
 
-Specifies the query line's prompt string. When specified, takes precedence over the configuration file's `Prompt` section. The default value is `QUERY>`
+Specifies the query line's prompt string. When specified, takes precedence over the configuration file's `Prompt` section. The default value is `QUERY>`.
 
 ### --layout `top-down|bottom-up`
 
@@ -215,7 +235,7 @@ For historical and back-compatibility reasons, the default is `success`, meaning
 
 ### --selection-prefix `string`
 
-When specified, peco uses the specified prefix instead of changing line color to indicate currently selected line(s). default is to use colors. This option is experimental
+When specified, peco uses the specified prefix instead of changing line color to indicate currently selected line(s). default is to use colors. This option is experimental.
 
 ### --exec `string`
 
@@ -232,7 +252,7 @@ peco by default consults a few locations for the config files.
 1. Location specified in --rcfile. If this doesn't exist, peco complains and exits
 2. $XDG\_CONFIG\_HOME/peco/config.json
 3. $HOME/.config/peco/config.json
-4. for each directories listed in $XDG\_CONFIG\_DIRS, $DIR/peco/config.json
+4. for each directory listed in $XDG\_CONFIG\_DIRS, $DIR/peco/config.json
 5. If all else fails, $HOME/.peco/config.json
 
 Below are configuration sections that you may specify in your config file:
@@ -278,7 +298,7 @@ StickySelection allows selections to persist even between changes to the query.
 For example, when you set this to true you can select a few lines, type in a 
 new query, select those lines, and then delete the query. The result is all
 the lines that you selected before and after the modification to the query are
-left in tact.
+left intact.
 
 Default value for StickySelection is false.
 
@@ -546,7 +566,7 @@ This is an experimental feature. Please note that some details of this specifica
 
 By default `peco` comes with `IgnoreCase`, `CaseSensitive`, `SmartCase`, `Regexp` and `Fuzzy` filters, but since v0.1.3, it is possible to create your own custom filter.
 
-The filter will be executed via  `Command.Run()` as an external process, and it will be passed the query values in the command line, and the original unaltered buffer is passed via `os.Stdin`. Your filter must perform the matching, and print out to `os.Stdout` matched lines. You filter MAY be called multiple times if the buffer
+The filter will be executed via  `Command.Run()` as an external process, and it will be passed the query values in the command line, and the original unaltered buffer is passed via `os.Stdin`. Your filter must perform the matching, and print out to `os.Stdout` matched lines. Your filter MAY be called multiple times if the buffer
 given to peco is big enough. See `BufferThreshold` below.
 
 Note that currently there is no way for the custom filter to specify where in the line the match occurred, so matched portions in the string WILL NOT BE HIGHLIGHTED.
