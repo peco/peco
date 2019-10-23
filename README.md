@@ -46,7 +46,7 @@ is printed to stdout, which allows you to pipe it to other tools
 
 ## Select Multiple Lines
 
-You can select multiple lines! (this example use C-Space)
+You can select multiple lines! (this example uses C-Space)
 
 ![Executed `ls -l | peco`, then used peco.ToggleSelection to select multiple lines](http://peco.github.io/images/peco-demo-multiple-selection.gif)
 
