@@ -7,9 +7,6 @@ cache:
   directories:
     - vendor
     - _internal_bin/$(go version | awk '{ print $NF }')
-install:
-  - make glidecc
-  - make installdeps
 script:
   - make test
   - make all
