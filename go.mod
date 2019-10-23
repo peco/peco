@@ -4,6 +4,7 @@ go 1.12
 
 require (
 	github.com/davecgh/go-spew v1.1.0 // indirect
+	github.com/goccy/go-yaml v0.0.0-20191023044602-528364178e41
 	github.com/google/btree v0.0.0-20161213163243-0c3044bc8bad
 	github.com/jessevdk/go-flags v1.1.0
 	github.com/lestrrat-go/pdebug v0.0.0-20180220043849-39f9a71bcabe

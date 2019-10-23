@@ -165,6 +165,13 @@ When exiting, prints out the query typed by the user as the first line of output
 
 Pass peco a configuration file, which currently must be a JSON file. If unspecified it will try a series of files by default. See `Configuration File` for the actual locations searched.
 
+### --config-format json|yaml
+
+Explicitly specify the format of the configuration file, either "json" or "yaml". If unspecified,
+we will first try matching the file name against heuristics -- filenames matching "(?i).jso?n$" will be
+considered JSON, and filenames matching "(?i).ya?ml$" will be considered YAML. If both of those
+fail to match the format will be assumed to be "json".
+
 ### -b, --buffer-size <num>
 
 Limits the buffer size to `num`. This is an important feature when you are using peco against a possibly infinite stream, as it limits the number of lines that peco holds at any given time, preventing it from exhausting all the memory. By default the buffer size is unlimited.

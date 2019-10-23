@@ -5,8 +5,10 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 
+	"github.com/goccy/go-yaml"
 	"github.com/nsf/termbox-go"
 	"github.com/peco/peco/filter"
 	"github.com/peco/peco/internal/util"
@@ -25,18 +27,36 @@ func (c *Config) Init() error {
 	return nil
 }
 
+func looksLikeJSON(filename string) bool {
+	matched, err := regexp.MatchString(`(?i)\.jso?n$`, filename)
+	return matched && err == nil
+}
+
+func looksLikeYAML(filename string) bool {
+	matched, err := regexp.MatchString(`(?i)\.ya?ml$`, filename)
+	return matched && err == nil
+}
+
 // ReadFilename reads the config from the given file, and
 // does the appropriate processing, if any
-func (c *Config) ReadFilename(filename string) error {
+func (c *Config) ReadFilename(format, filename string) error {
 	f, err := os.Open(filename)
 	if err != nil {
 		return errors.Wrapf(err, "failed to open file %s", filename)
 	}
 	defer f.Close()
 
-	err = json.NewDecoder(f).Decode(c)
-	if err != nil {
-		return errors.Wrap(err, "failed to decode JSON")
+	switch {
+	case format == "yaml" || (format == "" && looksLikeYAML(filename)):
+		if err := yaml.NewDecoder(f).Decode(c); err != nil {
+			return errors.Wrap(err, `failed to decode YAML config file`)
+		}
+	case format == "json" || (format == "" && looksLikeJSON(filename)) || format == "":
+		if err := json.NewDecoder(f).Decode(c); err != nil {
+			return errors.Wrap(err, "failed to decode JSON config file")
+		}
+	default:
+		return errors.New(`invalid config format`)
 	}
 
 	if !IsValidLayoutType(LayoutType(c.Layout)) {

@@ -32,6 +32,15 @@ func (options CLIOptions) Validate() error {
 			return errors.New("unknown layout: '" + options.OptLayout + "'")
 		}
 	}
+
+	if v := options.OptConfigFormat; v != "" {
+		options.OptConfigFormat = strings.ToLower(v)
+		switch {
+		case options.OptConfigFormat == "yaml" || options.OptConfigFormat == "json":
+		default:
+			return errors.Errorf(`invalid config format "%s"`, v)
+		}
+	}
 	return nil
 }
 

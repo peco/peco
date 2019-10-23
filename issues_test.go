@@ -63,7 +63,7 @@ func TestIssue212_SanityCheck(t *testing.T) {
 
 	<-state.Ready()
 
-	if !assert.NoError(t, state.config.ReadFilename(fn), "Failed to read config: %s", err) {
+	if !assert.NoError(t, state.config.ReadFilename("json", fn), "Failed to read config: %s", err) {
 		return
 	}
 	if !assert.Equal(t, state.config.Layout, "bottom-up", "Default layout type should be 'bottom-up', got '%s'", state.config.Layout) {

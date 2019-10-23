@@ -276,7 +276,7 @@ func (p *Peco) Setup() (err error) {
 
 	// Read config
 	if !p.skipReadConfig { // This can only be set via test
-		if err := readConfig(&p.config, opts.OptRcfile); err != nil {
+		if err := readConfig(&p.config, opts.OptConfigFormat, opts.OptRcfile); err != nil {
 			return errors.Wrap(err, "failed to setup configuration")
 		}
 	}
@@ -478,9 +478,9 @@ func (p *Peco) SetupSource(ctx context.Context) (s *Source, err error) {
 	return src, nil
 }
 
-func readConfig(cfg *Config, filename string) error {
+func readConfig(cfg *Config, format, filename string) error {
 	if filename != "" {
-		if err := cfg.ReadFilename(filename); err != nil {
+		if err := cfg.ReadFilename(format, filename); err != nil {
 			return errors.Wrap(err, "failed to read config file")
 		}
 	}

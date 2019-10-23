@@ -412,6 +412,7 @@ type CLIOptions struct {
 	OptSelectionPrefix string `long:"selection-prefix" description:"use a prefix instead of changing line color to indicate currently selected lines.\ndefault is to use colors. This option is experimental"`
 	OptExec            string `long:"exec" description:"execute command instead of finishing/terminating peco.\nPlease note that this command will receive selected line(s) from stdin,\nand will be executed via '/bin/sh -c' or 'cmd /c'"`
 	OptPrintQuery      bool   `long:"print-query" descritpion:"print out the current query as first line of output"`
+	OptConfigFormat    string `long:"config-format" description:"explicitly tell peco to treat config file as this format instead\nof using heuristics. default is none (use heuristics). supports 'yaml' and 'json'"`
 }
 
 type CLI struct {
