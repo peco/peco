@@ -6,6 +6,7 @@ Simplistic interactive filtering tool
 
 This README is long and comprehensive. Use the [Table of Contents](#table-of-contents) to navigate to the section that interests you. It has been placed at the bottom of the README file because of its length.
 
+> If you use peco, please consider sponsoring the authors of this project from the "Sponsor" button on the project page at https://github.com/peco/peco. Sponsorship plans start at $1 :)
 
 # Description
 
