@@ -382,7 +382,7 @@ v0.1.8 - 25 Jun 2014
 
 v0.1.7 - 22 Jun 2014
   Bugs/Fixes:
-  * Moved repository to a Github organization: http://github.com/peco/peco
+  * Moved repository to a GitHub organization: http://github.com/peco/peco
   * Because of the above change, a lot of links, imports needed fixing.
   Features:
   * Automatically set GOMAXPROCS to NumCPU. If you would like to
