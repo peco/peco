@@ -1,9 +1,11 @@
 Changes
 =======
 
-v0.5.4 - 
+v0.5.4 - 19 Dec 2019
   Miscellaneous:
   * Properly set cursor position (#450)
+  * Update termbox-go version (#487/#488)
+  * Update go version to go 1.13
 
 v0.5.3 - 12 Mar 2018
   Features:
