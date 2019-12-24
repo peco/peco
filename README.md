@@ -139,18 +139,9 @@ make build
 
 This will do the following:
 
-1. Install glide under `_internal_bin` directory
-2. Run glide install to fetch dependencies
-3. Run `go build` to create `releases/$VERSION_NUMBER/peco`
+1. Run `go build` to create `releases/$VERSION_NUMBER/peco`
 
 You can copy the binary to somewhere in your $PATH, and it should just work.
-
-If you do not wish to have a separate installation of glide and/or want more control of the build process,
-run the following instead:
-
-```
-glide install
-```
 
 The above installs the correct versions of peco's dependencies. Then build it:
 
@@ -640,7 +631,7 @@ First, fork this repo, and get your clone locally.
 
 1. Make sure you have [go](http://golang.org) installed, with GOPATH appropriately set
 2. Make sure you have `make` installed
-3. Run `make installdeps` (You only need to do this once, or when you update glide.yml/glide.lock)
+3. Run `make installdeps` (You only need to do this once)
 
 To test, run
 
