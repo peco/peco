@@ -406,6 +406,8 @@ func (p *Peco) Run(ctx context.Context) (err error) {
 			// if we only have one item
 			if p.selectOneAndExit {
 				p.ExecQuery(p.selectOneAndExitIfPossible)
+			} else {
+				p.ExecQuery(nil)
 			}
 		}()
 	}
@@ -723,7 +725,7 @@ func (p *Peco) ExecQuery(nextFunc func()) bool {
 	// Wait $delay millisecs before sending the query
 	// if a new input comes in, batch them up
 	if pdebug.Enabled {
-		pdebug.Printf("sending query with delay)")
+		pdebug.Printf("sending query (with delay)")
 	}
 	p.queryExecTimer = time.AfterFunc(delay, func() {
 		if pdebug.Enabled {
