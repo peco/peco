@@ -180,7 +180,7 @@ func doAcceptChar(ctx context.Context, state *Peco, e termbox.Event) {
 	h := state.Hub()
 	h.SendDrawPrompt() // Update prompt before running query
 
-	state.ExecQuery()
+	state.ExecQuery(nil)
 }
 
 func doRotateFilter(ctx context.Context, state *Peco, e termbox.Event) {
@@ -192,7 +192,7 @@ func doRotateFilter(ctx context.Context, state *Peco, e termbox.Event) {
 	filters := state.Filters()
 	filters.Rotate()
 
-	if state.ExecQuery() {
+	if state.ExecQuery(nil) {
 		return
 	}
 	state.Hub().SendDrawPrompt()
@@ -207,7 +207,7 @@ func doBackToInitialFilter(ctx context.Context, state *Peco, e termbox.Event) {
 	filters := state.Filters()
 	filters.Reset()
 
-	if state.ExecQuery() {
+	if state.ExecQuery(nil) {
 		return
 	}
 	state.Hub().SendDrawPrompt()
@@ -509,7 +509,7 @@ func doDeleteBackwardWord(ctx context.Context, state *Peco, _ termbox.Event) {
 		q.DeleteRange(0, start)
 		c.SetPos(0)
 	}
-	if state.ExecQuery() {
+	if state.ExecQuery(nil) {
 		return
 	}
 	state.Hub().SendDrawPrompt()
@@ -634,7 +634,7 @@ func doDeleteForwardWord(ctx context.Context, state *Peco, _ termbox.Event) {
 		}
 	}
 
-	if state.ExecQuery() {
+	if state.ExecQuery(nil) {
 		return
 	}
 	state.Hub().SendDrawPrompt()
@@ -662,7 +662,7 @@ func doKillBeginningOfLine(ctx context.Context, state *Peco, _ termbox.Event) {
 	q := state.Query()
 	q.DeleteRange(0, state.Caret().Pos())
 	state.Caret().SetPos(0)
-	if state.ExecQuery() {
+	if state.ExecQuery(nil) {
 		return
 	}
 	state.Hub().SendDrawPrompt()
@@ -675,7 +675,7 @@ func doKillEndOfLine(ctx context.Context, state *Peco, _ termbox.Event) {
 
 	q := state.Query()
 	q.DeleteRange(state.Caret().Pos(), q.Len())
-	if state.ExecQuery() {
+	if state.ExecQuery(nil) {
 		return
 	}
 	state.Hub().SendDrawPrompt()
@@ -683,7 +683,7 @@ func doKillEndOfLine(ctx context.Context, state *Peco, _ termbox.Event) {
 
 func doDeleteAll(ctx context.Context, state *Peco, _ termbox.Event) {
 	state.Query().Reset()
-	state.ExecQuery()
+	state.ExecQuery(nil)
 }
 
 func doDeleteForwardChar(ctx context.Context, state *Peco, _ termbox.Event) {
@@ -696,7 +696,7 @@ func doDeleteForwardChar(ctx context.Context, state *Peco, _ termbox.Event) {
 	pos := c.Pos()
 	q.DeleteRange(pos, pos+1)
 
-	if state.ExecQuery() {
+	if state.ExecQuery(nil) {
 		return
 	}
 	state.Hub().SendDrawPrompt()
@@ -735,7 +735,7 @@ func doDeleteBackwardChar(ctx context.Context, state *Peco, e termbox.Event) {
 	}
 	c.SetPos(pos - 1)
 
-	if state.ExecQuery() {
+	if state.ExecQuery(nil) {
 		return
 	}
 
@@ -759,7 +759,7 @@ func doToggleQuery(ctx context.Context, state *Peco, _ termbox.Event) {
 		q.SaveQuery()
 	}
 
-	if state.ExecQuery() {
+	if state.ExecQuery(nil) {
 		return
 	}
 	state.Hub().SendDrawPrompt()

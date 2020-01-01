@@ -293,6 +293,20 @@ func (p *Peco) Setup() (err error) {
 	return nil
 }
 
+func (p *Peco) selectOneAndExitIfPossible() {
+	// TODO: mutex
+	// If we have only one line, we just want to bail out
+	// printing that one line as the result
+	if b := p.CurrentLineBuffer(); b.Size() == 1 {
+		if l, err := b.LineAt(0); err == nil {
+			p.resultCh = make(chan line.Line)
+			p.Exit(errCollectResults{})
+			p.resultCh <- l
+			close(p.resultCh)
+		}
+	}
+}
+
 func (p *Peco) Run(ctx context.Context) (err error) {
 	if pdebug.Enabled {
 		g := pdebug.Marker("Peco.Run").BindError(&err)
@@ -371,16 +385,7 @@ func (p *Peco) Run(ctx context.Context) (err error) {
 			// a line, where as SetupDone waits until we're completely
 			// done reading the input
 			<-p.source.SetupDone()
-			// If we have only one line, we just want to bail out
-			// printing that one line as the result
-			if b := p.CurrentLineBuffer(); b.Size() == 1 {
-				if l, err := b.LineAt(0); err == nil {
-					p.resultCh = make(chan line.Line)
-					p.Exit(errCollectResults{})
-					p.resultCh <- l
-					close(p.resultCh)
-				}
-			}
+			p.selectOneAndExitIfPossible()
 		}()
 	}
 
@@ -396,7 +401,14 @@ func (p *Peco) Run(ctx context.Context) (err error) {
 	if p.Query().Len() > 0 {
 		go func() {
 			<-p.source.Ready()
-			p.ExecQuery()
+
+			// iff p.selectOneAndExit is true, we should check after exec query is run
+			// if we only have one item
+			if p.selectOneAndExit {
+				p.ExecQuery(p.selectOneAndExitIfPossible)
+			} else {
+				p.ExecQuery(nil)
+			}
 		}()
 	}
 
@@ -645,11 +657,18 @@ func (p *Peco) ResetCurrentLineBuffer() {
 	p.SetCurrentLineBuffer(p.source)
 }
 
-func (p *Peco) ExecQuery() bool {
+// ExecQuery executes the query, taking in consideration things like the
+// exec-delay, and user's multiple successive inputs in a very short span
+//
+// if nextFunc is non-nil, then nextFunc is executed after the query is
+// executed
+func (p *Peco) ExecQuery(nextFunc func()) bool {
 	if pdebug.Enabled {
 		g := pdebug.Marker("Peco.ExecQuery")
 		defer g.End()
 	}
+
+	hub := p.Hub()
 
 	select {
 	case <-p.Ready():
@@ -668,7 +687,13 @@ func (p *Peco) ExecQuery() bool {
 			pdebug.Printf("empty query, reset buffer")
 		}
 		p.ResetCurrentLineBuffer()
-		p.Hub().SendDraw(&DrawOptions{DisableCache: true})
+
+		hub.Batch(func() {
+			hub.SendDraw(&DrawOptions{DisableCache: true})
+			if nextFunc != nil {
+				nextFunc()
+			}
+		}, false)
 		return true
 	}
 
@@ -678,7 +703,12 @@ func (p *Peco) ExecQuery() bool {
 			pdebug.Printf("sending query (immediate)")
 		}
 		// No delay, execute immediately
-		p.Hub().SendQuery(q.String())
+		hub.Batch(func() {
+			hub.SendQuery(q.String())
+			if nextFunc != nil {
+				nextFunc()
+			}
+		}, false)
 		return true
 	}
 
@@ -695,13 +725,18 @@ func (p *Peco) ExecQuery() bool {
 	// Wait $delay millisecs before sending the query
 	// if a new input comes in, batch them up
 	if pdebug.Enabled {
-		pdebug.Printf("sending query with delay)")
+		pdebug.Printf("sending query (with delay)")
 	}
 	p.queryExecTimer = time.AfterFunc(delay, func() {
 		if pdebug.Enabled {
 			pdebug.Printf("delayed query sent")
 		}
-		p.Hub().SendQuery(q.String())
+		hub.Batch(func() {
+			hub.SendQuery(q.String())
+			if nextFunc != nil {
+				nextFunc()
+			}
+		}, false)
 
 		p.queryExecMutex.Lock()
 		defer p.queryExecMutex.Unlock()

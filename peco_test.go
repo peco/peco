@@ -12,6 +12,7 @@ import (
 
 	"context"
 
+	"github.com/lestrrat-go/pdebug"
 	"github.com/nsf/termbox-go"
 	"github.com/peco/peco/hub"
 	"github.com/peco/peco/internal/util"
@@ -359,7 +360,11 @@ func TestGHIssue367(t *testing.T) {
 
 		l := len(src[0])
 		copy(p, src[0])
+		p = p[:l]
 		src = src[1:]
+		if pdebug.Enabled {
+			pdebug.Printf("reader func returning %#v", string(p))
+		}
 		return l, nil
 	})
 	buf := bytes.Buffer{}
@@ -371,9 +376,13 @@ func TestGHIssue367(t *testing.T) {
 		p.Run(ctx)
 	}()
 
-	p.Query().Set("bar")
-
 	select {
+	case <-time.After(100 * time.Millisecond):
+		p.screen.SendEvent(termbox.Event{Ch: 'b'})
+	case <-time.After(200 * time.Millisecond):
+		p.screen.SendEvent(termbox.Event{Ch: 'a'})
+	case <-time.After(300 * time.Millisecond):
+		p.screen.SendEvent(termbox.Event{Ch: 'r'})
 	case <-time.After(900 * time.Millisecond):
 		p.screen.SendEvent(termbox.Event{Key: termbox.KeyEnter})
 	}

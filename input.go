@@ -4,6 +4,8 @@ import (
 	"time"
 
 	"context"
+
+	"github.com/lestrrat-go/pdebug"
 	"github.com/nsf/termbox-go"
 )
 
@@ -31,6 +33,11 @@ func (i *Input) Loop(ctx context.Context, cancel func()) error {
 }
 
 func (i *Input) handleInputEvent(ctx context.Context, ev termbox.Event) error {
+	if pdebug.Enabled {
+		g := pdebug.Marker("event received from user: %#v", ev)
+		defer g.End()
+	}
+
 	switch ev.Type {
 	case termbox.EventError:
 		return nil
