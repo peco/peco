@@ -1,6 +1,11 @@
 Changes
 =======
 
+v0.5.6 - 07 Jan 2020
+  Miscellaneous:
+  * I completely messed up the release process. Retagging and uploading
+    binaries properly. No code changes except for the version number (#493)
+
 v0.5.5 - 02 Jan 2020
   Features:
   * Properly exit out of pec if --select-1 and --query  are both specified,
