@@ -81,7 +81,7 @@ func wrapRememberSequence(a Action) Action {
 		if s, err := keyseq.EventToString(ev); err == nil {
 			seq := state.Inputseq()
 			seq.Add(s)
-			state.Hub().SendStatusMsg(strings.Join(seq.KeyNames(), " "))
+			state.Hub().SendStatusMsg(ctx, strings.Join(seq.KeyNames(), " "))
 		}
 		a.Execute(ctx, state, ev)
 	})
@@ -96,7 +96,7 @@ func wrapClearSequence(a Action) Action {
 
 		if seq.Len() > 0 {
 			msg := strings.Join(seq.KeyNames(), " ")
-			state.Hub().SendStatusMsgAndClear(msg, 500*time.Millisecond)
+			state.Hub().SendStatusMsgAndClear(ctx, msg, 500*time.Millisecond)
 			seq.Reset()
 		}
 

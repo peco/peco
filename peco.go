@@ -208,7 +208,7 @@ func (p *Peco) SetSingleKeyJumpMode(b bool) {
 
 func (p *Peco) ToggleSingleKeyJumpMode() {
 	p.singleKeyJumpMode = !p.singleKeyJumpMode
-	go p.Hub().SendDraw(&DrawOptions{DisableCache: true})
+	go p.Hub().SendDraw(context.Background(), &DrawOptions{DisableCache: true})
 }
 
 func (p *Peco) SingleKeyJumpIndex(ch rune) (uint, bool) {
@@ -650,11 +650,31 @@ func (p *Peco) SetCurrentLineBuffer(b Buffer) {
 		defer g.End()
 	}
 	p.currentLineBuffer = b
-	go p.Hub().SendDraw(nil)
+	go p.Hub().SendDraw(context.Background(), nil)
 }
 
 func (p *Peco) ResetCurrentLineBuffer() {
 	p.SetCurrentLineBuffer(p.source)
+}
+
+func (p *Peco) sendQuery(ctx context.Context, q string, nextFunc func()) {
+	if p.source.IsStream() {
+		// If the source is a stream, we can't do batch mode, and hence
+		// we can't guarantee proper timing. But... okay, we simulate
+		// something like it
+		p.Hub().SendQuery(ctx, q)
+		if nextFunc != nil {
+			time.AfterFunc(time.Second, nextFunc)
+		}
+	} else {
+		// No delay, execute immediately
+		p.Hub().Batch(context.Background(), func(ctx context.Context) {
+			p.Hub().SendQuery(ctx, q)
+			if nextFunc != nil {
+				nextFunc()
+			}
+		}, false)
+	}
 }
 
 // ExecQuery executes the query, taking in consideration things like the
@@ -688,8 +708,8 @@ func (p *Peco) ExecQuery(nextFunc func()) bool {
 		}
 		p.ResetCurrentLineBuffer()
 
-		hub.Batch(func() {
-			hub.SendDraw(&DrawOptions{DisableCache: true})
+		hub.Batch(context.Background(), func(ctx context.Context) {
+			hub.SendDraw(ctx, &DrawOptions{DisableCache: true})
 			if nextFunc != nil {
 				nextFunc()
 			}
@@ -702,13 +722,8 @@ func (p *Peco) ExecQuery(nextFunc func()) bool {
 		if pdebug.Enabled {
 			pdebug.Printf("sending query (immediate)")
 		}
-		// No delay, execute immediately
-		hub.Batch(func() {
-			hub.SendQuery(q.String())
-			if nextFunc != nil {
-				nextFunc()
-			}
-		}, false)
+
+		p.sendQuery(context.Background(), q.String(), nextFunc)
 		return true
 	}
 
@@ -731,12 +746,11 @@ func (p *Peco) ExecQuery(nextFunc func()) bool {
 		if pdebug.Enabled {
 			pdebug.Printf("delayed query sent")
 		}
-		hub.Batch(func() {
-			hub.SendQuery(q.String())
-			if nextFunc != nil {
-				nextFunc()
-			}
-		}, false)
+		p.sendQuery(context.Background(), q.String(), nextFunc)
+
+		if pdebug.Enabled {
+			pdebug.Printf("delayed query executed")
+		}
 
 		p.queryExecMutex.Lock()
 		defer p.queryExecMutex.Unlock()

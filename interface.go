@@ -381,6 +381,10 @@ type Source struct {
 	ready     chan struct{}
 	setupDone chan struct{}
 	setupOnce sync.Once
+
+	suspend     bool
+	suspendMu   *sync.Mutex
+	suspendCond *sync.Cond
 }
 
 type State interface {
@@ -454,16 +458,16 @@ type Input struct {
 // message hub component. Unless we're in testing, github.com/peco/peco/hub.Hub
 // is used.
 type MessageHub interface {
-	Batch(func(), bool)
+	Batch(context.Context, func(context.Context), bool)
 	DrawCh() chan hub.Payload
 	PagingCh() chan hub.Payload
 	QueryCh() chan hub.Payload
-	SendDraw(interface{})
-	SendDrawPrompt()
-	SendPaging(interface{})
-	SendQuery(string)
-	SendStatusMsg(string)
-	SendStatusMsgAndClear(string, time.Duration)
+	SendDraw(context.Context, interface{})
+	SendDrawPrompt(context.Context)
+	SendPaging(context.Context, interface{})
+	SendQuery(context.Context, string)
+	SendStatusMsg(context.Context, string)
+	SendStatusMsgAndClear(context.Context, string, time.Duration)
 	StatusMsgCh() chan hub.Payload
 }
 

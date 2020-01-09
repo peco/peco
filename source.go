@@ -18,14 +18,14 @@ import (
 // call Setup()
 func NewSource(name string, in io.Reader, idgen line.IDGenerator, capacity int, enableSep bool) *Source {
 	s := &Source{
-		name:       name,
-		in:         in, // Note that this may be closed, so do not rely on it
-		capacity:   capacity,
-		enableSep:  enableSep,
-		idgen:      idgen,
-		ready:      make(chan struct{}),
-		setupDone:  make(chan struct{}),
-		ChanOutput: pipeline.ChanOutput(make(chan interface{})),
+		name:        name,
+		in:          in, // Note that this may be closed, so do not rely on it
+		capacity:    capacity,
+		enableSep:   enableSep,
+		idgen:       idgen,
+		ready:       make(chan struct{}),
+		setupDone:   make(chan struct{}),
+		ChanOutput:  pipeline.ChanOutput(make(chan interface{})),
 	}
 	s.Reset()
 	return s
@@ -33,6 +33,10 @@ func NewSource(name string, in io.Reader, idgen line.IDGenerator, capacity int, 
 
 func (s *Source) Name() string {
 	return s.name
+}
+
+func (s *Source) IsStream() bool {
+	return util.IsTty(s.in)
 }
 
 // Setup reads from the input os.File.
@@ -47,7 +51,7 @@ func (s *Source) Setup(ctx context.Context, state *Peco) {
 		defer close(s.setupDone)
 
 		draw := func(state *Peco) {
-			state.Hub().SendDraw(nil)
+			state.Hub().SendDraw(ctx, nil)
 		}
 
 		go func() {
@@ -73,7 +77,7 @@ func (s *Source) Setup(ctx context.Context, state *Peco) {
 		notifycb := func() {
 			// close the ready channel so others can be notified
 			// that there's at least 1 line in the buffer
-			state.Hub().SendStatusMsg("")
+			state.Hub().SendStatusMsg(ctx, "")
 			close(s.ready)
 		}
 
@@ -89,7 +93,7 @@ func (s *Source) Setup(ctx context.Context, state *Peco) {
 		scanner := bufio.NewScanner(s.in)
 		scanner.Buffer(scanbuf, state.maxScanBufferSize*1024)
 		defer func() {
-			if util.IsTty(s.in) {
+			if s.IsStream() {
 				return
 			}
 			if closer, ok := s.in.(io.Closer); ok {
@@ -106,12 +110,20 @@ func (s *Source) Setup(ctx context.Context, state *Peco) {
 
 			defer close(lines)
 			for scanner.Scan() {
-				lines <- scanner.Text()
+				newLine := scanner.Text()
+				select {
+				case <-ctx.Done():
+					if pdebug.Enabled {
+						pdebug.Printf("Bailing out of source setup text reader loop, because ctx was canceled")
+					}
+					return
+				case lines <- newLine:
+				}
 				scanned++
 			}
 		}()
 
-		state.Hub().SendStatusMsg("Waiting for input...")
+		state.Hub().SendStatusMsg(ctx, "Waiting for input...")
 
 		readCount := 0
 		for loop := true; loop; {
@@ -186,7 +198,6 @@ func (s *Source) Start(ctx context.Context, out pipeline.ChanOutput) {
 	for {
 		// This is where we are ready up to
 		upto := s.Size()
-
 		// We bail out if we are done with the setup, and our
 		// buffer has not grown
 		if setupDone && upto == prev {
@@ -215,6 +226,7 @@ func (s *Source) Start(ctx context.Context, out pipeline.ChanOutput) {
 			setupDone = true
 		default:
 		}
+
 	}
 }
 

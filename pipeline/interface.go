@@ -24,6 +24,11 @@ type Source interface {
 	Reset()
 }
 
+type Suspender interface {
+	Suspend()
+	Resume()
+}
+
 // Acceptor is an object that can accept input, and send to
 // an optional output
 type Acceptor interface {
