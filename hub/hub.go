@@ -11,7 +11,7 @@ import (
 func NewPayload(data interface{}, batch bool) *payload {
 	p := &payload{
 		data: data,
-		batch: true,
+		batch: batch,
 	}
 	return p
 }
