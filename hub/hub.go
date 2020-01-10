@@ -63,7 +63,6 @@ func (h *Hub) Batch(ctx context.Context, f func(ctx context.Context), shouldLock
 		defer h.mutex.Unlock()
 	}
 
-	// temporarily set synchronize requests to true
 	// ignore panics
 	defer func() { recover() }()
 
@@ -112,7 +111,6 @@ func send(ctx context.Context, ch chan Payload, r *payload) {
 	}
 
 	ch <- r
-	pdebug.Printf("sent payload %#v", r)
 }
 
 // QueryCh returns the underlying channel for queries

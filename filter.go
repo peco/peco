@@ -69,9 +69,6 @@ func acceptAndFilter(ctx context.Context, f filter.Filter, in chan interface{}, 
 
 	start := time.Now()
 	lines := 0
-
-	// if we're in batch mode, we need to read everything in memory
-
 	for {
 		select {
 		case <-ctx.Done():
@@ -158,15 +155,6 @@ func (f *Filter) Work(ctx context.Context, q hub.Payload) {
 	buf := NewMemoryBuffer()
 	p.SetDestination(buf)
 	state.SetCurrentLineBuffer(buf)
-
-/*
-	if q.Batch() {
-		if s, ok := state.Source().(pipeline.Suspender); ok {
-			time.AfterFunc(10*time.Millisecond, s.Suspend)
-			defer s.Resume()
-		}
-	}
-*/
 
 	go func(ctx context.Context) {
 		defer state.Hub().SendDraw(ctx, &DrawOptions{RunningQuery: true})
