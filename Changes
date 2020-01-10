@@ -1,6 +1,14 @@
 Changes
 =======
 
+v0.5.7 - 10 Jan 2020
+  Bugs/Fixes:
+  * Code introduced in v0.5.5 introduced a bug where if the input is coming
+    from standard input and is possibly infinite, the user would see the
+    query being "stuck" after the first character is entered.
+    If peco was applied on a finite set of data, this did not manifest itself.
+    (#494 fixed by #495)
+
 v0.5.6 - 07 Jan 2020
   Miscellaneous:
   * I completely messed up the release process. Retagging and uploading
