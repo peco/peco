@@ -371,16 +371,18 @@ type FilterQuery Query
 type Source struct {
 	pipeline.ChanOutput
 
-	capacity  int
-	enableSep bool
-	idgen     line.IDGenerator
-	in        io.Reader
-	lines     []line.Line
-	name      string
-	mutex     sync.RWMutex
-	ready     chan struct{}
-	setupDone chan struct{}
-	setupOnce sync.Once
+	capacity   int
+	enableSep  bool
+	idgen      line.IDGenerator
+	in         io.Reader
+	inClosed   bool
+	isInfinite bool
+	lines      []line.Line
+	name       string
+	mutex      sync.RWMutex
+	ready      chan struct{}
+	setupDone  chan struct{}
+	setupOnce  sync.Once
 
 	suspend     bool
 	suspendMu   *sync.Mutex

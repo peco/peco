@@ -16,16 +16,18 @@ import (
 
 // Creates a new Source. Does not start processing the input until you
 // call Setup()
-func NewSource(name string, in io.Reader, idgen line.IDGenerator, capacity int, enableSep bool) *Source {
+func NewSource(name string, in io.Reader, isInfinite bool, idgen line.IDGenerator, capacity int, enableSep bool) *Source {
 	s := &Source{
-		name:        name,
-		in:          in, // Note that this may be closed, so do not rely on it
-		capacity:    capacity,
-		enableSep:   enableSep,
-		idgen:       idgen,
-		ready:       make(chan struct{}),
-		setupDone:   make(chan struct{}),
-		ChanOutput:  pipeline.ChanOutput(make(chan interface{})),
+		name:       name,
+		capacity:   capacity,
+		enableSep:  enableSep,
+		idgen:      idgen,
+		in:         in, // Note that this may be closed, so do not rely on it
+		inClosed:   false,
+		isInfinite: isInfinite,
+		ready:      make(chan struct{}),
+		setupDone:  make(chan struct{}),
+		ChanOutput: pipeline.ChanOutput(make(chan interface{})),
 	}
 	s.Reset()
 	return s
@@ -35,8 +37,8 @@ func (s *Source) Name() string {
 	return s.name
 }
 
-func (s *Source) IsStream() bool {
-	return util.IsTty(s.in)
+func (s *Source) IsInfinite() bool {
+	return s.isInfinite && !s.inClosed
 }
 
 // Setup reads from the input os.File.
@@ -93,10 +95,11 @@ func (s *Source) Setup(ctx context.Context, state *Peco) {
 		scanner := bufio.NewScanner(s.in)
 		scanner.Buffer(scanbuf, state.maxScanBufferSize*1024)
 		defer func() {
-			if s.IsStream() {
+			if util.IsTty(s.in) {
 				return
 			}
 			if closer, ok := s.in.(io.Closer); ok {
+				s.inClosed = true
 				closer.Close()
 			}
 		}()

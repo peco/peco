@@ -456,6 +456,7 @@ func (p *Peco) SetupSource(ctx context.Context) (s *Source, err error) {
 
 	var in io.Reader
 	var filename string
+	var isInfinite bool
 	switch {
 	case len(p.args) > 1:
 		f, err := os.Open(p.args[1])
@@ -473,11 +474,16 @@ func (p *Peco) SetupSource(ctx context.Context) (s *Source, err error) {
 		}
 		in = p.Stdin
 		filename = `-`
+		// XXX we detect that this is potentially an "infinite" source if
+		// the input is coming from Stdin. This is important b/c we need to
+		// know NOT to use batch mode processing when the incoming source
+		// is never-ending
+		isInfinite = true
 	default:
 		return nil, errors.New("you must supply something to work with via filename or stdin")
 	}
 
-	src := NewSource(filename, in, p.idgen, p.bufferSize, p.enableSep)
+	src := NewSource(filename, in, isInfinite, p.idgen, p.bufferSize, p.enableSep)
 
 	// Block until we receive something from `in`
 	if pdebug.Enabled {
@@ -658,7 +664,12 @@ func (p *Peco) ResetCurrentLineBuffer() {
 }
 
 func (p *Peco) sendQuery(ctx context.Context, q string, nextFunc func()) {
-	if p.source.IsStream() {
+	if pdebug.Enabled {
+		g := pdebug.Marker("sending query to filter goroutine (q=%v, isInfinite=%t)", q, p.source.IsInfinite())
+		defer g.End()
+	}
+
+	if p.source.IsInfinite() {
 		// If the source is a stream, we can't do batch mode, and hence
 		// we can't guarantee proper timing. But... okay, we simulate
 		// something like it
