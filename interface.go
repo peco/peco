@@ -383,10 +383,6 @@ type Source struct {
 	ready      chan struct{}
 	setupDone  chan struct{}
 	setupOnce  sync.Once
-
-	suspend     bool
-	suspendMu   *sync.Mutex
-	suspendCond *sync.Cond
 }
 
 type State interface {

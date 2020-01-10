@@ -2,11 +2,10 @@ package peco
 
 import (
 	"bufio"
+	"context"
 	"io"
 	"sync"
 	"time"
-
-	"context"
 
 	"github.com/lestrrat-go/pdebug"
 	"github.com/peco/peco/internal/util"

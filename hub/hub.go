@@ -10,7 +10,7 @@ import (
 
 func NewPayload(data interface{}, batch bool) *payload {
 	p := &payload{
-		data: data,
+		data:  data,
 		batch: batch,
 	}
 	return p
