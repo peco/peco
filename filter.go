@@ -130,7 +130,7 @@ func (f *Filter) Work(ctx context.Context, q hub.Payload) {
 	}
 
 	if pdebug.Enabled {
-		g := pdebug.Marker("Filter.Work query '%s'", query)
+		g := pdebug.Marker("Filter.Work (query=%#v, batch=%#v)", query, q.Batch())
 		defer g.End()
 	}
 
@@ -156,12 +156,12 @@ func (f *Filter) Work(ctx context.Context, q hub.Payload) {
 	p.SetDestination(buf)
 	state.SetCurrentLineBuffer(buf)
 
-	go func() {
-		defer state.Hub().SendDraw(&DrawOptions{RunningQuery: true})
+	go func(ctx context.Context) {
+		defer state.Hub().SendDraw(ctx, &DrawOptions{RunningQuery: true})
 		if err := p.Run(ctx); err != nil {
-			state.Hub().SendStatusMsg(err.Error())
+			state.Hub().SendStatusMsg(ctx, err.Error())
 		}
-	}()
+	}(ctx)
 
 	go func() {
 		if pdebug.Enabled {
@@ -170,14 +170,14 @@ func (f *Filter) Work(ctx context.Context, q hub.Payload) {
 		}
 		t := time.NewTicker(5 * time.Millisecond)
 		defer t.Stop()
-		defer state.Hub().SendStatusMsg("")
-		defer state.Hub().SendDraw(&DrawOptions{RunningQuery: true})
+		defer state.Hub().SendStatusMsg(ctx, "")
+		defer state.Hub().SendDraw(ctx, &DrawOptions{RunningQuery: true})
 		for {
 			select {
 			case <-p.Done():
 				return
 			case <-t.C:
-				state.Hub().SendDraw(&DrawOptions{RunningQuery: true})
+				state.Hub().SendDraw(ctx, &DrawOptions{RunningQuery: true})
 			}
 		}
 	}()
@@ -218,7 +218,7 @@ func (f *Filter) Loop(ctx context.Context, cancel func()) error {
 			previous = workcancel
 			mutex.Unlock()
 
-			f.state.Hub().SendStatusMsg("Running query...")
+			f.state.Hub().SendStatusMsg(ctx, "Running query...")
 
 			go f.Work(workctx, q)
 		}

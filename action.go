@@ -53,7 +53,7 @@ func (a ActionFunc) RegisterKeySequence(name string, k keyseq.KeyList) {
 
 func wrapDeprecated(fn func(context.Context, *Peco, termbox.Event), oldName, newName string) ActionFunc {
 	return ActionFunc(func(ctx context.Context, state *Peco, e termbox.Event) {
-		state.Hub().SendStatusMsg(fmt.Sprintf("%s is deprecated. Use %s", oldName, newName))
+		state.Hub().SendStatusMsg(ctx, fmt.Sprintf("%s is deprecated. Use %s", oldName, newName))
 		fn(ctx, state, e)
 	})
 }
@@ -178,7 +178,7 @@ func doAcceptChar(ctx context.Context, state *Peco, e termbox.Event) {
 	c.Move(1)
 
 	h := state.Hub()
-	h.SendDrawPrompt() // Update prompt before running query
+	h.SendDrawPrompt(ctx) // Update prompt before running query
 
 	state.ExecQuery(nil)
 }
@@ -195,7 +195,7 @@ func doRotateFilter(ctx context.Context, state *Peco, e termbox.Event) {
 	if state.ExecQuery(nil) {
 		return
 	}
-	state.Hub().SendDrawPrompt()
+	state.Hub().SendDrawPrompt(ctx)
 }
 
 func doBackToInitialFilter(ctx context.Context, state *Peco, e termbox.Event) {
@@ -210,7 +210,7 @@ func doBackToInitialFilter(ctx context.Context, state *Peco, e termbox.Event) {
 	if state.ExecQuery(nil) {
 		return
 	}
-	state.Hub().SendDrawPrompt()
+	state.Hub().SendDrawPrompt(ctx)
 }
 
 func doToggleSelection(ctx context.Context, state *Peco, _ termbox.Event) {
@@ -256,7 +256,7 @@ func doCancelRangeMode(ctx context.Context, state *Peco, _ termbox.Event) {
 
 func doSelectNone(ctx context.Context, state *Peco, _ termbox.Event) {
 	state.Selection().Reset()
-	state.Hub().SendDraw(&DrawOptions{DisableCache: true})
+	state.Hub().SendDraw(ctx, &DrawOptions{DisableCache: true})
 }
 
 func doSelectAll(ctx context.Context, state *Peco, _ termbox.Event) {
@@ -270,7 +270,7 @@ func doSelectAll(ctx context.Context, state *Peco, _ termbox.Event) {
 			selection.Remove(l)
 		}
 	}
-	state.Hub().SendDraw(nil)
+	state.Hub().SendDraw(ctx, nil)
 }
 
 func doSelectVisible(ctx context.Context, state *Peco, _ termbox.Event) {
@@ -292,7 +292,7 @@ func doSelectVisible(ctx context.Context, state *Peco, _ termbox.Event) {
 		l.SetDirty(true)
 		selection.Add(l)
 	}
-	state.Hub().SendDraw(nil)
+	state.Hub().SendDraw(ctx, nil)
 }
 
 type errCollectResults struct{}
@@ -332,7 +332,7 @@ func doFinish(ctx context.Context, state *Peco, _ termbox.Event) {
 	})
 
 	var err error
-	state.Hub().SendStatusMsg("Executing " + ccarg)
+	state.Hub().SendStatusMsg(ctx, "Executing " + ccarg)
 	cmd := util.Shell(ccarg)
 	cmd.Stdin = &stdin
 	cmd.Stdout = state.Stdout
@@ -365,7 +365,7 @@ func doFinish(ctx context.Context, state *Peco, _ termbox.Event) {
 
 	err = cmd.Run()
 	state.screen.Resume()
-	state.Hub().SendDraw(&DrawOptions{DisableCache: true})
+	state.Hub().SendDraw(ctx, &DrawOptions{DisableCache: true})
 	if err != nil {
 		// bail out, or otherwise the user cannot know what happened
 		state.Exit(errors.Wrap(err, `failed to execute command`))
@@ -398,7 +398,7 @@ func doSelectDown(ctx context.Context, state *Peco, e termbox.Event) {
 		g := pdebug.Marker("doSelectDown")
 		defer g.End()
 	}
-	state.Hub().SendPaging(ToLineBelow)
+	state.Hub().SendPaging(ctx, ToLineBelow)
 }
 
 func doSelectUp(ctx context.Context, state *Peco, e termbox.Event) {
@@ -406,36 +406,36 @@ func doSelectUp(ctx context.Context, state *Peco, e termbox.Event) {
 		g := pdebug.Marker("doSelectUp")
 		defer g.End()
 	}
-	state.Hub().SendPaging(ToLineAbove)
+	state.Hub().SendPaging(ctx, ToLineAbove)
 }
 
 func doScrollPageUp(ctx context.Context, state *Peco, e termbox.Event) {
-	state.Hub().SendPaging(ToScrollPageUp)
+	state.Hub().SendPaging(ctx, ToScrollPageUp)
 }
 
 func doScrollPageDown(ctx context.Context, state *Peco, e termbox.Event) {
-	state.Hub().SendPaging(ToScrollPageDown)
+	state.Hub().SendPaging(ctx, ToScrollPageDown)
 }
 
 func doScrollLeft(ctx context.Context, state *Peco, e termbox.Event) {
-	state.Hub().SendPaging(ToScrollLeft)
+	state.Hub().SendPaging(ctx, ToScrollLeft)
 }
 
 func doScrollRight(ctx context.Context, state *Peco, e termbox.Event) {
-	state.Hub().SendPaging(ToScrollRight)
+	state.Hub().SendPaging(ctx, ToScrollRight)
 }
 
 func doScrollFirstItem(ctx context.Context, state *Peco, e termbox.Event) {
-	state.Hub().SendPaging(ToScrollFirstItem)
+	state.Hub().SendPaging(ctx, ToScrollFirstItem)
 }
 
 func doScrollLastItem(ctx context.Context, state *Peco, e termbox.Event) {
-	state.Hub().SendPaging(ToScrollLastItem)
+	state.Hub().SendPaging(ctx, ToScrollLastItem)
 }
 
 func doToggleSelectionAndSelectNext(ctx context.Context, state *Peco, e termbox.Event) {
 	toplevel, _ := ctx.Value(isTopLevelActionCall).(bool)
-	state.Hub().Batch(func() {
+	state.Hub().Batch(ctx, func(ctx context.Context) {
 		ctx = context.WithValue(ctx, isTopLevelActionCall, false)
 		doToggleSelection(ctx, state, e)
 		// XXX This is sucky. Fix later
@@ -469,7 +469,7 @@ func doInvertSelection(ctx context.Context, state *Peco, _ termbox.Event) {
 		}
 	}
 
-	state.Hub().SendDraw(nil)
+	state.Hub().SendDraw(ctx, nil)
 }
 
 func doDeleteBackwardWord(ctx context.Context, state *Peco, _ termbox.Event) {
@@ -512,14 +512,14 @@ func doDeleteBackwardWord(ctx context.Context, state *Peco, _ termbox.Event) {
 	if state.ExecQuery(nil) {
 		return
 	}
-	state.Hub().SendDrawPrompt()
+	state.Hub().SendDrawPrompt(ctx)
 }
 
 func doForwardWord(ctx context.Context, state *Peco, _ termbox.Event) {
 	if state.Caret().Pos() >= state.Query().Len() {
 		return
 	}
-	defer state.Hub().SendDrawPrompt()
+	defer state.Hub().SendDrawPrompt(ctx)
 
 	foundSpace := false
 	q := state.Query()
@@ -548,7 +548,7 @@ func doBackwardWord(ctx context.Context, state *Peco, _ termbox.Event) {
 	if c.Pos() == 0 {
 		return
 	}
-	defer state.Hub().SendDrawPrompt()
+	defer state.Hub().SendDrawPrompt(ctx)
 
 	if c.Pos() >= q.Len() {
 		c.Move(-1)
@@ -592,7 +592,7 @@ func doForwardChar(ctx context.Context, state *Peco, _ termbox.Event) {
 		return
 	}
 	c.Move(1)
-	state.Hub().SendDrawPrompt()
+	state.Hub().SendDrawPrompt(ctx)
 }
 
 func doBackwardChar(ctx context.Context, state *Peco, _ termbox.Event) {
@@ -601,7 +601,7 @@ func doBackwardChar(ctx context.Context, state *Peco, _ termbox.Event) {
 		return
 	}
 	c.Move(-1)
-	state.Hub().SendDrawPrompt()
+	state.Hub().SendDrawPrompt(ctx)
 }
 
 func doDeleteForwardWord(ctx context.Context, state *Peco, _ termbox.Event) {
@@ -637,17 +637,17 @@ func doDeleteForwardWord(ctx context.Context, state *Peco, _ termbox.Event) {
 	if state.ExecQuery(nil) {
 		return
 	}
-	state.Hub().SendDrawPrompt()
+	state.Hub().SendDrawPrompt(ctx)
 }
 
 func doBeginningOfLine(ctx context.Context, state *Peco, _ termbox.Event) {
 	state.Caret().SetPos(0)
-	state.Hub().SendDrawPrompt()
+	state.Hub().SendDrawPrompt(ctx)
 }
 
 func doEndOfLine(ctx context.Context, state *Peco, _ termbox.Event) {
 	state.Caret().SetPos(state.Query().Len())
-	state.Hub().SendDrawPrompt()
+	state.Hub().SendDrawPrompt(ctx)
 }
 
 func doEndOfFile(ctx context.Context, state *Peco, e termbox.Event) {
@@ -665,7 +665,7 @@ func doKillBeginningOfLine(ctx context.Context, state *Peco, _ termbox.Event) {
 	if state.ExecQuery(nil) {
 		return
 	}
-	state.Hub().SendDrawPrompt()
+	state.Hub().SendDrawPrompt(ctx)
 }
 
 func doKillEndOfLine(ctx context.Context, state *Peco, _ termbox.Event) {
@@ -678,7 +678,7 @@ func doKillEndOfLine(ctx context.Context, state *Peco, _ termbox.Event) {
 	if state.ExecQuery(nil) {
 		return
 	}
-	state.Hub().SendDrawPrompt()
+	state.Hub().SendDrawPrompt(ctx)
 }
 
 func doDeleteAll(ctx context.Context, state *Peco, _ termbox.Event) {
@@ -699,7 +699,7 @@ func doDeleteForwardChar(ctx context.Context, state *Peco, _ termbox.Event) {
 	if state.ExecQuery(nil) {
 		return
 	}
-	state.Hub().SendDrawPrompt()
+	state.Hub().SendDrawPrompt(ctx)
 }
 
 func doDeleteBackwardChar(ctx context.Context, state *Peco, e termbox.Event) {
@@ -739,11 +739,11 @@ func doDeleteBackwardChar(ctx context.Context, state *Peco, e termbox.Event) {
 		return
 	}
 
-	state.Hub().SendDrawPrompt()
+	state.Hub().SendDrawPrompt(ctx)
 }
 
 func doRefreshScreen(ctx context.Context, state *Peco, _ termbox.Event) {
-	state.Hub().SendDraw(&DrawOptions{DisableCache: true})
+	state.Hub().SendDraw(ctx, &DrawOptions{DisableCache: true})
 }
 
 func doToggleQuery(ctx context.Context, state *Peco, _ termbox.Event) {
@@ -762,11 +762,11 @@ func doToggleQuery(ctx context.Context, state *Peco, _ termbox.Event) {
 	if state.ExecQuery(nil) {
 		return
 	}
-	state.Hub().SendDrawPrompt()
+	state.Hub().SendDrawPrompt(ctx)
 }
 
 func doKonamiCommand(ctx context.Context, state *Peco, e termbox.Event) {
-	state.Hub().SendStatusMsg("All your filters are belongs to us")
+	state.Hub().SendStatusMsg(ctx, "All your filters are belongs to us")
 }
 
 func doToggleSingleKeyJump(ctx context.Context, state *Peco, e termbox.Event) {
@@ -792,11 +792,11 @@ func doToggleViewArround(ctx context.Context, state *Peco, e termbox.Event) {
 		currentLine := l.ID()
 
 		doDeleteAll(ctx, state, e)
-		state.Hub().SendPaging(JumpToLineRequest(currentLine))
+		state.Hub().SendPaging(ctx, JumpToLineRequest(currentLine))
 	}
 }
 
-func doGoToNextSelection(_ context.Context, state *Peco, _ termbox.Event) {
+func doGoToNextSelection(ctx context.Context, state *Peco, _ termbox.Event) {
 	if pdebug.Enabled {
 		g := pdebug.Marker("doGoToNextSelection")
 		defer g.End()
@@ -805,7 +805,7 @@ func doGoToNextSelection(_ context.Context, state *Peco, _ termbox.Event) {
 	selection := state.Selection()
 
 	if selection.Len() == 0 {
-		state.Hub().SendStatusMsg("No Selection")
+		state.Hub().SendStatusMsg(ctx, "No Selection")
 		return
 	}
 
@@ -836,17 +836,17 @@ func doGoToNextSelection(_ context.Context, state *Peco, _ termbox.Event) {
 	})
 
 	if found {
-		state.Hub().SendStatusMsg("Next Selection")
-		state.Hub().SendPaging(ToScrollFirstItem)
-		state.Hub().SendPaging(JumpToLineRequest(nextLine))
+		state.Hub().SendStatusMsg(ctx, "Next Selection")
+		state.Hub().SendPaging(ctx, ToScrollFirstItem)
+		state.Hub().SendPaging(ctx, JumpToLineRequest(nextLine))
 	} else {
-		state.Hub().SendStatusMsg("Next Selection (first)")
-		state.Hub().SendPaging(ToScrollFirstItem)
-		state.Hub().SendPaging(JumpToLineRequest(firstLine))
+		state.Hub().SendStatusMsg(ctx, "Next Selection (first)")
+		state.Hub().SendPaging(ctx, ToScrollFirstItem)
+		state.Hub().SendPaging(ctx, JumpToLineRequest(firstLine))
 	}
 }
 
-func doGoToPreviousSelection(_ context.Context, state *Peco, _ termbox.Event) {
+func doGoToPreviousSelection(ctx context.Context, state *Peco, _ termbox.Event) {
 	if pdebug.Enabled {
 		g := pdebug.Marker("doGoToPreviousSelection")
 		defer g.End()
@@ -855,7 +855,7 @@ func doGoToPreviousSelection(_ context.Context, state *Peco, _ termbox.Event) {
 	selection := state.Selection()
 
 	if selection.Len() == 0 {
-		state.Hub().SendStatusMsg("No Selection")
+		state.Hub().SendStatusMsg(ctx, "No Selection")
 		return
 	}
 
@@ -886,13 +886,13 @@ func doGoToPreviousSelection(_ context.Context, state *Peco, _ termbox.Event) {
 	})
 
 	if found {
-		state.Hub().SendStatusMsg("Previous Selection")
-		state.Hub().SendPaging(ToScrollFirstItem)
-		state.Hub().SendPaging(JumpToLineRequest(previousLine))
+		state.Hub().SendStatusMsg(ctx, "Previous Selection")
+		state.Hub().SendPaging(ctx, ToScrollFirstItem)
+		state.Hub().SendPaging(ctx, JumpToLineRequest(previousLine))
 	} else {
-		state.Hub().SendStatusMsg("Previous Selection (first)")
-		state.Hub().SendPaging(ToScrollFirstItem)
-		state.Hub().SendPaging(JumpToLineRequest(lastLine))
+		state.Hub().SendStatusMsg(ctx, "Previous Selection (first)")
+		state.Hub().SendPaging(ctx, ToScrollFirstItem)
+		state.Hub().SendPaging(ctx, JumpToLineRequest(lastLine))
 	}
 }
 
@@ -908,9 +908,9 @@ func doSingleKeyJump(ctx context.Context, state *Peco, e termbox.Event) {
 	}
 
 	toplevel, _ := ctx.Value(isTopLevelActionCall).(bool)
-	state.Hub().Batch(func() {
+	state.Hub().Batch(ctx, func(ctx context.Context) {
 		ctx = context.WithValue(ctx, isTopLevelActionCall, false)
-		state.Hub().SendPaging(JumpToLineRequest(index))
+		state.Hub().SendPaging(ctx, JumpToLineRequest(index))
 		doFinish(ctx, state, e)
 	}, toplevel)
 }
@@ -918,7 +918,7 @@ func doSingleKeyJump(ctx context.Context, state *Peco, e termbox.Event) {
 func makeCombinedAction(actions ...Action) ActionFunc {
 	return ActionFunc(func(ctx context.Context, state *Peco, e termbox.Event) {
 		toplevel, _ := ctx.Value(isTopLevelActionCall).(bool)
-		state.Hub().Batch(func() {
+		state.Hub().Batch(ctx, func(ctx context.Context) {
 			ctx = context.WithValue(ctx, isTopLevelActionCall, false)
 			for _, a := range actions {
 				a.Execute(ctx, state, e)

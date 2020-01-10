@@ -19,6 +19,9 @@ type Hub struct {
 // be filled to force synchronous communication between the
 // sender and receiver
 type Payload interface {
+	// Batch returns true if this payload is part of a batch operation.
+	Batch() bool
+
 	// Data allows you to retrieve the data that's embedded in the payload.
 	Data() interface{}
 
@@ -30,6 +33,7 @@ type Payload interface {
 }
 
 type payload struct {
+	batch bool
 	data interface{}
 	done chan struct{}
 }

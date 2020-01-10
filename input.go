@@ -42,7 +42,7 @@ func (i *Input) handleInputEvent(ctx context.Context, ev termbox.Event) error {
 	case termbox.EventError:
 		return nil
 	case termbox.EventResize:
-		i.state.Hub().SendDraw(nil)
+		i.state.Hub().SendDraw(ctx, nil)
 		return nil
 	case termbox.EventKey:
 		// ModAlt is a sequence of letters with a leading \x1b (=Esc).

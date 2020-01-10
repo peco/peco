@@ -1,12 +1,17 @@
-package hub
+package hub_test
 
 import (
+	"context"
 	"testing"
 	"time"
+
+	"github.com/peco/peco/hub"
 )
 
 func TestHub(t *testing.T) {
-	h := New(5)
+	ctx := context.Background()
+
+	h := hub.New(5)
 
 	done := make(map[string]time.Time)
 
@@ -30,9 +35,16 @@ func TestHub(t *testing.T) {
 	}()
 	go func() {
 		hr := <-h.StatusMsgCh()
-		r := hr.Data().(*statusMsgReq)
+		data := hr.Data()
+		r, ok := data.(hub.StatusMsg)
+		if !ok {
+			t.Errorf("expected data to be hub.StatusMsg. got '%T'", hr)
+			return
+		}
+
 		if r.Message() != "Hello, World!" {
 			t.Errorf("Expected data to be 'Hello World!', got '%s'", r.Message())
+			return
 		}
 		time.Sleep(100 * time.Millisecond)
 		done["status"] = time.Now()
@@ -45,11 +57,11 @@ func TestHub(t *testing.T) {
 		hr.Done()
 	}()
 
-	h.Batch(func() {
-		h.SendQuery("Hello World!")
-		h.SendDraw(true)
-		h.SendStatusMsg("Hello, World!")
-		h.SendPaging(1)
+	h.Batch(ctx, func(ctx context.Context) {
+		h.SendQuery(ctx, "Hello World!")
+		h.SendDraw(ctx, true)
+		h.SendStatusMsg(ctx, "Hello, World!")
+		h.SendPaging(ctx, 1)
 	}, true)
 
 	phases := []string{
