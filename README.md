@@ -117,6 +117,12 @@ or with Scarf:
 scarf install peco
 ```
 
+### Arch Linux (AUR)
+
+```
+yay -S peco
+```
+
 ### Windows (Chocolatey NuGet Users)
 
 There's a third-party [peco package available](https://chocolatey.org/packages/peco) for Chocolatey NuGet.
