@@ -1,7 +1,9 @@
 package filter
 
 import (
-	pdebug "github.com/lestrrat-go/pdebug"
+	"context"
+
+	pdebug "github.com/lestrrat-go/pdebug/v2"
 )
 
 func (fs *Set) Reset() {
@@ -31,7 +33,7 @@ func (fs *Set) Rotate() {
 		fs.current = 0
 	}
 	if pdebug.Enabled {
-		pdebug.Printf("Set.Rotate: now filter in effect is %s", fs.filters[fs.current])
+		pdebug.Printf(context.TODO(), "Set.Rotate: now filter in effect is %s", fs.filters[fs.current])
 	}
 }
 

@@ -193,8 +193,8 @@ type VerticalAnchor int
 // Layout represents the component that controls where elements are placed on screen
 type Layout interface {
 	PrintStatus(string, time.Duration)
-	DrawPrompt(*Peco)
-	DrawScreen(*Peco, *DrawOptions)
+	DrawPrompt(context.Context, *Peco)
+	DrawScreen(context.Context, *Peco, *DrawOptions)
 	MovePage(*Peco, PagingRequest) (moved bool)
 	PurgeDisplayCache()
 }

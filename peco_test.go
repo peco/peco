@@ -12,7 +12,7 @@ import (
 
 	"context"
 
-	"github.com/lestrrat-go/pdebug"
+	"github.com/lestrrat-go/pdebug/v2"
 	"github.com/nsf/termbox-go"
 	"github.com/peco/peco/hub"
 	"github.com/peco/peco/internal/util"
@@ -72,7 +72,7 @@ func newConfig(s string) (string, error) {
 		return "", err
 	}
 
-	io.WriteString(f, s)
+	_, _ = io.WriteString(f, s)
 	f.Close()
 	return f.Name(), nil
 }
@@ -173,23 +173,33 @@ func TestPeco(t *testing.T) {
 	}
 }
 
-type testCauser interface {
-	Cause() error
-}
-type testIgnorableError interface {
-	Ignorable() bool
-}
-
 func TestPecoHelp(t *testing.T) {
-	p := newPeco()
-	p.Argv = []string{"peco", "-h"}
-	p.Stdout = &bytes.Buffer{}
-	ctx, cancel := context.WithCancel(context.Background())
-	time.AfterFunc(time.Second, cancel)
+	done := make(chan struct{})
 
-	err := p.Run(ctx)
-	if !assert.True(t, util.IsIgnorableError(err), "p.Run() should return error with Ignorable() method, and it should return true") {
-		return
+	// This whole operation may block, so run the test in the background
+	go func() {
+		defer close(done)
+		p := newPeco()
+
+		p.Argv = []string{"peco", "-h"}
+		p.Stdout = &bytes.Buffer{}
+
+		ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+		defer cancel()
+
+		err := p.Run(ctx)
+		if !assert.True(t, util.IsIgnorableError(err), "p.Run() should return error with Ignorable() method, and it should return true") {
+			return
+		}
+	}()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	select {
+	case <-ctx.Done():
+		t.Errorf(`background test did not return in time`)
+	case <-done:
 	}
 }
 
@@ -202,7 +212,7 @@ func TestGHIssue331(t *testing.T) {
 	time.AfterFunc(time.Second, cancel)
 
 	p := newPeco()
-	p.Run(ctx)
+	_ = p.Run(ctx)
 
 	if !assert.NotEmpty(t, p.singleKeyJumpPrefixes, "singleKeyJumpPrefixes is not empty") {
 		return
@@ -295,7 +305,7 @@ func TestApplyConfig(t *testing.T) {
 // The test should have caught the bug for 376, but the premise of the test
 // itself was wrong
 func TestGHIssue363(t *testing.T) {
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	ctx, cancel := context.WithTimeout(pdebug.Context(context.Background()), time.Second)
 	defer cancel()
 
 	p := newPeco()
@@ -363,7 +373,7 @@ func TestGHIssue367(t *testing.T) {
 		p = p[:l]
 		src = src[1:]
 		if pdebug.Enabled {
-			pdebug.Printf("reader func returning %#v", string(p))
+			pdebug.Printf(ctx, "reader func returning %#v", string(p))
 		}
 		return l, nil
 	})
@@ -373,7 +383,7 @@ func TestGHIssue367(t *testing.T) {
 	waitCh := make(chan struct{})
 	go func() {
 		defer close(waitCh)
-		p.Run(ctx)
+		_ = p.Run(ctx)
 	}()
 
 	select {

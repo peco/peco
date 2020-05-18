@@ -49,44 +49,42 @@ type exitStatuser interface {
 	ExitStatus() int
 }
 
-func IsIgnorableError(err error) bool {
-	for e := err; e != nil; {
-		switch e.(type) {
-		case ignorable:
-			return e.(ignorable).Ignorable()
-		case causer:
-			e = e.(causer).Cause()
-		default:
-			return false
+func IsIgnorableError(e error) bool {
+	for e != nil {
+		if v, ok := e.(causer); ok {
+			e = v.Cause()
+		}
+
+		if v, ok := e.(ignorable); ok {
+			return v.Ignorable()
 		}
 	}
 	return false
 }
 
-func IsCollectResultsError(err error) bool {
-	for e := err; e != nil; {
-		switch e.(type) {
-		case collectResults:
-			return e.(collectResults).CollectResults()
-		case causer:
-			e = e.(causer).Cause()
-		default:
-			return false
+func IsCollectResultsError(e error) bool {
+	for e != nil {
+		if v, ok := e.(causer); ok {
+			e = v.Cause()
+		}
+
+		if v, ok := e.(collectResults); ok {
+			return v.CollectResults()
 		}
 	}
 	return false
 }
 
-func GetExitStatus(err error) (int, bool) {
-	for e := err; e != nil; {
+func GetExitStatus(e error) (int, bool) {
+	for e != nil {
+		if v, ok := e.(causer); ok {
+			e = v.Cause()
+		}
+
 		if ese, ok := e.(exitStatuser); ok {
 			return ese.ExitStatus(), true
 		}
-		if cerr, ok := e.(causer); ok {
-			e = cerr.Cause()
-			continue
-		}
-		break
 	}
+
 	return 1, false
 }

@@ -4,6 +4,8 @@ import (
 	"time"
 
 	"context"
+
+	"github.com/lestrrat-go/pdebug/v2"
 	"github.com/peco/peco/hub"
 )
 
@@ -51,17 +53,15 @@ func (v *View) Loop(ctx context.Context, cancel func()) error {
 		case r := <-h.PagingCh():
 			v.movePage(r, r.Data().(PagingRequest))
 		case r := <-h.DrawCh():
-			tmp := r.Data()
-			switch tmp.(type) {
+			switch tmp := r.Data().(type) {
 			case string:
-				switch tmp.(string) {
-				case "prompt":
-					v.drawPrompt(r)
-				case "purgeCache":
+				if tmp == "prompt" {
+					v.drawPrompt(ctx, r)
+				} else if tmp == "purgeCache" {
 					v.purgeDisplayCache(r)
 				}
 			case *DrawOptions:
-				v.drawScreen(r, tmp.(*DrawOptions))
+				v.drawScreen(r, tmp)
 			default:
 				v.drawScreen(r, nil)
 			}
@@ -83,19 +83,27 @@ func (v *View) purgeDisplayCache(p hub.Payload) {
 func (v *View) drawScreen(p hub.Payload, options *DrawOptions) {
 	defer p.Done()
 
-	v.layout.DrawScreen(v.state, options)
+	ctx := context.TODO()
+	if pdebug.Enabled {
+		ctx = pdebug.Context(ctx)
+	}
+	v.layout.DrawScreen(ctx, v.state, options)
 }
 
-func (v *View) drawPrompt(p hub.Payload) {
+func (v *View) drawPrompt(ctx context.Context, p hub.Payload) {
 	defer p.Done()
 
-	v.layout.DrawPrompt(v.state)
+	v.layout.DrawPrompt(ctx, v.state)
 }
 
 func (v *View) movePage(p hub.Payload, r PagingRequest) {
 	defer p.Done()
 
+	ctx := context.TODO()
+	if pdebug.Enabled {
+		ctx = pdebug.Context(ctx)
+	}
 	if v.layout.MovePage(v.state, r) {
-		v.layout.DrawScreen(v.state, nil)
+		v.layout.DrawScreen(ctx, v.state, nil)
 	}
 }

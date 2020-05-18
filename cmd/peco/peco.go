@@ -7,7 +7,7 @@ import (
 
 	"context"
 
-	"github.com/lestrrat-go/pdebug"
+	"github.com/lestrrat-go/pdebug/v2"
 	"github.com/peco/peco"
 	"github.com/peco/peco/internal/util"
 )
@@ -23,14 +23,16 @@ func main() {
 }
 
 func _main() int {
-	if pdebug.Enabled {
-		pdebug.DefaultCtx.Writer = os.Stderr
-	}
 	if envvar := os.Getenv("GOMAXPROCS"); envvar == "" {
 		runtime.GOMAXPROCS(runtime.NumCPU())
 	}
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(pdebug.Context(context.TODO()))
 	defer cancel()
+
+	if pdebug.Enabled {
+		g := pdebug.Marker(ctx, "_main()")
+		defer g.End()
+	}
 
 	cli := peco.New()
 	if err := cli.Run(ctx); err != nil {

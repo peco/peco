@@ -6,7 +6,7 @@ import (
 
 	"context"
 
-	"github.com/lestrrat-go/pdebug"
+	"github.com/lestrrat-go/pdebug/v2"
 	"github.com/peco/peco/filter"
 	"github.com/peco/peco/hub"
 	"github.com/peco/peco/internal/buffer"
@@ -29,7 +29,7 @@ func (fp *filterProcessor) Accept(ctx context.Context, in chan interface{}, out 
 // run separately from accepting incoming messages
 func flusher(ctx context.Context, f filter.Filter, incoming chan []line.Line, done chan struct{}, out pipeline.ChanOutput) {
 	if pdebug.Enabled {
-		g := pdebug.Marker("flusher goroutine")
+		g := pdebug.Marker(ctx, "flusher goroutine")
 		defer g.End()
 	}
 
@@ -44,7 +44,7 @@ func flusher(ctx context.Context, f filter.Filter, incoming chan []line.Line, do
 			if !ok {
 				return
 			}
-			pdebug.Printf("flusher: %#v", buf)
+			pdebug.Printf(ctx, "flusher: %#v", buf)
 			f.Apply(ctx, buf, out)
 			buffer.ReleaseLineListBuf(buf)
 		}
@@ -73,7 +73,7 @@ func acceptAndFilter(ctx context.Context, f filter.Filter, in chan interface{}, 
 		select {
 		case <-ctx.Done():
 			if pdebug.Enabled {
-				pdebug.Printf("filter received done")
+				pdebug.Printf(ctx, "filter received done")
 			}
 			return
 		case <-flushTicker.C:
@@ -82,21 +82,20 @@ func acceptAndFilter(ctx context.Context, f filter.Filter, in chan interface{}, 
 				buf = buffer.GetLineListBuf()
 			}
 		case v := <-in:
-			switch v.(type) {
+			switch v := v.(type) {
 			case error:
-				if pipeline.IsEndMark(v.(error)) {
+				if pipeline.IsEndMark(v) {
 					if pdebug.Enabled {
-						pdebug.Printf("filter received end mark (read %d lines, %s since starting accept loop)", lines+len(buf), time.Since(start).String())
+						pdebug.Printf(ctx, "filter received end mark (read %d lines, %s since starting accept loop)", lines+len(buf), time.Since(start).String())
 					}
 					if len(buf) > 0 {
 						flush <- buf
-						buf = nil
 					}
 				}
 				return
 			case line.Line:
 				if pdebug.Enabled {
-					pdebug.Printf("incoming line")
+					pdebug.Printf(ctx, "incoming line")
 					lines++
 				}
 				// We buffer the lines so that we can receive more lines to
@@ -130,7 +129,7 @@ func (f *Filter) Work(ctx context.Context, q hub.Payload) {
 	}
 
 	if pdebug.Enabled {
-		g := pdebug.Marker("Filter.Work (query=%#v, batch=%#v)", query, q.Batch())
+		g := pdebug.Marker(ctx, "Filter.Work (query=%#v, batch=%#v)", query, q.Batch())
 		defer g.End()
 	}
 
@@ -165,7 +164,7 @@ func (f *Filter) Work(ctx context.Context, q hub.Payload) {
 
 	go func() {
 		if pdebug.Enabled {
-			g := pdebug.Marker("Periodic draw request for '%s'", query)
+			g := pdebug.Marker(ctx, "Periodic draw request for '%s'", query)
 			defer g.End()
 		}
 		t := time.NewTicker(5 * time.Millisecond)
@@ -211,7 +210,7 @@ func (f *Filter) Loop(ctx context.Context, cancel func()) error {
 			mutex.Lock()
 			if previous != nil {
 				if pdebug.Enabled {
-					pdebug.Printf("Canceling previous query")
+					pdebug.Printf(ctx, "Canceling previous query")
 				}
 				previous()
 			}

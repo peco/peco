@@ -1,13 +1,14 @@
 package peco
 
 import (
+	"context"
 	"fmt"
 	"strconv"
 	"strings"
 	"time"
 	"unicode/utf8"
 
-	"github.com/lestrrat-go/pdebug"
+	"github.com/lestrrat-go/pdebug/v2"
 	"github.com/mattn/go-runewidth"
 	"github.com/nsf/termbox-go"
 	"github.com/peco/peco/line"
@@ -81,9 +82,9 @@ func NewUserPrompt(screen Screen, anchor VerticalAnchor, anchorOffset int, promp
 }
 
 // Draw draws the query prompt
-func (u UserPrompt) Draw(state *Peco) {
+func (u UserPrompt) Draw(ctx context.Context, state *Peco) {
 	if pdebug.Enabled {
-		g := pdebug.Marker("UserPrompt.Draw")
+		g := pdebug.Marker(ctx, "UserPrompt.Draw")
 		defer g.End()
 	}
 
@@ -231,7 +232,7 @@ func (s *StatusBar) setClearTimer(t *time.Timer) {
 // timer created by ClearStatus()
 func (s *StatusBar) PrintStatus(msg string, clearDelay time.Duration) {
 	if pdebug.Enabled {
-		g := pdebug.Marker("StatusBar.PrintStatus")
+		g := pdebug.Marker(context.TODO(), "StatusBar.PrintStatus")
 		defer g.End()
 	}
 
@@ -323,9 +324,9 @@ type DrawOptions struct {
 }
 
 // Draw displays the ListArea on the screen
-func (l *ListArea) Draw(state *Peco, parent Layout, perPage int, options *DrawOptions) {
+func (l *ListArea) Draw(ctx context.Context, state *Peco, parent Layout, perPage int, options *DrawOptions) {
 	if pdebug.Enabled {
-		g := pdebug.Marker("ListArea.Draw pp = %d, options = %#v", perPage, options)
+		g := pdebug.Marker(ctx, "ListArea.Draw pp = %d, options = %#v", perPage, options)
 		defer g.End()
 	}
 
@@ -356,13 +357,13 @@ func (l *ListArea) Draw(state *Peco, parent Layout, perPage int, options *DrawOp
 		}
 		if loc.Page() != page {
 			loc.SetPage(page)
-			parent.DrawPrompt(state)
+			parent.DrawPrompt(ctx, state)
 		}
 	}
 
 	pf := loc.PageCrop()
 	if pdebug.Enabled {
-		pdebug.Printf("Cropping linebuf which contains %d lines at page %d (%d entries per page)", linebuf.Size(), pf.currentPage, pf.perPage)
+		pdebug.Printf(context.TODO(), "Cropping linebuf which contains %d lines at page %d (%d entries per page)", linebuf.Size(), pf.currentPage, pf.perPage)
 	}
 	buf := pf.Crop(linebuf)
 	bufsiz := buf.Size()
@@ -397,7 +398,7 @@ func (l *ListArea) Draw(state *Peco, parent Layout, perPage int, options *DrawOp
 	// If our buffer is smaller than perPage, we may need to
 	// clear some lines
 	if pdebug.Enabled {
-		pdebug.Printf("ListArea.Draw: buffer size is %d, our view area is %d", bufsiz, perPage)
+		pdebug.Printf(context.TODO(), "ListArea.Draw: buffer size is %d, our view area is %d", bufsiz, perPage)
 	}
 
 	for n := bufsiz; n < perPage; n++ {
@@ -591,14 +592,14 @@ func (l *ListArea) Draw(state *Peco, parent Layout, perPage int, options *DrawOp
 				XOffset: xOffset,
 				Fg:      fgAttr,
 				Bg:      bgAttr,
-				Msg:     line[m[1]:len(line)],
+				Msg:     line[m[1]:],
 				Fill:    true,
 			})
 		}
 	}
 	l.SetDirty(false)
 	if pdebug.Enabled {
-		pdebug.Printf("ListArea.Draw: Written total of %d lines (%d cached)", written+cached, cached)
+		pdebug.Printf(context.TODO(), "ListArea.Draw: Written total of %d lines (%d cached)", written+cached, cached)
 	}
 }
 
@@ -638,9 +639,9 @@ func (l *BasicLayout) PurgeDisplayCache() {
 }
 
 // CalculatePage calculates which page we're displaying
-func (l *BasicLayout) CalculatePage(state *Peco, perPage int) error {
+func (l *BasicLayout) CalculatePage(ctx context.Context, state *Peco, perPage int) error {
 	if pdebug.Enabled {
-		g := pdebug.Marker("BasicLayout.Calculate %d", perPage)
+		g := pdebug.Marker(ctx, "BasicLayout.Calculate %d", perPage)
 		defer g.End()
 	}
 	buf := state.CurrentLineBuffer()
@@ -668,25 +669,25 @@ func (l *BasicLayout) CalculatePage(state *Peco, perPage int) error {
 }
 
 // DrawPrompt draws the prompt to the terminal
-func (l *BasicLayout) DrawPrompt(state *Peco) {
-	l.prompt.Draw(state)
+func (l *BasicLayout) DrawPrompt(ctx context.Context, state *Peco) {
+	l.prompt.Draw(ctx, state)
 }
 
 // DrawScreen draws the entire screen
-func (l *BasicLayout) DrawScreen(state *Peco, options *DrawOptions) {
+func (l *BasicLayout) DrawScreen(ctx context.Context, state *Peco, options *DrawOptions) {
 	if pdebug.Enabled {
-		g := pdebug.Marker("BasicLayout.DrawScreen")
+		g := pdebug.Marker(ctx, "BasicLayout.DrawScreen")
 		defer g.End()
 	}
 
 	perPage := l.linesPerPage()
 
-	if err := l.CalculatePage(state, perPage); err != nil {
+	if err := l.CalculatePage(ctx, state, perPage); err != nil {
 		return
 	}
 
-	l.DrawPrompt(state)
-	l.list.Draw(state, l, perPage, options)
+	l.DrawPrompt(ctx, state)
+	l.list.Draw(ctx, state, l, perPage, options)
 
 	if err := l.screen.Flush(); err != nil {
 		return
@@ -706,6 +707,7 @@ func (l *BasicLayout) linesPerPage() int {
 		// means no space left to draw anything
 		if pdebug.Enabled {
 			pdebug.Printf(
+				context.TODO(),
 				"linesPerPage is < 1 (height = %d, reservedLines = %d), forcing return value of 2",
 				height,
 				reservedLines,
@@ -736,7 +738,7 @@ func verticalScroll(state *Peco, l *BasicLayout, p PagingRequest) bool {
 
 	if pdebug.Enabled {
 		defer func() {
-			pdebug.Printf("currentLine changed from %d -> %d", lineBefore, state.Location().LineNumber())
+			pdebug.Printf(context.TODO(), "currentLine changed from %d -> %d", lineBefore, state.Location().LineNumber())
 		}()
 	}
 

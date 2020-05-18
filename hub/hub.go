@@ -5,7 +5,7 @@ import (
 	"sync"
 	"time"
 
-	pdebug "github.com/lestrrat-go/pdebug"
+	pdebug "github.com/lestrrat-go/pdebug/v2"
 )
 
 func NewPayload(data interface{}, batch bool) *payload {
@@ -53,7 +53,7 @@ type batchPayloadKey struct{}
 // scope of f() being executed.
 func (h *Hub) Batch(ctx context.Context, f func(ctx context.Context), shouldLock bool) {
 	if pdebug.Enabled {
-		g := pdebug.Marker("Batch (shouldLock=%t)", shouldLock)
+		g := pdebug.Marker(ctx, "Batch (shouldLock=%t)", shouldLock)
 		defer g.End()
 	}
 
@@ -64,7 +64,7 @@ func (h *Hub) Batch(ctx context.Context, f func(ctx context.Context), shouldLock
 	}
 
 	// ignore panics
-	defer func() { recover() }()
+	defer func() { _ = recover() }()
 
 	f(context.WithValue(ctx, batchPayloadKey{}, true))
 }
@@ -98,14 +98,14 @@ func isBatchCtx(ctx context.Context) bool {
 func send(ctx context.Context, ch chan Payload, r *payload) {
 	isBatchMode := isBatchCtx(ctx)
 	if pdebug.Enabled {
-		g := pdebug.Marker("hub.send %#v (name=%s, isBatchMode=%t)", r, ctx.Value(operationNameKey{}), isBatchMode)
+		g := pdebug.Marker(ctx, "hub.send %#v (name=%s, isBatchMode=%t)", r, ctx.Value(operationNameKey{}), isBatchMode)
 		defer g.End()
 	}
 
 	if isBatchMode {
 		r.done = doneChPool.Get().(chan struct{})
 		if pdebug.Enabled {
-			defer pdebug.Printf("request is part of batch operation. waiting")
+			defer pdebug.Printf(ctx, "request is part of batch operation. waiting")
 		}
 		defer r.waitDone()
 	}
@@ -135,8 +135,8 @@ func (h *Hub) SendDrawPrompt(ctx context.Context) {
 
 // SendDraw sends a request to redraw the terminal display
 func (h *Hub) SendDraw(ctx context.Context, options interface{}) {
-	pdebug.Printf("START Hub.SendDraw %v", options)
-	defer pdebug.Printf("END Hub.SendDraw %v", options)
+	pdebug.Printf(ctx, "START Hub.SendDraw %v", options)
+	defer pdebug.Printf(ctx, "END Hub.SendDraw %v", options)
 	send(ctx, h.DrawCh(), NewPayload(options, isBatchCtx(ctx)))
 }
 

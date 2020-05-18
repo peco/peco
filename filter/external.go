@@ -6,7 +6,7 @@ import (
 	"context"
 	"os/exec"
 
-	pdebug "github.com/lestrrat-go/pdebug"
+	pdebug "github.com/lestrrat-go/pdebug/v2"
 	"github.com/peco/peco/line"
 	"github.com/peco/peco/pipeline"
 	"github.com/pkg/errors"
@@ -50,12 +50,12 @@ func (ecf *ExternalCmd) Apply(ctx context.Context, buf []line.Line, out pipeline
 	defer func() {
 		if err := recover(); err != nil {
 			if pdebug.Enabled {
-				pdebug.Printf("err: %s", err)
+				pdebug.Printf(ctx, "err: %s", err)
 			}
 		}
 	}() // ignore errors
 	if pdebug.Enabled {
-		g := pdebug.Marker("ExternalCmd.Apply").BindError(&err)
+		g := pdebug.Marker(ctx, "ExternalCmd.Apply").BindError(&err)
 		defer g.End()
 	}
 
@@ -69,7 +69,7 @@ func (ecf *ExternalCmd) Apply(ctx context.Context, buf []line.Line, out pipeline
 
 	cmd := exec.Command(ecf.cmd, args...)
 	if pdebug.Enabled {
-		pdebug.Printf("Executing command %s %v", cmd.Path, cmd.Args)
+		pdebug.Printf(ctx, "Executing command %s %v", cmd.Path, cmd.Args)
 	}
 
 	inbuf := &bytes.Buffer{}
@@ -136,5 +136,4 @@ func (ecf *ExternalCmd) Apply(ctx context.Context, buf []line.Line, out pipeline
 			out.Send(l)
 		}
 	}
-	return nil
 }

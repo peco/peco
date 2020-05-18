@@ -4,7 +4,7 @@ import (
 	"context"
 	"unicode/utf8"
 
-	pdebug "github.com/lestrrat-go/pdebug"
+	pdebug "github.com/lestrrat-go/pdebug/v2"
 	"github.com/mattn/go-runewidth"
 	"github.com/nsf/termbox-go"
 	"github.com/pkg/errors"
@@ -27,7 +27,7 @@ func NewTermbox() *Termbox {
 
 func (t *Termbox) Close() error {
 	if pdebug.Enabled {
-		pdebug.Printf("Termbox: Close")
+		pdebug.Printf(context.TODO(), "Termbox: Close")
 	}
 	termbox.Interrupt()
 	termbox.Close()
@@ -75,7 +75,7 @@ func (t *Termbox) PollEvent(ctx context.Context) chan termbox.Event {
 				return
 			case <-t.suspendCh:
 				if pdebug.Enabled {
-					pdebug.Printf("poll event suspended!")
+					pdebug.Printf(ctx, "poll event suspended!")
 				}
 				t.Close()
 			}
@@ -83,7 +83,7 @@ func (t *Termbox) PollEvent(ctx context.Context) chan termbox.Event {
 	}()
 
 	go func() {
-		defer func() { recover() }()
+		defer func() { _ = recover() }()
 		defer func() { close(evCh) }()
 
 		for {
@@ -97,7 +97,7 @@ func (t *Termbox) PollEvent(ctx context.Context) chan termbox.Event {
 			case <-ctx.Done():
 				return
 			case replyCh := <-t.resumeCh:
-				t.Init()
+				_ = t.Init()
 				close(replyCh)
 			}
 		}

@@ -5,7 +5,7 @@ import (
 
 	"context"
 
-	"github.com/lestrrat-go/pdebug"
+	"github.com/lestrrat-go/pdebug/v2"
 	runewidth "github.com/mattn/go-runewidth"
 	"github.com/peco/peco/line"
 	"github.com/peco/peco/pipeline"
@@ -89,7 +89,7 @@ func (mb *MemoryBuffer) Reset() {
 	mb.mutex.Lock()
 	defer mb.mutex.Unlock()
 	if pdebug.Enabled {
-		g := pdebug.Marker("MemoryBuffer.Reset")
+		g := pdebug.Marker(context.TODO(), "MemoryBuffer.Reset")
 		defer g.End()
 	}
 	mb.done = make(chan struct{})
@@ -104,7 +104,7 @@ func (mb *MemoryBuffer) Done() <-chan struct{} {
 
 func (mb *MemoryBuffer) Accept(ctx context.Context, in chan interface{}, _ pipeline.ChanOutput) {
 	if pdebug.Enabled {
-		g := pdebug.Marker("MemoryBuffer.Accept")
+		g := pdebug.Marker(ctx, "MemoryBuffer.Accept")
 		defer g.End()
 	}
 	defer func() {
@@ -118,21 +118,21 @@ func (mb *MemoryBuffer) Accept(ctx context.Context, in chan interface{}, _ pipel
 		select {
 		case <-ctx.Done():
 			if pdebug.Enabled {
-				pdebug.Printf("MemoryBuffer received context done")
+				pdebug.Printf(ctx, "MemoryBuffer received context done")
 			}
 			return
 		case v := <-in:
-			switch v.(type) {
+			switch v := v.(type) {
 			case error:
-				if pipeline.IsEndMark(v.(error)) {
+				if pipeline.IsEndMark(v) {
 					if pdebug.Enabled {
-						pdebug.Printf("MemoryBuffer received end mark (read %d lines, %s since starting accept loop)", len(mb.lines), time.Since(start).String())
+						pdebug.Printf(ctx, "MemoryBuffer received end mark (read %d lines, %s since starting accept loop)", len(mb.lines), time.Since(start).String())
 					}
 					return
 				}
 			case line.Line:
 				mb.mutex.Lock()
-				mb.lines = append(mb.lines, v.(line.Line))
+				mb.lines = append(mb.lines, v)
 				mb.mutex.Unlock()
 			}
 		}

@@ -28,7 +28,7 @@ func regexpFor(q string, flags []string, quotemeta bool) (*regexp.Regexp, error)
 		reTxt = regexp.QuoteMeta(q)
 	}
 
-	if flags != nil && len(flags) > 0 {
+	if len(flags) > 0 {
 		reTxt = fmt.Sprintf("(?%s)%s", strings.Join(flags, ""), reTxt)
 	}
 
@@ -72,7 +72,7 @@ func NewRegexp() *Regexp {
 	}
 }
 
-func (rf Regexp) BufSize() int {
+func (rf *Regexp) BufSize() int {
 	return 0
 }
 
@@ -163,7 +163,7 @@ func (rf *Regexp) Apply(ctx context.Context, lines []line.Line, out pipeline.Cha
 	return nil
 }
 
-func (rf Regexp) String() string {
+func (rf *Regexp) String() string {
 	return rf.name
 }
 
