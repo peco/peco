@@ -9,6 +9,8 @@ import (
 	"time"
 
 	"context"
+
+	"github.com/stretchr/testify/assert"
 )
 
 type RegexpFilter struct {
@@ -22,7 +24,7 @@ func NewRegexpFilter(rx *regexp.Regexp) *RegexpFilter {
 }
 
 func (rf *RegexpFilter) Accept(ctx context.Context, in chan interface{}, out ChanOutput) {
-	defer out.SendEndMark("end of RegexpFilter")
+	defer func() { _ = out.SendEndMark("end of RegexpFilter") }()
 	for {
 		select {
 		case <-ctx.Done():
@@ -36,7 +38,7 @@ func (rf *RegexpFilter) Accept(ctx context.Context, in chan interface{}, out Cha
 
 			if s, ok := v.(string); ok {
 				if rf.rx.MatchString(s) {
-					out.Send(s)
+					_ = out.Send(s)
 				}
 			}
 		}
@@ -62,9 +64,9 @@ func (f *LineFeeder) Reset() {
 }
 
 func (f *LineFeeder) Start(ctx context.Context, out ChanOutput) {
-	defer out.SendEndMark("end of LineFeeder")
+	defer func() { _ = out.SendEndMark("end of LineFeeder") }()
 	for _, s := range f.lines {
-		out.Send(s)
+		_ = out.Send(s)
 	}
 }
 
@@ -127,6 +129,8 @@ barfoo
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	p.Run(ctx)
+	if !assert.NoError(t, p.Run(ctx), "p.Run exits with no error") {
+		return
+	}
 	t.Logf("%#v", dst.lines)
 }

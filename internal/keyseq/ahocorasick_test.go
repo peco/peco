@@ -4,6 +4,8 @@ import (
 	"testing"
 
 	"github.com/nsf/termbox-go"
+	"github.com/pkg/errors"
+	"github.com/stretchr/testify/assert"
 )
 
 func checkNode(t *testing.T, node Node, size int, data nodeData) {
@@ -45,19 +47,25 @@ func validData(pattern KeyList, value interface{}, failure Node) nodeData {
 	}
 }
 
-func newTestMatcher() *Matcher {
+func newTestMatcher() (*Matcher, error) {
 	m := NewMatcher()
 	m.Add(KeyList{Key{0, termbox.KeyCtrlA, rune(0)}, Key{0, termbox.KeyCtrlB, rune(0)}}, 2)
 	m.Add(KeyList{Key{0, termbox.KeyCtrlB, rune(0)}, Key{0, termbox.KeyCtrlC, rune(0)}}, 4)
 	m.Add(KeyList{Key{0, termbox.KeyCtrlB, rune(0)}, Key{0, termbox.KeyCtrlA, rune(0)}, Key{0, termbox.KeyCtrlB, rune(0)}}, 6)
 	m.Add(KeyList{Key{0, termbox.KeyCtrlD, rune(0)}}, 7)
 	m.Add(KeyList{Key{0, termbox.KeyCtrlA, rune(0)}, Key{0, termbox.KeyCtrlB, rune(0)}, Key{0, termbox.KeyCtrlC, rune(0)}, Key{0, termbox.KeyCtrlD, rune(0)}, Key{0, termbox.KeyCtrlE, rune(0)}}, 10)
-	m.Compile()
-	return m
+	if err := m.Compile(); err != nil {
+		return nil, errors.Wrap(err, `failed to compile`)
+	}
+	return m, nil
 }
 
 func TestTree(t *testing.T) {
-	m := newTestMatcher()
+	m, err := newTestMatcher()
+	if !assert.NoError(t, err, `creating new matcher should succeed`) {
+		return
+	}
+
 	// Check tree structure.
 	r := m.Root()
 	checkNode(t, r, 3, invalidData(r))

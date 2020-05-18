@@ -165,7 +165,7 @@ func (s *Source) Start(ctx context.Context, out pipeline.ChanOutput) {
 		defer g.End()
 		defer func() { pdebug.Printf(ctx, "Source sent %d lines", sent) }()
 	}
-	defer out.SendEndMark("end of input")
+	defer func() { _ = out.SendEndMark("end of input") }()
 
 	var resume bool
 	select {
@@ -184,7 +184,7 @@ func (s *Source) Start(ctx context.Context, out pipeline.ChanOutput) {
 				}
 				return
 			default:
-				out.Send(l)
+				_ = out.Send(l)
 				sent++
 			}
 		}
@@ -215,7 +215,7 @@ func (s *Source) Start(ctx context.Context, out pipeline.ChanOutput) {
 				return
 			default:
 				l, _ := s.LineAt(i)
-				out.Send(l)
+				_ = out.Send(l)
 				sent++
 			}
 		}

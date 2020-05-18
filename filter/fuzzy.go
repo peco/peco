@@ -63,7 +63,7 @@ OUTER:
 			matches = append(matches, []int{base + i, base + i + n})
 			base = base + i + n
 		}
-		out.Send(line.NewMatched(l, matches))
+		_ = out.Send(line.NewMatched(l, matches))
 	}
 	return nil
 }

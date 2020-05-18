@@ -157,10 +157,10 @@ func TestLocateRcfile(t *testing.T) {
 		fmt.Sprintf("%c", filepath.ListSeparator),
 	))
 
-	LocateRcfile(locater)
+	_, _ = LocateRcfile(locater)
 	expected[0] = filepath.Join(dir, ".config", "peco")
 	os.Setenv("XDG_CONFIG_HOME", "")
 	i = 0
-	LocateRcfile(locater)
+	_, _ = LocateRcfile(locater)
 
 }

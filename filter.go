@@ -34,7 +34,7 @@ func flusher(ctx context.Context, f filter.Filter, incoming chan []line.Line, do
 	}
 
 	defer close(done)
-	defer out.SendEndMark("end of filter")
+	defer func() { _ = out.SendEndMark("end of filter") }()
 
 	for {
 		select {
@@ -45,7 +45,7 @@ func flusher(ctx context.Context, f filter.Filter, incoming chan []line.Line, do
 				return
 			}
 			pdebug.Printf(ctx, "flusher: %#v", buf)
-			f.Apply(ctx, buf, out)
+			_ = f.Apply(ctx, buf, out)
 			buffer.ReleaseLineListBuf(buf)
 		}
 	}

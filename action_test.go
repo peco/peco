@@ -70,7 +70,7 @@ func TestDoDeleteForwardChar(t *testing.T) {
 	c := state.Caret()
 
 	ctx, cancel := context.WithCancel(context.Background())
-	go state.Run(ctx)
+	go func() { _ = state.Run(ctx) }()
 	defer cancel()
 
 	<-state.Ready()
@@ -106,7 +106,7 @@ func TestDoDeleteForwardWord(t *testing.T) {
 	c := state.Caret()
 
 	ctx, cancel := context.WithCancel(context.Background())
-	go state.Run(ctx)
+	go func() { _ = state.Run(ctx) }()
 	defer cancel()
 
 	<-state.Ready()
@@ -162,7 +162,7 @@ func TestDoDeleteBackwardChar(t *testing.T) {
 	c := state.Caret()
 
 	ctx, cancel := context.WithCancel(context.Background())
-	go state.Run(ctx)
+	go func() { _ = state.Run(ctx) }()
 	defer cancel()
 
 	<-state.Ready()
@@ -194,7 +194,7 @@ func TestDoDeleteBackwardWord(t *testing.T) {
 	c := state.Caret()
 
 	ctx, cancel := context.WithCancel(context.Background())
-	go state.Run(ctx)
+	go func() { _ = state.Run(ctx) }()
 	defer cancel()
 
 	<-state.Ready()
@@ -254,7 +254,7 @@ func TestDoAcceptChar(t *testing.T) {
 	state := newPeco()
 
 	ctx, cancel := context.WithCancel(context.Background())
-	go state.Run(ctx)
+	go func() { _ = state.Run(ctx) }()
 	defer cancel()
 
 	<-state.Ready()
@@ -282,7 +282,7 @@ func TestRotateFilter(t *testing.T) {
 	state := newPeco()
 
 	ctx, cancel := context.WithCancel(context.Background())
-	go state.Run(ctx)
+	go func() { _ = state.Run(ctx) }()
 	defer cancel()
 
 	<-state.Ready()
@@ -318,7 +318,7 @@ func TestBeginningOfLineAndEndOfLine(t *testing.T) {
 	state := newPeco()
 
 	ctx, cancel := context.WithCancel(context.Background())
-	go state.Run(ctx)
+	go func() { _ = state.Run(ctx) }()
 	defer cancel()
 
 	<-state.Ready()
@@ -345,7 +345,7 @@ func TestBackToInitialFilter(t *testing.T) {
 	state := newPeco()
 
 	ctx, cancel := context.WithCancel(context.Background())
-	go state.Run(ctx)
+	go func() { _ = state.Run(ctx) }()
 	defer cancel()
 
 	<-state.Ready()

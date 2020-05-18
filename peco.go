@@ -349,7 +349,7 @@ func (p *Peco) Run(ctx context.Context) (err error) {
 		p.Exit(ctx, errors.New("received signal: " + sig.String()))
 	}))
 
-	go sigH.Loop(ctx, cancel)
+	go func() { _ = sigH.Loop(ctx, cancel) }()
 
 	// SetupSource is done AFTER other components are ready, otherwise
 	// we can't draw onto the screen while we are reading a really big
@@ -366,10 +366,10 @@ func (p *Peco) Run(ctx context.Context) (err error) {
 		// screen.Init must be called within Run() because we
 		// want to make sure to call screen.Close() after getting
 		// out of Run()
-		p.screen.Init()
-		go NewInput(p, p.Keymap(), p.screen.PollEvent(ctx)).Loop(ctx, cancel)
-		go NewView(p).Loop(ctx, cancel)
-		go NewFilter(p).Loop(ctx, cancel)
+		_ = p.screen.Init()
+		go func() { _ = NewInput(p, p.Keymap(), p.screen.PollEvent(ctx)).Loop(ctx, cancel) }()
+		go func() { _ =  NewView(p).Loop(ctx, cancel) }()
+		go func() { _ = NewFilter(p).Loop(ctx, cancel) }()
 	}()
 	defer p.screen.Close()
 
@@ -434,7 +434,7 @@ func (p *Peco) parseCommandLine(opts *CLIOptions, args *[]string, argv []string)
 	}
 
 	if opts.OptHelp {
-		p.Stdout.Write(opts.help())
+		_, _ = p.Stdout.Write(opts.help())
 		return makeIgnorable(errors.New("user asked to show help message"))
 	}
 
@@ -619,15 +619,23 @@ func (p *Peco) populateSingleKeyJump() error {
 }
 
 func (p *Peco) populateFilters() error {
-	p.filters.Add(filter.NewIgnoreCase())
-	p.filters.Add(filter.NewCaseSensitive())
-	p.filters.Add(filter.NewSmartCase())
-	p.filters.Add(filter.NewRegexp())
-	p.filters.Add(filter.NewFuzzy())
+	filters := []filter.Filter{
+		filter.NewIgnoreCase(),
+		filter.NewCaseSensitive(),
+		filter.NewSmartCase(),
+		filter.NewRegexp(),
+		filter.NewFuzzy(),
+	}
 
 	for name, c := range p.config.CustomFilter {
 		f := filter.NewExternalCmd(name, c.Cmd, c.Args, c.BufferThreshold, p.idgen, p.enableSep)
-		p.filters.Add(f)
+		filters = append(filters, f)
+	}
+
+	for _, f := range filters {
+		if err := p.filters.Add(f); err != nil {
+			return errors.Wrap(err, `failed to add filter`)
+		}
 	}
 
 	return nil

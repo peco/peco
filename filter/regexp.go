@@ -158,7 +158,7 @@ func (rf *Regexp) Apply(ctx context.Context, lines []line.Line, out pipeline.Cha
 				deduped = append(deduped, m)
 			}
 		}
-		out.Send(line.NewMatched(l, deduped))
+		_ = out.Send(line.NewMatched(l, deduped))
 	}
 	return nil
 }

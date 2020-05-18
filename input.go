@@ -61,7 +61,7 @@ func (i *Input) handleInputEvent(ctx context.Context, ev termbox.Event) error {
 				m.Lock()
 				i.mod = nil
 				m.Unlock()
-				i.state.Keymap().ExecuteAction(ctx, i.state, tmp)
+				_ = i.state.Keymap().ExecuteAction(ctx, i.state, tmp)
 			})
 			m.Unlock()
 			return nil
@@ -78,9 +78,7 @@ func (i *Input) handleInputEvent(ctx context.Context, ev termbox.Event) error {
 		}
 		m.Unlock()
 
-		i.state.Keymap().ExecuteAction(ctx, i.state, ev)
-
-		return nil
+		return i.state.Keymap().ExecuteAction(ctx, i.state, ev)
 	}
 
 	return nil

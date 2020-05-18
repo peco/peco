@@ -88,11 +88,11 @@ func (ecf *ExternalCmd) Apply(ctx context.Context, buf []line.Line, out pipeline
 		return errors.Wrap(err, `failed to start command`)
 	}
 
-	go cmd.Wait()
+	go func() { _ = cmd.Wait() }()
 
 	cmdCh := make(chan line.Line)
 	go func(ctx context.Context, cmdCh chan line.Line, rdr *bufio.Reader) {
-		defer func() { recover() }()
+		defer func() { _ = recover() }()
 		defer close(cmdCh)
 		for {
 			select {
@@ -121,7 +121,7 @@ func (ecf *ExternalCmd) Apply(ctx context.Context, buf []line.Line, out pipeline
 
 	defer func() {
 		if p := cmd.Process; p != nil {
-			p.Kill()
+			_ = p.Kill()
 		}
 	}()
 
@@ -133,7 +133,7 @@ func (ecf *ExternalCmd) Apply(ctx context.Context, buf []line.Line, out pipeline
 			if l == nil || !ok {
 				return nil
 			}
-			out.Send(l)
+			_ = out.Send(l)
 		}
 	}
 }
