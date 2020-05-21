@@ -37,14 +37,14 @@ func TestPrintScreen(t *testing.T) {
 			screen.interceptor.reset()
 			t.Logf("Checking printScreen(%d, %d, %s, %t)", initX, initY, msg, fill)
 			width := utf8.RuneCountInString(msg)
-			screen.Print(PrintArgs{
-				X:    initX,
-				Y:    initY,
-				Fg:   termbox.ColorDefault,
-				Bg:   termbox.ColorDefault,
-				Msg:  msg,
-				Fill: fill,
-			})
+			screen.Start().
+				X(initX).
+				Y(initY).
+				Fg(termbox.ColorDefault).
+				Bg(termbox.ColorDefault).
+				Msg(msg).
+				Fill(fill).
+				Print()
 			events := screen.interceptor.events["SetCell"]
 			if !fill {
 				if len(events) != width {

@@ -120,10 +120,6 @@ func (d dummyScreen) Start() *PrintCtx {
 	}
 }
 
-func (d dummyScreen) Print(args *PrintArgs) int {
-	return screenPrint(d, args)
-}
-
 func (d dummyScreen) SendEvent(e termbox.Event) {
 	// XXX FIXME SendEvent should receive a context
 	t := time.NewTimer(time.Second)
