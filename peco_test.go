@@ -113,7 +113,14 @@ func (d dummyScreen) Close() error {
 	return nil
 }
 
-func (d dummyScreen) Print(args PrintArgs) int {
+func (d dummyScreen) Start() *PrintCtx {
+	return &PrintCtx{
+		screen: d,
+		args: getPrintArgs(),
+	}
+}
+
+func (d dummyScreen) Print(args *PrintArgs) int {
 	return screenPrint(d, args)
 }
 
@@ -170,6 +177,44 @@ func TestPeco(t *testing.T) {
 	time.AfterFunc(time.Second, cancel)
 	if !assert.NoError(t, p.Run(ctx), "p.Run() succeeds") {
 		return
+	}
+}
+
+func TestPecoCancel(t *testing.T) {
+	done := make(chan struct{})
+
+	// This whole operation may block, so run the test in the background
+	go func() {
+		defer close(done)
+		p := newPeco()
+
+		p.Argv = []string{"peco"}
+
+		buf := &bytes.Buffer{}
+		buf.WriteString("foo\nbar\nbaz")
+		p.Stdin = buf
+		p.Stdout = &bytes.Buffer{}
+
+		ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+		defer cancel()
+
+		time.AfterFunc(time.Second, func() {
+			p.screen.SendEvent(termbox.Event{Key: termbox.KeyEsc})
+		})
+
+		if err := p.Run(ctx); !assert.True(t, util.IsIgnorableError(err), "p.Run() should return error with Ignorable() method, and it should return true") {
+			t.Logf("error was %s", err)
+			return
+		}
+	}()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	select {
+	case <-ctx.Done():
+		t.Errorf(`background test did not return in time`)
+	case <-done:
 	}
 }
 

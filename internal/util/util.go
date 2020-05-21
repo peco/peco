@@ -33,23 +33,32 @@ func StripANSISequence(s string) string {
 	return reANSIEscapeChars.ReplaceAllString(s, "")
 }
 
-type causer interface {
-	Cause() error
-}
-
 type ignorable interface {
+	error
 	Ignorable() bool
 }
 
 type collectResults interface {
+	error
 	CollectResults() bool
 }
 
 type exitStatuser interface {
+	error
 	ExitStatus() int
 }
 
+type causer interface {
+	Cause() error
+}
+
 func IsIgnorableError(e error) bool {
+	// Obviously, errors are ignoreable if they are initially nil
+	if e == nil {
+		return true
+	}
+
+	var prev error
 	for e != nil {
 		if v, ok := e.(causer); ok {
 			e = v.Cause()
@@ -58,11 +67,22 @@ func IsIgnorableError(e error) bool {
 		if v, ok := e.(ignorable); ok {
 			return v.Ignorable()
 		}
+
+		if prev == e {
+			break
+		}
+
+		prev = e
 	}
 	return false
 }
 
 func IsCollectResultsError(e error) bool {
+	if e == nil {
+		return false
+	}
+
+	var prev error
 	for e != nil {
 		if v, ok := e.(causer); ok {
 			e = v.Cause()
@@ -71,11 +91,22 @@ func IsCollectResultsError(e error) bool {
 		if v, ok := e.(collectResults); ok {
 			return v.CollectResults()
 		}
+
+		if prev == e {
+			break
+		}
+
+		prev = e
 	}
 	return false
 }
 
 func GetExitStatus(e error) (int, bool) {
+	if e == nil {
+		return 1, false
+	}
+
+	var prev error
 	for e != nil {
 		if v, ok := e.(causer); ok {
 			e = v.Cause()
@@ -84,6 +115,12 @@ func GetExitStatus(e error) (int, bool) {
 		if ese, ok := e.(exitStatuser); ok {
 			return ese.ExitStatus(), true
 		}
+
+		if prev == e {
+			break
+		}
+
+		prev = e
 	}
 
 	return 1, false
