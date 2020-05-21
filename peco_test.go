@@ -194,12 +194,37 @@ func TestPecoCancel(t *testing.T) {
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 		defer cancel()
 
-		time.AfterFunc(time.Second, func() {
+		resultCh := make(chan error)
+		go func() {
+			defer close(resultCh)
+			select {
+			case <-ctx.Done():
+				return
+			case resultCh <- p.Run(ctx):
+				return
+			}
+		}()
+
+		<-p.Ready()
+
+		var fired bool
+		time.AfterFunc(200*time.Millisecond, func() {
 			p.screen.SendEvent(termbox.Event{Key: termbox.KeyEsc})
+			fired = true
 		})
 
-		if err := p.Run(ctx); !assert.True(t, util.IsIgnorableError(err), "p.Run() should return error with Ignorable() method, and it should return true") {
-			t.Logf("error was %s", err)
+		select {
+		case <-ctx.Done():
+			t.Errorf("timeout reached")
+			return
+		case err := <-resultCh:
+			if !assert.True(t, util.IsIgnorableError(err), "error should be ignorable: %s", err) {
+				return
+			}
+			p.PrintResults()
+		}
+
+		if !assert.True(t, fired, `SendEvent should have fired`) {
 			return
 		}
 	}()

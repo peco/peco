@@ -34,17 +34,14 @@ func StripANSISequence(s string) string {
 }
 
 type ignorable interface {
-	error
 	Ignorable() bool
 }
 
 type collectResults interface {
-	error
 	CollectResults() bool
 }
 
 type exitStatuser interface {
-	error
 	ExitStatus() int
 }
 
@@ -60,16 +57,17 @@ func IsIgnorableError(e error) bool {
 
 	var prev error
 	for e != nil {
-		if v, ok := e.(causer); ok {
-			e = v.Cause()
-		}
-
-		if v, ok := e.(ignorable); ok {
+		switch v := e.(type) {
+		case ignorable:
 			return v.Ignorable()
-		}
+		default:
+			if v, ok := e.(causer); ok {
+				e = v.Cause()
+			}
 
-		if prev == e {
-			break
+			if prev == e {
+				break
+			}
 		}
 
 		prev = e
@@ -84,16 +82,17 @@ func IsCollectResultsError(e error) bool {
 
 	var prev error
 	for e != nil {
-		if v, ok := e.(causer); ok {
-			e = v.Cause()
-		}
-
-		if v, ok := e.(collectResults); ok {
+		switch v := e.(type) {
+		case collectResults:
 			return v.CollectResults()
-		}
+		default:
+			if v, ok := e.(causer); ok {
+				e = v.Cause()
+			}
 
-		if prev == e {
-			break
+			if prev == e {
+				break
+			}
 		}
 
 		prev = e
@@ -108,16 +107,17 @@ func GetExitStatus(e error) (int, bool) {
 
 	var prev error
 	for e != nil {
-		if v, ok := e.(causer); ok {
-			e = v.Cause()
-		}
+		switch v := e.(type) {
+		case exitStatuser:
+			return v.ExitStatus(), true
+		default:
+			if v, ok := e.(causer); ok {
+				e = v.Cause()
+			}
 
-		if ese, ok := e.(exitStatuser); ok {
-			return ese.ExitStatus(), true
-		}
-
-		if prev == e {
-			break
+			if prev == e {
+				break
+			}
 		}
 
 		prev = e
