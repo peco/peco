@@ -59,7 +59,7 @@ Not only can you select multiple lines one by one, you can select a range of lin
 
 ## Select Filters
 
-Different types of filters are available. Default is case-insensitive filter, so lines with any case will match. You can toggle between IgnoreCase, CaseSensitive, SmartCase, Regexp and Fuzzy filters. 
+Different types of filters are available. Default is case-insensitive filter, so lines with any case will match. You can toggle between IgnoreCase, CaseSensitive, SmartCase, Regexp and Fuzzy filters.
 
 The SmartCase filter uses case-*insensitive* matching when all of the queries are lower case, and case-*sensitive* matching otherwise.
 
@@ -111,10 +111,16 @@ There is an official Debian package that can be installed via APT:
 apt install peco
 ```
 
-or with Scarf: 
+or with Scarf:
 
 ```
 scarf install peco
+```
+
+### Void Linux (XBPS)
+
+```
+xbps-install -S peco
 ```
 
 ### Windows (Chocolatey NuGet Users)
@@ -153,7 +159,7 @@ This compiles a peco binary in the root of the cloned peco repository. Copy this
 
 ### go get IS NOT RECOMMENDED
 
-Please DO NOT use `go get` to install this tool. It bypasses the developers' intention of controlling the dependency versioning. 
+Please DO NOT use `go get` to install this tool. It bypasses the developers' intention of controlling the dependency versioning.
 
 # Command Line Options
 
@@ -280,7 +286,7 @@ Specifies the filter name to start peco with. You should specify the name of the
 ```
 
 StickySelection allows selections to persist even between changes to the query.
-For example, when you set this to true you can select a few lines, type in a 
+For example, when you set this to true you can select a few lines, type in a
 new query, select those lines, and then delete the query. The result is all
 the lines that you selected before and after the modification to the query are
 left intact.
@@ -370,7 +376,7 @@ As a similar example, a common idiom in emacs is that `C-c C-c` means "take the 
 
 ### Available keys
 
-Since v0.1.8, in addition to values below, you may put a `M-` prefix on any 
+Since v0.1.8, in addition to values below, you may put a `M-` prefix on any
 key item to use Alt/Option key as a mask.
 
 | Name        | Notes |
@@ -710,6 +716,8 @@ Much code stolen from https://github.com/mattn/gof
 * [Installation](#installation)
 	* [Just want the binary?](#just-want-the-binary)
 	* [Mac OS X / Homebrew](#mac-os-x--homebrew)
+	* [Debian and Ubuntu based distributions (APT, Scarf)](#debian-and-ubuntu-based-distributions-apt-scarf)
+	* [Void Linux (XBPS)](#void-linux-xbps)
 	* [Windows (Chocolatey NuGet Users)](#windows-chocolatey-nuget-users)
 	* [Building peco yourself](#building-peco-yourself)
 	* [go get IS NOT RECOMMENDED](#go-get-is-not-recommended)
