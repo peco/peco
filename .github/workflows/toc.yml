@@ -14,4 +14,4 @@ jobs:
         uses: technote-space/toc-generator@v2
         with:
           TARGET_PATHS: README.md
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.TOC_TOKEN }}
