@@ -1,0 +1,17 @@
+name: Generate Table of Contents
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  generateTOC:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: TOC Generator
+        uses: technote-space/toc-generator@v2
+        with:
+          TARGET_PATHS: README.md
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
