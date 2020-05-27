@@ -1,13 +1,14 @@
-package peco
+package ui_test
 
 import (
 	"testing"
 
 	"github.com/peco/peco/line"
+	"github.com/peco/peco/ui"
 )
 
 func TestSelection(t *testing.T) {
-	s := NewSelection()
+	s := ui.NewSelection()
 
 	var i uint64 = 0
 	alice := line.NewRaw(i, "Alice", false)

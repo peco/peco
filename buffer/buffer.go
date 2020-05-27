@@ -38,7 +38,7 @@ func NewFiltered(src Buffer, page, perPage int) *Filtered {
 		end = src.Size()
 	}
 
-	lines := src.linesInRange(start, end)
+	lines := src.LinesInRange(start, end)
 	var maxcols int
 	for i := start; i < end; i++ {
 		selection = append(selection, i)
@@ -53,7 +53,7 @@ func NewFiltered(src Buffer, page, perPage int) *Filtered {
 	return &fb
 }
 
-func (flb *Filtered) linesInRange(_ int, _ int) []line.Line {
+func (flb *Filtered) LinesInRange(_ int, _ int) []line.Line {
 	panic("unimplemented")
 }
 
@@ -87,11 +87,7 @@ func NewMemory() *Memory {
 func (mb *Memory) Size() int {
 	mb.mutex.RLock()
 	defer mb.mutex.RUnlock()
-	return bufferSize(mb.lines)
-}
-
-func bufferSize(lines []line.Line) int {
-	return len(lines)
+	return len(mb.lines)
 }
 
 func (mb *Memory) Reset() {
@@ -151,16 +147,17 @@ func (mb *Memory) Accept(ctx context.Context, in chan interface{}, _ pipeline.Ch
 func (mb *Memory) LineAt(n int) (line.Line, error) {
 	mb.mutex.RLock()
 	defer mb.mutex.RUnlock()
-	return bufferLineAt(mb.lines, n)
+	return LineAt(mb.lines, n)
 }
 
-func (mb *Memory) linesInRange(start, end int) []line.Line {
+func (mb *Memory) LinesInRange(start, end int) []line.Line {
 	mb.mutex.RLock()
 	defer mb.mutex.RUnlock()
 	return mb.lines[start:end]
 }
 
-func bufferLineAt(lines []line.Line, n int) (line.Line, error) {
+func LineAt(lines []line.Line, n int) (line.Line, error) {
+	// TODO: This code smells
 	if s := len(lines); s <= 0 || n >= s {
 		return nil, errors.New("empty buffer")
 	}

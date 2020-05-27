@@ -123,16 +123,25 @@ func New() *Peco {
 		Stdout:            os.Stdout,
 		currentLineBuffer: buffer.NewMemory(), // XXX revisit this
 		idgen:             newIDGen(),
+		query:             query.New(),
 		queryExecDelay:    50 * time.Millisecond,
 		readyCh:           make(chan struct{}),
 		screen:            ui.NewTermbox(),
-		selection:         NewSelection(),
+		selection:         ui.NewSelection(),
 		maxScanBufferSize: bufio.MaxScanTokenSize,
 	}
 }
 
+func (p *Peco) AnchorPosition() int {
+	return p.anchor.AnchorPosition()
+}
+
 func (p *Peco) Ready() <-chan struct{} {
 	return p.readyCh
+}
+
+func (p *Peco) SelectionPrefix() string {
+	return p.selectionPrefix
 }
 
 func (p *Peco) Screen() ui.Screen {
@@ -171,7 +180,7 @@ func (p *Peco) SetResultCh(ch chan line.Line) {
 	p.resultCh = ch
 }
 
-func (p *Peco) Selection() *Selection {
+func (p *Peco) Selection() *ui.Selection {
 	return p.selection
 }
 
@@ -721,7 +730,7 @@ func (p *Peco) ExecQuery(nextFunc func(context.Context)) bool {
 		p.ResetCurrentLineBuffer()
 
 		hub.Batch(context.Background(), func(ctx context.Context) {
-			hub.SendDraw(ctx, &DrawOptions{DisableCache: true})
+			hub.SendDraw(ctx, ui.WithLineCache(false))
 			if nextFunc != nil {
 				nextFunc(ctx)
 			}

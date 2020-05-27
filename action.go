@@ -315,7 +315,7 @@ func doFinish(ctx context.Context, state *Peco, _ termbox.Event) {
 		return
 	}
 
-	sel := NewSelection()
+	sel := ui.NewSelection()
 	state.Selection().Copy(sel)
 	if sel.Len() == 0 {
 		if l, err := state.CurrentLineBuffer().LineAt(state.Location().LineNumber()); err == nil {

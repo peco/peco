@@ -7,7 +7,6 @@ import (
 
 	"context"
 
-	"github.com/google/btree"
 	"github.com/nsf/termbox-go"
 	"github.com/peco/peco/buffer"
 	"github.com/peco/peco/filter"
@@ -47,6 +46,7 @@ type Peco struct {
 	hub    MessageHub
 
 	args       []string
+	anchor     ui.AnchorSettings
 	bufferSize int
 	caret      ui.Caret
 	// Config contains the values read in from config file
@@ -74,7 +74,7 @@ type Peco struct {
 	readyCh                 chan struct{}
 	resultCh                chan line.Line
 	screen                  ui.Screen
-	selection               *Selection
+	selection               *ui.Selection
 	selectionPrefix         string
 	selectionRangeStart     ui.RangeStart
 	selectOneAndExit        bool // True if --select-1 is enabled
@@ -102,14 +102,6 @@ type Keyseq interface {
 	Clear()
 	Compile() error
 	InMiddleOfChain() bool
-}
-
-// Selection stores the line ids that were selected by the user.
-// The contents of the Selection is always sorted from smallest to
-// largest line ID
-type Selection struct {
-	mutex sync.Mutex
-	tree  *btree.BTree
 }
 
 // View handles the drawing/updating the screen

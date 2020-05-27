@@ -9,7 +9,7 @@ import (
 // Buffer interface is used for containers for lines to be
 // processed by peco.
 type Buffer interface {
-	linesInRange(int, int) []line.Line
+	LinesInRange(int, int) []line.Line
 	LineAt(int) (line.Line, error)
 	Size() int
 }

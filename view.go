@@ -16,12 +16,12 @@ type statusMsgReq interface {
 }
 
 func NewView(state *Peco) *View {
-	var layout Layout
+	var layout ui.Layout
 	switch state.LayoutType() {
-	case LayoutTypeBottomUp:
-		layout = NewBottomUpLayout(state)
+	case ui.LayoutTypeBottomUp:
+		layout = ui.NewBottomUpLayout(state)
 	default:
-		layout = NewDefaultLayout(state)
+		layout = ui.NewDefaultLayout(state.Screen(), state.Styles(), state.Prompt())
 	}
 	return &View{
 		state:  state,
@@ -40,7 +40,7 @@ func (v *View) Loop(ctx context.Context, cancel func()) error {
 		case r := <-h.StatusMsgCh():
 			v.printStatus(r, r.Data().(statusMsgReq))
 		case r := <-h.PagingCh():
-			v.movePage(r, r.Data().(PagingRequest))
+			v.movePage(r, r.Data().(ui.PagingRequest))
 		case r := <-h.DrawCh():
 			switch tmp := r.Data().(type) {
 			case string:
@@ -49,10 +49,11 @@ func (v *View) Loop(ctx context.Context, cancel func()) error {
 				} else if tmp == "purgeCache" {
 					v.purgeDisplayCache(r)
 				}
-			case *DrawOptions:
-				v.drawScreen(r, tmp)
+// TODO
+//			case *DrawOptions:
+//				v.drawScreen(r, tmp)
 			default:
-				v.drawScreen(r, nil)
+				v.drawScreen(r)
 			}
 		}
 	}
@@ -93,6 +94,6 @@ func (v *View) movePage(p hub.Payload, r ui.PagingRequest) {
 		ctx = pdebug.Context(ctx)
 	}
 	if v.layout.MovePage(v.state, r) {
-		v.layout.DrawScreen(ctx, v.state, nil)
+		v.layout.DrawScreen(ctx, v.state)
 	}
 }

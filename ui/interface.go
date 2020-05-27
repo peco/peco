@@ -5,6 +5,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/google/btree"
 	"github.com/nsf/termbox-go"
 	"github.com/peco/peco/buffer"
 	"github.com/peco/peco/filter"
@@ -13,10 +14,12 @@ import (
 	"github.com/peco/peco/query"
 )
 
-type Selection interface {
-	Add(line.Line)
-	Remove(line.Line)
-	Has(line.Line) bool
+// Selection stores the line ids that were selected by the user.
+// The contents of the Selection is always sorted from smallest to
+// largest line ID
+type Selection struct {
+	mutex sync.Mutex
+	tree  *btree.BTree
 }
 
 type State interface {
@@ -28,11 +31,10 @@ type State interface {
 	Prompt() string
 	Query() *query.Query
 	Screen() Screen
-	Selection() Selection
+	Selection() *Selection
 	SelectionPrefix() string
 	SelectionRangeStart() *RangeStart
 	SingleKeyJumpMode() bool
-	SingleKeyJumpPrefix() string
 	SingleKeyJumpPrefixes() []rune
 	SingleKeyJumpShowPrefix() bool
 	Styles() *StyleSet
@@ -154,11 +156,11 @@ type Style struct {
 
 // StyleSet holds styles for various sections
 type StyleSet struct {
-	Basic          Style `json:"Basic"`
-	SavedSelection Style `json:"SavedSelection"`
-	Selected       Style `json:"Selected"`
-	Query          Style `json:"Query"`
-	Matched        Style `json:"Matched"`
+	Basic          *Style `json:"Basic"`
+	SavedSelection *Style `json:"SavedSelection"`
+	Selected       *Style `json:"Selected"`
+	Query          *Style `json:"Query"`
+	Matched        *Style `json:"Matched"`
 }
 
 // Termbox just hands out the processing to the termbox library

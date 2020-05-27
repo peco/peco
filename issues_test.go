@@ -8,7 +8,9 @@ import (
 	"time"
 
 	"context"
+
 	termbox "github.com/nsf/termbox-go"
+	"github.com/peco/peco/ui"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -35,8 +37,7 @@ func TestIssue212_SanityCheck(t *testing.T) {
 		return
 	}
 
-	defstyle := StyleSet{}
-	defstyle.Init()
+	defstyle := ui.NewStyleSet()
 	if !assert.Equal(t, state.config.Style, defstyle, "should be default style") {
 		return
 	}

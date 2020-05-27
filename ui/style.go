@@ -42,7 +42,13 @@ var (
 
 // NewStyleSet creates a new StyleSet struct
 func NewStyleSet() *StyleSet {
-	ss := &StyleSet{}
+	ss := &StyleSet{
+		Basic:          NewStyle(termbox.ColorDefault, termbox.ColorDefault),
+		Query:          NewStyle(termbox.ColorDefault, termbox.ColorDefault),
+		Matched:        NewStyle(termbox.ColorDefault, termbox.ColorDefault),
+		SavedSelection: NewStyle(termbox.ColorDefault, termbox.ColorDefault),
+		Selected:       NewStyle(termbox.ColorDefault, termbox.ColorDefault),
+	}
 	ss.applyDefaults()
 	return ss
 }

@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"github.com/nsf/termbox-go"
+	"github.com/peco/peco/ui"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 )
@@ -45,25 +46,14 @@ func TestReadRC(t *testing.T) {
 			"C-x,C-c": "peco.Finish",
 		},
 		InitialMatcher: IgnoreCaseMatch,
-		Layout:         DefaultLayoutType,
+		Layout:         ui.DefaultLayoutType,
 		Prompt:         "[peco]",
-		Style: StyleSet{
-			Matched: Style{
-				fg: termbox.ColorCyan | termbox.AttrBold,
-				bg: termbox.ColorRed,
-			},
-			Query: Style{
-				fg: termbox.ColorYellow | termbox.AttrBold,
-				bg: termbox.ColorDefault,
-			},
-			Selected: Style{
-				fg: termbox.ColorBlack | termbox.AttrUnderline,
-				bg: termbox.ColorCyan,
-			},
-			SavedSelection: Style{
-				fg: termbox.ColorBlack | termbox.AttrBold,
-				bg: termbox.ColorCyan,
-			},
+		Style: &ui.StyleSet{
+			Basic:          ui.NewStyle(termbox.ColorDefault, termbox.ColorDefault),
+			Matched:        ui.NewStyle(termbox.ColorCyan|termbox.AttrBold, termbox.ColorRed),
+			Query:          ui.NewStyle(termbox.ColorYellow|termbox.AttrBold, termbox.ColorDefault),
+			Selected:       ui.NewStyle(termbox.ColorBlack|termbox.AttrUnderline, termbox.ColorCyan),
+			SavedSelection: ui.NewStyle(termbox.ColorBlack|termbox.AttrBold, termbox.ColorCyan),
 		},
 	}
 

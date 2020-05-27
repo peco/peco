@@ -156,7 +156,7 @@ func TestIDGen(t *testing.T) {
 		lines = append(lines, line.NewRaw(idgen.Next(), fmt.Sprintf("%d", i), false))
 	}
 
-	sel := NewSelection()
+	sel := ui.NewSelection()
 	for _, l := range lines {
 		if sel.Has(l) {
 			t.Errorf("Collision detected %d", l.ID())

@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/lestrrat-go/pdebug/v2"
+	"github.com/peco/peco/buffer"
 	"github.com/peco/peco/internal/util"
 	"github.com/peco/peco/line"
 	"github.com/peco/peco/pipeline"
@@ -254,7 +255,7 @@ func (s *Source) SetupDone() <-chan struct{} {
 	return s.setupDone
 }
 
-func (s *Source) linesInRange(start, end int) []line.Line {
+func (s *Source) LinesInRange(start, end int) []line.Line {
 	s.mutex.RLock()
 	defer s.mutex.RUnlock()
 	return s.lines[start:end]
@@ -263,13 +264,13 @@ func (s *Source) linesInRange(start, end int) []line.Line {
 func (s *Source) LineAt(n int) (line.Line, error) {
 	s.mutex.RLock()
 	defer s.mutex.RUnlock()
-	return bufferLineAt(s.lines, n)
+	return buffer.LineAt(s.lines, n)
 }
 
 func (s *Source) Size() int {
 	s.mutex.RLock()
 	defer s.mutex.RUnlock()
-	return bufferSize(s.lines)
+	return len(s.lines)
 }
 
 func (s *Source) Append(l line.Line) {

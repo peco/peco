@@ -1,4 +1,4 @@
-package peco
+package ui
 
 import (
 	"testing"
@@ -6,6 +6,7 @@ import (
 
 	"github.com/mattn/go-runewidth"
 	"github.com/nsf/termbox-go"
+	"github.com/peco/peco/ui"
 )
 
 func TestLayoutType(t *testing.T) {
