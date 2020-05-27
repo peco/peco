@@ -6,7 +6,6 @@ import (
 	"io"
 	"io/ioutil"
 	"runtime"
-	"sync"
 	"testing"
 	"time"
 
