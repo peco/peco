@@ -59,7 +59,7 @@ Not only can you select multiple lines one by one, you can select a range of lin
 
 ## Select Filters
 
-Different types of filters are available. Default is case-insensitive filter, so lines with any case will match. You can toggle between IgnoreCase, CaseSensitive, SmartCase, Regexp and Fuzzy filters. 
+Different types of filters are available. Default is case-insensitive filter, so lines with any case will match. You can toggle between IgnoreCase, CaseSensitive, SmartCase, Regexp and Fuzzy filters.
 
 The SmartCase filter uses case-*insensitive* matching when all of the queries are lower case, and case-*sensitive* matching otherwise.
 
@@ -111,7 +111,7 @@ There is an official Debian package that can be installed via APT:
 apt install peco
 ```
 
-or with Scarf: 
+or with Scarf:
 
 ```
 scarf install peco
@@ -159,7 +159,7 @@ This compiles a peco binary in the root of the cloned peco repository. Copy this
 
 ### go get IS NOT RECOMMENDED
 
-Please DO NOT use `go get` to install this tool. It bypasses the developers' intention of controlling the dependency versioning. 
+Please DO NOT use `go get` to install this tool. It bypasses the developers' intention of controlling the dependency versioning.
 
 # Command Line Options
 
@@ -286,7 +286,7 @@ Specifies the filter name to start peco with. You should specify the name of the
 ```
 
 StickySelection allows selections to persist even between changes to the query.
-For example, when you set this to true you can select a few lines, type in a 
+For example, when you set this to true you can select a few lines, type in a
 new query, select those lines, and then delete the query. The result is all
 the lines that you selected before and after the modification to the query are
 left intact.
@@ -376,7 +376,7 @@ As a similar example, a common idiom in emacs is that `C-c C-c` means "take the 
 
 ### Available keys
 
-Since v0.1.8, in addition to values below, you may put a `M-` prefix on any 
+Since v0.1.8, in addition to values below, you may put a `M-` prefix on any
 key item to use Alt/Option key as a mask.
 
 | Name        | Notes |
@@ -701,68 +701,5 @@ Implement all(?) of the original percol options
 Obviously, kudos to the original percol: https://github.com/mooz/percol
 Much code stolen from https://github.com/mattn/gof
 
-# Table of Contents
-
-* [peco](#peco)
-* [Description](#description)
-	* [Demo](#demo)
-* [Features](#features)
-	* [Incremental Search](#incremental-search)
-	* [Select Multiple Lines](#select-multiple-lines)
-	* [Select Range Of Lines](#select-range-of-lines)
-	* [Select Filters](#select-filters)
-	* [Selectable Layout](#selectable-layout)
-	* [Works on Windows!](#works-on-windows)
-* [Installation](#installation)
-	* [Just want the binary?](#just-want-the-binary)
-	* [Mac OS X / Homebrew](#mac-os-x--homebrew)
-	* [Windows (Chocolatey NuGet Users)](#windows-chocolatey-nuget-users)
-	* [Building peco yourself](#building-peco-yourself)
-	* [go get IS NOT RECOMMENDED](#go-get-is-not-recommended)
-* [Command Line Options](#command-line-options)
-	* [-h, --help](#-h---help)
-	* [--version](#--version)
-	* [--query <query>](#--query-query)
-	* [--rcfile <filename>](#--rcfile-filename)
-	* [-b, --buffer-size <num>](#-b---buffer-size-num)
-	* [--null](#--null)
-	* [--initial-index](#--initial-index)
-	* [--initial-filter `IgnoreCase|CaseSensitive|SmartCase|Regexp|Fuzzy`](#--initial-filter-ignorecasecasesensitivesmartcaseregexpfuzzy)
-	* [--prompt](#--prompt)
-	* [--layout `top-down|bottom-up`](#--layout-top-downbottom-up)
-	* [--select-1](#--select-1)
-	* [--on-cancel `success|error`](#--on-cancel-successerror)
-        * [--selection-prefix `string`](#--selection-prefix-string)
-        * [--exec `string`](#--exec-string)
-* [Configuration File](#configuration-file)
-	* [Global](#global)
-		* [Prompt](#prompt)
-		* [InitialMatcher](#initialmatcher)
-		* [InitialFilter](#initialfilter)
-		* [StickySelection](#stickyselection)
-		* [OnCancel](#oncancel)
-	* [Keymaps](#keymaps)
-		* [Key sequences](#key-sequences)
-		* [Combined actions](#combined-actions)
-		* [Available keys](#available-keys)
-		* [Key workarounds](#key-workarounds)
-		* [Available actions](#available-actions)
-		* [Default Keymap](#default-keymap)
-	* [Styles](#styles)
-		* [Foreground Colors](#foreground-colors)
-		* [Background Colors](#background-colors)
-		* [Attributes](#attributes)
-	* [CustomFilter](#customfilter)
-		* [Examples](#examples)
-	* [Layout](#layout)
-	* [SingleKeyJump](#singlekeyjump)
-	* [SelectionPrefix](#selectionprefix)
-* [FAQ](#faq)
-	* [Does peco work on (msys2|cygwin)?](#does-peco-work-on-msys2cygwin)
-	* [Non-latin fonts (e.g. Japanese) look weird on my Windows machine...?](#non-latin-fonts-eg-japanese-look-weird-on-my-windows-machine)
-* [Hacking](#hacking)
-* [TODO](#todo)
-* [AUTHORS](#authors)
-* [CONTRIBUTORS](#contributors)
-* [Notes](#notes)
-* [Table of Contents](#table-of-contents)
+<!-- START doctoc -->
+<!-- END doctoc -->
