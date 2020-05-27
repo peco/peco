@@ -117,6 +117,12 @@ or with Scarf:
 scarf install peco
 ```
 
+### Void Linux (XBPS)
+
+```
+xbps-install -S peco
+```
+
 ### Arch Linux (AUR)
 
 ```
