@@ -87,11 +87,11 @@ I have been told that peco even works on windows :) Look ma! I'm not lying!
 
 Go to the [releases page](https://github.com/peco/peco/releases), find the version you want, and download the zip file. Unpack the zip file, and put the binary to somewhere you want (on UNIX-y systems, /usr/local/bin or the like). Make sure it has execution bits turned on. Yes, it is a single binary! You can put it anywhere you want :)
 
-_THIS IS THE RECOMMENDED WAY_ (except for OS X homebrew users)
+_THIS IS THE RECOMMENDED WAY_ (except for macOS homebrew users)
 
-### Mac OS X (Homebrew, Scarf)
+### macOS (Homebrew, Scarf)
 
-If you're on OS X and want to use homebrew:
+If you're on macOS and want to use homebrew:
 
 ```
 brew install peco
@@ -416,9 +416,9 @@ key item to use Alt/Option key as a mask.
 Some keys just... don't map correctly / too easily for various reasons. Here, we'll list possible workarounds for key sequences that are often asked for:
 
 
-| You want this | Use this instead | Notes            |
-|---------------|------------------|------------------|
-| Shift+Tab     | M-\[,Z           | Verified on OS X |
+| You want this | Use this instead | Notes             |
+|---------------|------------------|-------------------|
+| Shift+Tab     | M-\[,Z           | Verified on macOS |
 
 ### Available actions
 
