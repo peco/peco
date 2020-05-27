@@ -59,7 +59,7 @@ Not only can you select multiple lines one by one, you can select a range of lin
 
 ## Select Filters
 
-Different types of filters are available. Default is case-insensitive filter, so lines with any case will match. You can toggle between IgnoreCase, CaseSensitive, SmartCase, Regexp and Fuzzy filters. 
+Different types of filters are available. Default is case-insensitive filter, so lines with any case will match. You can toggle between IgnoreCase, CaseSensitive, SmartCase, Regexp and Fuzzy filters.
 
 The SmartCase filter uses case-*insensitive* matching when all of the queries are lower case, and case-*sensitive* matching otherwise.
 
@@ -87,11 +87,11 @@ I have been told that peco even works on windows :) Look ma! I'm not lying!
 
 Go to the [releases page](https://github.com/peco/peco/releases), find the version you want, and download the zip file. Unpack the zip file, and put the binary to somewhere you want (on UNIX-y systems, /usr/local/bin or the like). Make sure it has execution bits turned on. Yes, it is a single binary! You can put it anywhere you want :)
 
-_THIS IS THE RECOMMENDED WAY_ (except for OS X homebrew users)
+_THIS IS THE RECOMMENDED WAY_ (except for macOS homebrew users)
 
-### Mac OS X (Homebrew, Scarf)
+### macOS (Homebrew, Scarf)
 
-If you're on OS X and want to use homebrew:
+If you're on macOS and want to use homebrew:
 
 ```
 brew install peco
@@ -111,7 +111,7 @@ There is an official Debian package that can be installed via APT:
 apt install peco
 ```
 
-or with Scarf: 
+or with Scarf:
 
 ```
 scarf install peco
@@ -159,7 +159,7 @@ This compiles a peco binary in the root of the cloned peco repository. Copy this
 
 ### go get IS NOT RECOMMENDED
 
-Please DO NOT use `go get` to install this tool. It bypasses the developers' intention of controlling the dependency versioning. 
+Please DO NOT use `go get` to install this tool. It bypasses the developers' intention of controlling the dependency versioning.
 
 # Command Line Options
 
@@ -286,7 +286,7 @@ Specifies the filter name to start peco with. You should specify the name of the
 ```
 
 StickySelection allows selections to persist even between changes to the query.
-For example, when you set this to true you can select a few lines, type in a 
+For example, when you set this to true you can select a few lines, type in a
 new query, select those lines, and then delete the query. The result is all
 the lines that you selected before and after the modification to the query are
 left intact.
@@ -376,7 +376,7 @@ As a similar example, a common idiom in emacs is that `C-c C-c` means "take the 
 
 ### Available keys
 
-Since v0.1.8, in addition to values below, you may put a `M-` prefix on any 
+Since v0.1.8, in addition to values below, you may put a `M-` prefix on any
 key item to use Alt/Option key as a mask.
 
 | Name        | Notes |
@@ -416,9 +416,9 @@ key item to use Alt/Option key as a mask.
 Some keys just... don't map correctly / too easily for various reasons. Here, we'll list possible workarounds for key sequences that are often asked for:
 
 
-| You want this | Use this instead | Notes            |
-|---------------|------------------|------------------|
-| Shift+Tab     | M-\[,Z           | Verified on OS X |
+| You want this | Use this instead | Notes             |
+|---------------|------------------|-------------------|
+| Shift+Tab     | M-\[,Z           | Verified on macOS |
 
 ### Available actions
 
@@ -715,7 +715,7 @@ Much code stolen from https://github.com/mattn/gof
 	* [Works on Windows!](#works-on-windows)
 * [Installation](#installation)
 	* [Just want the binary?](#just-want-the-binary)
-	* [Mac OS X / Homebrew](#mac-os-x--homebrew)
+	* [macOS (Homebrew, Scarf)](#macos-homebrew-scarf)
 	* [Windows (Chocolatey NuGet Users)](#windows-chocolatey-nuget-users)
 	* [Building peco yourself](#building-peco-yourself)
 	* [go get IS NOT RECOMMENDED](#go-get-is-not-recommended)
