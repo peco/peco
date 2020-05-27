@@ -15,6 +15,7 @@ import (
 	"github.com/lestrrat-go/pdebug/v2"
 	"github.com/nsf/termbox-go"
 	"github.com/peco/peco/hub"
+	"github.com/peco/peco/internal/mock"
 	"github.com/peco/peco/internal/util"
 	"github.com/peco/peco/line"
 	"github.com/peco/peco/ui"
@@ -35,38 +36,6 @@ func (h nullHub) SendStatusMsg(_ context.Context, _ string)                     
 func (h nullHub) SendStatusMsgAndClear(_ context.Context, _ string, _ time.Duration) {}
 func (h nullHub) StatusMsgCh() chan hub.Payload                                      { return nil }
 
-type interceptorArgs []interface{}
-type interceptor struct {
-	m      sync.Mutex
-	events map[string][]interceptorArgs
-}
-
-func newInterceptor() *interceptor {
-	return &interceptor{
-		events: make(map[string][]interceptorArgs),
-	}
-}
-
-func (i *interceptor) reset() {
-	i.m.Lock()
-	defer i.m.Unlock()
-
-	i.events = make(map[string][]interceptorArgs)
-}
-
-func (i *interceptor) record(name string, args []interface{}) {
-	i.m.Lock()
-	defer i.m.Unlock()
-
-	events := i.events
-	v, ok := events[name]
-	if !ok {
-		v = []interceptorArgs{}
-	}
-
-	events[name] = append(v, interceptorArgs(args))
-}
-
 func newConfig(s string) (string, error) {
 	f, err := ioutil.TempFile("", "peco-test-config-")
 	if err != nil {
@@ -82,68 +51,10 @@ func newPeco() *Peco {
 	_, file, _, _ := runtime.Caller(0)
 	state := New()
 	state.Argv = []string{"peco", file}
-	state.screen = NewDummyScreen()
+	state.screen = mock.NewScreen()
 	state.skipReadConfig = true
 	return state
 }
-
-type dummyScreen struct {
-	*interceptor
-	width  int
-	height int
-	pollCh chan termbox.Event
-}
-
-func NewDummyScreen() *dummyScreen {
-	return &dummyScreen{
-		interceptor: newInterceptor(),
-		width:       80,
-		height:      10,
-		pollCh:      make(chan termbox.Event),
-	}
-}
-
-func (d dummyScreen) SetCursor(_, _ int) {
-}
-
-func (d dummyScreen) Init() error {
-	return nil
-}
-
-func (d dummyScreen) Close() error {
-	return nil
-}
-
-func (d dummyScreen) Start() *ui.PrintCtx {
-	return ui.NewPrintCtx(d)
-}
-
-func (d dummyScreen) SendEvent(e termbox.Event) {
-	// XXX FIXME SendEvent should receive a context
-	t := time.NewTimer(time.Second)
-	defer t.Stop()
-	select {
-	case <-t.C:
-		panic("timed out sending an event")
-	case d.pollCh <- e:
-	}
-}
-
-func (d dummyScreen) SetCell(x, y int, ch rune, fg, bg termbox.Attribute) {
-	d.record("SetCell", interceptorArgs{x, y, ch, fg, bg})
-}
-func (d dummyScreen) Flush() error {
-	d.record("Flush", interceptorArgs{})
-	return nil
-}
-func (d dummyScreen) PollEvent(ctx context.Context) chan termbox.Event {
-	return d.pollCh
-}
-func (d dummyScreen) Size() (int, int) {
-	return d.width, d.height
-}
-func (d dummyScreen) Resume()  {}
-func (d dummyScreen) Suspend() {}
 
 func TestIDGen(t *testing.T) {
 	idgen := newIDGen()
