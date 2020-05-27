@@ -17,6 +17,7 @@ import (
 	"github.com/peco/peco/hub"
 	"github.com/peco/peco/internal/util"
 	"github.com/peco/peco/line"
+	"github.com/peco/peco/ui"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -113,11 +114,8 @@ func (d dummyScreen) Close() error {
 	return nil
 }
 
-func (d dummyScreen) Start() *PrintCtx {
-	return &PrintCtx{
-		screen: d,
-		args: getPrintArgs(),
-	}
+func (d dummyScreen) Start() *ui.PrintCtx {
+	return ui.NewPrintCtx(d)
 }
 
 func (d dummyScreen) SendEvent(e termbox.Event) {

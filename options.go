@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/jessevdk/go-flags"
+	"github.com/peco/peco/ui"
 	"github.com/pkg/errors"
 )
 
@@ -28,7 +29,7 @@ func (options *CLIOptions) parse(s []string) ([]string, error) {
 
 func (options CLIOptions) Validate() error {
 	if options.OptLayout != "" {
-		if !IsValidLayoutType(LayoutType(options.OptLayout)) {
+		if !ui.IsValidLayoutType(ui.LayoutType(options.OptLayout)) {
 			return errors.New("unknown layout: '" + options.OptLayout + "'")
 		}
 	}

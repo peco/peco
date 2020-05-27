@@ -1,4 +1,8 @@
-package peco
+package query
+
+func New() *Query {
+	return &Query{}
+}
 
 func (q *Query) Set(s string) {
 	q.mutex.Lock()

@@ -1,4 +1,4 @@
-package peco
+package ui
 
 import (
 	"context"
@@ -144,6 +144,13 @@ func (t *Termbox) Size() (int, int) {
 type PrintCtx struct {
 	screen Screen
 	args   *printArgs
+}
+
+func NewPrintCtx(s Screen) *PrintCtx {
+	return &PrintCtx{
+		screen: s,
+		args: getPrintArgs(),
+	}
 }
 
 func (ctx *PrintCtx) X(v int) *PrintCtx {

@@ -7,9 +7,9 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/nsf/termbox-go"
 	"github.com/peco/peco/filter"
 	"github.com/peco/peco/internal/util"
+	"github.com/peco/peco/ui"
 	"github.com/pkg/errors"
 )
 
@@ -19,9 +19,9 @@ var homedirFunc = util.Homedir
 func (c *Config) Init() error {
 	c.Keymap = make(map[string]string)
 	c.InitialMatcher = IgnoreCaseMatch
-	c.Style.Init()
+	c.Style = ui.NewStyleSet()
 	c.Prompt = "QUERY>"
-	c.Layout = LayoutTypeTopDown
+	c.Layout = ui.LayoutTypeTopDown
 	return nil
 }
 
@@ -39,7 +39,7 @@ func (c *Config) ReadFilename(filename string) error {
 		return errors.Wrap(err, "failed to decode JSON")
 	}
 
-	if !IsValidLayoutType(LayoutType(c.Layout)) {
+	if !ui.IsValidLayoutType(ui.LayoutType(c.Layout)) {
 		return errors.Errorf("invalid layout type: %s", c.Layout)
 	}
 
@@ -56,97 +56,6 @@ func (c *Config) ReadFilename(filename string) error {
 				Args:            cfg[1:],
 				BufferThreshold: filter.DefaultCustomFilterBufferThreshold,
 			}
-		}
-	}
-
-	return nil
-}
-
-var (
-	stringToFg = map[string]termbox.Attribute{
-		"default": termbox.ColorDefault,
-		"black":   termbox.ColorBlack,
-		"red":     termbox.ColorRed,
-		"green":   termbox.ColorGreen,
-		"yellow":  termbox.ColorYellow,
-		"blue":    termbox.ColorBlue,
-		"magenta": termbox.ColorMagenta,
-		"cyan":    termbox.ColorCyan,
-		"white":   termbox.ColorWhite,
-	}
-	stringToBg = map[string]termbox.Attribute{
-		"on_default": termbox.ColorDefault,
-		"on_black":   termbox.ColorBlack,
-		"on_red":     termbox.ColorRed,
-		"on_green":   termbox.ColorGreen,
-		"on_yellow":  termbox.ColorYellow,
-		"on_blue":    termbox.ColorBlue,
-		"on_magenta": termbox.ColorMagenta,
-		"on_cyan":    termbox.ColorCyan,
-		"on_white":   termbox.ColorWhite,
-	}
-	stringToFgAttr = map[string]termbox.Attribute{
-		"bold":      termbox.AttrBold,
-		"underline": termbox.AttrUnderline,
-		"reverse":   termbox.AttrReverse,
-	}
-	stringToBgAttr = map[string]termbox.Attribute{
-		"on_bold": termbox.AttrBold,
-	}
-)
-
-// NewStyleSet creates a new StyleSet struct
-func NewStyleSet() *StyleSet {
-	ss := &StyleSet{}
-	ss.Init()
-	return ss
-}
-
-func (ss *StyleSet) Init() {
-	ss.Basic.fg = termbox.ColorDefault
-	ss.Basic.bg = termbox.ColorDefault
-	ss.Query.fg = termbox.ColorDefault
-	ss.Query.bg = termbox.ColorDefault
-	ss.Matched.fg = termbox.ColorCyan
-	ss.Matched.bg = termbox.ColorDefault
-	ss.SavedSelection.fg = termbox.ColorBlack | termbox.AttrBold
-	ss.SavedSelection.bg = termbox.ColorCyan
-	ss.Selected.fg = termbox.ColorDefault | termbox.AttrUnderline
-	ss.Selected.bg = termbox.ColorMagenta
-}
-
-// UnmarshalJSON satisfies json.RawMessage.
-func (s *Style) UnmarshalJSON(buf []byte) error {
-	raw := []string{}
-	if err := json.Unmarshal(buf, &raw); err != nil {
-		return errors.Wrapf(err, "failed to unmarshal Style")
-	}
-	return stringsToStyle(s, raw)
-}
-
-func stringsToStyle(style *Style, raw []string) error {
-	style.fg = termbox.ColorDefault
-	style.bg = termbox.ColorDefault
-
-	for _, s := range raw {
-		fg, ok := stringToFg[s]
-		if ok {
-			style.fg = fg
-		}
-
-		bg, ok := stringToBg[s]
-		if ok {
-			style.bg = bg
-		}
-	}
-
-	for _, s := range raw {
-		if fgAttr, ok := stringToFgAttr[s]; ok {
-			style.fg |= fgAttr
-		}
-
-		if bgAttr, ok := stringToBgAttr[s]; ok {
-			style.bg |= bgAttr
 		}
 	}
 

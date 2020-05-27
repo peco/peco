@@ -19,12 +19,16 @@ import (
 
 	"github.com/google/btree"
 	"github.com/lestrrat-go/pdebug/v2"
+	"github.com/peco/peco/buffer"
 	"github.com/peco/peco/filter"
 	"github.com/peco/peco/hub"
+	"github.com/peco/peco/internal/location"
 	"github.com/peco/peco/internal/util"
 	"github.com/peco/peco/line"
 	"github.com/peco/peco/pipeline"
+	"github.com/peco/peco/query"
 	"github.com/peco/peco/sig"
+	"github.com/peco/peco/ui"
 	"github.com/pkg/errors"
 )
 
@@ -117,11 +121,11 @@ func New() *Peco {
 		Stderr:            os.Stderr,
 		Stdin:             os.Stdin,
 		Stdout:            os.Stdout,
-		currentLineBuffer: NewMemoryBuffer(), // XXX revisit this
+		currentLineBuffer: buffer.NewMemory(), // XXX revisit this
 		idgen:             newIDGen(),
 		queryExecDelay:    50 * time.Millisecond,
 		readyCh:           make(chan struct{}),
-		screen:            NewTermbox(),
+		screen:            ui.NewTermbox(),
 		selection:         NewSelection(),
 		maxScanBufferSize: bufio.MaxScanTokenSize,
 	}
@@ -131,12 +135,12 @@ func (p *Peco) Ready() <-chan struct{} {
 	return p.readyCh
 }
 
-func (p *Peco) Screen() Screen {
+func (p *Peco) Screen() ui.Screen {
 	return p.screen
 }
 
-func (p *Peco) Styles() *StyleSet {
-	return &p.styles
+func (p *Peco) Styles() *ui.StyleSet {
+	return p.styles
 }
 
 func (p *Peco) Prompt() string {
@@ -151,7 +155,7 @@ func (p *Peco) LayoutType() string {
 	return p.layoutType
 }
 
-func (p *Peco) Location() *Location {
+func (p *Peco) Location() *location.Location {
 	return &p.location
 }
 
@@ -171,24 +175,7 @@ func (p *Peco) Selection() *Selection {
 	return p.selection
 }
 
-func (s RangeStart) Valid() bool {
-	return s.valid
-}
-
-func (s RangeStart) Value() int {
-	return s.val
-}
-
-func (s *RangeStart) SetValue(n int) {
-	s.val = n
-	s.valid = true
-}
-
-func (s *RangeStart) Reset() {
-	s.valid = false
-}
-
-func (p *Peco) SelectionRangeStart() *RangeStart {
+func (p *Peco) SelectionRangeStart() *ui.RangeStart {
 	return &p.selectionRangeStart
 }
 
@@ -210,7 +197,7 @@ func (p *Peco) SetSingleKeyJumpMode(b bool) {
 
 func (p *Peco) ToggleSingleKeyJumpMode() {
 	p.singleKeyJumpMode = !p.singleKeyJumpMode
-	go p.Hub().SendDraw(context.Background(), &DrawOptions{DisableCache: true})
+	go p.Hub().SendDraw(context.Background(), ui.WithLineCache(false))
 }
 
 func (p *Peco) SingleKeyJumpIndex(ch rune) (uint, bool) {
@@ -226,15 +213,15 @@ func (p *Peco) Filters() *filter.Set {
 	return &p.filters
 }
 
-func (p *Peco) Query() *Query {
-	return &p.query
+func (p *Peco) Query() *query.Query {
+	return p.query
 }
 
 func (p *Peco) QueryExecDelay() time.Duration {
 	return p.queryExecDelay
 }
 
-func (p *Peco) Caret() *Caret {
+func (p *Peco) Caret() *ui.Caret {
 	return &p.caret
 }
 
@@ -346,7 +333,7 @@ func (p *Peco) Run(ctx context.Context) (err error) {
 	p.cancelFunc = cancel
 
 	sigH := sig.New(sig.SigReceivedHandlerFunc(func(sig os.Signal) {
-		p.Exit(ctx, errors.New("received signal: " + sig.String()))
+		p.Exit(ctx, errors.New("received signal: "+sig.String()))
 	}))
 
 	go func() { _ = sigH.Loop(ctx, cancel) }()
@@ -368,7 +355,7 @@ func (p *Peco) Run(ctx context.Context) (err error) {
 		// out of Run()
 		_ = p.screen.Init()
 		go func() { _ = NewInput(p, p.Keymap(), p.screen.PollEvent(ctx)).Loop(ctx, cancel) }()
-		go func() { _ =  NewView(p).Loop(ctx, cancel) }()
+		go func() { _ = NewView(p).Loop(ctx, cancel) }()
 		go func() { _ = NewFilter(p).Loop(ctx, cancel) }()
 	}()
 	defer p.screen.Close()
@@ -518,7 +505,7 @@ func (p *Peco) ApplyConfig(opts CLIOptions) error {
 		if v := p.config.Layout; v != "" {
 			p.layoutType = v
 		} else {
-			p.layoutType = DefaultLayoutType
+			p.layoutType = ui.DefaultLayoutType
 		}
 	}
 
@@ -656,13 +643,13 @@ func (p *Peco) populateStyles() error {
 	return nil
 }
 
-func (p *Peco) CurrentLineBuffer() Buffer {
+func (p *Peco) CurrentLineBuffer() buffer.Buffer {
 	p.mutex.Lock()
 	defer p.mutex.Unlock()
 	return p.currentLineBuffer
 }
 
-func (p *Peco) SetCurrentLineBuffer(b Buffer) {
+func (p *Peco) SetCurrentLineBuffer(b buffer.Buffer) {
 	p.mutex.Lock()
 	defer p.mutex.Unlock()
 	if pdebug.Enabled {

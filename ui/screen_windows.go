@@ -1,4 +1,4 @@
-package peco
+package ui
 
 import "github.com/nsf/termbox-go"
 

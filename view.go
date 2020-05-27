@@ -7,23 +7,12 @@ import (
 
 	"github.com/lestrrat-go/pdebug/v2"
 	"github.com/peco/peco/hub"
+	"github.com/peco/peco/ui"
 )
 
 type statusMsgReq interface {
 	Message() string
 	Delay() time.Duration
-}
-
-func (prt PagingRequestType) Type() PagingRequestType {
-	return prt
-}
-
-func (jlr JumpToLineRequest) Type() PagingRequestType {
-	return ToLineInPage
-}
-
-func (jlr JumpToLineRequest) Line() int {
-	return int(jlr)
 }
 
 func NewView(state *Peco) *View {
@@ -80,14 +69,14 @@ func (v *View) purgeDisplayCache(p hub.Payload) {
 	v.layout.PurgeDisplayCache()
 }
 
-func (v *View) drawScreen(p hub.Payload, options *DrawOptions) {
+func (v *View) drawScreen(p hub.Payload, options ...ui.Option) {
 	defer p.Done()
 
 	ctx := context.TODO()
 	if pdebug.Enabled {
 		ctx = pdebug.Context(ctx)
 	}
-	v.layout.DrawScreen(ctx, v.state, options)
+	v.layout.DrawScreen(ctx, v.state, options...)
 }
 
 func (v *View) drawPrompt(ctx context.Context, p hub.Payload) {
@@ -96,7 +85,7 @@ func (v *View) drawPrompt(ctx context.Context, p hub.Payload) {
 	v.layout.DrawPrompt(ctx, v.state)
 }
 
-func (v *View) movePage(p hub.Payload, r PagingRequest) {
+func (v *View) movePage(p hub.Payload, r ui.PagingRequest) {
 	defer p.Done()
 
 	ctx := context.TODO()

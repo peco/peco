@@ -1,6 +1,6 @@
 // +build !windows
 
-package peco
+package ui
 
 func (t *Termbox) PostInit() error {
 	return nil

@@ -1,4 +1,4 @@
-package peco
+package ui
 
 func (c *Caret) Pos() int {
 	c.mutex.Lock()

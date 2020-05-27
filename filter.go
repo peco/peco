@@ -7,11 +7,13 @@ import (
 	"context"
 
 	"github.com/lestrrat-go/pdebug/v2"
+	"github.com/peco/peco/buffer"
 	"github.com/peco/peco/filter"
 	"github.com/peco/peco/hub"
-	"github.com/peco/peco/internal/buffer"
+	"github.com/peco/peco/internal/pool"
 	"github.com/peco/peco/line"
 	"github.com/peco/peco/pipeline"
+	"github.com/peco/peco/ui"
 )
 
 func newFilterProcessor(f filter.Filter, q string) *filterProcessor {
@@ -46,7 +48,7 @@ func flusher(ctx context.Context, f filter.Filter, incoming chan []line.Line, do
 			}
 			pdebug.Printf(ctx, "flusher: %#v", buf)
 			_ = f.Apply(ctx, buf, out)
-			buffer.ReleaseLineListBuf(buf)
+			pool.ReleaseLineListBuf(buf)
 		}
 	}
 }
@@ -56,7 +58,7 @@ func acceptAndFilter(ctx context.Context, f filter.Filter, in chan interface{}, 
 	flushDone := make(chan struct{})
 	go flusher(ctx, f, flush, flushDone, out)
 
-	buf := buffer.GetLineListBuf()
+	buf := pool.GetLineListBuf()
 	bufsiz := f.BufSize()
 	if bufsiz <= 0 {
 		bufsiz = cap(buf)
@@ -79,7 +81,7 @@ func acceptAndFilter(ctx context.Context, f filter.Filter, in chan interface{}, 
 		case <-flushTicker.C:
 			if len(buf) > 0 {
 				flush <- buf
-				buf = buffer.GetLineListBuf()
+				buf = pool.GetLineListBuf()
 			}
 		case v := <-in:
 			switch v := v.(type) {
@@ -105,7 +107,7 @@ func acceptAndFilter(ctx context.Context, f filter.Filter, in chan interface{}, 
 				buf = append(buf, v.(line.Line))
 				if len(buf) >= bufsiz {
 					flush <- buf
-					buf = buffer.GetLineListBuf()
+					buf = pool.GetLineListBuf()
 				}
 			}
 		}
@@ -151,12 +153,12 @@ func (f *Filter) Work(ctx context.Context, q hub.Payload) {
 	ctx = selectedFilter.NewContext(ctx, query)
 	p.Add(newFilterProcessor(selectedFilter, query))
 
-	buf := NewMemoryBuffer()
+	buf := buffer.NewMemory()
 	p.SetDestination(buf)
 	state.SetCurrentLineBuffer(buf)
 
 	go func(ctx context.Context) {
-		defer state.Hub().SendDraw(ctx, &DrawOptions{RunningQuery: true})
+		defer state.Hub().SendDraw(ctx, ui.WithRunningQuery(true))
 		if err := p.Run(ctx); err != nil {
 			state.Hub().SendStatusMsg(ctx, err.Error())
 		}
@@ -170,13 +172,13 @@ func (f *Filter) Work(ctx context.Context, q hub.Payload) {
 		t := time.NewTicker(5 * time.Millisecond)
 		defer t.Stop()
 		defer state.Hub().SendStatusMsg(ctx, "")
-		defer state.Hub().SendDraw(ctx, &DrawOptions{RunningQuery: true})
+		defer state.Hub().SendDraw(ctx, ui.WithRunningQuery(true))
 		for {
 			select {
 			case <-p.Done():
 				return
 			case <-t.C:
-				state.Hub().SendDraw(ctx, &DrawOptions{RunningQuery: true})
+				state.Hub().SendDraw(ctx, ui.WithRunningQuery(true))
 			}
 		}
 	}()

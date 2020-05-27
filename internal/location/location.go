@@ -1,4 +1,21 @@
-package peco
+package location
+
+// PageCrop filters out a new LineBuffer based on entries
+// per page and the page number
+type PageCrop struct {
+	perPage     int
+	currentPage int
+}
+
+type Location struct {
+	col     int
+	lineno  int
+	maxPage int
+	page    int
+	perPage int
+	offset  int
+	total   int
+}
 
 func (l *Location) SetColumn(n int) {
 	l.col = n
@@ -56,15 +73,9 @@ func (l Location) MaxPage() int {
 	return l.maxPage
 }
 
-func (l Location) PageCrop() PageCrop {
-	return PageCrop{
-		perPage:     l.perPage,
-		currentPage: l.page,
+func (l Location) PageCrop() *PageCrop {
+	return &PageCrop{
+		perPage:     l.PerPage(),
+		currentPage: l.Page(),
 	}
-}
-
-// Crop returns a new Buffer whose contents are
-// bound within the given range
-func (pf PageCrop) Crop(in Buffer) *FilteredBuffer {
-	return NewFilteredBuffer(in, pf.currentPage, pf.perPage)
 }

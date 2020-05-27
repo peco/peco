@@ -9,39 +9,20 @@ import (
 
 	"github.com/google/btree"
 	"github.com/nsf/termbox-go"
+	"github.com/peco/peco/buffer"
 	"github.com/peco/peco/filter"
 	"github.com/peco/peco/hub"
 	"github.com/peco/peco/internal/keyseq"
+	"github.com/peco/peco/internal/location"
 	"github.com/peco/peco/line"
 	"github.com/peco/peco/pipeline"
+	"github.com/peco/peco/query"
+	"github.com/peco/peco/ui"
 )
 
 const (
 	successKey = "success"
 	errorKey   = "error"
-)
-
-const (
-	ToLineAbove       PagingRequestType = iota // ToLineAbove moves the selection to the line above
-	ToScrollPageDown                           // ToScrollPageDown moves the selection to the next page
-	ToLineBelow                                // ToLineBelow moves the selection to the line below
-	ToScrollPageUp                             // ToScrollPageUp moves the selection to the previous page
-	ToScrollLeft                               // ToScrollLeft scrolls screen to the left
-	ToScrollRight                              // ToScrollRight scrolls screen to the right
-	ToLineInPage                               // ToLineInPage jumps to a particular line on the page
-	ToScrollFirstItem                          // ToScrollFirstItem
-	ToScrollLastItem                           // ToScrollLastItem
-)
-
-const (
-	DefaultLayoutType  = LayoutTypeTopDown // LayoutTypeTopDown makes the layout so the items read from top to bottom
-	LayoutTypeTopDown  = "top-down"        // LayoutTypeBottomUp changes the layout to read from bottom to up
-	LayoutTypeBottomUp = "bottom-up"
-)
-
-const (
-	AnchorTop    VerticalAnchor = iota + 1 // AnchorTop anchors elements towards the top of the screen
-	AnchorBottom                           // AnchorBottom anchors elements towards the bottom of the screen
 )
 
 // These are used as keys in the config file
@@ -67,10 +48,10 @@ type Peco struct {
 
 	args       []string
 	bufferSize int
-	caret      Caret
+	caret      ui.Caret
 	// Config contains the values read in from config file
 	config                  Config
-	currentLineBuffer       Buffer
+	currentLineBuffer       buffer.Buffer
 	enableSep               bool // Enable parsing on separators
 	execOnFinish            string
 	filters                 filter.Set
@@ -80,29 +61,29 @@ type Peco struct {
 	inputseq                Inputseq // current key sequence (just the names)
 	keymap                  Keymap
 	layoutType              string
-	location                Location
+	location                location.Location
 	maxScanBufferSize       int
 	mutex                   sync.Mutex
 	onCancel                string
 	printQuery              bool
 	prompt                  string
-	query                   Query
+	query                   *query.Query
 	queryExecDelay          time.Duration
 	queryExecMutex          sync.Mutex
 	queryExecTimer          *time.Timer
 	readyCh                 chan struct{}
 	resultCh                chan line.Line
-	screen                  Screen
+	screen                  ui.Screen
 	selection               *Selection
 	selectionPrefix         string
-	selectionRangeStart     RangeStart
+	selectionRangeStart     ui.RangeStart
 	selectOneAndExit        bool // True if --select-1 is enabled
 	singleKeyJumpMode       bool
 	singleKeyJumpPrefixes   []rune
 	singleKeyJumpPrefixMap  map[rune]uint
 	singleKeyJumpShowPrefix bool
 	skipReadConfig          bool
-	styles                  StyleSet
+	styles                  *ui.StyleSet
 
 	// Source is where we buffer input. It gets reused when a new query is
 	// executed.
@@ -114,13 +95,6 @@ type Peco struct {
 	err error
 }
 
-type MatchIndexer interface {
-	// Indices return the matched portion(s) of a string after filtering.
-	// Note that while Indices may return nil, that just means that there are
-	// no substrings to be highlighted. It doesn't mean there were no matches
-	Indices() [][]int
-}
-
 type Keyseq interface {
 	Add(keyseq.KeyList, interface{})
 	AcceptKey(keyseq.Key) (interface{}, error)
@@ -130,15 +104,6 @@ type Keyseq interface {
 	InMiddleOfChain() bool
 }
 
-// PagingRequest can be sent to move the selection cursor
-type PagingRequestType int
-
-type PagingRequest interface {
-	Type() PagingRequestType
-}
-
-type JumpToLineRequest int
-
 // Selection stores the line ids that were selected by the user.
 // The contents of the Selection is always sorted from smallest to
 // largest line ID
@@ -147,100 +112,10 @@ type Selection struct {
 	tree  *btree.BTree
 }
 
-// Screen hides termbox from the consuming code so that
-// it can be swapped out for testing
-type Screen interface {
-	Init() error
-	Close() error
-	Flush() error
-	PollEvent(context.Context) chan termbox.Event
-	Start() *PrintCtx
-	Resume()
-	SetCell(int, int, rune, termbox.Attribute, termbox.Attribute)
-	SetCursor(int, int)
-	Size() (int, int)
-	SendEvent(termbox.Event)
-	Suspend()
-}
-
-// Termbox just hands out the processing to the termbox library
-type Termbox struct {
-	mutex     sync.Mutex
-	resumeCh  chan chan struct{}
-	suspendCh chan struct{}
-}
-
 // View handles the drawing/updating the screen
 type View struct {
-	layout Layout
+	layout ui.Layout
 	state  *Peco
-}
-
-// PageCrop filters out a new LineBuffer based on entries
-// per page and the page number
-type PageCrop struct {
-	perPage     int
-	currentPage int
-}
-
-// LayoutType describes the types of layout that peco can take
-type LayoutType string
-
-// VerticalAnchor describes the direction to which elements in the
-// layout are anchored to
-type VerticalAnchor int
-
-// Layout represents the component that controls where elements are placed on screen
-type Layout interface {
-	PrintStatus(string, time.Duration)
-	DrawPrompt(context.Context, *Peco)
-	DrawScreen(context.Context, *Peco, *DrawOptions)
-	MovePage(*Peco, PagingRequest) (moved bool)
-	PurgeDisplayCache()
-}
-
-// AnchorSettings groups items that are required to control
-// where an anchored item is actually placed
-type AnchorSettings struct {
-	anchor       VerticalAnchor // AnchorTop or AnchorBottom
-	anchorOffset int            // offset this many lines from the anchor
-	screen       Screen
-}
-
-// UserPrompt draws the prompt line
-type UserPrompt struct {
-	*AnchorSettings
-	prompt    string
-	promptLen int
-	styles    *StyleSet
-}
-
-// StatusBar draws the status message bar
-type StatusBar struct {
-	*AnchorSettings
-	clearTimer *time.Timer
-	styles     *StyleSet
-	timerMutex sync.Mutex
-}
-
-// ListArea represents the area where the actual line buffer is
-// displayed in the screen
-type ListArea struct {
-	*AnchorSettings
-	sortTopDown  bool
-	displayCache []line.Line
-	dirty        bool
-	styles       *StyleSet
-}
-
-// BasicLayout is... the basic layout :) At this point this is the
-// only struct for layouts, which means that while the position
-// of components may be configurable, the actual types of components
-// that are used are set and static
-type BasicLayout struct {
-	*StatusBar
-	prompt *UserPrompt
-	list   *ListArea
 }
 
 // Keymap holds all the key sequence to action map
@@ -268,15 +143,6 @@ type Action interface {
 // ActionFunc is a type of Action that is basically just a callback.
 type ActionFunc func(context.Context, *Peco, termbox.Event)
 
-// FilteredBuffer holds a "filtered" buffer. It holds a reference to
-// the source buffer (note: should be immutable) and a list of indices
-// into the source buffer
-type FilteredBuffer struct {
-	maxcols   int
-	src       Buffer
-	selection []int // maps from our index to src's index
-}
-
 // Config holds all the data that can be configured in the
 // external configuration file
 type Config struct {
@@ -288,7 +154,7 @@ type Config struct {
 	Matcher             string            `json:"Matcher"`        // Deprecated.
 	InitialMatcher      string            `json:"InitialMatcher"` // Use this instead of Matcher
 	InitialFilter       string            `json:"InitialFilter"`
-	Style               StyleSet          `json:"Style"`
+	Style               *ui.StyleSet      `json:"Style"`
 	Prompt              string            `json:"Prompt"`
 	Layout              string            `json:"Layout"`
 	OnCancel            string            `json:"OnCancel"`
@@ -329,43 +195,7 @@ type CustomFilterConfig struct {
 	BufferThreshold int
 }
 
-// StyleSet holds styles for various sections
-type StyleSet struct {
-	Basic          Style `json:"Basic"`
-	SavedSelection Style `json:"SavedSelection"`
-	Selected       Style `json:"Selected"`
-	Query          Style `json:"Query"`
-	Matched        Style `json:"Matched"`
-}
-
-// Style describes termbox styles
-type Style struct {
-	fg termbox.Attribute
-	bg termbox.Attribute
-}
-
-type Caret struct {
-	mutex sync.Mutex
-	pos   int
-}
-
-type Location struct {
-	col     int
-	lineno  int
-	maxPage int
-	page    int
-	perPage int
-	offset  int
-	total   int
-}
-
-type Query struct {
-	query      []rune
-	savedQuery []rune
-	mutex      sync.Mutex
-}
-
-type FilterQuery Query
+type FilterQuery query.Query
 
 // Source implements pipeline.Source, and is the buffer for the input
 type Source struct {
@@ -387,8 +217,8 @@ type Source struct {
 
 type State interface {
 	Keymap() *Keymap
-	Query() Query
-	Screen() Screen
+	Query() query.Query
+	Screen() ui.Screen
 	SetCurrentCol(int)
 	CurrentCol() int
 	SetCurrentLine(int)
@@ -417,27 +247,6 @@ type CLIOptions struct {
 }
 
 type CLI struct {
-}
-
-type RangeStart struct {
-	val   int
-	valid bool
-}
-
-// Buffer interface is used for containers for lines to be
-// processed by peco.
-type Buffer interface {
-	linesInRange(int, int) []line.Line
-	LineAt(int) (line.Line, error)
-	Size() int
-}
-
-// MemoryBuffer is an implementation of Buffer
-type MemoryBuffer struct {
-	done         chan struct{}
-	lines        []line.Line
-	mutex        sync.RWMutex
-	PeriodicFunc func()
 }
 
 type ActionMap interface {

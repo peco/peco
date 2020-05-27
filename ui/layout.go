@@ -1,4 +1,4 @@
-package peco
+package ui
 
 import (
 	"context"
@@ -11,6 +11,8 @@ import (
 	"github.com/lestrrat-go/pdebug/v2"
 	"github.com/mattn/go-runewidth"
 	"github.com/nsf/termbox-go"
+	"github.com/peco/peco/buffer"
+	"github.com/peco/peco/internal/location"
 	"github.com/peco/peco/line"
 	"github.com/pkg/errors"
 )
@@ -82,7 +84,7 @@ func NewUserPrompt(screen Screen, anchor VerticalAnchor, anchorOffset int, promp
 }
 
 // Draw draws the query prompt
-func (u UserPrompt) Draw(ctx context.Context, state *Peco) {
+func (u UserPrompt) Draw(ctx context.Context, state State) {
 	if pdebug.Enabled {
 		g := pdebug.Marker(ctx, "UserPrompt.Draw")
 		defer g.End()
@@ -300,7 +302,7 @@ func (l *ListArea) SetDirty(dirty bool) {
 	l.dirty = dirty
 }
 
-func selectionContains(state *Peco, n int) bool {
+func selectionContains(state State, n int) bool {
 	if l, err := state.CurrentLineBuffer().LineAt(n); err == nil {
 		return state.Selection().Has(l)
 	}
@@ -313,9 +315,20 @@ type DrawOptions struct {
 }
 
 // Draw displays the ListArea on the screen
-func (l *ListArea) Draw(ctx context.Context, state *Peco, parent Layout, perPage int, options *DrawOptions) {
+func (l *ListArea) Draw(ctx context.Context, state State, parent Layout, perPage int, options ...Option) {
+	runningQuery := false
+	lineCache := true
+	for _, option := range options {
+		switch option.Name() {
+		case optkeyLineCache:
+			lineCache = option.Value().(bool)
+		case optkeyRunningQuery:
+			runningQuery = option.Value().(bool)
+		}
+	}
+
 	if pdebug.Enabled {
-		g := pdebug.Marker(ctx, "ListArea.Draw pp = %d, options = %#v", perPage, options)
+		g := pdebug.Marker(ctx, "ListArea.Draw pp = %d, running query = %#v, line cache = %#v", perPage, runningQuery, lineCache)
 		defer g.End()
 	}
 
@@ -332,7 +345,7 @@ func (l *ListArea) Draw(ctx context.Context, state *Peco, parent Layout, perPage
 	// makes sure that we never have an empty screen when we are
 	// at a large enough page, but we don't have enough entries
 	// to fill that many pages in the buffer
-	if options != nil && options.RunningQuery {
+	if runningQuery {
 		bufsiz := linebuf.Size()
 		page := loc.Page()
 
@@ -350,11 +363,10 @@ func (l *ListArea) Draw(ctx context.Context, state *Peco, parent Layout, perPage
 		}
 	}
 
-	pf := loc.PageCrop()
 	if pdebug.Enabled {
-		pdebug.Printf(context.TODO(), "Cropping linebuf which contains %d lines at page %d (%d entries per page)", linebuf.Size(), pf.currentPage, pf.perPage)
+		pdebug.Printf(context.TODO(), "Cropping linebuf which contains %d lines at page %d (%d entries per page)", linebuf.Size(), loc.Page(), loc.PerPage())
 	}
-	buf := pf.Crop(linebuf)
+	buf := buffer.Crop(linebuf, loc)
 	bufsiz := buf.Size()
 
 	// This protects us from losing the selected line in case our selected
@@ -366,7 +378,7 @@ func (l *ListArea) Draw(ctx context.Context, state *Peco, parent Layout, perPage
 	// The max column size is calculated by buf. we check against where the
 	// loc variable thinks we should be scrolling to, and make sure that this
 	// falls in range with what we got
-	width, _ := state.screen.Size()
+	width, _ := state.Screen().Size()
 	if max := maxOf(buf.MaxColumn()-width, 0); loc.Column() > max {
 		loc.SetColumn(max)
 	}
@@ -407,7 +419,7 @@ func (l *ListArea) Draw(ctx context.Context, state *Peco, parent Layout, perPage
 
 	var cached, written int
 	var fgAttr, bgAttr termbox.Attribute
-	var selectionPrefix = state.selectionPrefix
+	var selectionPrefix = state.SelectionPrefix()
 	var prefix = ""
 
 	var prefixCurrentSelection string
@@ -458,7 +470,7 @@ func (l *ListArea) Draw(ctx context.Context, state *Peco, parent Layout, perPage
 			break
 		}
 
-		if (options != nil && options.DisableCache) || l.IsDirty() || target.IsDirty() {
+		if !lineCache || l.IsDirty() || target.IsDirty() {
 			target.SetDirty(false)
 		} else if l.displayCache[n] == target {
 			cached++
@@ -600,19 +612,19 @@ func maxOf(a, b int) int {
 }
 
 // NewDefaultLayout creates a new Layout in the default format (top-down)
-func NewDefaultLayout(state *Peco) *BasicLayout {
+func NewDefaultLayout(s Screen, styles *StyleSet, prompt string) *BasicLayout {
 	return &BasicLayout{
-		StatusBar: NewStatusBar(state.Screen(), AnchorBottom, 0+extraOffset, state.Styles()),
+		StatusBar: NewStatusBar(s, AnchorBottom, 0+extraOffset, styles),
 		// The prompt is at the top
-		prompt: NewUserPrompt(state.Screen(), AnchorTop, 0, state.Prompt(), state.Styles()),
+		prompt: NewUserPrompt(s, AnchorTop, 0, prompt, styles),
 		// The list area is at the top, after the prompt
 		// It's also displayed top-to-bottom order
-		list: NewListArea(state.Screen(), AnchorTop, 1, true, state.Styles()),
+		list: NewListArea(s, AnchorTop, 1, true, styles),
 	}
 }
 
 // NewBottomUpLayout creates a new Layout in bottom-up format
-func NewBottomUpLayout(state *Peco) *BasicLayout {
+func NewBottomUpLayout(state State) *BasicLayout {
 	return &BasicLayout{
 		StatusBar: NewStatusBar(state.Screen(), AnchorBottom, 0+extraOffset, state.Styles()),
 		// The prompt is at the bottom, above the status bar
@@ -628,7 +640,7 @@ func (l *BasicLayout) PurgeDisplayCache() {
 }
 
 // CalculatePage calculates which page we're displaying
-func (l *BasicLayout) CalculatePage(ctx context.Context, state *Peco, perPage int) error {
+func (l *BasicLayout) CalculatePage(ctx context.Context, state State, perPage int) error {
 	if pdebug.Enabled {
 		g := pdebug.Marker(ctx, "BasicLayout.Calculate %d", perPage)
 		defer g.End()
@@ -658,12 +670,12 @@ func (l *BasicLayout) CalculatePage(ctx context.Context, state *Peco, perPage in
 }
 
 // DrawPrompt draws the prompt to the terminal
-func (l *BasicLayout) DrawPrompt(ctx context.Context, state *Peco) {
+func (l *BasicLayout) DrawPrompt(ctx context.Context, state State) {
 	l.prompt.Draw(ctx, state)
 }
 
 // DrawScreen draws the entire screen
-func (l *BasicLayout) DrawScreen(ctx context.Context, state *Peco, options *DrawOptions) {
+func (l *BasicLayout) DrawScreen(ctx context.Context, state State, options ...Option) {
 	if pdebug.Enabled {
 		g := pdebug.Marker(ctx, "BasicLayout.DrawScreen")
 		defer g.End()
@@ -676,7 +688,7 @@ func (l *BasicLayout) DrawScreen(ctx context.Context, state *Peco, options *Draw
 	}
 
 	l.DrawPrompt(ctx, state)
-	l.list.Draw(ctx, state, l, perPage, options)
+	l.list.Draw(ctx, state, l, perPage, options...)
 
 	if err := l.screen.Flush(); err != nil {
 		return
@@ -708,10 +720,10 @@ func (l *BasicLayout) linesPerPage() int {
 }
 
 // MovePage scrolls the screen
-func (l *BasicLayout) MovePage(state *Peco, p PagingRequest) (moved bool) {
+func (l *BasicLayout) MovePage(state State, p PagingRequest) (moved bool) {
 	switch p.Type() {
 	case ToScrollLeft, ToScrollRight:
-		moved = horizontalScroll(state, l, p)
+		moved = horizontalScroll(state.Screen(), state.Location(), l, p)
 	default:
 		moved = verticalScroll(state, l, p)
 	}
@@ -719,7 +731,7 @@ func (l *BasicLayout) MovePage(state *Peco, p PagingRequest) (moved bool) {
 }
 
 // verticalScroll moves the cursor position vertically
-func verticalScroll(state *Peco, l *BasicLayout, p PagingRequest) bool {
+func verticalScroll(state State, l *BasicLayout, p PagingRequest) bool {
 	// Before we move, on which line were we located?
 	loc := state.Location()
 	lineBefore := loc.LineNumber()
@@ -727,7 +739,7 @@ func verticalScroll(state *Peco, l *BasicLayout, p PagingRequest) bool {
 
 	if pdebug.Enabled {
 		defer func() {
-			pdebug.Printf(context.TODO(), "currentLine changed from %d -> %d", lineBefore, state.Location().LineNumber())
+			pdebug.Printf(context.TODO(), "currentLine changed from %d -> %d", lineBefore, loc.LineNumber())
 		}()
 	}
 
@@ -849,9 +861,8 @@ func verticalScroll(state *Peco, l *BasicLayout, p PagingRequest) bool {
 }
 
 // horizontalScroll scrolls screen horizontal
-func horizontalScroll(state *Peco, l *BasicLayout, p PagingRequest) bool {
-	width, _ := state.screen.Size()
-	loc := state.Location()
+func horizontalScroll(s Screen, loc *location.Location, l *BasicLayout, p PagingRequest) bool {
+	width, _ := s.Size()
 	if p.Type() == ToScrollRight {
 		loc.SetColumn(loc.Column() + width/2)
 	} else if loc.Column() > 0 {
