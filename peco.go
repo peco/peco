@@ -364,8 +364,8 @@ func (p *Peco) Run(ctx context.Context) (err error) {
 		// screen.Init must be called within Run() because we
 		// want to make sure to call screen.Close() after getting
 		// out of Run()
-		p.screen.Init()
-		go NewInput(p, p.Keymap(), p.screen.PollEvent(ctx)).Loop(ctx, cancel)
+		p.screen.Init(&p.config)
+		go NewInput(p, p.Keymap(), p.screen.PollEvent(ctx, &p.config)).Loop(ctx, cancel)
 		go NewView(p).Loop(ctx, cancel)
 		go NewFilter(p).Loop(ctx, cancel)
 	}()

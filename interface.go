@@ -151,10 +151,10 @@ type Selection struct {
 // Screen hides termbox from the consuming code so that
 // it can be swapped out for testing
 type Screen interface {
-	Init() error
+	Init(*Config) error
 	Close() error
 	Flush() error
-	PollEvent(context.Context) chan termbox.Event
+	PollEvent(context.Context, *Config) chan termbox.Event
 	Print(PrintArgs) int
 	Resume()
 	SetCell(int, int, rune, termbox.Attribute, termbox.Attribute)
