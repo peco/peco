@@ -716,6 +716,7 @@ Implement all(?) of the original percol options
 * Yousuke Ushiki
 * Linda\_pp
 * Tomohiro Nishimura (Sixeight)
+* Naruki Tanabe (narugit)
 
 # Notes
 
