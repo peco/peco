@@ -22,6 +22,7 @@ func (c *Config) Init() error {
 	c.Style.Init()
 	c.Prompt = "QUERY>"
 	c.Layout = LayoutTypeTopDown
+	c.Use256Color = false
 	return nil
 }
 

@@ -103,6 +103,7 @@ type Peco struct {
 	singleKeyJumpShowPrefix bool
 	skipReadConfig          bool
 	styles                  StyleSet
+	use256Color             bool
 
 	// Source is where we buffer input. It gets reused when a new query is
 	// executed.
@@ -291,6 +292,7 @@ type Config struct {
 	Style               StyleSet          `json:"Style"`
 	Prompt              string            `json:"Prompt"`
 	Layout              string            `json:"Layout"`
+	Use256Color         bool              `json:"Use256Color"`
 	OnCancel            string            `json:"OnCancel"`
 	CustomMatcher       map[string][]string
 	CustomFilter        map[string]CustomFilterConfig
