@@ -1,6 +1,11 @@
 Changes
 =======
 
+v0.5.8 - 18 Jul 2020
+  Features:
+  * Add support for 256-colors in the configuration. You must first enable
+    this in the config file by specifying "Use256Colors": true
+
 v0.5.7 - 10 Jan 2020
   Bugs/Fixes:
   * Code introduced in v0.5.5 introduced a bug where if the input is coming
