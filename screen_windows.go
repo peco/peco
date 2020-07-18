@@ -2,7 +2,7 @@ package peco
 
 import "github.com/nsf/termbox-go"
 
-func (t *Termbox) PostInit() error {
+func (t *Termbox) PostInit(cfg *Config) error {
 	// Windows handle Esc/Alt self
 	termbox.SetInputMode(termbox.InputEsc | termbox.InputAlt)
 

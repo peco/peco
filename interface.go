@@ -103,6 +103,7 @@ type Peco struct {
 	singleKeyJumpShowPrefix bool
 	skipReadConfig          bool
 	styles                  StyleSet
+	use256Color             bool
 
 	// Source is where we buffer input. It gets reused when a new query is
 	// executed.
@@ -150,10 +151,10 @@ type Selection struct {
 // Screen hides termbox from the consuming code so that
 // it can be swapped out for testing
 type Screen interface {
-	Init() error
+	Init(*Config) error
 	Close() error
 	Flush() error
-	PollEvent(context.Context) chan termbox.Event
+	PollEvent(context.Context, *Config) chan termbox.Event
 	Print(PrintArgs) int
 	Resume()
 	SetCell(int, int, rune, termbox.Attribute, termbox.Attribute)
@@ -291,6 +292,7 @@ type Config struct {
 	Style               StyleSet          `json:"Style"`
 	Prompt              string            `json:"Prompt"`
 	Layout              string            `json:"Layout"`
+	Use256Color         bool              `json:"Use256Color"`
 	OnCancel            string            `json:"OnCancel"`
 	CustomMatcher       map[string][]string
 	CustomFilter        map[string]CustomFilterConfig

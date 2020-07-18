@@ -10,12 +10,12 @@ import (
 	"github.com/pkg/errors"
 )
 
-func (t *Termbox) Init() error {
+func (t *Termbox) Init(cfg *Config) error {
 	if err := termbox.Init(); err != nil {
 		return errors.Wrap(err, "failed to initialized termbox")
 	}
 
-	return t.PostInit()
+	return t.PostInit(cfg)
 }
 
 func NewTermbox() *Termbox {
@@ -55,7 +55,7 @@ func (t *Termbox) Flush() error {
 // PollEvent returns a channel that you can listen to for
 // termbox's events. The actual polling is done in a
 // separate gouroutine
-func (t *Termbox) PollEvent(ctx context.Context) chan termbox.Event {
+func (t *Termbox) PollEvent(ctx context.Context, cfg *Config) chan termbox.Event {
 	// XXX termbox.PollEvent() can get stuck on unexpected signal
 	// handling cases. We still would like to wait until the user
 	// (termbox) has some event for us to process, but we don't
@@ -97,7 +97,7 @@ func (t *Termbox) PollEvent(ctx context.Context) chan termbox.Event {
 			case <-ctx.Done():
 				return
 			case replyCh := <-t.resumeCh:
-				t.Init()
+				t.Init(cfg)
 				close(replyCh)
 			}
 		}

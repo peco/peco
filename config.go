@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"strconv"
 
 	"github.com/nsf/termbox-go"
 	"github.com/peco/peco/filter"
@@ -22,6 +23,7 @@ func (c *Config) Init() error {
 	c.Style.Init()
 	c.Prompt = "QUERY>"
 	c.Layout = LayoutTypeTopDown
+	c.Use256Color = false
 	return nil
 }
 
@@ -132,11 +134,21 @@ func stringsToStyle(style *Style, raw []string) error {
 		fg, ok := stringToFg[s]
 		if ok {
 			style.fg = fg
+		} else {
+			if fg, err := strconv.ParseUint(s, 10, 8); err == nil {
+				style.fg = termbox.Attribute(fg+1)
+			}
 		}
 
 		bg, ok := stringToBg[s]
 		if ok {
 			style.bg = bg
+		} else {
+			if strings.HasPrefix(s, "on_") {
+				if bg, err := strconv.ParseUint(s[3:], 10, 8); err == nil {
+					style.bg = termbox.Attribute(bg+1)
+				}
+			}
 		}
 	}
 

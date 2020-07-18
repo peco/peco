@@ -137,6 +137,10 @@ func (p *Peco) Styles() *StyleSet {
 	return &p.styles
 }
 
+func (p *Peco) Use256Color() bool {
+	return p.use256Color
+}
+
 func (p *Peco) Prompt() string {
 	return p.prompt
 }
@@ -360,8 +364,8 @@ func (p *Peco) Run(ctx context.Context) (err error) {
 		// screen.Init must be called within Run() because we
 		// want to make sure to call screen.Close() after getting
 		// out of Run()
-		p.screen.Init()
-		go NewInput(p, p.Keymap(), p.screen.PollEvent(ctx)).Loop(ctx, cancel)
+		p.screen.Init(&p.config)
+		go NewInput(p, p.Keymap(), p.screen.PollEvent(ctx, &p.config)).Loop(ctx, cancel)
 		go NewView(p).Loop(ctx, cancel)
 		go NewFilter(p).Loop(ctx, cancel)
 	}()
@@ -541,6 +545,8 @@ func (p *Peco) ApplyConfig(opts CLIOptions) error {
 	} else if v := p.config.Prompt; len(v) > 0 {
 		p.prompt = v
 	}
+
+	p.use256Color = p.config.Use256Color
 
 	p.onCancel = successKey
 	if opts.OptOnCancel == errorKey || p.config.OnCancel == errorKey {

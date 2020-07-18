@@ -105,7 +105,7 @@ func NewDummyScreen() *dummyScreen {
 func (d dummyScreen) SetCursor(_, _ int) {
 }
 
-func (d dummyScreen) Init() error {
+func (d dummyScreen) Init(cfg *Config) error {
 	return nil
 }
 
@@ -135,7 +135,7 @@ func (d dummyScreen) Flush() error {
 	d.record("Flush", interceptorArgs{})
 	return nil
 }
-func (d dummyScreen) PollEvent(ctx context.Context) chan termbox.Event {
+func (d dummyScreen) PollEvent(ctx context.Context, cfg *Config) chan termbox.Event {
 	return d.pollCh
 }
 func (d dummyScreen) Size() (int, int) {

@@ -99,6 +99,10 @@ func TestStringsToStyle(t *testing.T) {
 			strings: []string{"on_bold", "on_magenta", "green"},
 			style:   &Style{fg: termbox.ColorGreen, bg: termbox.ColorMagenta | termbox.AttrBold},
 		},
+		stringsToStyleTest{
+			strings: []string{"underline", "on_240", "214"},
+			style:   &Style{fg: (214+1) | termbox.AttrUnderline, bg: 240+1},
+		},
 	}
 
 	t.Logf("Checking strings -> color mapping...")
