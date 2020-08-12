@@ -4,6 +4,8 @@ on:
   push:
     branches:
       - master
+    paths:
+      - 'README.md'
 
 jobs:
   generateTOC:
@@ -11,7 +13,9 @@ jobs:
 
     steps:
       - name: TOC Generator
-        uses: technote-space/toc-generator@v2
+        uses: neuenmuller/toc-generator@3d54e40125014baed3ba75617c44af2a42b9f67d
         with:
           TARGET_PATHS: README.md
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TOC_TITLE: ''
+          ENTIRE: true
