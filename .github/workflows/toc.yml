@@ -12,10 +12,16 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: TOC Generator
-        uses: neuenmuller/toc-generator@3d54e40125014baed3ba75617c44af2a42b9f67d
+      - uses: actions/checkout@v2
         with:
-          TARGET_PATHS: README.md
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          TOC_TITLE: ''
-          ENTIRE: true
+          ssh-key: ${{ secrets.DEPLOY_KEY }}
+      - run: sudo npm i --global neuenmuller/doctoc#entire
+      - run: doctoc --entire --notitle README.md
+      - name: setup git user
+        run: |
+          git config --global user.name "${{ github.actor }}"
+          git config --global user.email "${{ github.actor }}@users.noreply.github.com"
+      - run: |
+          git add .
+          git commit -m "docs: update toc" || true
+          git push
