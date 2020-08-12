@@ -723,5 +723,7 @@ Implement all(?) of the original percol options
 Obviously, kudos to the original percol: https://github.com/mooz/percol
 Much code stolen from https://github.com/mattn/gof
 
+# Table of Contents
+
 <!-- START doctoc -->
 <!-- END doctoc -->
