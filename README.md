@@ -682,9 +682,7 @@ which will create the binary in the local directory.
 
 # TODO
 
-Test it. In doing so, we may change the repo structure
-
-Implement all(?) of the original percol options
+Unit test it.
 
 # AUTHORS
 
