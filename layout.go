@@ -160,7 +160,7 @@ func (u UserPrompt) Draw(state *Peco) {
 			Fill: false,
 		})
 	default:
-		posX = c.Pos()
+		posX = c.Pos() + u.promptLen + 1
 		// the caret is in the middle of the string
 		prev := int(0)
 		var i int
