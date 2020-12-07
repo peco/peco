@@ -15,8 +15,8 @@ jobs:
       - uses: actions/checkout@v2
         with:
           ssh-key: ${{ secrets.DEPLOY_KEY }}
-      - run: sudo npm i --global neuenmuller/doctoc#entire
-      - run: doctoc --entire --notitle README.md
+      - run: sudo npm i --global doctoc
+      - run: doctoc --all --notitle README.md
       - name: setup git user
         run: |
           git config --global user.name "${{ github.actor }}"
