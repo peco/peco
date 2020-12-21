@@ -1,0 +1,32 @@
+name: CI
+on: [push, pull_request]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        go: [ '1.15', '1.14' ]
+    name: Go ${{ matrix.go }} test
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+      - name: Install Go stable version
+        if: matrix.go != 'tip'
+        uses: actions/setup-go@v2
+        with:
+          go-version: ${{ matrix.go }}
+      - name: Install Go tip
+        if: matrix.go == 'tip'
+        run: |
+          git clone --depth=1 https://go.googlesource.com/go $HOME/gotip
+          cd $HOME/gotip/src
+          ./make.bash
+          echo "::set-env name=GOROOT::$HOME/gotip"
+          echo "::add-path::$HOME/gotip/bin"
+          echo "::add-path::$(go env GOPATH)/bin"
+      - name: Test
+        run: make test
+      - name: Cross-Compile
+        run: make all
+
