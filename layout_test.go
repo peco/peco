@@ -90,6 +90,7 @@ func TestStatusBar(t *testing.T) {
 	}
 }
 
+/*
 func TestMergeAttribute(t *testing.T) {
 	colors := stringToFg
 
@@ -125,3 +126,4 @@ func TestMergeAttribute(t *testing.T) {
 	}
 
 }
+*/
