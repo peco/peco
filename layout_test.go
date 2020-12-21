@@ -5,7 +5,6 @@ import (
 	"unicode/utf8"
 
 	"github.com/mattn/go-runewidth"
-	"github.com/nsf/termbox-go"
 )
 
 func TestLayoutType(t *testing.T) {
