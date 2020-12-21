@@ -134,7 +134,7 @@ func (p *Peco) Screen() Screen {
 }
 
 func (p *Peco) Styles() *StyleSet {
-	return &p.styles
+	return p.styles
 }
 
 func (p *Peco) Use256Color() bool {

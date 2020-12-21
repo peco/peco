@@ -1,4 +1,4 @@
-package peco
+package peco_test
 
 import (
 	"encoding/json"
@@ -9,7 +9,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/nsf/termbox-go"
+	"github.com/lestrrat-go/envload"
+	"github.com/peco/peco"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 )
@@ -30,7 +31,7 @@ func TestReadRC(t *testing.T) {
 	"Prompt": "[peco]"
 }
 `
-	var cfg Config
+	var cfg peco.Config
 	if !assert.NoError(t, cfg.Init(), "Config.Init should succeed") {
 		return
 	}
@@ -39,31 +40,32 @@ func TestReadRC(t *testing.T) {
 		return
 	}
 
-	expected := Config{
+	expected := peco.Config{
 		Keymap: map[string]string{
 			"C-j":     "peco.Finish",
 			"C-x,C-c": "peco.Finish",
 		},
-		InitialMatcher: IgnoreCaseMatch,
-		Layout:         DefaultLayoutType,
+		InitialMatcher: peco.IgnoreCaseMatch,
+		Layout:         peco.DefaultLayoutType,
 		Prompt:         "[peco]",
-		Style: StyleSet{
-			Matched: Style{
-				fg: termbox.ColorCyan | termbox.AttrBold,
-				bg: termbox.ColorRed,
-			},
-			Query: Style{
-				fg: termbox.ColorYellow | termbox.AttrBold,
-				bg: termbox.ColorDefault,
-			},
-			Selected: Style{
-				fg: termbox.ColorBlack | termbox.AttrUnderline,
-				bg: termbox.ColorCyan,
-			},
-			SavedSelection: Style{
-				fg: termbox.ColorBlack | termbox.AttrBold,
-				bg: termbox.ColorCyan,
-			},
+		Style: &peco.StyleSet{
+			Basic: peco.NewStyle(),
+			Matched: peco.NewStyle().
+				Foreground(peco.ColorCyan).
+				Background(peco.ColorRed).
+				Bold(true),
+			Query: peco.NewStyle().
+				Foreground(peco.ColorYellow).
+				Background(peco.ColorDefault).
+				Bold(true),
+			Selected: peco.NewStyle().
+				Foreground(peco.ColorBlack).
+				Background(peco.ColorCyan).
+				Underline(true),
+			SavedSelection: peco.NewStyle().
+				Foreground(peco.ColorBlack).
+				Background(peco.ColorCyan).
+				Bold(true),
 		},
 	}
 
@@ -74,48 +76,66 @@ func TestReadRC(t *testing.T) {
 
 type stringsToStyleTest struct {
 	strings []string
-	style   *Style
+	style   *peco.Style
 }
 
 func TestStringsToStyle(t *testing.T) {
 	tests := []stringsToStyleTest{
 		stringsToStyleTest{
 			strings: []string{"on_default", "default"},
-			style:   &Style{fg: termbox.ColorDefault, bg: termbox.ColorDefault},
+			style: peco.NewStyle().
+				Foreground(peco.ColorDefault).
+				Background(peco.ColorDefault),
 		},
 		stringsToStyleTest{
 			strings: []string{"bold", "on_blue", "yellow"},
-			style:   &Style{fg: termbox.ColorYellow | termbox.AttrBold, bg: termbox.ColorBlue},
+			style: peco.NewStyle().
+				Foreground(peco.ColorYellow).
+				Background(peco.ColorBlue).
+				Bold(true),
 		},
 		stringsToStyleTest{
 			strings: []string{"underline", "on_cyan", "black"},
-			style:   &Style{fg: termbox.ColorBlack | termbox.AttrUnderline, bg: termbox.ColorCyan},
+			style: peco.NewStyle().
+				Foreground(peco.ColorBlack).
+				Background(peco.ColorCyan).
+				Underline(true),
 		},
 		stringsToStyleTest{
 			strings: []string{"reverse", "on_red", "white"},
-			style:   &Style{fg: termbox.ColorWhite | termbox.AttrReverse, bg: termbox.ColorRed},
+			style: peco.NewStyle().
+				Foreground(peco.ColorWhite).
+				Background(peco.ColorRed).
+				Reverse(true),
 		},
 		stringsToStyleTest{
 			strings: []string{"on_bold", "on_magenta", "green"},
-			style:   &Style{fg: termbox.ColorGreen, bg: termbox.ColorMagenta | termbox.AttrBold},
+			style: peco.NewStyle().
+				Foreground(peco.ColorGreen).
+				Background(peco.ColorMagenta).
+				Bold(true),
 		},
 		stringsToStyleTest{
 			strings: []string{"underline", "on_240", "214"},
-			style:   &Style{fg: (214+1) | termbox.AttrUnderline, bg: 240+1},
+			style: peco.NewStyle().
+				Foreground(214 + 1).
+				Background(240 + 1).
+				Underline(true),
 		},
 	}
 
-	t.Logf("Checking strings -> color mapping...")
-	var a Style
-	for _, test := range tests {
-		t.Logf("    checking %s...", test.strings)
-		if !assert.NoError(t, stringsToStyle(&a, test.strings), "stringsToStyle should succeed") {
-			return
-		}
+	var a peco.Style
+	for _, tc := range tests {
+		tc := tc
+		t.Run(strings.Join(tc.strings, ","), func(t *testing.T) {
+			if !assert.NoError(t, a.FromStrings(tc.strings...), "stringsToStyle should succeed") {
+				return
+			}
 
-		if !assert.Equal(t, test.style, &a, "Expected '%s' to be '%#v', but got '%#v'", test.strings, test.style, a) {
-			return
-		}
+			if !assert.Equal(t, tc.style, &a, "Expected '%s' to be '%#v', but got '%#v'", tc.strings, tc.style, a) {
+				return
+			}
+		})
 	}
 }
 
@@ -125,16 +145,20 @@ func TestLocateRcfile(t *testing.T) {
 		return
 	}
 
-	homedirFunc = func() (string, error) {
-		return dir, nil
+	home, err := os.UserHomeDir()
+	if !assert.NoError(t, err, `could not find user home directory`) {
+		return
 	}
+
+	el := envload.New()
+	defer el.Restore()
 
 	expected := []string{
 		filepath.Join(dir, "peco"),
 		filepath.Join(dir, "1", "peco"),
 		filepath.Join(dir, "2", "peco"),
 		filepath.Join(dir, "3", "peco"),
-		filepath.Join(dir, ".peco"),
+		filepath.Join(home, ".peco"),
 	}
 
 	i := 0
@@ -161,10 +185,10 @@ func TestLocateRcfile(t *testing.T) {
 		fmt.Sprintf("%c", filepath.ListSeparator),
 	))
 
-	LocateRcfile(locater)
-	expected[0] = filepath.Join(dir, ".config", "peco")
+	peco.LocateRcfile(locater)
+	expected[0] = filepath.Join(home, ".config", "peco")
 	os.Setenv("XDG_CONFIG_HOME", "")
 	i = 0
-	LocateRcfile(locater)
+	peco.LocateRcfile(locater)
 
 }

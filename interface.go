@@ -102,7 +102,7 @@ type Peco struct {
 	singleKeyJumpPrefixMap  map[rune]uint
 	singleKeyJumpShowPrefix bool
 	skipReadConfig          bool
-	styles                  StyleSet
+	styles                  *StyleSet
 	use256Color             bool
 
 	// Source is where we buffer input. It gets reused when a new query is
@@ -289,7 +289,7 @@ type Config struct {
 	Matcher             string            `json:"Matcher"`        // Deprecated.
 	InitialMatcher      string            `json:"InitialMatcher"` // Use this instead of Matcher
 	InitialFilter       string            `json:"InitialFilter"`
-	Style               StyleSet          `json:"Style"`
+	Style               *StyleSet         `json:"Style"`
 	Prompt              string            `json:"Prompt"`
 	Layout              string            `json:"Layout"`
 	Use256Color         bool              `json:"Use256Color"`
@@ -333,17 +333,11 @@ type CustomFilterConfig struct {
 
 // StyleSet holds styles for various sections
 type StyleSet struct {
-	Basic          Style `json:"Basic"`
-	SavedSelection Style `json:"SavedSelection"`
-	Selected       Style `json:"Selected"`
-	Query          Style `json:"Query"`
-	Matched        Style `json:"Matched"`
-}
-
-// Style describes termbox styles
-type Style struct {
-	fg termbox.Attribute
-	bg termbox.Attribute
+	Basic          *Style `json:"Basic"`
+	SavedSelection *Style `json:"SavedSelection"`
+	Selected       *Style `json:"Selected"`
+	Query          *Style `json:"Query"`
+	Matched        *Style `json:"Matched"`
 }
 
 type Caret struct {

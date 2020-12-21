@@ -35,7 +35,7 @@ func TestIssue212_SanityCheck(t *testing.T) {
 		return
 	}
 
-	defstyle := StyleSet{}
+	defstyle := NewStyleSet()
 	defstyle.Init()
 	if !assert.Equal(t, state.config.Style, defstyle, "should be default style") {
 		return
