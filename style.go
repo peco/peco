@@ -193,3 +193,11 @@ func (style *Style) FromStrings(raw ...string) error {
 
 	return nil
 }
+
+func (s *Style) Clone() *Style {
+	cloned := NewStyle()
+	cloned.fg = s.fg
+	cloned.bg = s.bg
+	cloned.attrs = s.attrs
+	return cloned
+}

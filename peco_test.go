@@ -113,8 +113,11 @@ func (d dummyScreen) Close() error {
 	return nil
 }
 
-func (d dummyScreen) Print(args PrintArgs) int {
-	return screenPrint(d, args)
+func (d dummyScreen) Print(msg string) *PrintCmd {
+	cmd := printCmdPool.Get().(*PrintCmd)
+	cmd.msg = msg
+	cmd.screen = d
+	return cmd
 }
 
 func (d dummyScreen) SendEvent(e termbox.Event) {

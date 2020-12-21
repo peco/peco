@@ -2,6 +2,7 @@ package peco
 
 import (
 	"context"
+	"sync"
 	"unicode/utf8"
 
 	pdebug "github.com/lestrrat-go/pdebug"
@@ -140,29 +141,73 @@ func (t *Termbox) Size() (int, int) {
 	return termbox.Size()
 }
 
-type PrintArgs struct {
-	X       int
-	XOffset int
-	Y       int
-	Fg      termbox.Attribute
-	Bg      termbox.Attribute
-	Msg     string
-	Fill    bool
+type PrintCmd struct {
+	screen  Screen
+	x       int
+	xOffset int
+	y       int
+	style   *Style
+	msg     string
+	fill    bool
 }
 
-func (t *Termbox) Print(args PrintArgs) int {
-	return screenPrint(t, args)
+var printCmdPool = sync.Pool{
+	New: func() interface{} { return &PrintCmd{} },
 }
 
-func screenPrint(t Screen, args PrintArgs) int {
+func (t *Termbox) Print(msg string) *PrintCmd {
+	cmd := printCmdPool.Get().(*PrintCmd)
+	cmd.msg = msg
+	cmd.screen = t
+	return cmd
+}
+
+func (cmd *PrintCmd) Release() {
+	cmd.x = 0
+	cmd.xOffset = 0
+	cmd.y = 0
+	cmd.style = nil
+	cmd.msg = ""
+	cmd.fill = false
+	printCmdPool.Put(cmd)
+}
+
+func (cmd *PrintCmd) X(v int) *PrintCmd {
+	cmd.x = v
+	return cmd
+}
+
+func (cmd *PrintCmd) XOffset(v int) *PrintCmd {
+	cmd.xOffset = v
+	return cmd
+}
+
+func (cmd *PrintCmd) Y(v int) *PrintCmd {
+	cmd.y = v
+	return cmd
+}
+
+func (cmd *PrintCmd) Style(s *Style) *PrintCmd {
+	cmd.style = s
+	return cmd
+}
+
+func (cmd *PrintCmd) Fill(v bool) *PrintCmd {
+	cmd.fill = v
+	return cmd
+}
+
+func (cmd *PrintCmd) Do() int {
+	defer cmd.Release()
+
 	var written int
 
-	bg := args.Bg
-	fg := args.Fg
-	msg := args.Msg
-	x := args.X
-	y := args.Y
-	xOffset := args.XOffset
+	fg := cmd.style.fg | cmd.style.attrs
+	bg := cmd.style.bg
+	msg := cmd.msg
+	x := cmd.x
+	y := cmd.y
+	xOffset := cmd.xOffset
 	for len(msg) > 0 {
 		c, w := utf8.DecodeRuneInString(msg)
 		if c == utf8.RuneError {
@@ -174,25 +219,25 @@ func screenPrint(t Screen, args PrintArgs) int {
 			// In case we found a tab, we draw it as 4 spaces
 			n := 4 - (x+xOffset)%4
 			for i := int(0); i <= n; i++ {
-				t.SetCell(int(x+i), int(y), ' ', fg, bg)
+				cmd.screen.SetCell(int(x+i), int(y), ' ', fg, bg)
 			}
 			written += n
 			x += n
 		} else {
-			t.SetCell(int(x), int(y), c, fg, bg)
+			cmd.screen.SetCell(int(x), int(y), c, fg, bg)
 			n := int(runewidth.RuneWidth(c))
 			x += n
 			written += n
 		}
 	}
 
-	if !args.Fill {
+	if !cmd.fill {
 		return written
 	}
 
-	width, _ := t.Size()
+	width, _ := cmd.screen.Size()
 	for ; x < int(width); x++ {
-		t.SetCell(int(x), int(y), ' ', fg, bg)
+		cmd.screen.SetCell(int(x), int(y), ' ', fg, bg)
 	}
 	written += int(width) - x
 	return written

@@ -9,7 +9,6 @@ import (
 
 	"github.com/lestrrat-go/pdebug"
 	"github.com/mattn/go-runewidth"
-	"github.com/nsf/termbox-go"
 	"github.com/peco/peco/line"
 	"github.com/pkg/errors"
 )
@@ -24,14 +23,6 @@ func IsValidLayoutType(v LayoutType) bool {
 // IsValidVerticalAnchor checks if the specified anchor is supported
 func IsValidVerticalAnchor(anchor VerticalAnchor) bool {
 	return anchor == AnchorTop || anchor == AnchorBottom
-}
-
-// Utility function
-func mergeAttribute(a, b termbox.Attribute) termbox.Attribute {
-	if a&0x0F == 0 || b&0x0F == 0 {
-		return a | b
-	}
-	return ((a - 1) | (b - 1)) + 1
 }
 
 // NewAnchorSettings creates a new AnchorSetting struct. Panics if
@@ -90,12 +81,10 @@ func (u UserPrompt) Draw(state *Peco) {
 	location := u.AnchorPosition()
 
 	// print "QUERY>"
-	u.screen.Print(PrintArgs{
-		Y:   location,
-		Fg:  u.styles.Basic.fg,
-		Bg:  u.styles.Basic.bg,
-		Msg: u.prompt,
-	})
+	u.screen.Print(u.prompt).
+		Y(location).
+		Style(u.styles.Basic).
+		Do()
 
 	c := state.Caret()
 	if c.Pos() <= 0 { // XXX Do we really need this?
@@ -109,81 +98,72 @@ func (u UserPrompt) Draw(state *Peco) {
 		c.SetPos(ql)
 	}
 
-	fg := u.styles.Query.fg
-	bg := u.styles.Query.bg
-
 	// Used to notify termbox where our cursor is
 	var posX int
 
+	queryStyle := u.styles.Query
+	revQueryStyle := queryStyle.Clone().Reverse(true)
 	switch ql {
 	case 0:
-		u.screen.Print(PrintArgs{
-			X:    u.promptLen,
-			Y:    location,
-			Fg:   fg,
-			Bg:   bg,
-			Fill: true,
-		})
+		u.screen.Print("").
+			X(u.promptLen).
+			Y(location).
+			Style(queryStyle).
+			Fill(true).
+			Do()
 		posX = u.promptLen + 1
-		u.screen.Print(PrintArgs{
-			X:    u.promptLen + 1,
-			Y:    location,
-			Bg:   bg | termbox.AttrReverse,
-			Fg:   fg | termbox.AttrReverse,
-			Msg:  " ",
-			Fill: false,
-		})
+		u.screen.Print(" ").
+			X(u.promptLen + 1).
+			Y(location).
+			Style(revQueryStyle).
+			Fill(false).
+			Do()
 	case c.Pos():
 		// the entire string + the caret after the string
-		u.screen.Print(PrintArgs{
-			X:    u.promptLen,
-			Y:    location,
-			Fg:   fg,
-			Bg:   bg,
-			Fill: true,
-		})
-		u.screen.Print(PrintArgs{
-			X:    u.promptLen + 1,
-			Y:    location,
-			Fg:   fg,
-			Bg:   bg,
-			Msg:  qs,
-			Fill: false,
-		})
+		u.screen.Print("").
+			X(u.promptLen).
+			Y(location).
+			Style(queryStyle).
+			Fill(true).
+			Do()
+		u.screen.Print(qs).
+			X(u.promptLen + 1).
+			Y(location).
+			Style(queryStyle).
+			Fill(false).
+			Do()
 		posX = u.promptLen + 1 + int(runewidth.StringWidth(qs))
-		u.screen.Print(PrintArgs{
-			X:    posX,
-			Y:    location,
-			Fg:   fg | termbox.AttrReverse,
-			Bg:   bg | termbox.AttrReverse,
-			Msg:  " ",
-			Fill: false,
-		})
+		u.screen.Print(" ").
+			X(posX).
+			Y(location).
+			Style(revQueryStyle).
+			Fill(false).
+			Do()
 	default:
 		posX = c.Pos() + u.promptLen + 1
 		// the caret is in the middle of the string
 		prev := int(0)
 		var i int
+
 		for r := range q.Runes() {
-			fg := u.styles.Query.fg
-			bg := u.styles.Query.bg
+			st := queryStyle
 			if i == c.Pos() {
-				fg |= termbox.AttrReverse
-				bg |= termbox.AttrReverse
+				st = revQueryStyle
 			}
-			u.screen.SetCell(int(u.promptLen+1+prev), int(location), r, fg, bg)
+			u.screen.Print(string([]rune{r})).
+				X(u.promptLen + 1 + prev).
+				Y(location).
+				Style(st).
+				Do()
 			prev += int(runewidth.RuneWidth(r))
 			i++
 		}
-		fg := u.styles.Query.fg
-		bg := u.styles.Query.bg
-		u.screen.Print(PrintArgs{
-			X:    u.promptLen + prev + 1,
-			Y:    location,
-			Fg:   fg,
-			Bg:   bg,
-			Fill: true,
-		})
+		u.screen.Print("").
+			X(u.promptLen + prev + 1).
+			Y(location).
+			Style(queryStyle).
+			Fill(true).
+			Do()
 	}
 
 	u.screen.SetCursor(posX, location)
@@ -192,14 +172,11 @@ func (u UserPrompt) Draw(state *Peco) {
 
 	loc := state.Location()
 	pmsg := fmt.Sprintf("%s [%d (%d/%d)]", state.Filters().Current().String(), loc.Total(), loc.Page(), loc.MaxPage())
-	u.screen.Print(PrintArgs{
-		X:   int(width - runewidth.StringWidth(pmsg)),
-		Y:   location,
-		Fg:  u.styles.Basic.fg,
-		Bg:  u.styles.Basic.bg,
-		Msg: pmsg,
-	})
-
+	u.screen.Print(pmsg).
+		X(int(width - runewidth.StringWidth(pmsg))).
+		Y(location).
+		Style(u.styles.Basic).
+		Do()
 	u.screen.Flush()
 }
 
@@ -255,26 +232,19 @@ func (s *StatusBar) PrintStatus(msg string, clearDelay time.Duration) {
 		}
 	}
 
-	fgAttr := s.styles.Basic.fg
-	bgAttr := s.styles.Basic.bg
-
 	if w > width {
-		s.screen.Print(PrintArgs{
-			Y:   location,
-			Fg:  fgAttr,
-			Bg:  bgAttr,
-			Msg: string(pad),
-		})
+		s.screen.Print(string(pad)).
+			Y(location).
+			Style(s.styles.Basic).
+			Do()
 	}
 
 	if width > 0 {
-		s.screen.Print(PrintArgs{
-			X:   int(w - width),
-			Y:   location,
-			Fg:  fgAttr | termbox.AttrReverse | termbox.AttrBold | termbox.AttrReverse,
-			Bg:  bgAttr | termbox.AttrReverse,
-			Msg: msg,
-		})
+		s.screen.Print(msg).
+			X(int(w - width)).
+			Y(location).
+			Style(s.styles.Basic.Clone().Reverse(true).Bold(true)).
+			Do()
 	}
 	s.screen.Flush()
 
@@ -407,16 +377,14 @@ func (l *ListArea) Draw(state *Peco, parent Layout, perPage int, options *DrawOp
 			y = start - n
 		}
 
-		l.screen.Print(PrintArgs{
-			Y:    y,
-			Fg:   l.styles.Basic.fg,
-			Bg:   l.styles.Basic.bg,
-			Fill: true,
-		})
+		l.screen.Print("").
+			Y(y).
+			Style(l.styles.Basic).
+			Fill(true).
+			Do()
 	}
 
 	var cached, written int
-	var fgAttr, bgAttr termbox.Attribute
 	var selectionPrefix = state.selectionPrefix
 	var prefix = ""
 
@@ -430,6 +398,8 @@ func (l *ListArea) Draw(state *Peco, parent Layout, perPage int, options *DrawOp
 	}
 
 	for n := 0; n < perPage; n++ {
+		style := l.styles.Basic
+
 		if len(selectionPrefix) > 0 {
 			switch {
 			case n+loc.Offset() == loc.LineNumber():
@@ -442,14 +412,9 @@ func (l *ListArea) Draw(state *Peco, parent Layout, perPage int, options *DrawOp
 		} else {
 			switch {
 			case n+loc.Offset() == loc.LineNumber():
-				fgAttr = l.styles.Selected.fg
-				bgAttr = l.styles.Selected.bg
+				style = l.styles.Selected
 			case selectionContains(state, n+loc.Offset()):
-				fgAttr = l.styles.SavedSelection.fg
-				bgAttr = l.styles.SavedSelection.bg
-			default:
-				fgAttr = l.styles.Basic.fg
-				bgAttr = l.styles.Basic.bg
+				style = l.styles.SavedSelection
 			}
 		}
 
@@ -483,44 +448,36 @@ func (l *ListArea) Draw(state *Peco, parent Layout, perPage int, options *DrawOp
 		line := target.DisplayString()
 
 		if len := len(prefix); len > 0 {
-			l.screen.Print(PrintArgs{
-				X:       x,
-				Y:       y,
-				XOffset: xOffset,
-				Fg:      fgAttr,
-				Bg:      bgAttr,
-				Msg:     prefix,
-			})
+			l.screen.Print(prefix).
+				X(x).
+				Y(y).
+				XOffset(xOffset).
+				Style(style).
+				Do()
 			x += len
 		}
 		if state.SingleKeyJumpMode() || state.SingleKeyJumpShowPrefix() {
 			prefixes := state.SingleKeyJumpPrefixes()
 			if n < int(len(prefixes)) {
-				l.screen.Print(PrintArgs{
-					X:       x,
-					Y:       y,
-					XOffset: xOffset,
-					Fg:      fgAttr | termbox.AttrBold | termbox.AttrReverse,
-					Bg:      bgAttr,
-					Msg:     string(prefixes[n]),
-				})
-				l.screen.Print(PrintArgs{
-					X:       x + 1,
-					Y:       y,
-					XOffset: xOffset,
-					Fg:      fgAttr,
-					Bg:      bgAttr,
-					Msg:     " ",
-				})
+				l.screen.Print(string(prefixes[n])).
+					X(x).
+					Y(y).
+					XOffset(xOffset).
+					Style(style.Clone().Bold(true).Reverse(true)).
+					Do()
+				l.screen.Print(" ").
+					X(x + 1).
+					Y(y).
+					XOffset(xOffset).
+					Style(style).
+					Do()
 			} else {
-				l.screen.Print(PrintArgs{
-					X:       x,
-					Y:       y,
-					XOffset: xOffset,
-					Fg:      fgAttr,
-					Bg:      bgAttr,
-					Msg:     "  ",
-				})
+				l.screen.Print("  ").
+					X(x).
+					Y(y).
+					XOffset(xOffset).
+					Style(style).
+					Do()
 			}
 
 			x += 2
@@ -528,15 +485,13 @@ func (l *ListArea) Draw(state *Peco, parent Layout, perPage int, options *DrawOp
 
 		ix, ok := target.(MatchIndexer)
 		if !ok {
-			l.screen.Print(PrintArgs{
-				X:       x,
-				Y:       y,
-				XOffset: xOffset,
-				Fg:      fgAttr,
-				Bg:      bgAttr,
-				Msg:     line,
-				Fill:    true,
-			})
+			l.screen.Print(line).
+				X(x).
+				Y(y).
+				XOffset(xOffset).
+				Style(style).
+				Fill(true).
+				Do()
 			continue
 		}
 
@@ -547,53 +502,49 @@ func (l *ListArea) Draw(state *Peco, parent Layout, perPage int, options *DrawOp
 		for _, m := range matches {
 			if m[0] > index {
 				c := line[index:m[0]]
-				n := l.screen.Print(PrintArgs{
-					X:       prev,
-					Y:       y,
-					XOffset: xOffset,
-					Fg:      fgAttr,
-					Bg:      bgAttr,
-					Msg:     c,
-				})
+				n := l.screen.Print(c).
+					X(prev).
+					Y(y).
+					XOffset(xOffset).
+					Style(style).
+					Do()
 				prev += n
 				index += len(c)
 			}
 			c := line[m[0]:m[1]]
 
-			n := l.screen.Print(PrintArgs{
-				X:       prev,
-				Y:       y,
-				XOffset: xOffset,
-				Fg:      l.styles.Matched.fg,
-				Bg:      mergeAttribute(bgAttr, l.styles.Matched.bg),
-				Msg:     c,
-				Fill:    true,
-			})
+			n := l.screen.Print(c).
+				X(prev).
+				Y(y).
+				XOffset(xOffset).
+				Style(l.styles.Matched).
+				//				Fg:      l.styles.Matched.fg,
+				//				Bg:      mergeAttribute(bgAttr, l.styles.Matched.bg),
+				Fill(true).
+				Do()
 			prev += n
 			index += len(c)
 		}
 
 		m := matches[len(matches)-1]
 		if m[0] > index {
-			l.screen.Print(PrintArgs{
-				X:       prev,
-				Y:       y,
-				XOffset: xOffset,
-				Fg:      l.styles.Query.fg,
-				Bg:      mergeAttribute(bgAttr, l.styles.Query.bg),
-				Msg:     line[m[0]:m[1]],
-				Fill:    true,
-			})
+			l.screen.Print(line[m[0]:m[1]]).
+				X(prev).
+				Y(y).
+				XOffset(xOffset).
+				Style(l.styles.Query).
+				//				Fg:      l.styles.Query.fg,
+				//				Bg:      mergeAttribute(bgAttr, l.styles.Query.bg),
+				Fill(true).
+				Do()
 		} else if len(line) > m[1] {
-			l.screen.Print(PrintArgs{
-				X:       prev,
-				Y:       y,
-				XOffset: xOffset,
-				Fg:      fgAttr,
-				Bg:      bgAttr,
-				Msg:     line[m[1]:len(line)],
-				Fill:    true,
-			})
+			l.screen.Print(line[m[1]:len(line)]).
+				X(prev).
+				Y(y).
+				XOffset(xOffset).
+				Style(style).
+				Fill(true).
+				Do()
 		}
 	}
 	l.SetDirty(false)

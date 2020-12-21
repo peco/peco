@@ -155,7 +155,7 @@ type Screen interface {
 	Close() error
 	Flush() error
 	PollEvent(context.Context, *Config) chan termbox.Event
-	Print(PrintArgs) int
+	Print(string) *PrintCmd
 	Resume()
 	SetCell(int, int, rune, termbox.Attribute, termbox.Attribute)
 	SetCursor(int, int)
