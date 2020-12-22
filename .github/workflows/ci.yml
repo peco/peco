@@ -27,7 +27,7 @@ jobs:
           echo "::add-path::$HOME/gotip/bin"
           echo "::add-path::$(go env GOPATH)/bin"
       - name: Test
-        run: make test
+        run: go test -v ./...
       - name: Cross-Compile
         run: make all
 
