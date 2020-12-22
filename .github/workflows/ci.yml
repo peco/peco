@@ -28,6 +28,4 @@ jobs:
           echo "::add-path::$(go env GOPATH)/bin"
       - name: Test
         run: go test -v ./...
-      - name: Cross-Compile
-        run: make all
 
