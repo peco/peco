@@ -3,11 +3,12 @@ on: [push, pull_request]
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
     strategy:
       matrix:
         go: [ '1.15', '1.14' ]
-    name: Go ${{ matrix.go }} test
+        os: [ 'windows-latest', 'ubuntu-latest' ]
+    name: Go ${{ matrix.go }} test on ${{ matrix.os }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v2
