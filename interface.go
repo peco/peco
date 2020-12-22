@@ -8,7 +8,6 @@ import (
 	"context"
 
 	"github.com/google/btree"
-	"github.com/nsf/termbox-go"
 	"github.com/peco/peco/filter"
 	"github.com/peco/peco/hub"
 	"github.com/peco/peco/internal/keyseq"
@@ -253,7 +252,7 @@ type Filter struct {
 // but most everything is implemented in terms of ActionFunc, which is
 // callback based Action
 type Action interface {
-	Register(string, ...termbox.Key)
+	Register(string, ...KeyCode)
 	RegisterKeySequence(string, keyseq.KeyList)
 	Execute(context.Context, *Peco, Event)
 }

@@ -12,7 +12,6 @@ import (
 
 	"github.com/google/btree"
 	"github.com/lestrrat-go/pdebug"
-	"github.com/nsf/termbox-go"
 	"github.com/peco/peco/internal/keyseq"
 	"github.com/peco/peco/internal/util"
 	"github.com/peco/peco/line"
@@ -42,7 +41,7 @@ func (a ActionFunc) registerKeySequence(k keyseq.KeyList) {
 // Register fulfills the Action interface for AfterFunc. Registers `a`
 // into the global action registry by the name `name`, and maps to
 // default keys via `defaultKeys`
-func (a ActionFunc) Register(name string, defaultKeys ...termbox.Key) {
+func (a ActionFunc) Register(name string, defaultKeys ...KeyCode) {
 	nameToActions["peco."+name] = a
 	for _, k := range defaultKeys {
 		a.registerKeySequence(keyseq.KeyList{keyseq.NewKeyFromKey(k)})
@@ -69,59 +68,59 @@ func init() {
 	defaultKeyBinding = map[string]Action{}
 
 	ActionFunc(doInvertSelection).Register("InvertSelection")
-	ActionFunc(doBeginningOfLine).Register("BeginningOfLine", termbox.KeyCtrlA)
-	ActionFunc(doBackwardChar).Register("BackwardChar", termbox.KeyCtrlB)
+	ActionFunc(doBeginningOfLine).Register("BeginningOfLine", KeyCtrlA)
+	ActionFunc(doBackwardChar).Register("BackwardChar", KeyCtrlB)
 	ActionFunc(doBackwardWord).Register("BackwardWord")
-	ActionFunc(doCancel).Register("Cancel", termbox.KeyCtrlC, termbox.KeyEsc)
+	ActionFunc(doCancel).Register("Cancel", KeyCtrlC, KeyEsc)
 	ActionFunc(doDeleteAll).Register("DeleteAll")
 	ActionFunc(doDeleteBackwardChar).Register(
 		"DeleteBackwardChar",
-		termbox.KeyBackspace,
-		termbox.KeyBackspace2,
+		KeyBackspace,
+		KeyBackspace2,
 	)
 	ActionFunc(doDeleteBackwardWord).Register(
 		"DeleteBackwardWord",
-		termbox.KeyCtrlW,
+		KeyCtrlW,
 	)
-	ActionFunc(doDeleteForwardChar).Register("DeleteForwardChar", termbox.KeyCtrlD)
+	ActionFunc(doDeleteForwardChar).Register("DeleteForwardChar", KeyCtrlD)
 	ActionFunc(doDeleteForwardWord).Register("DeleteForwardWord")
 	ActionFunc(doEndOfFile).Register("EndOfFile")
-	ActionFunc(doEndOfLine).Register("EndOfLine", termbox.KeyCtrlE)
-	ActionFunc(doFinish).Register("Finish", termbox.KeyEnter)
-	ActionFunc(doForwardChar).Register("ForwardChar", termbox.KeyCtrlF)
+	ActionFunc(doEndOfLine).Register("EndOfLine", KeyCtrlE)
+	ActionFunc(doFinish).Register("Finish", KeyEnter)
+	ActionFunc(doForwardChar).Register("ForwardChar", KeyCtrlF)
 	ActionFunc(doForwardWord).Register("ForwardWord")
-	ActionFunc(doKillEndOfLine).Register("KillEndOfLine", termbox.KeyCtrlK)
-	ActionFunc(doKillBeginningOfLine).Register("KillBeginningOfLine", termbox.KeyCtrlU)
-	ActionFunc(doRotateFilter).Register("RotateFilter", termbox.KeyCtrlR)
+	ActionFunc(doKillEndOfLine).Register("KillEndOfLine", KeyCtrlK)
+	ActionFunc(doKillBeginningOfLine).Register("KillBeginningOfLine", KeyCtrlU)
+	ActionFunc(doRotateFilter).Register("RotateFilter", KeyCtrlR)
 	wrapDeprecated(doRotateFilter, "RotateMatcher", "RotateFilter").Register("RotateMatcher")
 	ActionFunc(doBackToInitialFilter).Register("BackToInitialFilter")
 
-	ActionFunc(doSelectUp).Register("SelectUp", termbox.KeyArrowUp, termbox.KeyCtrlP)
+	ActionFunc(doSelectUp).Register("SelectUp", KeyArrowUp, KeyCtrlP)
 	wrapDeprecated(doSelectDown, "SelectNext", "SelectUp/SelectDown").Register("SelectNext")
 
-	ActionFunc(doScrollPageDown).Register("ScrollPageDown", termbox.KeyArrowRight)
+	ActionFunc(doScrollPageDown).Register("ScrollPageDown", KeyArrowRight)
 	wrapDeprecated(doScrollPageDown, "SelectNextPage", "ScrollPageDown/ScrollPageUp").Register("SelectNextPage")
 
-	ActionFunc(doSelectDown).Register("SelectDown", termbox.KeyArrowDown, termbox.KeyCtrlN)
+	ActionFunc(doSelectDown).Register("SelectDown", KeyArrowDown, KeyCtrlN)
 	wrapDeprecated(doSelectUp, "SelectPrevious", "SelectUp/SelectDown").Register("SelectPrevious")
 
-	ActionFunc(doScrollPageUp).Register("ScrollPageUp", termbox.KeyArrowLeft)
+	ActionFunc(doScrollPageUp).Register("ScrollPageUp", KeyArrowLeft)
 	wrapDeprecated(doScrollPageUp, "SelectPreviousPage", "ScrollPageDown/ScrollPageUp").Register("SelectPreviousPage")
 
 	ActionFunc(doScrollLeft).Register("ScrollLeft")
 	ActionFunc(doScrollRight).Register("ScrollRight")
 
-	ActionFunc(doScrollFirstItem).Register("ScrollFirstItem", termbox.KeyHome)
-	ActionFunc(doScrollLastItem).Register("ScrollLastItem", termbox.KeyEnd)
+	ActionFunc(doScrollFirstItem).Register("ScrollFirstItem", KeyHome)
+	ActionFunc(doScrollLastItem).Register("ScrollLastItem", KeyEnd)
 
 	ActionFunc(doToggleSelection).Register("ToggleSelection")
 	ActionFunc(doToggleSelectionAndSelectNext).Register(
 		"ToggleSelectionAndSelectNext",
-		termbox.KeyCtrlSpace,
+		KeyCtrlSpace,
 	)
 	ActionFunc(doSelectNone).Register(
 		"SelectNone",
-		termbox.KeyCtrlG,
+		KeyCtrlG,
 	)
 	ActionFunc(doSelectAll).Register("SelectAll")
 	ActionFunc(doSelectVisible).Register("SelectVisible")
@@ -129,27 +128,27 @@ func init() {
 	wrapDeprecated(doCancelRangeMode, "CancelSelectMode", "CancelRangeMode").Register("CancelSelectMode")
 	ActionFunc(doToggleRangeMode).Register("ToggleRangeMode")
 	ActionFunc(doCancelRangeMode).Register("CancelRangeMode")
-	ActionFunc(doToggleQuery).Register("ToggleQuery", termbox.KeyCtrlT)
-	ActionFunc(doRefreshScreen).Register("RefreshScreen", termbox.KeyCtrlL)
+	ActionFunc(doToggleQuery).Register("ToggleQuery", KeyCtrlT)
+	ActionFunc(doRefreshScreen).Register("RefreshScreen", KeyCtrlL)
 	ActionFunc(doToggleSingleKeyJump).Register("ToggleSingleKeyJump")
 
-	ActionFunc(doToggleViewArround).Register("ViewArround", termbox.KeyCtrlV)
+	ActionFunc(doToggleViewArround).Register("ViewArround", KeyCtrlV)
 
-	ActionFunc(doGoToNextSelection).Register("GoToNextSelection", termbox.KeyCtrlK)
-	ActionFunc(doGoToPreviousSelection).Register("GoToPreviousSelection", termbox.KeyCtrlJ)
+	ActionFunc(doGoToNextSelection).Register("GoToNextSelection", KeyCtrlK)
+	ActionFunc(doGoToPreviousSelection).Register("GoToPreviousSelection", KeyCtrlJ)
 
 	ActionFunc(doKonamiCommand).RegisterKeySequence(
 		"KonamiCommand",
 		keyseq.KeyList{
-			keyseq.Key{Modifier: 0, Key: termbox.KeyCtrlX, Ch: 0},
-			keyseq.Key{Modifier: 0, Key: termbox.KeyArrowUp, Ch: 0},
-			keyseq.Key{Modifier: 0, Key: termbox.KeyArrowUp, Ch: 0},
-			keyseq.Key{Modifier: 0, Key: termbox.KeyArrowDown, Ch: 0},
-			keyseq.Key{Modifier: 0, Key: termbox.KeyArrowDown, Ch: 0},
-			keyseq.Key{Modifier: 0, Key: termbox.KeyArrowLeft, Ch: 0},
-			keyseq.Key{Modifier: 0, Key: termbox.KeyArrowRight, Ch: 0},
-			keyseq.Key{Modifier: 0, Key: termbox.KeyArrowLeft, Ch: 0},
-			keyseq.Key{Modifier: 0, Key: termbox.KeyArrowRight, Ch: 0},
+			keyseq.Key{Modifier: 0, Key: KeyCtrlX, Ch: 0},
+			keyseq.Key{Modifier: 0, Key: KeyArrowUp, Ch: 0},
+			keyseq.Key{Modifier: 0, Key: KeyArrowUp, Ch: 0},
+			keyseq.Key{Modifier: 0, Key: KeyArrowDown, Ch: 0},
+			keyseq.Key{Modifier: 0, Key: KeyArrowDown, Ch: 0},
+			keyseq.Key{Modifier: 0, Key: KeyArrowLeft, Ch: 0},
+			keyseq.Key{Modifier: 0, Key: KeyArrowRight, Ch: 0},
+			keyseq.Key{Modifier: 0, Key: KeyArrowLeft, Ch: 0},
+			keyseq.Key{Modifier: 0, Key: KeyArrowRight, Ch: 0},
 			keyseq.Key{Modifier: 0, Key: 0, Ch: 'b'},
 			keyseq.Key{Modifier: 0, Key: 0, Ch: 'a'},
 		},

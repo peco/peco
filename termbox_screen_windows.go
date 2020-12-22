@@ -1,3 +1,5 @@
+// +build !tcell,windows
+
 package peco
 
 import "github.com/nsf/termbox-go"
