@@ -120,7 +120,7 @@ release-upload: release release-github-token
 
 test: deps
 	@echo "Running tests..."
-	@GO111MODULE=on PATH=$(INTERNAL_BIN_DIR)/$(GOOS)/$(GOARCH):$(PATH) go test -v ./...
+	@GO111MODULE=on PATH="$(INTERNAL_BIN_DIR)/$(GOOS)/$(GOARCH):$(PATH)" go test -v ./...
 
 clean:
 	-rm -rf $(RELEASE_DIR)/*/*
