@@ -13,7 +13,6 @@ import (
 	"context"
 
 	"github.com/lestrrat-go/pdebug"
-	"github.com/nsf/termbox-go"
 	"github.com/peco/peco/hub"
 	"github.com/peco/peco/internal/util"
 	"github.com/peco/peco/line"
@@ -90,7 +89,7 @@ type dummyScreen struct {
 	*interceptor
 	width  int
 	height int
-	pollCh chan termbox.Event
+	pollCh chan Event
 }
 
 func NewDummyScreen() *dummyScreen {
@@ -98,7 +97,7 @@ func NewDummyScreen() *dummyScreen {
 		interceptor: newInterceptor(),
 		width:       80,
 		height:      10,
-		pollCh:      make(chan termbox.Event),
+		pollCh:      make(chan Event),
 	}
 }
 
@@ -113,14 +112,51 @@ func (d dummyScreen) Close() error {
 	return nil
 }
 
-func (d dummyScreen) Print(msg string) *PrintCmd {
-	cmd := printCmdPool.Get().(*PrintCmd)
-	cmd.msg = msg
-	cmd.screen = d
+type dummyPrintCmd struct {
+	*printCmd
+	screen *dummyScreen
+}
+
+func (cmd *dummyPrintCmd) XOffset(v int) PrintCmd {
+	cmd.printCmd.XOffset(v)
 	return cmd
 }
 
-func (d dummyScreen) SendEvent(e termbox.Event) {
+func (cmd *dummyPrintCmd) X(v int) PrintCmd {
+	cmd.printCmd.X(v)
+	return cmd
+}
+
+func (cmd *dummyPrintCmd) Y(v int) PrintCmd {
+	cmd.printCmd.Y(v)
+	return cmd
+}
+
+func (cmd *dummyPrintCmd) Style(s *Style) PrintCmd {
+	cmd.printCmd.Style(s)
+	return cmd
+}
+
+func (cmd *dummyPrintCmd) Fill(v bool) PrintCmd {
+	cmd.printCmd.Fill(v)
+	return cmd
+}
+
+func (cmd *dummyPrintCmd) Do() int {
+	cmd.screen.record("Do", nil)
+	return 0
+}
+
+func (d *dummyScreen) Print(msg string) PrintCmd {
+	cmd := printCmdPool.Get().(*printCmd)
+	cmd.msg = msg
+	return &dummyPrintCmd{
+		printCmd: cmd,
+		screen: d,
+	}
+}
+
+func (d dummyScreen) SendEvent(e Event) {
 	// XXX FIXME SendEvent should receive a context
 	t := time.NewTimer(time.Second)
 	defer t.Stop()
@@ -131,14 +167,11 @@ func (d dummyScreen) SendEvent(e termbox.Event) {
 	}
 }
 
-func (d dummyScreen) SetCell(x, y int, ch rune, fg, bg termbox.Attribute) {
-	d.record("SetCell", interceptorArgs{x, y, ch, fg, bg})
-}
 func (d dummyScreen) Flush() error {
 	d.record("Flush", interceptorArgs{})
 	return nil
 }
-func (d dummyScreen) PollEvent(ctx context.Context, cfg *Config) chan termbox.Event {
+func (d dummyScreen) PollEvent(ctx context.Context, cfg *Config) chan Event {
 	return d.pollCh
 }
 func (d dummyScreen) Size() (int, int) {
@@ -381,13 +414,13 @@ func TestGHIssue367(t *testing.T) {
 
 	select {
 	case <-time.After(100 * time.Millisecond):
-		p.screen.SendEvent(termbox.Event{Ch: 'b'})
+		p.screen.SendEvent(RuneEvent('b'))
 	case <-time.After(200 * time.Millisecond):
-		p.screen.SendEvent(termbox.Event{Ch: 'a'})
+		p.screen.SendEvent(RuneEvent('a'))
 	case <-time.After(300 * time.Millisecond):
-		p.screen.SendEvent(termbox.Event{Ch: 'r'})
+		p.screen.SendEvent(RuneEvent('r'))
 	case <-time.After(900 * time.Millisecond):
-		p.screen.SendEvent(termbox.Event{Key: termbox.KeyEnter})
+		p.screen.SendEvent(KeyEvent(KeyEnter))
 	}
 
 	<-waitCh
@@ -473,7 +506,7 @@ func TestPrintQuery(t *testing.T) {
 		<-p.Ready()
 
 		time.AfterFunc(100*time.Millisecond, func() {
-			p.screen.SendEvent(termbox.Event{Key: termbox.KeyEnter})
+			p.screen.SendEvent(KeyEvent(KeyEnter))
 		})
 
 		select {

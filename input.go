@@ -6,10 +6,9 @@ import (
 	"context"
 
 	"github.com/lestrrat-go/pdebug"
-	"github.com/nsf/termbox-go"
 )
 
-func NewInput(state *Peco, am ActionMap, src chan termbox.Event) *Input {
+func NewInput(state *Peco, am ActionMap, src chan Event) *Input {
 	return &Input{
 		actions: am,
 		evsrc:   src,
@@ -32,19 +31,19 @@ func (i *Input) Loop(ctx context.Context, cancel func()) error {
 	}
 }
 
-func (i *Input) handleInputEvent(ctx context.Context, ev termbox.Event) error {
+func (i *Input) handleInputEvent(ctx context.Context, ev Event) error {
 	if pdebug.Enabled {
 		g := pdebug.Marker("event received from user: %#v", ev)
 		defer g.End()
 	}
 
-	switch ev.Type {
-	case termbox.EventError:
+	switch {
+	case ev.IsError():
 		return nil
-	case termbox.EventResize:
+	case ev.IsResize():
 		i.state.Hub().SendDraw(ctx, nil)
 		return nil
-	case termbox.EventKey:
+	case ev.IsKey():
 		// ModAlt is a sequence of letters with a leading \x1b (=Esc).
 		// It would be nice if termbox differentiated this for us, but
 		// we workaround it by waiting (juuuust a few milliseconds) for
@@ -55,7 +54,7 @@ func (i *Input) handleInputEvent(ctx context.Context, ev termbox.Event) error {
 		// Smells like Esc or Alt. mod == nil checks for the presence
 		// of a previous timer
 		m.Lock()
-		if ev.Ch == 0 && ev.Key == 27 && i.mod == nil {
+		if ev.Rune() == 0 && ev.KeyCode() == 27 && i.mod == nil {
 			tmp := ev
 			i.mod = time.AfterFunc(50*time.Millisecond, func() {
 				m.Lock()
@@ -74,7 +73,7 @@ func (i *Input) handleInputEvent(ctx context.Context, ev termbox.Event) error {
 		if i.mod != nil {
 			i.mod.Stop()
 			i.mod = nil
-			ev.Mod |= termbox.ModAlt
+			ev.SetModifier(ModAlt, true)
 		}
 		m.Unlock()
 

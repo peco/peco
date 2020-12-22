@@ -2,7 +2,22 @@
 
 package peco
 
-import "fmt"
+import "strconv"
+
+func _() {
+	// An "invalid array index" compiler error signifies that the constant values have changed.
+	// Re-run the stringer command to generate them again.
+	var x [1]struct{}
+	_ = x[ToLineAbove-0]
+	_ = x[ToScrollPageDown-1]
+	_ = x[ToLineBelow-2]
+	_ = x[ToScrollPageUp-3]
+	_ = x[ToScrollLeft-4]
+	_ = x[ToScrollRight-5]
+	_ = x[ToLineInPage-6]
+	_ = x[ToScrollFirstItem-7]
+	_ = x[ToScrollLastItem-8]
+}
 
 const _PagingRequestType_name = "ToLineAboveToScrollPageDownToLineBelowToScrollPageUpToScrollLeftToScrollRightToLineInPageToScrollFirstItemToScrollLastItem"
 
@@ -10,7 +25,7 @@ var _PagingRequestType_index = [...]uint8{0, 11, 27, 38, 52, 64, 77, 89, 106, 12
 
 func (i PagingRequestType) String() string {
 	if i < 0 || i >= PagingRequestType(len(_PagingRequestType_index)-1) {
-		return fmt.Sprintf("PagingRequestType(%d)", i)
+		return "PagingRequestType(" + strconv.FormatInt(int64(i), 10) + ")"
 	}
 	return _PagingRequestType_name[_PagingRequestType_index[i]:_PagingRequestType_index[i+1]]
 }

@@ -2,7 +2,15 @@
 
 package peco
 
-import "fmt"
+import "strconv"
+
+func _() {
+	// An "invalid array index" compiler error signifies that the constant values have changed.
+	// Re-run the stringer command to generate them again.
+	var x [1]struct{}
+	_ = x[AnchorTop-1]
+	_ = x[AnchorBottom-2]
+}
 
 const _VerticalAnchor_name = "AnchorTopAnchorBottom"
 
@@ -11,7 +19,7 @@ var _VerticalAnchor_index = [...]uint8{0, 9, 21}
 func (i VerticalAnchor) String() string {
 	i -= 1
 	if i < 0 || i >= VerticalAnchor(len(_VerticalAnchor_index)-1) {
-		return fmt.Sprintf("VerticalAnchor(%d)", i+1)
+		return "VerticalAnchor(" + strconv.FormatInt(int64(i+1), 10) + ")"
 	}
 	return _VerticalAnchor_name[_VerticalAnchor_index[i]:_VerticalAnchor_index[i+1]]
 }

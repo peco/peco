@@ -5,8 +5,8 @@ import (
 	"sort"
 	"strings"
 	"time"
+
 	"github.com/lestrrat-go/pdebug"
-	"github.com/nsf/termbox-go"
 	"github.com/peco/peco/internal/keyseq"
 	"github.com/pkg/errors"
 )
@@ -26,7 +26,7 @@ func (km Keymap) Sequence() Keyseq {
 
 const isTopLevelActionCall = "peco.isTopLevelActionCall"
 
-func (km Keymap) ExecuteAction(ctx context.Context, state *Peco, ev termbox.Event) (err error) {
+func (km Keymap) ExecuteAction(ctx context.Context, state *Peco, ev Event) (err error) {
 	if pdebug.Enabled {
 		g := pdebug.Marker("Keymap.ExecuteAction %v", ev).BindError(&err)
 		defer g.End()
@@ -43,16 +43,16 @@ func (km Keymap) ExecuteAction(ctx context.Context, state *Peco, ev termbox.Even
 }
 
 // LookupAction returns the appropriate action for the given termbox event
-func (km Keymap) LookupAction(ev termbox.Event) Action {
+func (km Keymap) LookupAction(ev Event) Action {
 	modifier := keyseq.ModNone
-	if (ev.Mod & termbox.ModAlt) != 0 {
+	if ev.HasModifier(ModAlt) {
 		modifier = keyseq.ModAlt
 	}
 
 	key := keyseq.Key{
 		Modifier: modifier,
-		Key:      ev.Key,
-		Ch:       ev.Ch,
+		Key:      ev.KeyCode(),
+		Ch:       ev.Rune(),
 	}
 	action, err := km.seq.AcceptKey(key)
 
@@ -77,8 +77,8 @@ func (km Keymap) LookupAction(ev termbox.Event) Action {
 }
 
 func wrapRememberSequence(a Action) Action {
-	return ActionFunc(func(ctx context.Context, state *Peco, ev termbox.Event) {
-		if s, err := keyseq.EventToString(ev); err == nil {
+	return ActionFunc(func(ctx context.Context, state *Peco, ev Event) {
+		if s, err := gKeyDB.Format(ev); err == nil {
 			seq := state.Inputseq()
 			seq.Add(s)
 			state.Hub().SendStatusMsg(ctx, strings.Join(seq.KeyNames(), " "))
@@ -88,9 +88,9 @@ func wrapRememberSequence(a Action) Action {
 }
 
 func wrapClearSequence(a Action) Action {
-	return ActionFunc(func(ctx context.Context, state *Peco, ev termbox.Event) {
+	return ActionFunc(func(ctx context.Context, state *Peco, ev Event) {
 		seq := state.Inputseq()
-		if s, err := keyseq.EventToString(ev); err == nil {
+		if s, err := gKeyDB.Format(ev); err == nil {
 			seq.Add(s)
 		}
 
@@ -112,7 +112,7 @@ func (km Keymap) resolveActionName(name string, depth int) (Action, error) {
 	}
 
 	// Can it be resolved via regular nameToActions ?
-	v, ok := nameToActions[name]
+	v, ok := NameToAction(name)
 	if ok {
 		return v, nil
 	}

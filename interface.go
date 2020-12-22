@@ -154,21 +154,13 @@ type Screen interface {
 	Init(*Config) error
 	Close() error
 	Flush() error
-	PollEvent(context.Context, *Config) chan termbox.Event
-	Print(string) *PrintCmd
+	PollEvent(context.Context, *Config) chan Event
+	Print(string) PrintCmd
 	Resume()
-	SetCell(int, int, rune, termbox.Attribute, termbox.Attribute)
 	SetCursor(int, int)
 	Size() (int, int)
-	SendEvent(termbox.Event)
+	SendEvent(Event)
 	Suspend()
-}
-
-// Termbox just hands out the processing to the termbox library
-type Termbox struct {
-	mutex     sync.Mutex
-	resumeCh  chan chan struct{}
-	suspendCh chan struct{}
 }
 
 // View handles the drawing/updating the screen
@@ -263,11 +255,11 @@ type Filter struct {
 type Action interface {
 	Register(string, ...termbox.Key)
 	RegisterKeySequence(string, keyseq.KeyList)
-	Execute(context.Context, *Peco, termbox.Event)
+	Execute(context.Context, *Peco, Event)
 }
 
 // ActionFunc is a type of Action that is basically just a callback.
-type ActionFunc func(context.Context, *Peco, termbox.Event)
+type ActionFunc func(context.Context, *Peco, Event)
 
 // FilteredBuffer holds a "filtered" buffer. It holds a reference to
 // the source buffer (note: should be immutable) and a list of indices
@@ -437,12 +429,12 @@ type MemoryBuffer struct {
 }
 
 type ActionMap interface {
-	ExecuteAction(context.Context, *Peco, termbox.Event) error
+	ExecuteAction(context.Context, *Peco, Event) error
 }
 
 type Input struct {
 	actions ActionMap
-	evsrc   chan termbox.Event
+	evsrc   chan Event
 	mod     *time.Timer
 	mutex   sync.Mutex
 	state   *Peco
@@ -468,4 +460,15 @@ type MessageHub interface {
 type filterProcessor struct {
 	filter filter.Filter
 	query  string
+}
+
+type Event interface {
+	KeyCode() KeyCode
+	HasModifier(Modifier) bool
+	IsError() bool
+	IsKey() bool
+	IsResize() bool
+	Rune() rune
+	SetRune(rune)
+	SetModifier(Modifier, bool)
 }
