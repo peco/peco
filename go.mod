@@ -8,7 +8,7 @@ require (
 	github.com/gdamore/tcell/v2 v2.1.0
 	github.com/google/btree v0.0.0-20161213163243-0c3044bc8bad
 	github.com/jessevdk/go-flags v1.1.0
-	github.com/lestrrat-go/codegen v0.0.0-20201219095749-85e244da3358 // indirect
+	github.com/lestrrat-go/codegen v0.0.0-20201219095749-85e244da3358
 	github.com/lestrrat-go/envload v0.0.0-20180220234015-a3eb8ddeffcc
 	github.com/lestrrat-go/pdebug v0.0.0-20180220043849-39f9a71bcabe
 	github.com/mattn/go-runewidth v0.0.9

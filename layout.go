@@ -538,7 +538,7 @@ func (l *ListArea) Draw(state *Peco, parent Layout, perPage int, options *DrawOp
 				Fill(true).
 				Do()
 		} else if len(line) > m[1] {
-			l.screen.Print(line[m[1]:len(line)]).
+			l.screen.Print(line[m[1]:]).
 				X(prev).
 				Y(y).
 				XOffset(xOffset).

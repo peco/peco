@@ -16,7 +16,7 @@ func TestActionFunc(t *testing.T) {
 	af := ActionFunc(func(_ context.Context, _ *Peco, _ Event) {
 		called++
 	})
-	af.Execute(nil, nil, nil)
+	af.Execute(context.TODO(), nil, nil)
 	if !assert.Equal(t, called, 1, "Expected ActionFunc to be called once, but it got called %d times", called) {
 		return
 	}

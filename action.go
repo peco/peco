@@ -438,9 +438,9 @@ func doScrollLastItem(ctx context.Context, state *Peco, e Event) {
 }
 
 func doToggleSelectionAndSelectNext(ctx context.Context, state *Peco, e Event) {
-	toplevel, _ := ctx.Value(isTopLevelActionCall).(bool)
+	toplevel, _ := ctx.Value(isTopLevelActionCall{}).(bool)
 	state.Hub().Batch(ctx, func(ctx context.Context) {
-		ctx = context.WithValue(ctx, isTopLevelActionCall, false)
+		ctx = context.WithValue(ctx, isTopLevelActionCall{}, false)
 		doToggleSelection(ctx, state, e)
 		// XXX This is sucky. Fix later
 		if state.LayoutType() == "top-down" {
@@ -911,9 +911,9 @@ func doSingleKeyJump(ctx context.Context, state *Peco, e Event) {
 		return
 	}
 
-	toplevel, _ := ctx.Value(isTopLevelActionCall).(bool)
+	toplevel, _ := ctx.Value(isTopLevelActionCall{}).(bool)
 	state.Hub().Batch(ctx, func(ctx context.Context) {
-		ctx = context.WithValue(ctx, isTopLevelActionCall, false)
+		ctx = context.WithValue(ctx, isTopLevelActionCall{}, false)
 		state.Hub().SendPaging(ctx, JumpToLineRequest(index))
 		doFinish(ctx, state, e)
 	}, toplevel)
@@ -921,9 +921,9 @@ func doSingleKeyJump(ctx context.Context, state *Peco, e Event) {
 
 func makeCombinedAction(actions ...Action) ActionFunc {
 	return ActionFunc(func(ctx context.Context, state *Peco, e Event) {
-		toplevel, _ := ctx.Value(isTopLevelActionCall).(bool)
+		toplevel, _ := ctx.Value(isTopLevelActionCall{}).(bool)
 		state.Hub().Batch(ctx, func(ctx context.Context) {
-			ctx = context.WithValue(ctx, isTopLevelActionCall, false)
+			ctx = context.WithValue(ctx, isTopLevelActionCall{}, false)
 			for _, a := range actions {
 				a.Execute(ctx, state, e)
 			}

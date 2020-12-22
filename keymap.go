@@ -24,7 +24,7 @@ func (km Keymap) Sequence() Keyseq {
 	return km.seq
 }
 
-const isTopLevelActionCall = "peco.isTopLevelActionCall"
+type isTopLevelActionCall struct{}
 
 func (km Keymap) ExecuteAction(ctx context.Context, state *Peco, ev Event) (err error) {
 	if pdebug.Enabled {
@@ -37,7 +37,7 @@ func (km Keymap) ExecuteAction(ctx context.Context, state *Peco, ev Event) (err 
 		return errors.New("action not found")
 	}
 
-	ctx = context.WithValue(ctx, isTopLevelActionCall, true)
+	ctx = context.WithValue(ctx, isTopLevelActionCall{}, true)
 	a.Execute(ctx, state, ev)
 	return nil
 }
@@ -182,9 +182,4 @@ func (km *Keymap) ApplyKeybinding() error {
 	}
 
 	return errors.Wrap(k.Compile(), "failed to compile key binding patterns")
-}
-
-// TODO: this needs to be fixed.
-func (km Keymap) hasModifierMaps() bool {
-	return false
 }

@@ -45,13 +45,6 @@ func newInterceptor() *interceptor {
 	}
 }
 
-func (i *interceptor) reset() {
-	i.m.Lock()
-	defer i.m.Unlock()
-
-	i.events = make(map[string][]interceptorArgs)
-}
-
 func (i *interceptor) record(name string, args []interface{}) {
 	i.m.Lock()
 	defer i.m.Unlock()
@@ -207,13 +200,6 @@ func TestPeco(t *testing.T) {
 	if !assert.NoError(t, p.Run(ctx), "p.Run() succeeds") {
 		return
 	}
-}
-
-type testCauser interface {
-	Cause() error
-}
-type testIgnorableError interface {
-	Ignorable() bool
 }
 
 func TestPecoHelp(t *testing.T) {
