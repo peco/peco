@@ -15,6 +15,7 @@ BUILD_TARGETS= \
 	build-linux-amd64 \
 	build-linux-386 \
 	build-darwin-amd64 \
+	build-darwin-arm64 \
 	build-windows-amd64 \
 	build-windows-386
 RELEASE_TARGETS=\
@@ -23,6 +24,7 @@ RELEASE_TARGETS=\
 	release-linux-amd64 \
 	release-linux-386 \
 	release-darwin-amd64 \
+	release-darwin-arm64 \
 	release-windows-amd64 \
 	release-windows-386
 
@@ -58,6 +60,9 @@ build-linux-386:
 
 build-darwin-amd64:
 	@$(MAKE) build GOOS=darwin GOARCH=amd64
+
+build-darwin-arm64:
+	@$(MAKE) build GOOS=darwin GOARCH=arm64
 
 $(RELEASE_DIR)/peco_$(GOOS)_$(GOARCH)/peco$(SUFFIX): deps
 	@GO111MODULE=on go build -o $(RELEASE_DIR)/peco_$(GOOS)_$(GOARCH)/peco$(SUFFIX) cmd/peco/peco.go
@@ -95,6 +100,9 @@ release-linux-386: build-linux-386
 
 release-darwin-amd64: build-darwin-amd64
 	@$(MAKE) release-changes release-readme release-zip GOOS=darwin GOARCH=amd64
+
+release-darwin-arm64: build-darwin-arm64
+	@$(MAKE) release-changes release-readme release-zip GOOS=darwin GOARCH=arm64
 
 $(ARTIFACTS_DIR):
 	@mkdir -p $(ARTIFACTS_DIR)
