@@ -1,6 +1,12 @@
 Changes
 =======
 
+v0.5.9 - 08 Jun 2021
+  * Remove support for 386 arch
+  * Add go.sum
+  * Add darwin-arm
+  * Fix double cursor issue (#513)
+
 v0.5.8 - 18 Jul 2020
   Features:
   * Add support for 256-colors in the configuration. You must first enable
