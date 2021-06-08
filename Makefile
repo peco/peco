@@ -13,20 +13,16 @@ BUILD_TARGETS= \
 	build-linux-arm64 \
 	build-linux-arm \
 	build-linux-amd64 \
-	build-linux-386 \
 	build-darwin-amd64 \
 	build-darwin-arm64 \
 	build-windows-amd64 \
-	build-windows-386
 RELEASE_TARGETS=\
 	release-linux-arm64 \
 	release-linux-arm \
 	release-linux-amd64 \
-	release-linux-386 \
 	release-darwin-amd64 \
 	release-darwin-arm64 \
 	release-windows-amd64 \
-	release-windows-386
 
 .PHONY: clean build $(RELEASE_TARGETS) $(BUILD_TARGETS) $(RELEASE_DIR)/$(GOOS)/$(GOARCH)/peco$(SUFFIX)
 
