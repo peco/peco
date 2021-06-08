@@ -1,6 +1,10 @@
 Changes
 =======
 
+v0.5.10 - 08 Jun 2021
+  * Previous release was botched. No code change except for version string,
+    and Makefile typo.
+
 v0.5.9 - 08 Jun 2021
   * Remove support for 386 arch
   * Add go.sum
