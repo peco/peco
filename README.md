@@ -728,7 +728,6 @@ Much code stolen from https://github.com/mattn/gof
 <!-- START doctoc generated TOC please keep comment here to allow auto update -->
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
 
-
 - [peco](#peco)
 - [Description](#description)
   - [Demo](#demo)
@@ -744,7 +743,7 @@ Much code stolen from https://github.com/mattn/gof
     - [macOS (Homebrew, Scarf)](#macos-homebrew-scarf)
     - [Debian and Ubuntu based distributions (APT, Scarf)](#debian-and-ubuntu-based-distributions-apt-scarf)
     - [Void Linux (XBPS)](#void-linux-xbps)
-    - [Arch Linux (AUR)](#arch-linux-aur)
+    - [Arch Linux](#arch-linux)
     - [Windows (Chocolatey NuGet Users)](#windows-chocolatey-nuget-users)
     - [Building peco yourself](#building-peco-yourself)
     - [go get IS NOT RECOMMENDED](#go-get-is-not-recommended)
