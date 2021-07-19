@@ -123,10 +123,12 @@ scarf install peco
 xbps-install -S peco
 ```
 
-### Arch Linux (AUR)
+### Arch Linux
+
+There is an official Arch Linux package that can be installed via `pacman`:
 
 ```
-yay -S peco
+pacman -Syu peco
 ```
 
 ### Windows (Chocolatey NuGet Users)
