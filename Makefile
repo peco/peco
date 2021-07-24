@@ -104,7 +104,7 @@ $(ARTIFACTS_DIR):
 	@mkdir -p $(ARTIFACTS_DIR)
 
 # note: I dreamt of using tar.bz2 for my releases, but then historically
-# (for whatever reason that is unknwon to me now) I was creating .zip for
+# (for whatever reason that is unknown to me now) I was creating .zip for
 # darwin/windows, and .tar.gz for linux, so I guess we'll stick with those.
 # (I think this is from goxc days)
 release-tarbz: $(ARTIFACTS_DIR)

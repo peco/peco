@@ -470,7 +470,7 @@ Some keys just... don't map correctly / too easily for various reasons. Here, we
 | peco.SelectVisible      | Selects the all visible line, and save it |
 | peco.ToggleSelectMode   | (DEPRECATED) Alias to ToggleRangeMode |
 | peco.CancelSelectMode   | (DEPRECATED) Alias to CancelRangeMode |
-| peco.ToggleQuery        | Toggle list between filterd by query and not filterd. |
+| peco.ToggleQuery        | Toggle list between filtered by query and not filtered. |
 | peco.ToggleRangeMode   | Start selecting by range, or append selecting range to selections |
 | peco.CancelRangeMode   | Finish selecting by range and cancel range selection |
 | peco.RotateMatcher     | (DEPRECATED) Use peco.RotateFilter |
