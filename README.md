@@ -181,7 +181,7 @@ Display the version of peco
 
 ### --query <query>
 
-Specifies the default query to be used upon startup. This is useful for scripts and functions where you can figure out before hand what the most likely query string is.
+Specifies the default query to be used upon startup. This is useful for scripts and functions where you can figure out beforehand what the most likely query string is.
 
 ### --print-query
 
@@ -589,7 +589,7 @@ Once you have a filter, you must specify how the matcher is spawned:
 }
 ```
 
-`Cmd` specifies the command name. This must be searcheable via `exec.LookPath`.
+`Cmd` specifies the command name. This must be searchable via `exec.LookPath`.
 
 Elements in the `Args` section are string keys to array of program arguments. The special token `$QUERY` will be replaced with the unaltered query as the user typed in (i.e. multiple-word queries will be passed as a single string). You may pass in any other arguments in this array. If you omit this in your config, a default value of `[]string{"$QUERY"}` will be used
 
