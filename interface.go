@@ -52,6 +52,10 @@ const (
 	RegexpMatch        = "Regexp"
 )
 
+const (
+	OnEmptyExit = `exit`
+)
+
 type idgen struct {
 	ch chan uint64
 }
@@ -84,6 +88,7 @@ type Peco struct {
 	maxScanBufferSize       int
 	mutex                   sync.Mutex
 	onCancel                string
+	onEmpty                 string
 	printQuery              bool
 	prompt                  string
 	query                   Query
@@ -411,6 +416,7 @@ type CLIOptions struct {
 	OptInitialFilter   string `long:"initial-filter" description:"specify the default filter"`
 	OptPrompt          string `long:"prompt" description:"specify the prompt string"`
 	OptLayout          string `long:"layout" description:"layout to be used. 'top-down' or 'bottom-up'. default is 'top-down'"`
+	OptOnEmpty         string `long:"on-empty" description:"action to take when the input is finite (not a stream) and the buffer is empty. specify 'exit' to exit peco when the buffer is empty"`
 	OptSelect1         bool   `long:"select-1" description:"select first item and immediately exit if the input contains only 1 item"`
 	OptOnCancel        string `long:"on-cancel" description:"specify action on user cancel. 'success' or 'error'.\ndefault is 'success'. This may change in future versions"`
 	OptSelectionPrefix string `long:"selection-prefix" description:"use a prefix instead of changing line color to indicate currently selected lines.\ndefault is to use colors. This option is experimental"`

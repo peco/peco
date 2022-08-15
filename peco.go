@@ -311,6 +311,12 @@ func (p *Peco) selectOneAndExitIfPossible() {
 	}
 }
 
+func (p *Peco) exitOnEmpty() {
+	if b := p.CurrentLineBuffer(); b.Size() == 0 {
+		p.Exit(errCollectResults{})
+	}
+}
+
 func (p *Peco) Run(ctx context.Context) (err error) {
 	if pdebug.Enabled {
 		g := pdebug.Marker("Peco.Run").BindError(&err)
@@ -391,6 +397,18 @@ func (p *Peco) Run(ctx context.Context) (err error) {
 			<-p.source.SetupDone()
 			p.selectOneAndExitIfPossible()
 		}()
+	}
+
+	if !src.IsInfinite() {
+		switch p.onEmpty {
+		case OnEmptyExit:
+			go func() {
+				<-p.source.SetupDone()
+				p.exitOnEmpty()
+			}()
+		default:
+			// DO NOTHING
+		}
 	}
 
 	readyOnce.Do(func() { close(p.readyCh) })
@@ -558,6 +576,12 @@ func (p *Peco) ApplyConfig(opts CLIOptions) error {
 	} else {
 		p.selectionPrefix = p.config.SelectionPrefix
 	}
+	switch opts.OptOnEmpty {
+	case OnEmptyExit, "":
+	default:
+		return errors.Errorf("invalid --on-empty value %q", opts.OptOnEmpty)
+	}
+	p.onEmpty = opts.OptOnEmpty
 	p.selectOneAndExit = opts.OptSelect1
 	p.printQuery = opts.OptPrintQuery
 	p.initialQuery = opts.OptQuery
