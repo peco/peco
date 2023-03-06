@@ -624,7 +624,7 @@ func (p *Peco) populateFilters() error {
 	p.filters.Add(filter.NewCaseSensitive())
 	p.filters.Add(filter.NewSmartCase())
 	p.filters.Add(filter.NewRegexp())
-	p.filters.Add(filter.NewFuzzy())
+	p.filters.Add(filter.NewFuzzy(p.fuzzyLongestSort))
 
 	for name, c := range p.config.CustomFilter {
 		f := filter.NewExternalCmd(name, c.Cmd, c.Args, c.BufferThreshold, p.idgen, p.enableSep)

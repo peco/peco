@@ -48,6 +48,7 @@ type regexpQuery struct {
 }
 
 type Fuzzy struct {
+	sortLongest bool
 }
 
 type Regexp struct {
