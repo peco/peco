@@ -65,7 +65,7 @@ The SmartCase filter uses case-*insensitive* matching when all of the queries ar
 
 The Regexp filter allows you to use any valid regular expression to match lines.
 
-The Fuzzy filter allows you to find matches using partial patterns. For example, when searching for `ALongString`, you can enable the Fuzzy filter and search `ALS` to find it. The Fuzzy filter uses smart case search like the SmartCase filter.
+The Fuzzy filter allows you to find matches using partial patterns. For example, when searching for `ALongString`, you can enable the Fuzzy filter and search `ALS` to find it. The Fuzzy filter uses smart case search like the SmartCase filter. With the `FuzzyLongestSort` flag enabled in the configuration file, it does a smarter match. It sorts the matched lines by the following precedence: 1. longer substring, 2. earlier (left positioned) substring, and 3. shorter line.
 
 ![Executed `ps aux | peco`, then typed `google`, which matches the Chrome.app under IgnoreCase filter type. When you change it to Regexp filter, this is no longer the case. But you can type `(?i)google` instead to toggle case-insensitive mode](http://peco.github.io/images/peco-demo-matcher.gif)
 
@@ -285,6 +285,12 @@ You can change the query line's prompt, which is `QUERY>` by default.
 ### InitialFilter
 
 Specifies the filter name to start peco with. You should specify the name of the filter, such as `IgnoreCase`, `CaseSensitive`, `SmartCase`, `Regexp` and `Fuzzy`.
+
+### FuzzyLongestSort
+
+Enables the longest substring match and sorts the output. It affects only the Fuzzy filter.
+
+Default value for FuzzyLongestSort is false.
 
 ### StickySelection
 

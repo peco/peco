@@ -568,6 +568,7 @@ func (p *Peco) ApplyConfig(opts CLIOptions) error {
 	if len(p.initialFilter) <= 0 {
 		p.initialFilter = opts.OptInitialMatcher
 	}
+	p.fuzzyLongestSort = p.config.FuzzyLongestSort
 
 	if err := p.populateFilters(); err != nil {
 		return errors.Wrap(err, "failed to populate filters")
@@ -623,7 +624,7 @@ func (p *Peco) populateFilters() error {
 	p.filters.Add(filter.NewCaseSensitive())
 	p.filters.Add(filter.NewSmartCase())
 	p.filters.Add(filter.NewRegexp())
-	p.filters.Add(filter.NewFuzzy())
+	p.filters.Add(filter.NewFuzzy(p.fuzzyLongestSort))
 
 	for name, c := range p.config.CustomFilter {
 		f := filter.NewExternalCmd(name, c.Cmd, c.Args, c.BufferThreshold, p.idgen, p.enableSep)

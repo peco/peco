@@ -104,6 +104,7 @@ type Peco struct {
 	skipReadConfig          bool
 	styles                  StyleSet
 	use256Color             bool
+	fuzzyLongestSort        bool
 
 	// Source is where we buffer input. It gets reused when a new query is
 	// executed.
@@ -299,6 +300,7 @@ type Config struct {
 	QueryExecutionDelay int
 	StickySelection     bool
 	MaxScanBufferSize   int
+	FuzzyLongestSort    bool
 
 	// If this is true, then the prefix for single key jump mode
 	// is displayed by default.
