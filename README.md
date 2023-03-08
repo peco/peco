@@ -774,6 +774,7 @@ Much code stolen from https://github.com/mattn/gof
     - [Prompt](#prompt)
     - [InitialMatcher](#initialmatcher)
     - [InitialFilter](#initialfilter)
+    - [FuzzyLongestSort](#fuzzylongestsort)
     - [StickySelection](#stickyselection)
     - [OnCancel](#oncancel)
     - [MaxScanBufferSize](#maxscanbuffersize)
