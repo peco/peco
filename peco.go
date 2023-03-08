@@ -568,6 +568,7 @@ func (p *Peco) ApplyConfig(opts CLIOptions) error {
 	if len(p.initialFilter) <= 0 {
 		p.initialFilter = opts.OptInitialMatcher
 	}
+	p.fuzzyLongestSort = p.config.FuzzyLongestSort
 
 	if err := p.populateFilters(); err != nil {
 		return errors.Wrap(err, "failed to populate filters")
