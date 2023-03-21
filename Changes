@@ -1,6 +1,24 @@
 Changes
 =======
 
+v0.5.11 - 21 Mar 2023
+  [Features]
+  * Added new option for "FuzzyLongestSort" flag that can be specified in your config file
+    as 
+    ```
+    {
+      "FuzzyLongestSort": true,
+      ...
+    }
+    ```
+    allows you to sort matched lines with the following ordering precedence (#539):
+      1. longer substring
+      2. earlier (left positioned) substring, and
+      3. shorter line.
+
+  [Miscellaneous]
+  * Posted project status at https://github.com/peco/peco/discussions/540
+
 v0.5.10 - 08 Jun 2021
   * Previous release was botched. No code change except for version string,
     and Makefile typo.
