@@ -139,6 +139,16 @@ There's a third-party [peco package available](https://chocolatey.org/packages/p
 C:\> choco install peco
 ```
 
+### X-CMD (Linux, macOS, Windows WSL, Windows GitBash)
+
+peco is available from [x-cmd](https://www.x-cmd.com).
+
+To install peco, run:
+
+```shell
+x env use peco
+```
+
 ### Building peco yourself
 
 Make sure to clone the source code under $GOPATH (i.e. $GOPATH/src/github.com/peco/peco). This is required
