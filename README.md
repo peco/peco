@@ -141,14 +141,12 @@ C:\> choco install peco
 
 ### X-CMD (Linux, macOS, Windows WSL, Windows GitBash)
 
-tokei is available from [x-cmd](https://www.x-cmd.com).
+peco is available from [x-cmd](https://www.x-cmd.com).
 
-To install tokei, run:
+To install peco, run:
 
 ```shell
-x env use tokei
-# or
-x tokei
+x env use peco
 ```
 
 ### Building peco yourself
