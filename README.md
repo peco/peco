@@ -139,6 +139,23 @@ There's a third-party [peco package available](https://chocolatey.org/packages/p
 C:\> choco install peco
 ```
 
+###  Linux / macOS / Windows (Conda, Mamba, Pixi)
+
+`conda`, `mamba` and `pixi` are platform-agnostic package managers for conda-format packages.
+
+This means that the same command can be used to install peco across Windows, MacOS, and Linux.
+
+```
+# conda
+conda install -c conda-forge peco
+
+# mamba
+mamba install -c conda-forge peco
+
+# install user-globally using pixi
+pixi global install peco
+```
+
 ### Building peco yourself
 
 Make sure to clone the source code under $GOPATH (i.e. $GOPATH/src/github.com/peco/peco). This is required
