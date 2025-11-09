@@ -72,6 +72,20 @@ func NewRegexp() *Regexp {
 	}
 }
 
+// NewRegexp creates a new regexp based filter
+func NewIRegexp() *Regexp {
+	return &Regexp{
+		factory: &regexpQueryFactory{
+			compiled:  make(map[string]regexpQuery),
+			threshold: time.Minute,
+		},
+		flags:     regexpFlagList(regexpFlagList{"i"}),
+		quotemeta: false,
+		name:      "IRegexp",
+		outCh:     pipeline.ChanOutput(make(chan interface{})),
+	}
+}
+
 func (rf Regexp) BufSize() int {
 	return 0
 }

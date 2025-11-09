@@ -49,6 +49,7 @@ const (
 	IgnoreCaseMatch    = "IgnoreCase"
 	CaseSensitiveMatch = "CaseSensitive"
 	SmartCaseMatch     = "SmartCase"
+	IRegexpMatch       = "IRegexp"
 	RegexpMatch        = "Regexp"
 )
 
