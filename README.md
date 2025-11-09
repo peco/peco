@@ -693,7 +693,7 @@ make test
 To build, run
 
 ```
-make build
+make
 ```
 
 This will create a `peco` binary in `$(RELEASE_DIR)/peco_$(GOOS)_$(GOARCH)/peco$(SUFFIX)`. Or, of course, you can just run

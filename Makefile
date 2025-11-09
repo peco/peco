@@ -1,13 +1,10 @@
-INTERNAL_BIN_DIR=_internal_bin
+MAKEFLAGS += --no-print-directory
 GOVERSION=$(shell go version)
-THIS_GOOS=$(word 1,$(subst /, ,$(lastword $(GOVERSION))))
-THIS_GOARCH=$(word 2,$(subst /, ,$(lastword $(GOVERSION))))
-GOOS=$(THIS_GOOS)
-GOARCH=$(THIS_GOARCH)
+GOOS=$(word 1,$(subst /, ,$(lastword $(GOVERSION))))
+GOARCH=$(word 2,$(subst /, ,$(lastword $(GOVERSION))))
 VERSION=$(patsubst "%",%,$(lastword $(shell grep 'const version' peco.go)))
 RELEASE_DIR=releases
 ARTIFACTS_DIR=$(RELEASE_DIR)/artifacts/$(VERSION)
-SRC_FILES = $(wildcard *.go cmd/peco/*.go internal/*/*.go)
 GITHUB_USERNAME=peco
 BUILD_TARGETS= \
 	build-linux-arm64 \
@@ -24,15 +21,17 @@ RELEASE_TARGETS=\
 	release-darwin-arm64 \
 	release-windows-amd64
 
-.PHONY: clean build $(RELEASE_TARGETS) $(BUILD_TARGETS) $(RELEASE_DIR)/$(GOOS)/$(GOARCH)/peco$(SUFFIX)
+.PHONY: default deps install clean build all $(RELEASE_TARGETS) $(BUILD_TARGETS) $(RELEASE_DIR)/peco_$(GOOS)_$(GOARCH)/peco$(SUFFIX)
+
+# the first target in the file is the entrypoint, this is run when you call `make` with no arguments
+default: deps build
 
 build: $(RELEASE_DIR)/peco_$(GOOS)_$(GOARCH)/peco$(SUFFIX)
 
-$(INTERNAL_BIN_DIR):
-	@echo "Creating $(INTERNAL_BIN_DIR)"
-	@mkdir -p $(INTERNAL_BIN_DIR)
+install:
+	@cp $(RELEASE_DIR)/peco_$(GOOS)_$(GOARCH)/peco$(SUFFIX) /usr/sbin/peco
 
-deps: 
+deps:
 	@echo "Downloading dependencies..."
 	@GO111MODULE=on go mod download
 
@@ -60,12 +59,13 @@ build-darwin-amd64:
 build-darwin-arm64:
 	@$(MAKE) build GOOS=darwin GOARCH=arm64
 
-$(RELEASE_DIR)/peco_$(GOOS)_$(GOARCH)/peco$(SUFFIX): deps
+$(RELEASE_DIR)/peco_$(GOOS)_$(GOARCH)/peco$(SUFFIX):
+	@echo "Building $(RELEASE_DIR)/peco_$(GOOS)_$(GOARCH)/peco$(SUFFIX)"
 	@GO111MODULE=on go build -o $(RELEASE_DIR)/peco_$(GOOS)_$(GOARCH)/peco$(SUFFIX) cmd/peco/peco.go
 
-all: $(BUILD_TARGETS)
+all: deps $(BUILD_TARGETS)
 
-release: $(RELEASE_TARGETS)
+release: deps $(RELEASE_TARGETS)
 
 $(RELEASE_DIR)/peco_$(GOOS)_$(GOARCH)/Changes:
 	@cp Changes $(RELEASE_DIR)/peco_$(GOOS)_$(GOARCH)
@@ -124,8 +124,9 @@ release-upload: release release-github-token
 
 test: deps
 	@echo "Running tests..."
-	@GO111MODULE=on PATH=$(INTERNAL_BIN_DIR)/$(GOOS)/$(GOARCH):$(PATH) go test -v ./...
+	@GO111MODULE=on go test -v ./...
 
 clean:
-	-rm -rf $(RELEASE_DIR)/*/*
+	@echo "Cleaning.."
+	-rm -rf $(RELEASE_DIR)
 	-rm -rf $(ARTIFACTS_DIR)/*
