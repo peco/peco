@@ -16,14 +16,14 @@ func (q *Query) RestoreSavedQuery() {
 	q.mutex.Lock()
 	defer q.mutex.Unlock()
 	q.query = q.savedQuery
-	q.query = []rune(nil)
+	q.savedQuery = []rune(nil)
 }
 
 func (q *Query) SaveQuery() {
 	q.mutex.Lock()
 	defer q.mutex.Unlock()
 	q.savedQuery = q.query
-	q.savedQuery = []rune(nil)
+	q.query = []rune(nil)
 }
 
 func (q *Query) DeleteRange(start, end int) {
