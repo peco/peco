@@ -683,7 +683,6 @@ First, fork this repo, and get your clone locally.
 
 1. Make sure you have [go](http://golang.org) installed, with GOPATH appropriately set
 2. Make sure you have `make` installed
-3. Run `make installdeps` (You only need to do this once)
 
 To test, run
 
