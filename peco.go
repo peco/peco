@@ -623,6 +623,7 @@ func (p *Peco) populateFilters() error {
 	p.filters.Add(filter.NewIgnoreCase())
 	p.filters.Add(filter.NewCaseSensitive())
 	p.filters.Add(filter.NewSmartCase())
+	p.filters.Add(filter.NewIRegexp())
 	p.filters.Add(filter.NewRegexp())
 	p.filters.Add(filter.NewFuzzy(p.fuzzyLongestSort))
 

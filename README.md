@@ -59,7 +59,7 @@ Not only can you select multiple lines one by one, you can select a range of lin
 
 ## Select Filters
 
-Different types of filters are available. Default is case-insensitive filter, so lines with any case will match. You can toggle between IgnoreCase, CaseSensitive, SmartCase, Regexp and Fuzzy filters.
+Different types of filters are available. Default is case-insensitive filter, so lines with any case will match. You can toggle between IgnoreCase, CaseSensitive, SmartCase, Regexp case insensitive, Regexp and Fuzzy filters.
 
 The SmartCase filter uses case-*insensitive* matching when all of the queries are lower case, and case-*sensitive* matching otherwise.
 
@@ -224,9 +224,9 @@ Changes how peco interprets incoming data. When this flag is set, you may insert
 
 Specifies the initial line position upon start up. E.g. If you want to start out with the second line selected, set it to "1" (because the index is 0 based).
 
-### --initial-filter `IgnoreCase|CaseSensitive|SmartCase|Regexp|Fuzzy`
+### --initial-filter `IgnoreCase|CaseSensitive|SmartCase|IRegexp|Regexp|Fuzzy`
 
-Specifies the initial filter to use upon start up. You should specify the name of the filter like `IgnoreCase`, `CaseSensitive`, `SmartCase`, `Regexp` and `Fuzzy`. Default is `IgnoreCase`.
+Specifies the initial filter to use upon start up. You should specify the name of the filter like `IgnoreCase`, `CaseSensitive`, `SmartCase`, `IRegexp`, `Regexp` and `Fuzzy`. Default is `IgnoreCase`.
 
 ### --prompt
 
@@ -589,7 +589,7 @@ For now, styles of following 5 items can be customized in `config.json`.
 
 This is an experimental feature. Please note that some details of this specification may change
 
-By default `peco` comes with `IgnoreCase`, `CaseSensitive`, `SmartCase`, `Regexp` and `Fuzzy` filters, but since v0.1.3, it is possible to create your own custom filter.
+By default `peco` comes with `IgnoreCase`, `CaseSensitive`, `SmartCase`, `IRegexp`, `Regexp` and `Fuzzy` filters, but since v0.1.3, it is possible to create your own custom filter.
 
 The filter will be executed via  `Command.Run()` as an external process, and it will be passed the query values in the command line, and the original unaltered buffer is passed via `os.Stdin`. Your filter must perform the matching, and print out to `os.Stdout` matched lines. Your filter MAY be called multiple times if the buffer
 given to peco is big enough. See `BufferThreshold` below.
@@ -778,7 +778,7 @@ Much code stolen from https://github.com/mattn/gof
     - [-b, --buffer-size <num>](#-b---buffer-size-num)
     - [--null](#--null)
     - [--initial-index](#--initial-index)
-    - [--initial-filter `IgnoreCase|CaseSensitive|SmartCase|Regexp|Fuzzy`](#--initial-filter-ignorecasecasesensitivesmartcaseregexpfuzzy)
+    - [--initial-filter `IgnoreCase|CaseSensitive|SmartCase|IRegexp|Regexp|Fuzzy`](#--initial-filter-ignorecasecasesensitivesmartcaseiregexpregexpfuzzy)
     - [--prompt](#--prompt)
     - [--layout `top-down|bottom-up`](#--layout-top-downbottom-up)
     - [--select-1](#--select-1)
