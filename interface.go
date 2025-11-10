@@ -106,6 +106,8 @@ type Peco struct {
 	styles                  StyleSet
 	use256Color             bool
 	fuzzyLongestSort        bool
+	wrapAround              bool
+	tailing                 bool
 
 	// Source is where we buffer input. It gets reused when a new query is
 	// executed.
@@ -296,6 +298,8 @@ type Config struct {
 	Layout              string            `json:"Layout"`
 	Use256Color         bool              `json:"Use256Color"`
 	OnCancel            string            `json:"OnCancel"`
+	Tailing             bool              `json:"Tailing"`
+	WrapAround bool `json:"WrapAround"`
 	CustomMatcher       map[string][]string
 	CustomFilter        map[string]CustomFilterConfig
 	QueryExecutionDelay int
@@ -419,6 +423,10 @@ type CLIOptions struct {
 	OptSelectionPrefix string `long:"selection-prefix" description:"use a prefix instead of changing line color to indicate currently selected lines.\ndefault is to use colors. This option is experimental"`
 	OptExec            string `long:"exec" description:"execute command instead of finishing/terminating peco.\nPlease note that this command will receive selected line(s) from stdin,\nand will be executed via '/bin/sh -c' or 'cmd /c'"`
 	OptPrintQuery      bool   `long:"print-query" description:"print out the current query as first line of output"`
+	OptNoWrap          bool   `short:"w" long:"no-wrap" description:"disable wrapping around from ends of the file with arrow keys"`
+	OptWrap            bool   `long:"wrap" description:"enable wrapping around from ends of the file with arrow keys"`
+	OptTailing         bool   `short:"f" long:"follow" description:"start out tailing the file, instead of using pagination"`
+	OptNoTailing       bool   `long:"no-follow" description:"use pagination, don't start tailing"`
 }
 
 type CLI struct {

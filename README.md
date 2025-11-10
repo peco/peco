@@ -662,6 +662,28 @@ Note: This has no effect on Windows because Windows console does not support ext
 }
 ```
 
+## WrapAround
+
+Boolean value that determines whether or not to wrap around to the other end of the file when you have reached the end. The default is `true`.
+
+
+```json
+{
+    "WrapAround": true
+}
+```
+
+## Follow/tailing
+
+Boolean value that determines whether or live follow the output. This disables pagination, and always keeps the most recent lines shown. The default is `false`.
+
+
+```json
+{
+    "Tailing": true
+}
+```
+
 # FAQ
 
 ## Does peco work on (msys2|cygwin)?

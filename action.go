@@ -6,6 +6,7 @@ import (
 	"math"
 	"os"
 	"strconv"
+	"time"
 	"unicode"
 
 	"context"
@@ -67,7 +68,9 @@ func init() {
 	ActionFunc(doBeginningOfLine).Register("BeginningOfLine", termbox.KeyCtrlA)
 	ActionFunc(doBackwardChar).Register("BackwardChar", termbox.KeyCtrlB)
 	ActionFunc(doBackwardWord).Register("BackwardWord")
-	ActionFunc(doCancel).Register("Cancel", termbox.KeyCtrlC, termbox.KeyEsc)
+	ActionFunc(doCancel).Register("Cancel", termbox.KeyCtrlC)
+	ActionFunc(doTail).Register("Tail", termbox.KeyEsc)
+	// ActionFunc(doCancel).Register("Cancel", termbox.KeyEsc)
 	ActionFunc(doDeleteAll).Register("DeleteAll")
 	ActionFunc(doDeleteBackwardChar).Register(
 		"DeleteBackwardChar",
@@ -82,7 +85,7 @@ func init() {
 	ActionFunc(doDeleteForwardWord).Register("DeleteForwardWord")
 	ActionFunc(doEndOfFile).Register("EndOfFile")
 	ActionFunc(doEndOfLine).Register("EndOfLine", termbox.KeyCtrlE)
-	ActionFunc(doFinish).Register("Finish", termbox.KeyEnter)
+	// ActionFunc(doFinish).Register("Finish", termbox.KeyEnter)
 	ActionFunc(doForwardChar).Register("ForwardChar", termbox.KeyCtrlF)
 	ActionFunc(doForwardWord).Register("ForwardWord")
 	ActionFunc(doKillEndOfLine).Register("KillEndOfLine", termbox.KeyCtrlK)
@@ -393,12 +396,29 @@ func doCancel(ctx context.Context, state *Peco, e termbox.Event) {
 	state.Exit(err)
 }
 
+func doTail(ctx context.Context, state *Peco, e termbox.Event) {
+
+	// state.Hub().SendPaging(ctx, ToScrollLastItem)
+	state.tailing = !state.tailing
+	if state.tailing {
+		state.Hub().SendStatusMsgAndClear(ctx, "Start tailing!", 1000*time.Millisecond)
+	} else {
+		state.Hub().SendStatusMsgAndClear(ctx, "Start paging!", 1000*time.Millisecond)
+	}
+}
+
 func doSelectDown(ctx context.Context, state *Peco, e termbox.Event) {
 	if pdebug.Enabled {
 		g := pdebug.Marker("doSelectDown")
 		defer g.End()
 	}
-	state.Hub().SendPaging(ctx, ToLineBelow)
+	if state.tailing {
+		state.location.SetLineNumber(state.currentLineBuffer.Size() - 1)
+		state.tailing = false
+		state.Hub().SendStatusMsgAndClear(ctx, "Start paging!", 1000*time.Millisecond)
+	} else {
+		state.Hub().SendPaging(ctx, ToLineBelow)
+	}
 }
 
 func doSelectUp(ctx context.Context, state *Peco, e termbox.Event) {
@@ -406,7 +426,13 @@ func doSelectUp(ctx context.Context, state *Peco, e termbox.Event) {
 		g := pdebug.Marker("doSelectUp")
 		defer g.End()
 	}
-	state.Hub().SendPaging(ctx, ToLineAbove)
+	if state.tailing {
+		state.location.SetLineNumber(state.currentLineBuffer.Size() - 1)
+		state.tailing = false
+		state.Hub().SendStatusMsgAndClear(ctx, "Start paging!", 1000*time.Millisecond)
+	} else {
+		state.Hub().SendPaging(ctx, ToLineAbove)
+	}
 }
 
 func doScrollPageUp(ctx context.Context, state *Peco, e termbox.Event) {
