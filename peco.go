@@ -570,6 +570,22 @@ func (p *Peco) ApplyConfig(opts CLIOptions) error {
 	}
 	p.fuzzyLongestSort = p.config.FuzzyLongestSort
 
+	p.wrapAround = p.config.WrapAround
+	if opts.OptNoWrap {
+		p.wrapAround = false
+	}
+	if opts.OptWrap {
+		p.wrapAround = true
+	}
+
+	p.tailing = p.config.Tailing
+	if opts.OptTailing {
+		p.tailing = true
+	}
+	if opts.OptNoTailing {
+		p.tailing = false
+	}
+
 	if err := p.populateFilters(); err != nil {
 		return errors.Wrap(err, "failed to populate filters")
 	}

@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"strings"
 	"strconv"
+	"strings"
 
 	"github.com/nsf/termbox-go"
 	"github.com/peco/peco/filter"
@@ -24,6 +24,7 @@ func (c *Config) Init() error {
 	c.Prompt = "QUERY>"
 	c.Layout = LayoutTypeTopDown
 	c.Use256Color = false
+	c.WrapAround = true
 	return nil
 }
 

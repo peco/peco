@@ -12,11 +12,12 @@ func (q *Query) Reset() {
 	q.query = []rune(nil)
 }
 
-func (q *Query) RestoreSavedQuery() {
+func (q *Query) RestoreSavedQuery(state *Peco) {
 	q.mutex.Lock()
 	defer q.mutex.Unlock()
 	q.query = q.savedQuery
 	q.savedQuery = []rune(nil)
+	state.Caret().SetPos(len(q.query))
 }
 
 func (q *Query) SaveQuery() {

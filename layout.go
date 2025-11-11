@@ -322,6 +322,75 @@ type DrawOptions struct {
 	DisableCache bool
 }
 
+func (l *ListArea) DrawMatches(ix MatchIndexer, line string, x int, y int, xOffset int, fgAttr termbox.Attribute, bgAttr termbox.Attribute) {
+
+	matches := ix.Indices()
+	prev := x
+	index := 0
+
+	for _, m := range matches {
+		// print the portion before match
+		if m[0] > index {
+			c := line[index:m[0]]
+			n := l.screen.Print(PrintArgs{
+				X:       prev,
+				Y:       y,
+				XOffset: xOffset,
+				Fg:      fgAttr,
+				Bg:      bgAttr,
+				Msg:     c,
+			})
+			prev += n
+			index += len(c)
+		}
+		c := line[m[0]:m[1]]
+
+		// print the highlighted portion (the part matching your query)
+		n := l.screen.Print(PrintArgs{
+			X:       prev,
+			Y:       y,
+			XOffset: xOffset,
+			Fg:      l.styles.Matched.fg,
+			Bg:      mergeAttribute(bgAttr, l.styles.Matched.bg),
+			Msg:     c,
+			Fill:    true,
+		})
+		prev += n
+		index += len(c)
+	}
+
+	// print the non-highlighted portion after the last match
+	m := matches[len(matches)-1]
+	if m[0] > index {
+		l.screen.Print(PrintArgs{
+			X:       prev,
+			Y:       y,
+			XOffset: xOffset,
+			Fg:      l.styles.Query.fg,
+			Bg:      mergeAttribute(bgAttr, l.styles.Query.bg),
+			Msg:     line[m[0]:m[1]],
+			Fill:    true,
+		})
+	} else if len(line) > m[1] {
+		l.screen.Print(PrintArgs{
+			X:       prev,
+			Y:       y,
+			XOffset: xOffset,
+			Fg:      fgAttr,
+			Bg:      bgAttr,
+			Msg:     line[m[1]:len(line)],
+			Fill:    true,
+		})
+	}
+}
+
+func min(a, b int) int {
+    if a <= b {
+        return a
+    }
+    return b
+}
+
 // Draw displays the ListArea on the screen
 func (l *ListArea) Draw(state *Peco, parent Layout, perPage int, options *DrawOptions) {
 	if pdebug.Enabled {
@@ -358,6 +427,43 @@ func (l *ListArea) Draw(state *Peco, parent Layout, perPage int, options *DrawOp
 			loc.SetPage(page)
 			parent.DrawPrompt(state)
 		}
+	}
+
+	// handle tailing
+	if state.tailing {
+		// clear the display cache so when going back to paging mode its fresh
+		l.displayCache = []line.Line{}
+
+		// clear the page
+		for n := 0; n < perPage; n++ {
+			l.screen.Print(PrintArgs{
+				Y:    n+1,
+				Fg:   l.styles.Basic.fg,
+				Bg:   l.styles.Basic.bg,
+				Fill: true,
+			})
+		}
+
+		cnt := min(linebuf.Size(), perPage)
+		lines := linebuf.linesInRange(linebuf.Size()-cnt, linebuf.Size())
+		for n := 0; n < cnt; n++ {
+
+			line := lines[n].DisplayString()
+			y := n + 1
+			l.screen.Print(PrintArgs{
+				Y:    y,
+				Msg:  line,
+				Fill: true,
+			})
+			fgAttr := l.styles.Basic.fg
+			bgAttr := l.styles.Basic.bg
+			ix, ok := lines[n].(MatchIndexer)
+			if ok {
+				l.DrawMatches(ix, line, 0, y, 0, fgAttr, bgAttr)
+			}
+		}
+		l.SetDirty(true)
+		return
 	}
 
 	pf := loc.PageCrop()
@@ -400,6 +506,7 @@ func (l *ListArea) Draw(state *Peco, parent Layout, perPage int, options *DrawOp
 		pdebug.Printf("ListArea.Draw: buffer size is %d, our view area is %d", bufsiz, perPage)
 	}
 
+	// reset the page back to being blank
 	for n := bufsiz; n < perPage; n++ {
 		if l.sortTopDown {
 			y = n + start
@@ -430,26 +537,31 @@ func (l *ListArea) Draw(state *Peco, parent Layout, perPage int, options *DrawOp
 	}
 
 	for n := 0; n < perPage; n++ {
-		if len(selectionPrefix) > 0 {
-			switch {
-			case n+loc.Offset() == loc.LineNumber():
-				prefix = prefixCurrentSelection
-			case selectionContains(state, n+loc.Offset()):
-				prefix = prefixSavedSelection
-			default:
-				prefix = prefixDefault
-			}
-		} else {
-			switch {
-			case n+loc.Offset() == loc.LineNumber():
-				fgAttr = l.styles.Selected.fg
-				bgAttr = l.styles.Selected.bg
-			case selectionContains(state, n+loc.Offset()):
-				fgAttr = l.styles.SavedSelection.fg
-				bgAttr = l.styles.SavedSelection.bg
-			default:
-				fgAttr = l.styles.Basic.fg
-				bgAttr = l.styles.Basic.bg
+
+		if loc.Offset() > -1 {
+			if len(selectionPrefix) > 0 {
+				// set the style of the active selection/multiselect
+				// and the selection type
+				switch {
+				case n+loc.Offset() == loc.LineNumber():
+					prefix = prefixCurrentSelection
+				case selectionContains(state, n+loc.Offset()):
+					prefix = prefixSavedSelection
+				default:
+					prefix = prefixDefault
+				}
+			} else {
+				switch {
+				case n+loc.Offset() == loc.LineNumber():
+					fgAttr = l.styles.Selected.fg
+					bgAttr = l.styles.Selected.bg
+				case selectionContains(state, n+loc.Offset()):
+					fgAttr = l.styles.SavedSelection.fg
+					bgAttr = l.styles.SavedSelection.bg
+				default:
+					fgAttr = l.styles.Basic.fg
+					bgAttr = l.styles.Basic.bg
+				}
 			}
 		}
 
@@ -528,6 +640,7 @@ func (l *ListArea) Draw(state *Peco, parent Layout, perPage int, options *DrawOp
 
 		ix, ok := target.(MatchIndexer)
 		if !ok {
+			//print all the lines
 			l.screen.Print(PrintArgs{
 				X:       x,
 				Y:       y,
@@ -539,62 +652,7 @@ func (l *ListArea) Draw(state *Peco, parent Layout, perPage int, options *DrawOp
 			})
 			continue
 		}
-
-		matches := ix.Indices()
-		prev := x
-		index := 0
-
-		for _, m := range matches {
-			if m[0] > index {
-				c := line[index:m[0]]
-				n := l.screen.Print(PrintArgs{
-					X:       prev,
-					Y:       y,
-					XOffset: xOffset,
-					Fg:      fgAttr,
-					Bg:      bgAttr,
-					Msg:     c,
-				})
-				prev += n
-				index += len(c)
-			}
-			c := line[m[0]:m[1]]
-
-			n := l.screen.Print(PrintArgs{
-				X:       prev,
-				Y:       y,
-				XOffset: xOffset,
-				Fg:      l.styles.Matched.fg,
-				Bg:      mergeAttribute(bgAttr, l.styles.Matched.bg),
-				Msg:     c,
-				Fill:    true,
-			})
-			prev += n
-			index += len(c)
-		}
-
-		m := matches[len(matches)-1]
-		if m[0] > index {
-			l.screen.Print(PrintArgs{
-				X:       prev,
-				Y:       y,
-				XOffset: xOffset,
-				Fg:      l.styles.Query.fg,
-				Bg:      mergeAttribute(bgAttr, l.styles.Query.bg),
-				Msg:     line[m[0]:m[1]],
-				Fill:    true,
-			})
-		} else if len(line) > m[1] {
-			l.screen.Print(PrintArgs{
-				X:       prev,
-				Y:       y,
-				XOffset: xOffset,
-				Fg:      fgAttr,
-				Bg:      bgAttr,
-				Msg:     line[m[1]:len(line)],
-				Fill:    true,
-			})
-		}
+		l.DrawMatches(ix, line, x, y, xOffset, fgAttr, bgAttr)
 	}
 	l.SetDirty(false)
 	if pdebug.Enabled {
@@ -787,15 +845,24 @@ func verticalScroll(state *Peco, l *BasicLayout, p PagingRequest) bool {
 		}
 	}
 
-	if lineno < 0 {
-		if lcur > 0 {
-			// Go to last page, if possible
-			lineno = lcur - 1
-		} else {
+	if state.wrapAround {
+		if lineno < 0 {
+			// you pressed up, and were already on the first line
+			if lcur > 0 {
+				// Go to last page, if possible
+				lineno = lcur - 1
+			} else {
+				lineno = 0
+			}
+		} else if lcur > 0 && lineno >= lcur {
 			lineno = 0
 		}
-	} else if lcur > 0 && lineno >= lcur {
-		lineno = 0
+	} else {
+		if lineno < 0 {
+			lineno = 0
+		} else if lcur > 0 && lineno >= lcur {
+			lineno = lcur - 1
+		}
 	}
 
 	// XXX DO NOT RETURN UNTIL YOU SET THE LINE NUMBER HERE
