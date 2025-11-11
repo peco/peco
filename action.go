@@ -780,7 +780,7 @@ func doToggleQuery(ctx context.Context, state *Peco, _ termbox.Event) {
 
 	q := state.Query()
 	if q.Len() == 0 {
-		q.RestoreSavedQuery()
+		q.RestoreSavedQuery(state)
 	} else {
 		q.SaveQuery()
 	}
