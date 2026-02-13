@@ -2,7 +2,6 @@ package peco
 
 import (
 	"io"
-	"io/ioutil"
 	"os"
 	"testing"
 	"time"
@@ -47,7 +46,7 @@ func TestIssue212_SanityCheck(t *testing.T) {
 	}
 
 	// Okay, this time create a dummy config file, and read that in
-	f, err := ioutil.TempFile("", "peco-test-config")
+	f, err := os.CreateTemp("", "peco-test-config")
 	if !assert.NoError(t, err, "Failed to create temporary config file: %s", err) {
 		return
 	}

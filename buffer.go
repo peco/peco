@@ -122,9 +122,9 @@ func (mb *MemoryBuffer) Accept(ctx context.Context, in chan interface{}, _ pipel
 			}
 			return
 		case v := <-in:
-			switch v.(type) {
+			switch v := v.(type) {
 			case error:
-				if pipeline.IsEndMark(v.(error)) {
+				if pipeline.IsEndMark(v) {
 					if pdebug.Enabled {
 						pdebug.Printf("MemoryBuffer received end mark (read %d lines, %s since starting accept loop)", len(mb.lines), time.Since(start).String())
 					}
@@ -132,7 +132,7 @@ func (mb *MemoryBuffer) Accept(ctx context.Context, in chan interface{}, _ pipel
 				}
 			case line.Line:
 				mb.mutex.Lock()
-				mb.lines = append(mb.lines, v.(line.Line))
+				mb.lines = append(mb.lines, v)
 				mb.mutex.Unlock()
 			}
 		}

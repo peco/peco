@@ -132,9 +132,10 @@ type Keyseq interface {
 	InMiddleOfChain() bool
 }
 
-// PagingRequest can be sent to move the selection cursor
+// PagingRequestType is the type of a paging request
 type PagingRequestType int
 
+// PagingRequest can be sent to move the selection cursor
 type PagingRequest interface {
 	Type() PagingRequestType
 }

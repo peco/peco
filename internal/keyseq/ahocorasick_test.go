@@ -80,31 +80,3 @@ func TestTree(t *testing.T) {
 	n10 := n9.Get(NewKeyFromKey(KeyCtrlE))
 	checkNode(t, n10, 0, validData(KeyList{NewKeyFromKey(KeyCtrlA), NewKeyFromKey(KeyCtrlB), NewKeyFromKey(KeyCtrlC), NewKeyFromKey(KeyCtrlD), NewKeyFromKey(KeyCtrlE)}, 10, r))
 }
-
-func assertMatches(t *testing.T, exp, act []Match) {
-	if len(act) != len(exp) {
-		t.Errorf("[]Match length is not %d (%d)", len(exp), len(act))
-		t.Logf("  expected: %v", exp)
-		t.Logf("  actually: %v", act)
-	}
-	for i, e := range exp {
-		dump := false
-		a := act[i]
-		if a.Index != e.Index {
-			t.Errorf("Index not matched at #%d\n", i)
-			dump = true
-		}
-		if !a.Pattern.Equals(e.Pattern) {
-			t.Errorf("Pattern not matched at #%d\n", i)
-			dump = true
-		}
-		if a.Value != e.Value {
-			t.Errorf("Value not matched at #%d\n", i)
-			dump = true
-		}
-		if dump {
-			t.Logf("  expected: %+v", e)
-			t.Logf("  actually: %+v", a)
-		}
-	}
-}

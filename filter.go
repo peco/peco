@@ -82,15 +82,14 @@ func acceptAndFilter(ctx context.Context, f filter.Filter, in chan interface{}, 
 				buf = buffer.GetLineListBuf()
 			}
 		case v := <-in:
-			switch v.(type) {
+			switch v := v.(type) {
 			case error:
-				if pipeline.IsEndMark(v.(error)) {
+				if pipeline.IsEndMark(v) {
 					if pdebug.Enabled {
 						pdebug.Printf("filter received end mark (read %d lines, %s since starting accept loop)", lines+len(buf), time.Since(start).String())
 					}
 					if len(buf) > 0 {
 						flush <- buf
-						buf = nil
 					}
 				}
 				return
@@ -103,7 +102,7 @@ func acceptAndFilter(ctx context.Context, f filter.Filter, in chan interface{}, 
 				// process while we filter what we already have. The buffer
 				// size is fairly big, because this really only makes a
 				// difference if we have a lot of lines to process.
-				buf = append(buf, v.(line.Line))
+				buf = append(buf, v)
 				if len(buf) >= bufsiz {
 					flush <- buf
 					buf = buffer.GetLineListBuf()

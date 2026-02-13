@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"io"
-	"io/ioutil"
+	"os"
 	"runtime"
 	"sync"
 	"testing"
@@ -68,7 +68,7 @@ func (i *interceptor) record(name string, args []interface{}) {
 }
 
 func newConfig(s string) (string, error) {
-	f, err := ioutil.TempFile("", "peco-test-config-")
+	f, err := os.CreateTemp("", "peco-test-config-")
 	if err != nil {
 		return "", err
 	}
@@ -250,12 +250,6 @@ func TestPeco(t *testing.T) {
 	}
 }
 
-type testCauser interface {
-	Cause() error
-}
-type testIgnorableError interface {
-	Ignorable() bool
-}
 
 func TestPecoHelp(t *testing.T) {
 	p := newPeco()

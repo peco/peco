@@ -598,7 +598,7 @@ func (l *ListArea) Draw(state *Peco, parent Layout, perPage int, options *DrawOp
 				XOffset: xOffset,
 				Fg:      fgAttr,
 				Bg:      bgAttr,
-				Msg:     line[m[1]:len(line)],
+				Msg:     line[m[1]:],
 				Fill:    true,
 			})
 		}

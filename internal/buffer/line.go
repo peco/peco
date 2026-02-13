@@ -19,7 +19,7 @@ func ReleaseLineListBuf(l []line.Line) {
 		return
 	}
 	l = l[0:0]
-	lineListPool.Put(l)
+	lineListPool.Put(l) //nolint:staticcheck // SA6002: converting to pointer-based pool breaks tests
 }
 
 func GetLineListBuf() []line.Line {

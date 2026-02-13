@@ -136,5 +136,4 @@ func (ecf *ExternalCmd) Apply(ctx context.Context, buf []line.Line, out pipeline
 			out.Send(l)
 		}
 	}
-	return nil
 }

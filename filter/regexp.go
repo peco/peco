@@ -28,7 +28,7 @@ func regexpFor(q string, flags []string, quotemeta bool) (*regexp.Regexp, error)
 		reTxt = regexp.QuoteMeta(q)
 	}
 
-	if flags != nil && len(flags) > 0 {
+	if len(flags) > 0 {
 		reTxt = fmt.Sprintf("(?%s)%s", strings.Join(flags, ""), reTxt)
 	}
 
@@ -72,7 +72,7 @@ func NewRegexp() *Regexp {
 	}
 }
 
-// NewRegexp creates a new regexp based filter
+// NewIRegexp creates a new case-insensitive regexp based filter
 func NewIRegexp() *Regexp {
 	return &Regexp{
 		factory: &regexpQueryFactory{
@@ -86,7 +86,7 @@ func NewIRegexp() *Regexp {
 	}
 }
 
-func (rf Regexp) BufSize() int {
+func (rf *Regexp) BufSize() int {
 	return 0
 }
 
@@ -177,7 +177,7 @@ func (rf *Regexp) Apply(ctx context.Context, lines []line.Line, out pipeline.Cha
 	return nil
 }
 
-func (rf Regexp) String() string {
+func (rf *Regexp) String() string {
 	return rf.name
 }
 
@@ -196,8 +196,8 @@ func NewCaseSensitive() *Regexp {
 	return rf
 }
 
-// SmartCase turns ON the ignore-case flag in the regexp
-// if the query contains a upper-case character
+// NewSmartCase creates a filter that turns ON the ignore-case flag in the regexp
+// if the query contains no upper-case character
 func NewSmartCase() *Regexp {
 	rf := NewRegexp()
 	rf.quotemeta = true

@@ -52,16 +52,16 @@ func (v *View) Loop(ctx context.Context, cancel func()) error {
 			v.movePage(r, r.Data().(PagingRequest))
 		case r := <-h.DrawCh():
 			tmp := r.Data()
-			switch tmp.(type) {
+			switch tmp := tmp.(type) {
 			case string:
-				switch tmp.(string) {
+				switch tmp {
 				case "prompt":
 					v.drawPrompt(r)
 				case "purgeCache":
 					v.purgeDisplayCache(r)
 				}
 			case *DrawOptions:
-				v.drawScreen(r, tmp.(*DrawOptions))
+				v.drawScreen(r, tmp)
 			default:
 				v.drawScreen(r, nil)
 			}

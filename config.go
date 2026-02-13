@@ -15,7 +15,7 @@ import (
 
 var homedirFunc = util.Homedir
 
-// NewConfig creates a new Config
+// Init initializes the Config with default values
 func (c *Config) Init() error {
 	c.Keymap = make(map[string]string)
 	c.InitialMatcher = IgnoreCaseMatch

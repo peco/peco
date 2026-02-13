@@ -91,13 +91,13 @@ func (k Key) Compare(x Key) int {
 	return 0
 }
 
-func (k KeyList) Equals(x KeyList) bool {
-	if len(k) != len(x) {
+func (kl KeyList) Equals(x KeyList) bool {
+	if len(kl) != len(x) {
 		return false
 	}
 
-	for i := 0; i < len(k); i++ {
-		if k[i].Compare(x[i]) != 0 {
+	for i := 0; i < len(kl); i++ {
+		if kl[i].Compare(x[i]) != 0 {
 			return false
 		}
 	}

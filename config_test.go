@@ -3,7 +3,6 @@ package peco
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -131,7 +130,7 @@ func TestStringsToStyle(t *testing.T) {
 }
 
 func TestLocateRcfile(t *testing.T) {
-	dir, err := ioutil.TempDir("", "peco-")
+	dir, err := os.MkdirTemp("", "peco-")
 	if !assert.NoError(t, err, "Failed to create temporary directory: %s", err) {
 		return
 	}
