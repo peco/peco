@@ -102,6 +102,18 @@ func TestStringsToStyle(t *testing.T) {
 			strings: []string{"underline", "on_240", "214"},
 			style:   &Style{fg: Attribute(214+1) | AttrUnderline, bg: Attribute(240 + 1)},
 		},
+		stringsToStyleTest{
+			strings: []string{"#ff8800", "on_#0088ff"},
+			style:   &Style{fg: Attribute(0xff8800) | AttrTrueColor, bg: Attribute(0x0088ff) | AttrTrueColor},
+		},
+		stringsToStyleTest{
+			strings: []string{"bold", "#00ff00", "on_#000000"},
+			style:   &Style{fg: Attribute(0x00ff00) | AttrTrueColor | AttrBold, bg: Attribute(0x000000) | AttrTrueColor},
+		},
+		stringsToStyleTest{
+			strings: []string{"#000000"},
+			style:   &Style{fg: Attribute(0x000000) | AttrTrueColor, bg: ColorDefault},
+		},
 	}
 
 	t.Logf("Checking strings -> color mapping...")

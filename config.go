@@ -133,6 +133,10 @@ func stringsToStyle(style *Style, raw []string) error {
 		fg, ok := stringToFg[s]
 		if ok {
 			style.fg = fg
+		} else if strings.HasPrefix(s, "#") && len(s) == 7 {
+			if rgb, err := strconv.ParseUint(s[1:], 16, 32); err == nil {
+				style.fg = Attribute(rgb) | AttrTrueColor
+			}
 		} else {
 			if fg, err := strconv.ParseUint(s, 10, 8); err == nil {
 				style.fg = Attribute(fg+1)
@@ -142,6 +146,10 @@ func stringsToStyle(style *Style, raw []string) error {
 		bg, ok := stringToBg[s]
 		if ok {
 			style.bg = bg
+		} else if strings.HasPrefix(s, "on_#") && len(s) == 10 {
+			if rgb, err := strconv.ParseUint(s[4:], 16, 32); err == nil {
+				style.bg = Attribute(rgb) | AttrTrueColor
+			}
 		} else {
 			if strings.HasPrefix(s, "on_") {
 				if bg, err := strconv.ParseUint(s[3:], 10, 8); err == nil {

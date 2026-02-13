@@ -12,6 +12,7 @@ import (
 
 	"context"
 
+	"github.com/gdamore/tcell/v2"
 	"github.com/lestrrat-go/pdebug"
 	"github.com/peco/peco/hub"
 	"github.com/peco/peco/internal/keyseq"
@@ -86,63 +87,139 @@ func newPeco() *Peco {
 	return state
 }
 
-type dummyScreen struct {
+// keyseqToTcellKey maps peco keyseq navigation/function key constants back
+// to tcell key constants, for injecting events into SimulationScreen.
+var keyseqToTcellKey = map[keyseq.KeyType]tcell.Key{
+	keyseq.KeyArrowUp:   tcell.KeyUp,
+	keyseq.KeyArrowDown: tcell.KeyDown,
+	keyseq.KeyArrowLeft: tcell.KeyLeft,
+	keyseq.KeyArrowRight: tcell.KeyRight,
+	keyseq.KeyInsert:    tcell.KeyInsert,
+	keyseq.KeyDelete:    tcell.KeyDelete,
+	keyseq.KeyHome:      tcell.KeyHome,
+	keyseq.KeyEnd:       tcell.KeyEnd,
+	keyseq.KeyPgup:      tcell.KeyPgUp,
+	keyseq.KeyPgdn:      tcell.KeyPgDn,
+	keyseq.KeyF1:        tcell.KeyF1,
+	keyseq.KeyF2:        tcell.KeyF2,
+	keyseq.KeyF3:        tcell.KeyF3,
+	keyseq.KeyF4:        tcell.KeyF4,
+	keyseq.KeyF5:        tcell.KeyF5,
+	keyseq.KeyF6:        tcell.KeyF6,
+	keyseq.KeyF7:        tcell.KeyF7,
+	keyseq.KeyF8:        tcell.KeyF8,
+	keyseq.KeyF9:        tcell.KeyF9,
+	keyseq.KeyF10:       tcell.KeyF10,
+	keyseq.KeyF11:       tcell.KeyF11,
+	keyseq.KeyF12:       tcell.KeyF12,
+}
+
+// SimScreen wraps tcell.SimulationScreen to implement peco's Screen interface.
+// It also embeds interceptor for backward-compatible test assertions.
+type SimScreen struct {
 	*interceptor
-	width  int
-	height int
-	pollCh chan Event
+	screen tcell.SimulationScreen
 }
 
-func NewDummyScreen() *dummyScreen {
-	return &dummyScreen{
+// NewDummyScreen creates a SimScreen backed by tcell.SimulationScreen.
+func NewDummyScreen() *SimScreen {
+	ss := tcell.NewSimulationScreen("")
+	ss.Init()
+	ss.SetSize(80, 10)
+	return &SimScreen{
 		interceptor: newInterceptor(),
-		width:       80,
-		height:      10,
-		pollCh:      make(chan Event),
+		screen:      ss,
 	}
 }
 
-func (d dummyScreen) SetCursor(_, _ int) {
-}
-
-func (d dummyScreen) Init(cfg *Config) error {
+func (s *SimScreen) Init(cfg *Config) error {
 	return nil
 }
 
-func (d dummyScreen) Close() error {
+func (s *SimScreen) Close() error {
+	s.screen.Fini()
 	return nil
 }
 
-func (d dummyScreen) Print(args PrintArgs) int {
-	return screenPrint(d, args)
+func (s *SimScreen) SetCursor(x, y int) {
+	s.screen.ShowCursor(x, y)
 }
 
-func (d dummyScreen) SendEvent(e Event) {
-	// XXX FIXME SendEvent should receive a context
-	t := time.NewTimer(time.Second)
-	defer t.Stop()
-	select {
-	case <-t.C:
-		panic("timed out sending an event")
-	case d.pollCh <- e:
+func (s *SimScreen) Print(args PrintArgs) int {
+	return screenPrint(s, args)
+}
+
+func (s *SimScreen) SendEvent(e Event) {
+	var mod tcell.ModMask
+	if e.Mod == keyseq.ModAlt {
+		mod = tcell.ModAlt
+	}
+
+	// Regular character
+	if e.Key == 0 && e.Ch != 0 {
+		s.screen.InjectKey(tcell.KeyRune, e.Ch, mod)
+		return
+	}
+
+	// Space: reverse of tcellEventToEvent's special case
+	if e.Key == keyseq.KeySpace {
+		s.screen.InjectKey(tcell.KeyRune, ' ', mod)
+		return
+	}
+
+	// Navigation/function keys via reverse lookup table
+	if tcellKey, ok := keyseqToTcellKey[e.Key]; ok {
+		s.screen.InjectKey(tcellKey, 0, mod)
+		return
+	}
+
+	// Ctrl keys (0x00-0x1F) and DEL (0x7F): direct cast
+	if e.Key <= 0x1F || e.Key == 0x7F {
+		s.screen.InjectKey(tcell.Key(e.Key), 0, mod)
+		return
 	}
 }
 
-func (d dummyScreen) SetCell(x, y int, ch rune, fg, bg Attribute) {
-	d.record("SetCell", interceptorArgs{x, y, ch, fg, bg})
+func (s *SimScreen) SetCell(x, y int, ch rune, fg, bg Attribute) {
+	s.record("SetCell", interceptorArgs{x, y, ch, fg, bg})
+	style := attributeToTcellStyle(fg, bg)
+	s.screen.SetContent(x, y, ch, nil, style)
 }
-func (d dummyScreen) Flush() error {
-	d.record("Flush", interceptorArgs{})
+
+func (s *SimScreen) Flush() error {
+	s.record("Flush", interceptorArgs{})
+	s.screen.Show()
 	return nil
 }
-func (d dummyScreen) PollEvent(ctx context.Context, cfg *Config) chan Event {
-	return d.pollCh
+
+func (s *SimScreen) PollEvent(ctx context.Context, cfg *Config) chan Event {
+	evCh := make(chan Event)
+	go func() {
+		defer func() { recover() }()
+		defer close(evCh)
+
+		for {
+			ev := s.screen.PollEvent()
+			if ev == nil {
+				return
+			}
+			pecoEv := tcellEventToEvent(ev)
+			select {
+			case <-ctx.Done():
+				return
+			case evCh <- pecoEv:
+			}
+		}
+	}()
+	return evCh
 }
-func (d dummyScreen) Size() (int, int) {
-	return d.width, d.height
+
+func (s *SimScreen) Size() (int, int) {
+	return s.screen.Size()
 }
-func (d dummyScreen) Resume()  {}
-func (d dummyScreen) Suspend() {}
+
+func (s *SimScreen) Resume()  {}
+func (s *SimScreen) Suspend() {}
 
 func TestIDGen(t *testing.T) {
 	idgen := newIDGen()

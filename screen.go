@@ -2,20 +2,165 @@ package peco
 
 import (
 	"context"
+	"sync"
 	"unicode/utf8"
 
+	"github.com/gdamore/tcell/v2"
 	pdebug "github.com/lestrrat-go/pdebug"
 	"github.com/mattn/go-runewidth"
-	"github.com/nsf/termbox-go"
 	"github.com/peco/peco/internal/keyseq"
 	"github.com/pkg/errors"
 )
 
-func (t *Termbox) Init(cfg *Config) error {
-	if err := termbox.Init(); err != nil {
-		return errors.Wrap(err, "failed to initialized termbox")
+// Termbox implements the Screen interface using tcell/v2.
+// The name is kept for compatibility with the rest of the codebase.
+type Termbox struct {
+	mutex     sync.Mutex
+	screen    tcell.Screen
+	resumeCh  chan chan struct{}
+	suspendCh chan struct{}
+}
+
+// tcellKeyToKeyseq maps tcell navigation/function key constants to peco keyseq constants.
+var tcellKeyToKeyseq = map[tcell.Key]keyseq.KeyType{
+	tcell.KeyUp:       keyseq.KeyArrowUp,
+	tcell.KeyDown:     keyseq.KeyArrowDown,
+	tcell.KeyLeft:     keyseq.KeyArrowLeft,
+	tcell.KeyRight:    keyseq.KeyArrowRight,
+	tcell.KeyInsert:   keyseq.KeyInsert,
+	tcell.KeyDelete:   keyseq.KeyDelete,
+	tcell.KeyHome:     keyseq.KeyHome,
+	tcell.KeyEnd:      keyseq.KeyEnd,
+	tcell.KeyPgUp:     keyseq.KeyPgup,
+	tcell.KeyPgDn:     keyseq.KeyPgdn,
+	tcell.KeyF1:       keyseq.KeyF1,
+	tcell.KeyF2:       keyseq.KeyF2,
+	tcell.KeyF3:       keyseq.KeyF3,
+	tcell.KeyF4:       keyseq.KeyF4,
+	tcell.KeyF5:       keyseq.KeyF5,
+	tcell.KeyF6:       keyseq.KeyF6,
+	tcell.KeyF7:       keyseq.KeyF7,
+	tcell.KeyF8:       keyseq.KeyF8,
+	tcell.KeyF9:       keyseq.KeyF9,
+	tcell.KeyF10:      keyseq.KeyF10,
+	tcell.KeyF11:      keyseq.KeyF11,
+	tcell.KeyF12:      keyseq.KeyF12,
+	tcell.KeyBackspace: keyseq.KeyBackspace,
+	tcell.KeyTab:       keyseq.KeyTab,
+	tcell.KeyEnter:     keyseq.KeyEnter,
+	tcell.KeyEscape:    keyseq.KeyEsc,
+	tcell.KeyBacktab:   keyseq.KeyTab, // Shift+Tab → Tab for compatibility
+}
+
+// tcellEventToEvent converts a tcell.Event to peco's internal Event type.
+func tcellEventToEvent(tev tcell.Event) Event {
+	switch ev := tev.(type) {
+	case *tcell.EventKey:
+		var mod keyseq.ModifierKey
+		if ev.Modifiers()&tcell.ModAlt != 0 {
+			mod = keyseq.ModAlt
+		}
+
+		key := ev.Key()
+
+		// Rune keys (printable characters)
+		if key == tcell.KeyRune {
+			r := ev.Rune()
+			// Special case: space must be sent as KeySpace with Ch=0
+			// to match termbox behavior expected by doAcceptChar
+			if r == ' ' {
+				return Event{
+					Type: EventKey,
+					Key:  keyseq.KeySpace,
+					Ch:   0,
+					Mod:  mod,
+				}
+			}
+			return Event{
+				Type: EventKey,
+				Key:  0,
+				Ch:   r,
+				Mod:  mod,
+			}
+		}
+
+		// Navigation/function keys via lookup table
+		if mapped, ok := tcellKeyToKeyseq[key]; ok {
+			return Event{
+				Type: EventKey,
+				Key:  mapped,
+				Ch:   0,
+				Mod:  mod,
+			}
+		}
+
+		// Ctrl keys (0x00-0x1F) and DEL (0x7F) — tcell uses the same
+		// ASCII control code values as peco's keyseq, so direct cast works.
+		if key <= 0x1F || key == 0x7F {
+			return Event{
+				Type: EventKey,
+				Key:  keyseq.KeyType(key),
+				Ch:   0,
+				Mod:  mod,
+			}
+		}
+
+		// Fallback: treat as error
+		return Event{Type: EventError}
+
+	case *tcell.EventResize:
+		return Event{Type: EventResize}
+
+	default:
+		return Event{Type: EventError}
+	}
+}
+
+// attributeToTcellColor converts a peco Attribute to a tcell.Color.
+func attributeToTcellColor(attr Attribute) tcell.Color {
+	if attr&AttrTrueColor != 0 {
+		rgb := attr & 0x00FFFFFF
+		return tcell.NewHexColor(int32(rgb))
+	}
+	colorVal := attr & 0x01FF
+	if colorVal == 0 {
+		return tcell.ColorDefault
+	}
+	return tcell.PaletteColor(int(colorVal - 1))
+}
+
+// attributeToTcellStyle converts peco Attribute fg/bg values to a tcell.Style.
+func attributeToTcellStyle(fg, bg Attribute) tcell.Style {
+	style := tcell.StyleDefault.
+		Foreground(attributeToTcellColor(fg)).
+		Background(attributeToTcellColor(bg))
+
+	// Extract style attributes from both fg and bg
+	attrs := fg | bg
+	if attrs&AttrBold != 0 {
+		style = style.Bold(true)
+	}
+	if attrs&AttrUnderline != 0 {
+		style = style.Underline(true)
+	}
+	if attrs&AttrReverse != 0 {
+		style = style.Reverse(true)
 	}
 
+	return style
+}
+
+func (t *Termbox) Init(cfg *Config) error {
+	screen, err := tcell.NewScreen()
+	if err != nil {
+		return errors.Wrap(err, "failed to create tcell screen")
+	}
+
+	if err := screen.Init(); err != nil {
+		return errors.Wrap(err, "failed to initialize tcell screen")
+	}
+
+	t.screen = screen
 	return t.PostInit(cfg)
 }
 
@@ -30,66 +175,41 @@ func (t *Termbox) Close() error {
 	if pdebug.Enabled {
 		pdebug.Printf("Termbox: Close")
 	}
-	termbox.Interrupt()
-	termbox.Close()
+	t.mutex.Lock()
+	s := t.screen
+	t.mutex.Unlock()
+
+	if s != nil {
+		s.Fini()
+	}
 	return nil
 }
 
 func (t *Termbox) SetCursor(x, y int) {
-	termbox.SetCursor(x, y)
+	t.mutex.Lock()
+	defer t.mutex.Unlock()
+	t.screen.ShowCursor(x, y)
 }
 
 // SendEvent is used to allow programmers generate random
 // events, but it's only useful for testing purposes.
-// When interacting with termbox-go, this method is a noop
+// When interacting with tcell, this method is a noop
 func (t *Termbox) SendEvent(_ Event) {
 	// no op
 }
 
-// Flush calls termbox.Flush
+// Flush calls tcell's Show to synchronize the screen
 func (t *Termbox) Flush() error {
 	t.mutex.Lock()
 	defer t.mutex.Unlock()
-	return errors.Wrap(termbox.Flush(), "failed to flush termbox")
-}
-
-// termboxEventToEvent converts a termbox.Event to peco's internal Event type.
-// This is the boundary where termbox types are translated into peco-internal types.
-func termboxEventToEvent(tev termbox.Event) Event {
-	switch tev.Type {
-	case termbox.EventKey:
-		var mod keyseq.ModifierKey
-		if tev.Mod&termbox.ModAlt != 0 {
-			mod = keyseq.ModAlt
-		}
-		return Event{
-			Type: EventKey,
-			Key:  keyseq.KeyType(tev.Key),
-			Ch:   tev.Ch,
-			Mod:  mod,
-		}
-	case termbox.EventResize:
-		return Event{Type: EventResize}
-	case termbox.EventError:
-		return Event{Type: EventError}
-	default:
-		return Event{Type: EventError}
-	}
+	t.screen.Show()
+	return nil
 }
 
 // PollEvent returns a channel that you can listen to for
 // terminal events. The actual polling is done in a
 // separate goroutine
 func (t *Termbox) PollEvent(ctx context.Context, cfg *Config) chan Event {
-	// XXX termbox.PollEvent() can get stuck on unexpected signal
-	// handling cases. We still would like to wait until the user
-	// (termbox) has some event for us to process, but we don't
-	// want to allow termbox to control/block our input loop.
-	//
-	// Solution: put termbox polling in a separate goroutine,
-	// and we just watch for a channel. The loop can now
-	// safely be implemented in terms of select {} which is
-	// safe from being stuck.
 	evCh := make(chan Event)
 
 	go func() {
@@ -112,23 +232,40 @@ func (t *Termbox) PollEvent(ctx context.Context, cfg *Config) chan Event {
 		defer func() { close(evCh) }()
 
 		for {
-			ev := termbox.PollEvent()
-			if ev.Type != termbox.EventInterrupt {
-				evCh <- termboxEventToEvent(ev)
+			t.mutex.Lock()
+			s := t.screen
+			t.mutex.Unlock()
+
+			if s == nil {
+				// Screen finalized, treat as suspend/interrupt
+				select {
+				case <-ctx.Done():
+					return
+				case replyCh := <-t.resumeCh:
+					t.Init(cfg)
+					close(replyCh)
+					continue
+				}
+			}
+
+			ev := s.PollEvent()
+			if ev == nil {
+				// PollEvent returns nil when screen is finalized.
+				// Wait for resume or context cancellation.
+				select {
+				case <-ctx.Done():
+					return
+				case replyCh := <-t.resumeCh:
+					t.Init(cfg)
+					close(replyCh)
+				}
 				continue
 			}
 
-			select {
-			case <-ctx.Done():
-				return
-			case replyCh := <-t.resumeCh:
-				t.Init(cfg)
-				close(replyCh)
-			}
+			evCh <- tcellEventToEvent(ev)
 		}
 	}()
 	return evCh
-
 }
 
 func (t *Termbox) Suspend() {
@@ -140,7 +277,7 @@ func (t *Termbox) Suspend() {
 
 func (t *Termbox) Resume() {
 	// Resume must be a block operation, because we can't safely proceed
-	// without actually knowing that termbox has been re-initialized.
+	// without actually knowing that the screen has been re-initialized.
 	// So we send a channel where we expect a reply back, and wait for that
 	ch := make(chan struct{})
 	select {
@@ -155,14 +292,15 @@ func (t *Termbox) Resume() {
 func (t *Termbox) SetCell(x, y int, ch rune, fg, bg Attribute) {
 	t.mutex.Lock()
 	defer t.mutex.Unlock()
-	termbox.SetCell(x, y, ch, termbox.Attribute(fg), termbox.Attribute(bg))
+	style := attributeToTcellStyle(fg, bg)
+	t.screen.SetContent(x, y, ch, nil, style)
 }
 
 // Size returns the dimensions of the current terminal
 func (t *Termbox) Size() (int, int) {
 	t.mutex.Lock()
 	defer t.mutex.Unlock()
-	return termbox.Size()
+	return t.screen.Size()
 }
 
 type PrintArgs struct {

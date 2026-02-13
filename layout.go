@@ -25,12 +25,20 @@ func IsValidVerticalAnchor(anchor VerticalAnchor) bool {
 	return anchor == AnchorTop || anchor == AnchorBottom
 }
 
-// Utility function
+// mergeAttribute merges two Attribute values (typically backgrounds).
+// If either has a default color (0), the non-default color wins via OR.
+// Otherwise, color bits are merged using OR on 0-based indices.
+// Attribute flags (bold, underline, reverse, true color) are always OR'd.
 func mergeAttribute(a, b Attribute) Attribute {
-	if a&0x0F == 0 || b&0x0F == 0 {
-		return a | b
+	const flagMask = AttrTrueColor | AttrBold | AttrUnderline | AttrReverse
+	aColor := a &^ flagMask
+	bColor := b &^ flagMask
+	flags := (a | b) & flagMask
+
+	if aColor == 0 || bColor == 0 {
+		return (aColor | bColor) | flags
 	}
-	return ((a - 1) | (b - 1)) + 1
+	return (((aColor - 1) | (bColor - 1)) + 1) | flags
 }
 
 // NewAnchorSettings creates a new AnchorSetting struct. Panics if

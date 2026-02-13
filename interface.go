@@ -165,13 +165,6 @@ type Screen interface {
 	Suspend()
 }
 
-// Termbox just hands out the processing to the termbox library
-type Termbox struct {
-	mutex     sync.Mutex
-	resumeCh  chan chan struct{}
-	suspendCh chan struct{}
-}
-
 // View handles the drawing/updating the screen
 type View struct {
 	layout Layout
@@ -343,13 +336,18 @@ type StyleSet struct {
 }
 
 // Attribute represents terminal display attributes such as colors
-// and text styling (bold, underline, reverse). It is a uint32 bitfield
-// where the lower bits hold the color value and upper bits hold style
-// flags, matching the termbox-go convention for Phase 1 compatibility.
+// and text styling (bold, underline, reverse). It is a uint32 bitfield:
+//
+//	Bits 0-8:   Palette color index (0=default, 1-256 for 256-color palette)
+//	Bits 0-23:  RGB color value (when AttrTrueColor flag is set)
+//	Bit 24:     AttrTrueColor flag — distinguishes true color from palette
+//	Bit 25:     AttrBold
+//	Bit 26:     AttrUnderline
+//	Bit 27:     AttrReverse
+//	Bits 28-31: Reserved
 type Attribute uint32
 
-// Attribute constants for text styling and colors.
-// Values match termbox-go's constants for seamless Phase 1 conversion.
+// Named palette color constants (values 0-8).
 const (
 	ColorDefault Attribute = 0x0000
 	ColorBlack   Attribute = 0x0001
@@ -363,9 +361,10 @@ const (
 )
 
 const (
-	AttrBold      Attribute = 0x0200
-	AttrUnderline Attribute = 0x0400
-	AttrReverse   Attribute = 0x0800
+	AttrTrueColor Attribute = 0x01000000
+	AttrBold      Attribute = 0x02000000
+	AttrUnderline Attribute = 0x04000000
+	AttrReverse   Attribute = 0x08000000
 )
 
 // Style describes display attributes for foreground and background.
