@@ -7,6 +7,7 @@ import (
 	pdebug "github.com/lestrrat-go/pdebug"
 	"github.com/mattn/go-runewidth"
 	"github.com/nsf/termbox-go"
+	"github.com/peco/peco/internal/keyseq"
 	"github.com/pkg/errors"
 )
 
@@ -40,8 +41,8 @@ func (t *Termbox) SetCursor(x, y int) {
 
 // SendEvent is used to allow programmers generate random
 // events, but it's only useful for testing purposes.
-// When interactiving with termbox-go, this method is a noop
-func (t *Termbox) SendEvent(_ termbox.Event) {
+// When interacting with termbox-go, this method is a noop
+func (t *Termbox) SendEvent(_ Event) {
 	// no op
 }
 
@@ -52,10 +53,34 @@ func (t *Termbox) Flush() error {
 	return errors.Wrap(termbox.Flush(), "failed to flush termbox")
 }
 
+// termboxEventToEvent converts a termbox.Event to peco's internal Event type.
+// This is the boundary where termbox types are translated into peco-internal types.
+func termboxEventToEvent(tev termbox.Event) Event {
+	switch tev.Type {
+	case termbox.EventKey:
+		var mod keyseq.ModifierKey
+		if tev.Mod&termbox.ModAlt != 0 {
+			mod = keyseq.ModAlt
+		}
+		return Event{
+			Type: EventKey,
+			Key:  keyseq.KeyType(tev.Key),
+			Ch:   tev.Ch,
+			Mod:  mod,
+		}
+	case termbox.EventResize:
+		return Event{Type: EventResize}
+	case termbox.EventError:
+		return Event{Type: EventError}
+	default:
+		return Event{Type: EventError}
+	}
+}
+
 // PollEvent returns a channel that you can listen to for
-// termbox's events. The actual polling is done in a
-// separate gouroutine
-func (t *Termbox) PollEvent(ctx context.Context, cfg *Config) chan termbox.Event {
+// terminal events. The actual polling is done in a
+// separate goroutine
+func (t *Termbox) PollEvent(ctx context.Context, cfg *Config) chan Event {
 	// XXX termbox.PollEvent() can get stuck on unexpected signal
 	// handling cases. We still would like to wait until the user
 	// (termbox) has some event for us to process, but we don't
@@ -65,7 +90,7 @@ func (t *Termbox) PollEvent(ctx context.Context, cfg *Config) chan termbox.Event
 	// and we just watch for a channel. The loop can now
 	// safely be implemented in terms of select {} which is
 	// safe from being stuck.
-	evCh := make(chan termbox.Event)
+	evCh := make(chan Event)
 
 	go func() {
 		// keep listening to suspend requests here
@@ -89,7 +114,7 @@ func (t *Termbox) PollEvent(ctx context.Context, cfg *Config) chan termbox.Event
 		for {
 			ev := termbox.PollEvent()
 			if ev.Type != termbox.EventInterrupt {
-				evCh <- ev
+				evCh <- termboxEventToEvent(ev)
 				continue
 			}
 
@@ -127,10 +152,10 @@ func (t *Termbox) Resume() {
 }
 
 // SetCell writes to the terminal
-func (t *Termbox) SetCell(x, y int, ch rune, fg, bg termbox.Attribute) {
+func (t *Termbox) SetCell(x, y int, ch rune, fg, bg Attribute) {
 	t.mutex.Lock()
 	defer t.mutex.Unlock()
-	termbox.SetCell(x, y, ch, fg, bg)
+	termbox.SetCell(x, y, ch, termbox.Attribute(fg), termbox.Attribute(bg))
 }
 
 // Size returns the dimensions of the current terminal
@@ -144,8 +169,8 @@ type PrintArgs struct {
 	X       int
 	XOffset int
 	Y       int
-	Fg      termbox.Attribute
-	Bg      termbox.Attribute
+	Fg      Attribute
+	Bg      Attribute
 	Msg     string
 	Fill    bool
 }

@@ -9,7 +9,6 @@ import (
 
 	"github.com/lestrrat-go/pdebug"
 	"github.com/mattn/go-runewidth"
-	"github.com/nsf/termbox-go"
 	"github.com/peco/peco/line"
 	"github.com/pkg/errors"
 )
@@ -27,7 +26,7 @@ func IsValidVerticalAnchor(anchor VerticalAnchor) bool {
 }
 
 // Utility function
-func mergeAttribute(a, b termbox.Attribute) termbox.Attribute {
+func mergeAttribute(a, b Attribute) Attribute {
 	if a&0x0F == 0 || b&0x0F == 0 {
 		return a | b
 	}
@@ -128,8 +127,8 @@ func (u UserPrompt) Draw(state *Peco) {
 		u.screen.Print(PrintArgs{
 			X:    u.promptLen + 1,
 			Y:    location,
-			Bg:   bg | termbox.AttrReverse,
-			Fg:   fg | termbox.AttrReverse,
+			Bg:   bg | AttrReverse,
+			Fg:   fg | AttrReverse,
 			Msg:  " ",
 			Fill: false,
 		})
@@ -154,8 +153,8 @@ func (u UserPrompt) Draw(state *Peco) {
 		u.screen.Print(PrintArgs{
 			X:    posX,
 			Y:    location,
-			Fg:   fg | termbox.AttrReverse,
-			Bg:   bg | termbox.AttrReverse,
+			Fg:   fg | AttrReverse,
+			Bg:   bg | AttrReverse,
 			Msg:  " ",
 			Fill: false,
 		})
@@ -168,8 +167,8 @@ func (u UserPrompt) Draw(state *Peco) {
 			fg := u.styles.Query.fg
 			bg := u.styles.Query.bg
 			if i == c.Pos() {
-				fg |= termbox.AttrReverse
-				bg |= termbox.AttrReverse
+				fg |= AttrReverse
+				bg |= AttrReverse
 			}
 			u.screen.SetCell(int(u.promptLen+1+prev), int(location), r, fg, bg)
 			prev += int(runewidth.RuneWidth(r))
@@ -271,8 +270,8 @@ func (s *StatusBar) PrintStatus(msg string, clearDelay time.Duration) {
 		s.screen.Print(PrintArgs{
 			X:   int(w - width),
 			Y:   location,
-			Fg:  fgAttr | termbox.AttrReverse | termbox.AttrBold | termbox.AttrReverse,
-			Bg:  bgAttr | termbox.AttrReverse,
+			Fg:  fgAttr | AttrReverse | AttrBold | AttrReverse,
+			Bg:  bgAttr | AttrReverse,
 			Msg: msg,
 		})
 	}
@@ -416,7 +415,7 @@ func (l *ListArea) Draw(state *Peco, parent Layout, perPage int, options *DrawOp
 	}
 
 	var cached, written int
-	var fgAttr, bgAttr termbox.Attribute
+	var fgAttr, bgAttr Attribute
 	var selectionPrefix = state.selectionPrefix
 	var prefix = ""
 
@@ -500,7 +499,7 @@ func (l *ListArea) Draw(state *Peco, parent Layout, perPage int, options *DrawOp
 					X:       x,
 					Y:       y,
 					XOffset: xOffset,
-					Fg:      fgAttr | termbox.AttrBold | termbox.AttrReverse,
+					Fg:      fgAttr | AttrBold | AttrReverse,
 					Bg:      bgAttr,
 					Msg:     string(prefixes[n]),
 				})

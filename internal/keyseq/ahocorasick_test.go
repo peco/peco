@@ -2,8 +2,6 @@ package keyseq
 
 import (
 	"testing"
-
-	"github.com/nsf/termbox-go"
 )
 
 func checkNode(t *testing.T, node Node, size int, data nodeData) {
@@ -47,11 +45,11 @@ func validData(pattern KeyList, value interface{}, failure Node) nodeData {
 
 func newTestMatcher() *Matcher {
 	m := NewMatcher()
-	m.Add(KeyList{Key{0, termbox.KeyCtrlA, rune(0)}, Key{0, termbox.KeyCtrlB, rune(0)}}, 2)
-	m.Add(KeyList{Key{0, termbox.KeyCtrlB, rune(0)}, Key{0, termbox.KeyCtrlC, rune(0)}}, 4)
-	m.Add(KeyList{Key{0, termbox.KeyCtrlB, rune(0)}, Key{0, termbox.KeyCtrlA, rune(0)}, Key{0, termbox.KeyCtrlB, rune(0)}}, 6)
-	m.Add(KeyList{Key{0, termbox.KeyCtrlD, rune(0)}}, 7)
-	m.Add(KeyList{Key{0, termbox.KeyCtrlA, rune(0)}, Key{0, termbox.KeyCtrlB, rune(0)}, Key{0, termbox.KeyCtrlC, rune(0)}, Key{0, termbox.KeyCtrlD, rune(0)}, Key{0, termbox.KeyCtrlE, rune(0)}}, 10)
+	m.Add(KeyList{Key{0, KeyCtrlA, rune(0)}, Key{0, KeyCtrlB, rune(0)}}, 2)
+	m.Add(KeyList{Key{0, KeyCtrlB, rune(0)}, Key{0, KeyCtrlC, rune(0)}}, 4)
+	m.Add(KeyList{Key{0, KeyCtrlB, rune(0)}, Key{0, KeyCtrlA, rune(0)}, Key{0, KeyCtrlB, rune(0)}}, 6)
+	m.Add(KeyList{Key{0, KeyCtrlD, rune(0)}}, 7)
+	m.Add(KeyList{Key{0, KeyCtrlA, rune(0)}, Key{0, KeyCtrlB, rune(0)}, Key{0, KeyCtrlC, rune(0)}, Key{0, KeyCtrlD, rune(0)}, Key{0, KeyCtrlE, rune(0)}}, 10)
 	m.Compile()
 	return m
 }
@@ -61,26 +59,26 @@ func TestTree(t *testing.T) {
 	// Check tree structure.
 	r := m.Root()
 	checkNode(t, r, 3, invalidData(r))
-	n1 := r.Get(NewKeyFromKey(termbox.KeyCtrlA))
+	n1 := r.Get(NewKeyFromKey(KeyCtrlA))
 	checkNode(t, n1, 1, invalidData(r))
-	n3 := r.Get(NewKeyFromKey(termbox.KeyCtrlB))
+	n3 := r.Get(NewKeyFromKey(KeyCtrlB))
 	checkNode(t, n3, 2, invalidData(r))
-	n7 := r.Get(NewKeyFromKey(termbox.KeyCtrlD))
+	n7 := r.Get(NewKeyFromKey(KeyCtrlD))
 	checkNode(t, n7, 0, invalidData(r))
-	n2 := n1.Get(NewKeyFromKey(termbox.KeyCtrlB))
-	checkNode(t, n2, 1, validData(KeyList{NewKeyFromKey(termbox.KeyCtrlA), NewKeyFromKey(termbox.KeyCtrlB)}, 2, n3))
-	n4 := n3.Get(NewKeyFromKey(termbox.KeyCtrlC))
-	checkNode(t, n4, 0, validData(KeyList{NewKeyFromKey(termbox.KeyCtrlB), NewKeyFromKey(termbox.KeyCtrlC)}, 4, r))
-	n5 := n3.Get(NewKeyFromKey(termbox.KeyCtrlA))
+	n2 := n1.Get(NewKeyFromKey(KeyCtrlB))
+	checkNode(t, n2, 1, validData(KeyList{NewKeyFromKey(KeyCtrlA), NewKeyFromKey(KeyCtrlB)}, 2, n3))
+	n4 := n3.Get(NewKeyFromKey(KeyCtrlC))
+	checkNode(t, n4, 0, validData(KeyList{NewKeyFromKey(KeyCtrlB), NewKeyFromKey(KeyCtrlC)}, 4, r))
+	n5 := n3.Get(NewKeyFromKey(KeyCtrlA))
 	checkNode(t, n5, 1, invalidData(n1))
-	n8 := n2.Get(NewKeyFromKey(termbox.KeyCtrlC))
+	n8 := n2.Get(NewKeyFromKey(KeyCtrlC))
 	checkNode(t, n8, 1, invalidData(n4))
-	n6 := n5.Get(NewKeyFromKey(termbox.KeyCtrlB))
-	checkNode(t, n6, 0, validData(KeyList{NewKeyFromKey(termbox.KeyCtrlB), NewKeyFromKey(termbox.KeyCtrlA), NewKeyFromKey(termbox.KeyCtrlB)}, 6, n2))
-	n9 := n8.Get(NewKeyFromKey(termbox.KeyCtrlD))
+	n6 := n5.Get(NewKeyFromKey(KeyCtrlB))
+	checkNode(t, n6, 0, validData(KeyList{NewKeyFromKey(KeyCtrlB), NewKeyFromKey(KeyCtrlA), NewKeyFromKey(KeyCtrlB)}, 6, n2))
+	n9 := n8.Get(NewKeyFromKey(KeyCtrlD))
 	checkNode(t, n9, 1, invalidData(n7))
-	n10 := n9.Get(NewKeyFromKey(termbox.KeyCtrlE))
-	checkNode(t, n10, 0, validData(KeyList{NewKeyFromKey(termbox.KeyCtrlA), NewKeyFromKey(termbox.KeyCtrlB), NewKeyFromKey(termbox.KeyCtrlC), NewKeyFromKey(termbox.KeyCtrlD), NewKeyFromKey(termbox.KeyCtrlE)}, 10, r))
+	n10 := n9.Get(NewKeyFromKey(KeyCtrlE))
+	checkNode(t, n10, 0, validData(KeyList{NewKeyFromKey(KeyCtrlA), NewKeyFromKey(KeyCtrlB), NewKeyFromKey(KeyCtrlC), NewKeyFromKey(KeyCtrlD), NewKeyFromKey(KeyCtrlE)}, 10, r))
 }
 
 func assertMatches(t *testing.T, exp, act []Match) {

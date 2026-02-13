@@ -8,7 +8,8 @@ import (
 	"time"
 
 	"context"
-	termbox "github.com/nsf/termbox-go"
+
+	"github.com/peco/peco/internal/keyseq"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -102,9 +103,9 @@ func TestIssue345(t *testing.T) {
 
 	<-state.Ready()
 
-	ev := termbox.Event{
-		Type: termbox.EventKey,
-		Key:  termbox.KeyCtrlT,
+	ev := Event{
+		Type: EventKey,
+		Key:  keyseq.KeyCtrlT,
 	}
 	if !assert.NoError(t, state.Keymap().ExecuteAction(ctx, state, ev), "ExecuteAction should succeed") {
 		return

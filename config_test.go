@@ -9,7 +9,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/nsf/termbox-go"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 )
@@ -49,20 +48,20 @@ func TestReadRC(t *testing.T) {
 		Prompt:         "[peco]",
 		Style: StyleSet{
 			Matched: Style{
-				fg: termbox.ColorCyan | termbox.AttrBold,
-				bg: termbox.ColorRed,
+				fg: ColorCyan | AttrBold,
+				bg: ColorRed,
 			},
 			Query: Style{
-				fg: termbox.ColorYellow | termbox.AttrBold,
-				bg: termbox.ColorDefault,
+				fg: ColorYellow | AttrBold,
+				bg: ColorDefault,
 			},
 			Selected: Style{
-				fg: termbox.ColorBlack | termbox.AttrUnderline,
-				bg: termbox.ColorCyan,
+				fg: ColorBlack | AttrUnderline,
+				bg: ColorCyan,
 			},
 			SavedSelection: Style{
-				fg: termbox.ColorBlack | termbox.AttrBold,
-				bg: termbox.ColorCyan,
+				fg: ColorBlack | AttrBold,
+				bg: ColorCyan,
 			},
 		},
 	}
@@ -81,27 +80,27 @@ func TestStringsToStyle(t *testing.T) {
 	tests := []stringsToStyleTest{
 		stringsToStyleTest{
 			strings: []string{"on_default", "default"},
-			style:   &Style{fg: termbox.ColorDefault, bg: termbox.ColorDefault},
+			style:   &Style{fg: ColorDefault, bg: ColorDefault},
 		},
 		stringsToStyleTest{
 			strings: []string{"bold", "on_blue", "yellow"},
-			style:   &Style{fg: termbox.ColorYellow | termbox.AttrBold, bg: termbox.ColorBlue},
+			style:   &Style{fg: ColorYellow | AttrBold, bg: ColorBlue},
 		},
 		stringsToStyleTest{
 			strings: []string{"underline", "on_cyan", "black"},
-			style:   &Style{fg: termbox.ColorBlack | termbox.AttrUnderline, bg: termbox.ColorCyan},
+			style:   &Style{fg: ColorBlack | AttrUnderline, bg: ColorCyan},
 		},
 		stringsToStyleTest{
 			strings: []string{"reverse", "on_red", "white"},
-			style:   &Style{fg: termbox.ColorWhite | termbox.AttrReverse, bg: termbox.ColorRed},
+			style:   &Style{fg: ColorWhite | AttrReverse, bg: ColorRed},
 		},
 		stringsToStyleTest{
 			strings: []string{"on_bold", "on_magenta", "green"},
-			style:   &Style{fg: termbox.ColorGreen, bg: termbox.ColorMagenta | termbox.AttrBold},
+			style:   &Style{fg: ColorGreen, bg: ColorMagenta | AttrBold},
 		},
 		stringsToStyleTest{
 			strings: []string{"underline", "on_240", "214"},
-			style:   &Style{fg: (214+1) | termbox.AttrUnderline, bg: 240+1},
+			style:   &Style{fg: Attribute(214+1) | AttrUnderline, bg: Attribute(240 + 1)},
 		},
 	}
 
