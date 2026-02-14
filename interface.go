@@ -146,7 +146,7 @@ type JumpToLineRequest int
 // The contents of the Selection is always sorted from smallest to
 // largest line ID
 type Selection struct {
-	mutex sync.Mutex
+	mutex sync.RWMutex
 	tree  *btree.BTree
 }
 
@@ -380,6 +380,7 @@ type Caret struct {
 }
 
 type Location struct {
+	mutex   sync.RWMutex
 	col     int
 	lineno  int
 	maxPage int

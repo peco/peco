@@ -27,11 +27,11 @@ func NewFilteredBuffer(src Buffer, page, perPage int) *FilteredBuffer {
 	}
 
 	// Copy over the selections that are applicable to this filtered buffer.
-	selection := make([]int, 0, src.Size())
 	end := start + perPage
 	if end >= src.Size() {
 		end = src.Size()
 	}
+	selection := make([]int, 0, end-start)
 
 	lines := src.linesInRange(start, end)
 	var maxcols int

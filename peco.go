@@ -260,6 +260,8 @@ func (p *Peco) Exit(err error) {
 }
 
 func (p *Peco) Keymap() Keymap {
+	p.mutex.Lock()
+	defer p.mutex.Unlock()
 	return p.keymap
 }
 
@@ -298,15 +300,15 @@ func (p *Peco) Setup() (err error) {
 }
 
 func (p *Peco) selectOneAndExitIfPossible() {
-	// TODO: mutex
 	// If we have only one line, we just want to bail out
 	// printing that one line as the result
 	if b := p.CurrentLineBuffer(); b.Size() == 1 {
 		if l, err := b.LineAt(0); err == nil {
-			p.resultCh = make(chan line.Line)
+			ch := make(chan line.Line)
+			p.SetResultCh(ch)
 			p.Exit(errCollectResults{})
-			p.resultCh <- l
-			close(p.resultCh)
+			ch <- l
+			close(ch)
 		}
 	}
 }
@@ -641,7 +643,9 @@ func (p *Peco) populateKeymap() error {
 	if err := k.ApplyKeybinding(); err != nil {
 		return errors.Wrap(err, "failed to apply key bindings")
 	}
+	p.mutex.Lock()
 	p.keymap = k
+	p.mutex.Unlock()
 	return nil
 }
 

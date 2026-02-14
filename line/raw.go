@@ -41,7 +41,7 @@ func (rl *Raw) ID() uint64 {
 }
 
 // IsDirty returns true if this line must be redrawn on the terminal
-func (rl Raw) IsDirty() bool {
+func (rl *Raw) IsDirty() bool {
 	return rl.dirty
 }
 
@@ -51,12 +51,12 @@ func (rl *Raw) SetDirty(b bool) {
 }
 
 // Buffer returns the raw buffer. May contain null
-func (rl Raw) Buffer() string {
+func (rl *Raw) Buffer() string {
 	return rl.buf
 }
 
 // DisplayString returns the string to be displayed
-func (rl Raw) DisplayString() string {
+func (rl *Raw) DisplayString() string {
 	if rl.displayString != "" {
 		return rl.displayString
 	}
@@ -70,7 +70,7 @@ func (rl Raw) DisplayString() string {
 }
 
 // Output returns the string to be displayed *after peco is done
-func (rl Raw) Output() string {
+func (rl *Raw) Output() string {
 	if i := rl.sepLoc; i > -1 {
 		return rl.buf[i+1:]
 	}

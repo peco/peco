@@ -62,23 +62,13 @@ func (q *Query) Len() int {
 	return len(q.query)
 }
 
-// Runes returns a channel that gives you the list of runes in the query
-func (q *Query) Runes() <-chan rune {
+// RuneSlice returns a copy of the query runes
+func (q *Query) RuneSlice() []rune {
 	q.mutex.Lock()
 	defer q.mutex.Unlock()
-	c := make(chan rune, len(q.query))
-
-	go func() {
-		defer close(c)
-		q.mutex.Lock()
-		defer q.mutex.Unlock()
-
-		for _, r := range q.query {
-			c <- r
-		}
-	}()
-
-	return c
+	out := make([]rune, len(q.query))
+	copy(out, q.query)
+	return out
 }
 
 func (q *Query) RuneAt(where int) rune {

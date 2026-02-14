@@ -16,6 +16,10 @@ import (
 // NewSource creates a new Source. Does not start processing the input until you
 // call Setup()
 func NewSource(name string, in io.Reader, isInfinite bool, idgen line.IDGenerator, capacity int, enableSep bool) *Source {
+	var lines []line.Line
+	if capacity > 0 {
+		lines = make([]line.Line, 0, capacity)
+	}
 	s := &Source{
 		name:       name,
 		capacity:   capacity,
@@ -24,6 +28,7 @@ func NewSource(name string, in io.Reader, isInfinite bool, idgen line.IDGenerato
 		in:         in, // Note that this may be closed, so do not rely on it
 		inClosed:   false,
 		isInfinite: isInfinite,
+		lines:      lines,
 		ready:      make(chan struct{}),
 		setupDone:  make(chan struct{}),
 		ChanOutput: pipeline.ChanOutput(make(chan interface{})),
@@ -227,6 +232,10 @@ func (s *Source) Start(ctx context.Context, out pipeline.ChanOutput) {
 		case <-s.setupDone:
 			setupDone = true
 		default:
+			// Avoid busy-looping while waiting for more data
+			if upto == prev {
+				time.Sleep(time.Millisecond)
+			}
 		}
 
 	}
@@ -280,7 +289,9 @@ func (s *Source) Append(l line.Line) {
 	if s.capacity > 0 && len(s.lines) > s.capacity {
 		diff := len(s.lines) - s.capacity
 
-		// Golang's version of array realloc
-		s.lines = s.lines[diff:s.capacity:s.capacity]
+		// Copy to a new slice to allow GC of discarded lines
+		newLines := make([]line.Line, s.capacity)
+		copy(newLines, s.lines[diff:])
+		s.lines = newLines
 	}
 }
