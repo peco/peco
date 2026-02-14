@@ -90,28 +90,28 @@ func newPeco() *Peco {
 // keyseqToTcellKey maps peco keyseq navigation/function key constants back
 // to tcell key constants, for injecting events into SimulationScreen.
 var keyseqToTcellKey = map[keyseq.KeyType]tcell.Key{
-	keyseq.KeyArrowUp:   tcell.KeyUp,
-	keyseq.KeyArrowDown: tcell.KeyDown,
-	keyseq.KeyArrowLeft: tcell.KeyLeft,
+	keyseq.KeyArrowUp:    tcell.KeyUp,
+	keyseq.KeyArrowDown:  tcell.KeyDown,
+	keyseq.KeyArrowLeft:  tcell.KeyLeft,
 	keyseq.KeyArrowRight: tcell.KeyRight,
-	keyseq.KeyInsert:    tcell.KeyInsert,
-	keyseq.KeyDelete:    tcell.KeyDelete,
-	keyseq.KeyHome:      tcell.KeyHome,
-	keyseq.KeyEnd:       tcell.KeyEnd,
-	keyseq.KeyPgup:      tcell.KeyPgUp,
-	keyseq.KeyPgdn:      tcell.KeyPgDn,
-	keyseq.KeyF1:        tcell.KeyF1,
-	keyseq.KeyF2:        tcell.KeyF2,
-	keyseq.KeyF3:        tcell.KeyF3,
-	keyseq.KeyF4:        tcell.KeyF4,
-	keyseq.KeyF5:        tcell.KeyF5,
-	keyseq.KeyF6:        tcell.KeyF6,
-	keyseq.KeyF7:        tcell.KeyF7,
-	keyseq.KeyF8:        tcell.KeyF8,
-	keyseq.KeyF9:        tcell.KeyF9,
-	keyseq.KeyF10:       tcell.KeyF10,
-	keyseq.KeyF11:       tcell.KeyF11,
-	keyseq.KeyF12:       tcell.KeyF12,
+	keyseq.KeyInsert:     tcell.KeyInsert,
+	keyseq.KeyDelete:     tcell.KeyDelete,
+	keyseq.KeyHome:       tcell.KeyHome,
+	keyseq.KeyEnd:        tcell.KeyEnd,
+	keyseq.KeyPgup:       tcell.KeyPgUp,
+	keyseq.KeyPgdn:       tcell.KeyPgDn,
+	keyseq.KeyF1:         tcell.KeyF1,
+	keyseq.KeyF2:         tcell.KeyF2,
+	keyseq.KeyF3:         tcell.KeyF3,
+	keyseq.KeyF4:         tcell.KeyF4,
+	keyseq.KeyF5:         tcell.KeyF5,
+	keyseq.KeyF6:         tcell.KeyF6,
+	keyseq.KeyF7:         tcell.KeyF7,
+	keyseq.KeyF8:         tcell.KeyF8,
+	keyseq.KeyF9:         tcell.KeyF9,
+	keyseq.KeyF10:        tcell.KeyF10,
+	keyseq.KeyF11:        tcell.KeyF11,
+	keyseq.KeyF12:        tcell.KeyF12,
 }
 
 // SimScreen wraps tcell.SimulationScreen to implement peco's Screen interface.
@@ -274,7 +274,6 @@ func TestPeco(t *testing.T) {
 		return
 	}
 }
-
 
 func TestPecoHelp(t *testing.T) {
 	p := newPeco()

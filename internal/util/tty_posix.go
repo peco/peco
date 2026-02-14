@@ -1,3 +1,4 @@
+//go:build !darwin && !windows && !freebsd && !openbsd && !netbsd && !dragonfly
 // +build !darwin,!windows,!freebsd,!openbsd,!netbsd,!dragonfly
 
 package util

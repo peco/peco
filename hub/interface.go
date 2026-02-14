@@ -34,6 +34,6 @@ type Payload interface {
 
 type payload struct {
 	batch bool
-	data interface{}
-	done chan struct{}
+	data  interface{}
+	done  chan struct{}
 }

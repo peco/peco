@@ -76,4 +76,3 @@ func (rl *Raw) Output() string {
 	}
 	return rl.buf
 }
-
