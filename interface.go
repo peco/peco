@@ -294,6 +294,7 @@ type Config struct {
 	QueryExecutionDelay int                                `json:"QueryExecutionDelay" yaml:"QueryExecutionDelay"`
 	StickySelection     bool                               `json:"StickySelection" yaml:"StickySelection"`
 	MaxScanBufferSize   int                                `json:"MaxScanBufferSize" yaml:"MaxScanBufferSize"`
+	FilterBufSize       int                                `json:"FilterBufSize" yaml:"FilterBufSize"`
 	FuzzyLongestSort    bool                               `json:"FuzzyLongestSort" yaml:"FuzzyLongestSort"`
 
 	// If this is true, then the prefix for single key jump mode
@@ -501,6 +502,7 @@ type MessageHub interface {
 }
 
 type filterProcessor struct {
-	filter filter.Filter
-	query  string
+	filter  filter.Filter
+	query   string
+	bufSize int
 }
