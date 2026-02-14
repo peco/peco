@@ -177,6 +177,7 @@ func (t *Termbox) Close() error {
 	}
 	t.mutex.Lock()
 	s := t.screen
+	t.screen = nil
 	t.mutex.Unlock()
 
 	if s != nil {
@@ -188,6 +189,9 @@ func (t *Termbox) Close() error {
 func (t *Termbox) SetCursor(x, y int) {
 	t.mutex.Lock()
 	defer t.mutex.Unlock()
+	if t.screen == nil {
+		return
+	}
 	t.screen.ShowCursor(x, y)
 }
 
@@ -202,6 +206,9 @@ func (t *Termbox) SendEvent(_ Event) {
 func (t *Termbox) Flush() error {
 	t.mutex.Lock()
 	defer t.mutex.Unlock()
+	if t.screen == nil {
+		return nil
+	}
 	t.screen.Show()
 	return nil
 }
@@ -292,6 +299,9 @@ func (t *Termbox) Resume() {
 func (t *Termbox) SetCell(x, y int, ch rune, fg, bg Attribute) {
 	t.mutex.Lock()
 	defer t.mutex.Unlock()
+	if t.screen == nil {
+		return
+	}
 	style := attributeToTcellStyle(fg, bg)
 	t.screen.SetContent(x, y, ch, nil, style)
 }
@@ -300,6 +310,9 @@ func (t *Termbox) SetCell(x, y int, ch rune, fg, bg Attribute) {
 func (t *Termbox) Size() (int, int) {
 	t.mutex.Lock()
 	defer t.mutex.Unlock()
+	if t.screen == nil {
+		return 0, 0
+	}
 	return t.screen.Size()
 }
 
