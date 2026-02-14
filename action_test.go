@@ -1,6 +1,7 @@
 package peco
 
 import (
+	"sync"
 	"testing"
 	"time"
 	"unicode/utf8"
@@ -9,8 +10,53 @@ import (
 
 	"github.com/peco/peco/filter"
 	"github.com/peco/peco/internal/keyseq"
+	"github.com/peco/peco/line"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
+
+// recordingHub wraps nullHub but records SendPaging and SendStatusMsg calls.
+type recordingHub struct {
+	nullHub
+	mu         sync.Mutex
+	pagingArgs []interface{}
+	statusMsgs []string
+}
+
+func (h *recordingHub) SendPaging(_ context.Context, v interface{}) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	h.pagingArgs = append(h.pagingArgs, v)
+}
+
+func (h *recordingHub) SendStatusMsg(_ context.Context, msg string) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	h.statusMsgs = append(h.statusMsgs, msg)
+}
+
+func (h *recordingHub) getPagingArgs() []interface{} {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	dst := make([]interface{}, len(h.pagingArgs))
+	copy(dst, h.pagingArgs)
+	return dst
+}
+
+func (h *recordingHub) getStatusMsgs() []string {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	dst := make([]string, len(h.statusMsgs))
+	copy(dst, h.statusMsgs)
+	return dst
+}
+
+func (h *recordingHub) reset() {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	h.pagingArgs = nil
+	h.statusMsgs = nil
+}
 
 func TestActionFunc(t *testing.T) {
 	called := 0
@@ -370,4 +416,112 @@ func TestBackToInitialFilter(t *testing.T) {
 	if !assert.Equal(t, state.Filters().Index(), 0, "Expected filter to be at position 0, got %d", state.Filters().Index()) {
 		return
 	}
+}
+
+func TestGHIssue574_PreviousSelectionLastLineNotUpdated(t *testing.T) {
+	// Issue #574: In doGoToPreviousSelection, lastLine is initialized to
+	// math.MaxUint64 and the condition `selectedLine.ID() >= lastLine` can
+	// never be true, so lastLine never gets updated. When wrapping around
+	// (cursor is before/at the first selected line), it should jump to the
+	// last selected line, but instead it jumps to math.MaxUint64.
+
+	ctx := context.Background()
+
+	// Create lines with known IDs.
+	// We use IDs 10, 20, 30, 40, 50 for five lines.
+	lines := []line.Line{
+		line.NewRaw(10, "line-10", false),
+		line.NewRaw(20, "line-20", false),
+		line.NewRaw(30, "line-30", false),
+		line.NewRaw(40, "line-40", false),
+		line.NewRaw(50, "line-50", false),
+	}
+
+	// Build a MemoryBuffer containing those lines.
+	mb := NewMemoryBuffer()
+	mb.lines = lines
+
+	rHub := &recordingHub{}
+
+	state := New()
+	state.hub = rHub
+	state.selection = NewSelection()
+
+	// Set the current line buffer to our prepared buffer.
+	state.currentLineBuffer = mb
+
+	// Select lines with IDs 20 and 40.
+	state.Selection().Add(lines[1]) // ID=20
+	state.Selection().Add(lines[3]) // ID=40
+
+	t.Run("wrap around to last selected line", func(t *testing.T) {
+		// Position cursor at line index 0 (ID=10), which is before all
+		// selected lines. There is no "previous" selection, so the function
+		// should wrap around to the last selected line (ID=40).
+		state.Location().SetLineNumber(0)
+		rHub.reset()
+
+		doGoToPreviousSelection(ctx, state, Event{})
+
+		statusMsgs := rHub.getStatusMsgs()
+		require.NotEmpty(t, statusMsgs, "should have sent a status message")
+		require.Equal(t, "Previous Selection (first)", statusMsgs[0],
+			"should wrap around when no previous selection exists")
+
+		pagingArgs := rHub.getPagingArgs()
+		// Expect two paging calls: ToScrollFirstItem, then JumpToLineRequest(lastLine)
+		require.Len(t, pagingArgs, 2, "expected 2 paging args")
+
+		jlr, ok := pagingArgs[1].(JumpToLineRequest)
+		require.True(t, ok, "second paging arg should be JumpToLineRequest")
+
+		// The bug: lastLine stays at math.MaxUint64 instead of being updated to 40.
+		// JumpToLineRequest is int, so MaxUint64 wraps to -1 on 64-bit.
+		require.True(t, jlr.Line() >= 0,
+			"lastLine must not be negative (math.MaxUint64 cast to int), got %d", jlr.Line())
+		require.Equal(t, 40, jlr.Line(),
+			"should jump to the last selected line (ID=40)")
+	})
+
+	t.Run("previous selection found", func(t *testing.T) {
+		// Position cursor at line index 4 (ID=50), which is after both
+		// selected lines. Should find previous selection at ID=40.
+		state.Location().SetLineNumber(4)
+		rHub.reset()
+
+		doGoToPreviousSelection(ctx, state, Event{})
+
+		statusMsgs := rHub.getStatusMsgs()
+		require.NotEmpty(t, statusMsgs, "should have sent a status message")
+		require.Equal(t, "Previous Selection", statusMsgs[0])
+
+		pagingArgs := rHub.getPagingArgs()
+		require.Len(t, pagingArgs, 2, "expected 2 paging args")
+
+		jlr, ok := pagingArgs[1].(JumpToLineRequest)
+		require.True(t, ok, "second paging arg should be JumpToLineRequest")
+		require.Equal(t, 40, jlr.Line(),
+			"should jump to the previous selected line (ID=40)")
+	})
+
+	t.Run("skips to nearest previous selection", func(t *testing.T) {
+		// Position cursor at line index 3 (ID=40). The previous selection
+		// should be ID=20, not ID=40 (since 40 is not < 40).
+		state.Location().SetLineNumber(3)
+		rHub.reset()
+
+		doGoToPreviousSelection(ctx, state, Event{})
+
+		statusMsgs := rHub.getStatusMsgs()
+		require.NotEmpty(t, statusMsgs, "should have sent a status message")
+		require.Equal(t, "Previous Selection", statusMsgs[0])
+
+		pagingArgs := rHub.getPagingArgs()
+		require.Len(t, pagingArgs, 2, "expected 2 paging args")
+
+		jlr, ok := pagingArgs[1].(JumpToLineRequest)
+		require.True(t, ok, "second paging arg should be JumpToLineRequest")
+		require.Equal(t, 20, jlr.Line(),
+			"should jump to ID=20, the nearest previous selected line")
+	})
 }
