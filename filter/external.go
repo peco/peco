@@ -72,6 +72,18 @@ func (ecf *ExternalCmd) Apply(ctx context.Context, buf []line.Line, out pipeline
 		pdebug.Printf("Executing command %s %v", cmd.Path, cmd.Args)
 	}
 
+	// When enableSep is true (--null mode), we need to preserve the original
+	// lines so that Output() returns the correct post-separator text.
+	// Build an index of display string -> original lines for lookup.
+	var originalLines map[string][]line.Line
+	if ecf.enableSep {
+		originalLines = make(map[string][]line.Line)
+		for _, l := range buf {
+			ds := l.DisplayString()
+			originalLines[ds] = append(originalLines[ds], l)
+		}
+	}
+
 	inbuf := &bytes.Buffer{}
 	for _, l := range buf {
 		inbuf.WriteString(l.DisplayString())
@@ -89,12 +101,11 @@ func (ecf *ExternalCmd) Apply(ctx context.Context, buf []line.Line, out pipeline
 		return errors.Wrap(err, `failed to start command`)
 	}
 
-	go cmd.Wait()
-
 	cmdCh := make(chan line.Line)
 	go func(ctx context.Context, cmdCh chan line.Line, rdr *bufio.Reader) {
 		defer func() { recover() }()
 		defer close(cmdCh)
+		defer cmd.Wait()
 		for {
 			select {
 			case <-ctx.Done():
@@ -104,12 +115,25 @@ func (ecf *ExternalCmd) Apply(ctx context.Context, buf []line.Line, out pipeline
 
 			b, _, err := rdr.ReadLine()
 			if len(b) > 0 {
-				// TODO: need to redo the spec for custom matchers
-				// This is the ONLY location where we need to actually
-				// RECREATE a Raw, and thus the only place where
-				// ctx.enableSep is required.
+				s := string(b)
+				var l line.Line
+
+				if originalLines != nil {
+					if candidates, ok := originalLines[s]; ok && len(candidates) > 0 {
+						// Pop the first matching original line to preserve order
+						l = candidates[0]
+						originalLines[s] = candidates[1:]
+					}
+				}
+
+				if l == nil {
+					// No original line found (or enableSep is false):
+					// create a new Raw line as before
+					l = line.NewRaw(ecf.idgen.Next(), s, ecf.enableSep)
+				}
+
 				select {
-				case cmdCh <- line.NewRaw(ecf.idgen.Next(), string(b), ecf.enableSep):
+				case cmdCh <- l:
 				case <-ctx.Done():
 					return
 				}
