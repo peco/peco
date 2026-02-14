@@ -167,7 +167,7 @@ func (f *Filter) Work(ctx context.Context, q hub.Payload) {
 			g := pdebug.Marker("Periodic draw request for '%s'", query)
 			defer g.End()
 		}
-		t := time.NewTicker(5 * time.Millisecond)
+		t := time.NewTicker(50 * time.Millisecond)
 		defer t.Stop()
 		defer state.Hub().SendStatusMsg(ctx, "")
 		defer state.Hub().SendDraw(ctx, &DrawOptions{RunningQuery: true})

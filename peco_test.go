@@ -118,6 +118,8 @@ var keyseqToTcellKey = map[keyseq.KeyType]tcell.Key{
 // It also embeds interceptor for backward-compatible test assertions.
 type SimScreen struct {
 	*interceptor
+	mu     sync.Mutex
+	closed bool
 	screen tcell.SimulationScreen
 }
 
@@ -137,11 +139,19 @@ func (s *SimScreen) Init(cfg *Config) error {
 }
 
 func (s *SimScreen) Close() error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.closed = true
 	s.screen.Fini()
 	return nil
 }
 
 func (s *SimScreen) SetCursor(x, y int) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if s.closed {
+		return
+	}
 	s.screen.ShowCursor(x, y)
 }
 
@@ -181,12 +191,22 @@ func (s *SimScreen) SendEvent(e Event) {
 }
 
 func (s *SimScreen) SetCell(x, y int, ch rune, fg, bg Attribute) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if s.closed {
+		return
+	}
 	s.record("SetCell", interceptorArgs{x, y, ch, fg, bg})
 	style := attributeToTcellStyle(fg, bg)
 	s.screen.SetContent(x, y, ch, nil, style)
 }
 
 func (s *SimScreen) Flush() error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if s.closed {
+		return nil
+	}
 	s.record("Flush", interceptorArgs{})
 	s.screen.Show()
 	return nil
@@ -215,6 +235,11 @@ func (s *SimScreen) PollEvent(ctx context.Context, cfg *Config) chan Event {
 }
 
 func (s *SimScreen) Size() (int, int) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if s.closed {
+		return 0, 0
+	}
 	return s.screen.Size()
 }
 

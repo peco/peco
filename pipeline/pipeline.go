@@ -55,7 +55,14 @@ func (oc ChanOutput) Send(v interface{}) (err error) {
 		return errors.New("nil channel")
 	}
 
-	// We allow ourselves a timeout of 1 second.
+	// Fast path: try non-blocking send first to avoid timer allocation
+	select {
+	case oc <- v:
+		return nil
+	default:
+	}
+
+	// Slow path: channel is full/blocked, fall back to a timer
 	t := time.NewTimer(time.Second)
 	defer t.Stop()
 
@@ -134,12 +141,15 @@ func (p *Pipeline) Run(ctx context.Context) (err error) {
 	// Setup the Acceptors, effectively chaining all nodes
 	// starting from the destination, working all the way
 	// up to the Source
-	prevCh := ChanOutput(make(chan interface{}))
+	// Use buffered channels between pipeline stages to allow pipelining
+	const chanBufSize = 256
+
+	prevCh := ChanOutput(make(chan interface{}, chanBufSize))
 	go p.dst.Accept(ctx, prevCh, nil)
 
 	for i := len(p.nodes) - 1; i >= 0; i-- {
 		cur := p.nodes[i]
-		ch := make(chan interface{}) //
+		ch := make(chan interface{}, chanBufSize)
 		go cur.Accept(ctx, ch, prevCh)
 		prevCh = ChanOutput(ch)
 	}

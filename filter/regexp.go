@@ -96,6 +96,8 @@ func (rf *Regexp) OutCh() <-chan interface{} {
 	return rf.outCh
 }
 
+const maxRegexpCacheSize = 100
+
 func (f *regexpQueryFactory) Compile(s string, flags regexpFlags, quotemeta bool) ([]*regexp.Regexp, error) {
 	f.mutex.Lock()
 	defer f.mutex.Unlock()
@@ -111,6 +113,20 @@ func (f *regexpQueryFactory) Compile(s string, flags regexpFlags, quotemeta bool
 	rxs, err := queryToRegexps(s, flags, quotemeta)
 	if err != nil {
 		return nil, errors.Wrap(err, `failed to compile regular expression`)
+	}
+
+	// Evict stale entries if cache is over the size limit
+	if len(f.compiled) >= maxRegexpCacheSize {
+		now := time.Now()
+		for k, v := range f.compiled {
+			if now.Sub(v.lastUsed) >= f.threshold {
+				delete(f.compiled, k)
+			}
+		}
+		// If still over limit after evicting stale entries, clear all
+		if len(f.compiled) >= maxRegexpCacheSize {
+			f.compiled = make(map[string]regexpQuery)
+		}
 	}
 
 	rq.lastUsed = time.Now()

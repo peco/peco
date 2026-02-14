@@ -74,7 +74,8 @@ func (ecf *ExternalCmd) Apply(ctx context.Context, buf []line.Line, out pipeline
 
 	inbuf := &bytes.Buffer{}
 	for _, l := range buf {
-		inbuf.WriteString(l.DisplayString() + "\n")
+		inbuf.WriteString(l.DisplayString())
+		inbuf.WriteByte('\n')
 	}
 
 	cmd.Stdin = inbuf

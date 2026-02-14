@@ -41,19 +41,19 @@ func (s *Selection) Reset() {
 }
 
 func (s *Selection) Has(x line.Line) bool {
-	s.mutex.Lock()
-	defer s.mutex.Unlock()
+	s.mutex.RLock()
+	defer s.mutex.RUnlock()
 	return s.tree.Has(x)
 }
 
 func (s *Selection) Len() int {
-	s.mutex.Lock()
-	defer s.mutex.Unlock()
+	s.mutex.RLock()
+	defer s.mutex.RUnlock()
 	return s.tree.Len()
 }
 
 func (s *Selection) Ascend(i btree.ItemIterator) {
-	s.mutex.Lock()
-	defer s.mutex.Unlock()
+	s.mutex.RLock()
+	defer s.mutex.RUnlock()
 	s.tree.Ascend(i)
 }
