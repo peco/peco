@@ -129,8 +129,8 @@ func init() {
 
 	ActionFunc(doToggleViewArround).Register("ViewArround", keyseq.KeyCtrlV)
 
-	ActionFunc(doGoToNextSelection).Register("GoToNextSelection", keyseq.KeyCtrlK)
-	ActionFunc(doGoToPreviousSelection).Register("doGoToPreviousSelection", keyseq.KeyCtrlJ)
+	ActionFunc(doGoToNextSelection).Register("GoToNextSelection")
+	ActionFunc(doGoToPreviousSelection).Register("GoToPreviousSelection", keyseq.KeyCtrlJ)
 
 	ActionFunc(doKonamiCommand).RegisterKeySequence(
 		"KonamiCommand",
