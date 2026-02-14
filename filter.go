@@ -14,15 +14,16 @@ import (
 	"github.com/peco/peco/pipeline"
 )
 
-func newFilterProcessor(f filter.Filter, q string) *filterProcessor {
+func newFilterProcessor(f filter.Filter, q string, bufSize int) *filterProcessor {
 	return &filterProcessor{
-		filter: f,
-		query:  q,
+		filter:  f,
+		query:   q,
+		bufSize: bufSize,
 	}
 }
 
 func (fp *filterProcessor) Accept(ctx context.Context, in chan interface{}, out pipeline.ChanOutput) {
-	acceptAndFilter(ctx, fp.filter, in, out)
+	acceptAndFilter(ctx, fp.filter, fp.bufSize, in, out)
 }
 
 // This flusher is run in a separate goroutine so that the filter can
@@ -51,7 +52,7 @@ func flusher(ctx context.Context, f filter.Filter, incoming chan []line.Line, do
 	}
 }
 
-func acceptAndFilter(ctx context.Context, f filter.Filter, in chan interface{}, out pipeline.ChanOutput) {
+func acceptAndFilter(ctx context.Context, f filter.Filter, configBufSize int, in chan interface{}, out pipeline.ChanOutput) {
 	flush := make(chan []line.Line)
 	flushDone := make(chan struct{})
 	go flusher(ctx, f, flush, flushDone, out)
@@ -59,7 +60,11 @@ func acceptAndFilter(ctx context.Context, f filter.Filter, in chan interface{}, 
 	buf := buffer.GetLineListBuf()
 	bufsiz := f.BufSize()
 	if bufsiz <= 0 {
-		bufsiz = cap(buf)
+		if configBufSize > 0 {
+			bufsiz = configBufSize
+		} else {
+			bufsiz = cap(buf)
+		}
 	}
 	defer func() { <-flushDone }() // Wait till the flush goroutine is done
 	defer close(flush)             // Kill the flush goroutine
@@ -149,7 +154,7 @@ func (f *Filter) Work(ctx context.Context, q hub.Payload) {
 	// Wraps the actual filter
 	selectedFilter := state.Filters().Current()
 	ctx = selectedFilter.NewContext(ctx, query)
-	p.Add(newFilterProcessor(selectedFilter, query))
+	p.Add(newFilterProcessor(selectedFilter, query, state.config.FilterBufSize))
 
 	buf := NewMemoryBuffer()
 	p.SetDestination(buf)
