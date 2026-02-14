@@ -127,10 +127,10 @@ func TestExternalCmdFilter_NullSep(t *testing.T) {
 			line.NewRaw(idgen.Next(), "dup\x00third", true),
 		}
 
-		// Use grep to return all lines (match any character)
-		ecf := NewExternalCmd("grep", "grep", []string{"$QUERY"}, 0, idgen, true)
+		// Use grep to return all lines (match literal "dup")
+		ecf := NewExternalCmd("grep", "grep", []string{"-F", "$QUERY"}, 0, idgen, true)
 
-		ctx := ecf.NewContext(context.Background(), ".")
+		ctx := ecf.NewContext(context.Background(), "dup")
 		out := pipeline.ChanOutput(make(chan interface{}, 256))
 
 		var results []line.Line
