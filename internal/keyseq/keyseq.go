@@ -14,9 +14,10 @@ var ErrNoMatch = errors.New("could not match key to any action")
 type ModifierKey int
 
 const (
-	ModNone ModifierKey = iota
-	ModAlt
-	ModMax
+	ModNone  ModifierKey = 0
+	ModAlt   ModifierKey = 1 << 0 // 0x01
+	ModCtrl  ModifierKey = 1 << 1 // 0x02
+	ModShift ModifierKey = 1 << 2 // 0x04
 )
 
 // Key is data in one trie node in the KeySequence
@@ -35,12 +36,17 @@ func (kl KeyList) String() string {
 }
 
 func (m ModifierKey) String() string {
-	switch m {
-	case ModAlt:
-		return "M"
-	default:
-		return ""
+	var parts []string
+	if m&ModCtrl != 0 {
+		parts = append(parts, "C")
 	}
+	if m&ModShift != 0 {
+		parts = append(parts, "S")
+	}
+	if m&ModAlt != 0 {
+		parts = append(parts, "M")
+	}
+	return strings.Join(parts, "-")
 }
 
 func (k Key) String() string {

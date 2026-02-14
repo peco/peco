@@ -411,6 +411,21 @@ As a similar example, a common idiom in emacs is that `C-c C-c` means "take the 
 Since v0.1.8, in addition to values below, you may put a `M-` prefix on any
 key item to use Alt/Option key as a mask.
 
+You can also use `C-` and `S-` prefixes on navigation keys to bind Ctrl and Shift modified keys. Multiple modifiers can be combined. For example:
+
+```json
+{
+    "Keymap": {
+        "C-ArrowLeft": "peco.BackwardWord",
+        "C-ArrowRight": "peco.ForwardWord",
+        "S-ArrowUp": "peco.SelectUp",
+        "C-M-Delete": "peco.DeleteForwardWord"
+    }
+}
+```
+
+Note: `C-` on single characters (e.g. `C-a`) refers to ASCII control codes as before. `C-` as a modifier applies to navigation keys such as `ArrowLeft`, `Home`, `Delete`, etc.
+
 | Name        | Notes |
 |-------------|-------|
 | C-a ... C-z | Control + whatever character |

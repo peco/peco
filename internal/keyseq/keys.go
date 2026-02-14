@@ -239,8 +239,8 @@ func KeyEventToString(key KeyType, ch rune, mod ModifierKey) (string, error) {
 		}
 	}
 
-	if mod == ModAlt {
-		return "M-" + s, nil
+	if m := mod.String(); m != "" {
+		return m + "-" + s, nil
 	}
 
 	return s, nil
@@ -248,25 +248,48 @@ func KeyEventToString(key KeyType, ch rune, mod ModifierKey) (string, error) {
 
 func ToKey(key string) (k KeyType, modifier ModifierKey, ch rune, err error) {
 	modifier = ModNone
-	if strings.HasPrefix(key, "M-") {
-		modifier = ModAlt
-		key = key[2:]
+
+	// Try full string first. This handles legacy key names like "C-a",
+	// "C-v", "Home", "ArrowLeft", etc. that are registered in stringToKey.
+	if k, ok := stringToKey[key]; ok {
+		return k, modifier, 0, nil
+	}
+
+	// Parse modifier prefixes (C-, S-, M-) iteratively.
+	// After each prefix is stripped, try the remainder as a key name.
+	for {
+		switch {
+		case strings.HasPrefix(key, "C-"):
+			modifier |= ModCtrl
+			key = key[2:]
+		case strings.HasPrefix(key, "S-"):
+			modifier |= ModShift
+			key = key[2:]
+		case strings.HasPrefix(key, "M-"):
+			modifier |= ModAlt
+			key = key[2:]
+		default:
+			goto done
+		}
+
+		// After stripping a prefix, try as a registered key name.
+		// This handles e.g. "M-C-v" → strip M-, then "C-v" is found.
+		if k, ok := stringToKey[key]; ok {
+			return k, modifier, 0, nil
+		}
+
+		// Single ASCII char after modifier(s) → treat as rune
 		if len(key) == 1 {
-			ch = rune(key[0])
-			return
+			return 0, modifier, rune(key[0]), nil
 		}
 	}
 
-	var ok bool
-	k, ok = stringToKey[key]
-	if !ok {
-		// If this is a single rune, just allow it
-		ch, _ = utf8.DecodeRuneInString(key)
-		if ch != utf8.RuneError {
-			return
-		}
-
-		err = errors.Errorf("no such key %s", key)
+done:
+	// Try as a single rune (handles multi-byte chars like "せ")
+	ch, _ = utf8.DecodeRuneInString(key)
+	if ch != utf8.RuneError {
+		return 0, modifier, ch, nil
 	}
-	return
+
+	return 0, modifier, 0, errors.Errorf("no such key %s", key)
 }
