@@ -57,8 +57,14 @@ func tcellEventToEvent(tev tcell.Event) Event {
 	switch ev := tev.(type) {
 	case *tcell.EventKey:
 		var mod keyseq.ModifierKey
+		if ev.Modifiers()&tcell.ModCtrl != 0 {
+			mod |= keyseq.ModCtrl
+		}
+		if ev.Modifiers()&tcell.ModShift != 0 {
+			mod |= keyseq.ModShift
+		}
 		if ev.Modifiers()&tcell.ModAlt != 0 {
-			mod = keyseq.ModAlt
+			mod |= keyseq.ModAlt
 		}
 
 		key := ev.Key()

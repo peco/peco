@@ -3,6 +3,8 @@ package keyseq
 import (
 	"testing"
 	"unicode/utf8"
+
+	"github.com/stretchr/testify/require"
 )
 
 func TestKeymapStrToKeyValue(t *testing.T) {
@@ -151,4 +153,125 @@ func TestKeymapStrToKeyValueCh(t *testing.T) {
 		}
 	}
 
+}
+
+func TestKeymapStrToKeyValueWithCtrl(t *testing.T) {
+	tests := []struct {
+		name string
+		key  KeyType
+	}{
+		{"C-ArrowLeft", KeyArrowLeft},
+		{"C-ArrowRight", KeyArrowRight},
+		{"C-ArrowUp", KeyArrowUp},
+		{"C-ArrowDown", KeyArrowDown},
+		{"C-Home", KeyHome},
+		{"C-End", KeyEnd},
+		{"C-Delete", KeyDelete},
+		{"C-Insert", KeyInsert},
+		{"C-Pgup", KeyPgup},
+		{"C-Pgdn", KeyPgdn},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			k, modifier, ch, err := ToKey(tc.name)
+			require.NoError(t, err)
+			require.Equal(t, tc.key, k)
+			require.Equal(t, ModCtrl, modifier)
+			require.Equal(t, rune(0), ch)
+		})
+	}
+}
+
+func TestKeymapStrToKeyValueWithShift(t *testing.T) {
+	tests := []struct {
+		name string
+		key  KeyType
+	}{
+		{"S-ArrowUp", KeyArrowUp},
+		{"S-ArrowDown", KeyArrowDown},
+		{"S-ArrowLeft", KeyArrowLeft},
+		{"S-ArrowRight", KeyArrowRight},
+		{"S-Home", KeyHome},
+		{"S-End", KeyEnd},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			k, modifier, ch, err := ToKey(tc.name)
+			require.NoError(t, err)
+			require.Equal(t, tc.key, k)
+			require.Equal(t, ModShift, modifier)
+			require.Equal(t, rune(0), ch)
+		})
+	}
+}
+
+func TestKeymapStrToKeyValueWithCombinedModifiers(t *testing.T) {
+	tests := []struct {
+		name     string
+		key      KeyType
+		modifier ModifierKey
+	}{
+		{"C-M-ArrowLeft", KeyArrowLeft, ModCtrl | ModAlt},
+		{"M-C-ArrowLeft", KeyArrowLeft, ModCtrl | ModAlt},
+		{"C-S-Delete", KeyDelete, ModCtrl | ModShift},
+		{"C-S-M-Home", KeyHome, ModCtrl | ModShift | ModAlt},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			k, modifier, ch, err := ToKey(tc.name)
+			require.NoError(t, err)
+			require.Equal(t, tc.key, k)
+			require.Equal(t, tc.modifier, modifier)
+			require.Equal(t, rune(0), ch)
+		})
+	}
+}
+
+func TestModifierKeyString(t *testing.T) {
+	tests := []struct {
+		mod      ModifierKey
+		expected string
+	}{
+		{ModNone, ""},
+		{ModAlt, "M"},
+		{ModCtrl, "C"},
+		{ModShift, "S"},
+		{ModCtrl | ModAlt, "C-M"},
+		{ModCtrl | ModShift, "C-S"},
+		{ModShift | ModAlt, "S-M"},
+		{ModCtrl | ModShift | ModAlt, "C-S-M"},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.expected, func(t *testing.T) {
+			require.Equal(t, tc.expected, tc.mod.String())
+		})
+	}
+}
+
+func TestKeyEventToStringWithModifiers(t *testing.T) {
+	tests := []struct {
+		name     string
+		key      KeyType
+		ch       rune
+		mod      ModifierKey
+		expected string
+	}{
+		{"Ctrl+Left", KeyArrowLeft, 0, ModCtrl, "C-<"},
+		{"Shift+Right", KeyArrowRight, 0, ModShift, "S->"},
+		{"Ctrl+Alt+Delete", KeyDelete, 0, ModCtrl | ModAlt, "C-M-Delete"},
+		{"Alt+char", 0, 'v', ModAlt, "M-v"},
+		{"no modifier", KeyHome, 0, ModNone, "Home"},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			s, err := KeyEventToString(tc.key, tc.ch, tc.mod)
+			require.NoError(t, err)
+			require.Equal(t, tc.expected, s)
+		})
+	}
 }
