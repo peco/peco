@@ -5,7 +5,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/nsf/termbox-go"
 	"github.com/pkg/errors"
 )
 
@@ -23,7 +22,7 @@ const (
 // Key is data in one trie node in the KeySequence
 type Key struct {
 	Modifier ModifierKey // Alt, etc
-	Key      termbox.Key
+	Key      KeyType
 	Ch       rune
 }
 
@@ -59,7 +58,7 @@ func (k Key) String() string {
 	return s
 }
 
-func NewKeyFromKey(k termbox.Key) Key {
+func NewKeyFromKey(k KeyType) Key {
 	return Key{
 		Modifier: 0,
 		Key:      k,
@@ -92,13 +91,13 @@ func (k Key) Compare(x Key) int {
 	return 0
 }
 
-func (k KeyList) Equals(x KeyList) bool {
-	if len(k) != len(x) {
+func (kl KeyList) Equals(x KeyList) bool {
+	if len(kl) != len(x) {
 		return false
 	}
 
-	for i := 0; i < len(k); i++ {
-		if k[i].Compare(x[i]) != 0 {
+	for i := 0; i < len(kl); i++ {
+		if kl[i].Compare(x[i]) != 0 {
 			return false
 		}
 	}

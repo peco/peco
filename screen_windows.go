@@ -1,10 +1,6 @@
 package peco
 
-import "github.com/nsf/termbox-go"
-
+// PostInit is a no-op on Windows. tcell handles input mode automatically.
 func (t *Termbox) PostInit(cfg *Config) error {
-	// Windows handle Esc/Alt self
-	termbox.SetInputMode(termbox.InputEsc | termbox.InputAlt)
-
 	return nil
 }

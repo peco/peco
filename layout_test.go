@@ -5,7 +5,6 @@ import (
 	"unicode/utf8"
 
 	"github.com/mattn/go-runewidth"
-	"github.com/nsf/termbox-go"
 )
 
 func TestLayoutType(t *testing.T) {
@@ -40,8 +39,8 @@ func TestPrintScreen(t *testing.T) {
 			screen.Print(PrintArgs{
 				X:    initX,
 				Y:    initY,
-				Fg:   termbox.ColorDefault,
-				Bg:   termbox.ColorDefault,
+				Fg:   ColorDefault,
+				Bg:   ColorDefault,
 				Msg:  msg,
 				Fill: fill,
 			})
@@ -122,8 +121,8 @@ func TestMergeAttribute(t *testing.T) {
 	}
 
 	// merge attributes
-	if m := mergeAttribute(termbox.AttrBold|colors["red"], termbox.AttrUnderline|colors["cyan"]); m != termbox.AttrBold|termbox.AttrUnderline|colors["white"] {
-		t.Errorf("expected %d, got %d", termbox.AttrBold|termbox.AttrUnderline|colors["white"], m)
+	if m := mergeAttribute(AttrBold|colors["red"], AttrUnderline|colors["cyan"]); m != AttrBold|AttrUnderline|colors["white"] {
+		t.Errorf("expected %d, got %d", AttrBold|AttrUnderline|colors["white"], m)
 	}
 
 }

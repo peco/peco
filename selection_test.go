@@ -17,7 +17,6 @@ func TestSelection(t *testing.T) {
 		t.Errorf("expected Len = 1, got %d", s.Len())
 	}
 	s.Add(line.NewRaw(i, "Bob", false))
-	i++
 	if s.Len() != 2 {
 		t.Errorf("expected Len = 2, got %d", s.Len())
 	}

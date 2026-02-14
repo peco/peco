@@ -7,17 +7,17 @@ import (
 
 	"context"
 
-	"github.com/nsf/termbox-go"
 	"github.com/peco/peco/filter"
+	"github.com/peco/peco/internal/keyseq"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestActionFunc(t *testing.T) {
 	called := 0
-	af := ActionFunc(func(_ context.Context, _ *Peco, _ termbox.Event) {
+	af := ActionFunc(func(_ context.Context, _ *Peco, _ Event) {
 		called++
 	})
-	af.Execute(nil, nil, termbox.Event{})
+	af.Execute(context.TODO(), nil, Event{})
 	if !assert.Equal(t, called, 1, "Expected ActionFunc to be called once, but it got called %d times", called) {
 		return
 	}
@@ -78,7 +78,7 @@ func TestDoDeleteForwardChar(t *testing.T) {
 	q.Set("Hello, World!")
 	c.SetPos(5)
 
-	doDeleteForwardChar(ctx, state, termbox.Event{})
+	doDeleteForwardChar(ctx, state, Event{})
 
 	if !expectQueryString(t, q, "Hello World!") {
 		return
@@ -88,13 +88,13 @@ func TestDoDeleteForwardChar(t *testing.T) {
 	}
 
 	c.SetPos(q.Len())
-	doDeleteForwardChar(ctx, state, termbox.Event{})
+	doDeleteForwardChar(ctx, state, Event{})
 
 	expectQueryString(t, q, "Hello World!")
 	expectCaretPos(t, c, q.Len())
 
 	c.SetPos(0)
-	doDeleteForwardChar(ctx, state, termbox.Event{})
+	doDeleteForwardChar(ctx, state, Event{})
 
 	expectQueryString(t, q, "ello World!")
 	expectCaretPos(t, c, 0)
@@ -115,7 +115,7 @@ func TestDoDeleteForwardWord(t *testing.T) {
 	c.SetPos(5)
 
 	// delete the comma
-	doDeleteForwardWord(ctx, state, termbox.Event{})
+	doDeleteForwardWord(ctx, state, Event{})
 	if !expectQueryString(t, q, "Hello World!") {
 		return
 	}
@@ -126,7 +126,7 @@ func TestDoDeleteForwardWord(t *testing.T) {
 
 	// at the end of the query, should not delete anything
 	c.SetPos(q.Len())
-	doDeleteForwardWord(ctx, state, termbox.Event{})
+	doDeleteForwardWord(ctx, state, Event{})
 
 	if !expectQueryString(t, q, "Hello World!") {
 		return
@@ -137,7 +137,7 @@ func TestDoDeleteForwardWord(t *testing.T) {
 
 	// back to the first column, should delete 'Hello'
 	c.SetPos(0)
-	doDeleteForwardWord(ctx, state, termbox.Event{})
+	doDeleteForwardWord(ctx, state, Event{})
 
 	if !expectQueryString(t, q, " World!") {
 		return
@@ -149,7 +149,7 @@ func TestDoDeleteForwardWord(t *testing.T) {
 
 	// should delete "World"
 	c.SetPos(1)
-	doDeleteForwardWord(ctx, state, termbox.Event{})
+	doDeleteForwardWord(ctx, state, Event{})
 
 	if !expectQueryString(t, q, " ") {
 		return
@@ -170,19 +170,19 @@ func TestDoDeleteBackwardChar(t *testing.T) {
 	q.Set("Hello, World!")
 	c.SetPos(5)
 
-	doDeleteBackwardChar(ctx, state, termbox.Event{})
+	doDeleteBackwardChar(ctx, state, Event{})
 
 	expectQueryString(t, q, "Hell, World!")
 	expectCaretPos(t, c, 4)
 
 	c.SetPos(q.Len())
-	doDeleteBackwardChar(ctx, state, termbox.Event{})
+	doDeleteBackwardChar(ctx, state, Event{})
 
 	expectQueryString(t, q, "Hell, World")
 	expectCaretPos(t, c, q.Len())
 
 	c.SetPos(0)
-	doDeleteBackwardChar(ctx, state, termbox.Event{})
+	doDeleteBackwardChar(ctx, state, Event{})
 
 	expectQueryString(t, q, "Hell, World")
 	expectCaretPos(t, c, 0)
@@ -202,14 +202,14 @@ func TestDoDeleteBackwardWord(t *testing.T) {
 	// In case of an overflow (bug)
 	q.Set("foo")
 	c.SetPos(5)
-	doDeleteBackwardWord(ctx, state, termbox.Event{})
+	doDeleteBackwardWord(ctx, state, Event{})
 
 	// https://github.com/peco/peco/pull/184#issuecomment-54026739
 
 	// Case 1. " foo<caret>" -> " "
 	q.Set(" foo")
 	c.SetPos(4)
-	doDeleteBackwardWord(ctx, state, termbox.Event{})
+	doDeleteBackwardWord(ctx, state, Event{})
 
 	if !expectQueryString(t, q, " ") {
 		return
@@ -222,7 +222,7 @@ func TestDoDeleteBackwardWord(t *testing.T) {
 	// Case 2. "foo bar<caret>" -> "foo "
 	q.Set("foo bar")
 	c.SetPos(7)
-	doDeleteBackwardWord(ctx, state, termbox.Event{})
+	doDeleteBackwardWord(ctx, state, Event{})
 
 	if !expectQueryString(t, q, "foo ") {
 		return
@@ -242,9 +242,9 @@ func writeQueryToPrompt(t *testing.T, screen Screen, message string) {
 		}
 
 		if r == ' ' {
-			screen.SendEvent(termbox.Event{Key: termbox.KeySpace})
+			screen.SendEvent(Event{Type: EventKey, Key: keyseq.KeySpace})
 		} else {
-			screen.SendEvent(termbox.Event{Ch: r})
+			screen.SendEvent(Event{Type: EventKey, Ch: r})
 		}
 		str = str[size:]
 	}
@@ -297,7 +297,7 @@ func TestRotateFilter(t *testing.T) {
 	first := state.Filters().Current()
 	prev = first
 	for i := 0; i < size; i++ {
-		state.screen.SendEvent(termbox.Event{Key: termbox.KeyCtrlR})
+		state.screen.SendEvent(Event{Type: EventKey, Key: keyseq.KeyCtrlR})
 
 		time.Sleep(500 * time.Millisecond)
 		f := state.Filters().Current()
@@ -325,14 +325,14 @@ func TestBeginningOfLineAndEndOfLine(t *testing.T) {
 
 	message := "Hello, World!"
 	writeQueryToPrompt(t, state.screen, message)
-	state.screen.SendEvent(termbox.Event{Key: termbox.KeyCtrlA})
+	state.screen.SendEvent(Event{Type: EventKey, Key: keyseq.KeyCtrlA})
 
 	time.Sleep(time.Second)
 	if !assert.Equal(t, state.Caret().Pos(), 0, "Expected caret position to be 0, got %d", state.Caret().Pos()) {
 		return
 	}
 
-	state.screen.SendEvent(termbox.Event{Key: termbox.KeyCtrlE})
+	state.screen.SendEvent(Event{Type: EventKey, Key: keyseq.KeyCtrlE})
 	time.Sleep(time.Second)
 
 	if !assert.Equal(t, state.Caret().Pos(), len(message), "Expected caret position to be %d, got %d", len(message), state.Caret().Pos()) {
@@ -359,13 +359,13 @@ func TestBackToInitialFilter(t *testing.T) {
 		return
 	}
 
-	state.screen.SendEvent(termbox.Event{Key: termbox.KeyCtrlR})
+	state.screen.SendEvent(Event{Type: EventKey, Key: keyseq.KeyCtrlR})
 	time.Sleep(time.Second)
 	if !assert.Equal(t, state.Filters().Index(), 1, "Expected filter to be at position 1, got %d", state.Filters().Index()) {
 		return
 	}
 
-	state.screen.SendEvent(termbox.Event{Key: termbox.KeyCtrlQ})
+	state.screen.SendEvent(Event{Type: EventKey, Key: keyseq.KeyCtrlQ})
 	time.Sleep(time.Second)
 	if !assert.Equal(t, state.Filters().Index(), 0, "Expected filter to be at position 0, got %d", state.Filters().Index()) {
 		return

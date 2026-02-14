@@ -8,7 +8,6 @@ import (
 	"context"
 
 	"github.com/google/btree"
-	"github.com/nsf/termbox-go"
 	"github.com/peco/peco/filter"
 	"github.com/peco/peco/hub"
 	"github.com/peco/peco/internal/keyseq"
@@ -133,9 +132,10 @@ type Keyseq interface {
 	InMiddleOfChain() bool
 }
 
-// PagingRequest can be sent to move the selection cursor
+// PagingRequestType is the type of a paging request
 type PagingRequestType int
 
+// PagingRequest can be sent to move the selection cursor
 type PagingRequest interface {
 	Type() PagingRequestType
 }
@@ -150,27 +150,20 @@ type Selection struct {
 	tree  *btree.BTree
 }
 
-// Screen hides termbox from the consuming code so that
+// Screen hides the terminal library from the consuming code so that
 // it can be swapped out for testing
 type Screen interface {
 	Init(*Config) error
 	Close() error
 	Flush() error
-	PollEvent(context.Context, *Config) chan termbox.Event
+	PollEvent(context.Context, *Config) chan Event
 	Print(PrintArgs) int
 	Resume()
-	SetCell(int, int, rune, termbox.Attribute, termbox.Attribute)
+	SetCell(int, int, rune, Attribute, Attribute)
 	SetCursor(int, int)
 	Size() (int, int)
-	SendEvent(termbox.Event)
+	SendEvent(Event)
 	Suspend()
-}
-
-// Termbox just hands out the processing to the termbox library
-type Termbox struct {
-	mutex     sync.Mutex
-	resumeCh  chan chan struct{}
-	suspendCh chan struct{}
 }
 
 // View handles the drawing/updating the screen
@@ -263,13 +256,13 @@ type Filter struct {
 // but most everything is implemented in terms of ActionFunc, which is
 // callback based Action
 type Action interface {
-	Register(string, ...termbox.Key)
+	Register(string, ...keyseq.KeyType)
 	RegisterKeySequence(string, keyseq.KeyList)
-	Execute(context.Context, *Peco, termbox.Event)
+	Execute(context.Context, *Peco, Event)
 }
 
 // ActionFunc is a type of Action that is basically just a callback.
-type ActionFunc func(context.Context, *Peco, termbox.Event)
+type ActionFunc func(context.Context, *Peco, Event)
 
 // FilteredBuffer holds a "filtered" buffer. It holds a reference to
 // the source buffer (note: should be immutable) and a list of indices
@@ -343,10 +336,42 @@ type StyleSet struct {
 	Matched        Style `json:"Matched"`
 }
 
-// Style describes termbox styles
+// Attribute represents terminal display attributes such as colors
+// and text styling (bold, underline, reverse). It is a uint32 bitfield:
+//
+//	Bits 0-8:   Palette color index (0=default, 1-256 for 256-color palette)
+//	Bits 0-23:  RGB color value (when AttrTrueColor flag is set)
+//	Bit 24:     AttrTrueColor flag — distinguishes true color from palette
+//	Bit 25:     AttrBold
+//	Bit 26:     AttrUnderline
+//	Bit 27:     AttrReverse
+//	Bits 28-31: Reserved
+type Attribute uint32
+
+// Named palette color constants (values 0-8).
+const (
+	ColorDefault Attribute = 0x0000
+	ColorBlack   Attribute = 0x0001
+	ColorRed     Attribute = 0x0002
+	ColorGreen   Attribute = 0x0003
+	ColorYellow  Attribute = 0x0004
+	ColorBlue    Attribute = 0x0005
+	ColorMagenta Attribute = 0x0006
+	ColorCyan    Attribute = 0x0007
+	ColorWhite   Attribute = 0x0008
+)
+
+const (
+	AttrTrueColor Attribute = 0x01000000
+	AttrBold      Attribute = 0x02000000
+	AttrUnderline Attribute = 0x04000000
+	AttrReverse   Attribute = 0x08000000
+)
+
+// Style describes display attributes for foreground and background.
 type Style struct {
-	fg termbox.Attribute
-	bg termbox.Attribute
+	fg Attribute
+	bg Attribute
 }
 
 type Caret struct {
@@ -446,12 +471,12 @@ type MemoryBuffer struct {
 }
 
 type ActionMap interface {
-	ExecuteAction(context.Context, *Peco, termbox.Event) error
+	ExecuteAction(context.Context, *Peco, Event) error
 }
 
 type Input struct {
 	actions ActionMap
-	evsrc   chan termbox.Event
+	evsrc   chan Event
 	mod     *time.Timer
 	mutex   sync.Mutex
 	state   *Peco

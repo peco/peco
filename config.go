@@ -8,7 +8,6 @@ import (
 	"strings"
 	"strconv"
 
-	"github.com/nsf/termbox-go"
 	"github.com/peco/peco/filter"
 	"github.com/peco/peco/internal/util"
 	"github.com/pkg/errors"
@@ -16,7 +15,7 @@ import (
 
 var homedirFunc = util.Homedir
 
-// NewConfig creates a new Config
+// Init initializes the Config with default values
 func (c *Config) Init() error {
 	c.Keymap = make(map[string]string)
 	c.InitialMatcher = IgnoreCaseMatch
@@ -65,35 +64,35 @@ func (c *Config) ReadFilename(filename string) error {
 }
 
 var (
-	stringToFg = map[string]termbox.Attribute{
-		"default": termbox.ColorDefault,
-		"black":   termbox.ColorBlack,
-		"red":     termbox.ColorRed,
-		"green":   termbox.ColorGreen,
-		"yellow":  termbox.ColorYellow,
-		"blue":    termbox.ColorBlue,
-		"magenta": termbox.ColorMagenta,
-		"cyan":    termbox.ColorCyan,
-		"white":   termbox.ColorWhite,
+	stringToFg = map[string]Attribute{
+		"default": ColorDefault,
+		"black":   ColorBlack,
+		"red":     ColorRed,
+		"green":   ColorGreen,
+		"yellow":  ColorYellow,
+		"blue":    ColorBlue,
+		"magenta": ColorMagenta,
+		"cyan":    ColorCyan,
+		"white":   ColorWhite,
 	}
-	stringToBg = map[string]termbox.Attribute{
-		"on_default": termbox.ColorDefault,
-		"on_black":   termbox.ColorBlack,
-		"on_red":     termbox.ColorRed,
-		"on_green":   termbox.ColorGreen,
-		"on_yellow":  termbox.ColorYellow,
-		"on_blue":    termbox.ColorBlue,
-		"on_magenta": termbox.ColorMagenta,
-		"on_cyan":    termbox.ColorCyan,
-		"on_white":   termbox.ColorWhite,
+	stringToBg = map[string]Attribute{
+		"on_default": ColorDefault,
+		"on_black":   ColorBlack,
+		"on_red":     ColorRed,
+		"on_green":   ColorGreen,
+		"on_yellow":  ColorYellow,
+		"on_blue":    ColorBlue,
+		"on_magenta": ColorMagenta,
+		"on_cyan":    ColorCyan,
+		"on_white":   ColorWhite,
 	}
-	stringToFgAttr = map[string]termbox.Attribute{
-		"bold":      termbox.AttrBold,
-		"underline": termbox.AttrUnderline,
-		"reverse":   termbox.AttrReverse,
+	stringToFgAttr = map[string]Attribute{
+		"bold":      AttrBold,
+		"underline": AttrUnderline,
+		"reverse":   AttrReverse,
 	}
-	stringToBgAttr = map[string]termbox.Attribute{
-		"on_bold": termbox.AttrBold,
+	stringToBgAttr = map[string]Attribute{
+		"on_bold": AttrBold,
 	}
 )
 
@@ -105,16 +104,16 @@ func NewStyleSet() *StyleSet {
 }
 
 func (ss *StyleSet) Init() {
-	ss.Basic.fg = termbox.ColorDefault
-	ss.Basic.bg = termbox.ColorDefault
-	ss.Query.fg = termbox.ColorDefault
-	ss.Query.bg = termbox.ColorDefault
-	ss.Matched.fg = termbox.ColorCyan
-	ss.Matched.bg = termbox.ColorDefault
-	ss.SavedSelection.fg = termbox.ColorBlack | termbox.AttrBold
-	ss.SavedSelection.bg = termbox.ColorCyan
-	ss.Selected.fg = termbox.ColorDefault | termbox.AttrUnderline
-	ss.Selected.bg = termbox.ColorMagenta
+	ss.Basic.fg = ColorDefault
+	ss.Basic.bg = ColorDefault
+	ss.Query.fg = ColorDefault
+	ss.Query.bg = ColorDefault
+	ss.Matched.fg = ColorCyan
+	ss.Matched.bg = ColorDefault
+	ss.SavedSelection.fg = ColorBlack | AttrBold
+	ss.SavedSelection.bg = ColorCyan
+	ss.Selected.fg = ColorDefault | AttrUnderline
+	ss.Selected.bg = ColorMagenta
 }
 
 // UnmarshalJSON satisfies json.RawMessage.
@@ -127,26 +126,34 @@ func (s *Style) UnmarshalJSON(buf []byte) error {
 }
 
 func stringsToStyle(style *Style, raw []string) error {
-	style.fg = termbox.ColorDefault
-	style.bg = termbox.ColorDefault
+	style.fg = ColorDefault
+	style.bg = ColorDefault
 
 	for _, s := range raw {
 		fg, ok := stringToFg[s]
 		if ok {
 			style.fg = fg
+		} else if strings.HasPrefix(s, "#") && len(s) == 7 {
+			if rgb, err := strconv.ParseUint(s[1:], 16, 32); err == nil {
+				style.fg = Attribute(rgb) | AttrTrueColor
+			}
 		} else {
 			if fg, err := strconv.ParseUint(s, 10, 8); err == nil {
-				style.fg = termbox.Attribute(fg+1)
+				style.fg = Attribute(fg+1)
 			}
 		}
 
 		bg, ok := stringToBg[s]
 		if ok {
 			style.bg = bg
+		} else if strings.HasPrefix(s, "on_#") && len(s) == 10 {
+			if rgb, err := strconv.ParseUint(s[4:], 16, 32); err == nil {
+				style.bg = Attribute(rgb) | AttrTrueColor
+			}
 		} else {
 			if strings.HasPrefix(s, "on_") {
 				if bg, err := strconv.ParseUint(s[3:], 10, 8); err == nil {
-					style.bg = termbox.Attribute(bg+1)
+					style.bg = Attribute(bg+1)
 				}
 			}
 		}

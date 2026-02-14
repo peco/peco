@@ -28,7 +28,7 @@ func ContainsUpper(query string) bool {
 // Global var used to strips ansi sequences
 var reANSIEscapeChars = regexp.MustCompile("\x1B\\[(?:[0-9]{1,2}(?:;[0-9]{1,2})?)*[a-zA-Z]")
 
-// Function who strips ansi sequences
+// StripANSISequence strips ANSI escape sequences from the given string
 func StripANSISequence(s string) string {
 	return reANSIEscapeChars.ReplaceAllString(s, "")
 }
@@ -51,11 +51,11 @@ type exitStatuser interface {
 
 func IsIgnorableError(err error) bool {
 	for e := err; e != nil; {
-		switch e.(type) {
+		switch v := e.(type) {
 		case ignorable:
-			return e.(ignorable).Ignorable()
+			return v.Ignorable()
 		case causer:
-			e = e.(causer).Cause()
+			e = v.Cause()
 		default:
 			return false
 		}
@@ -65,11 +65,11 @@ func IsIgnorableError(err error) bool {
 
 func IsCollectResultsError(err error) bool {
 	for e := err; e != nil; {
-		switch e.(type) {
+		switch v := e.(type) {
 		case collectResults:
-			return e.(collectResults).CollectResults()
+			return v.CollectResults()
 		case causer:
-			e = e.(causer).Cause()
+			e = v.Cause()
 		default:
 			return false
 		}

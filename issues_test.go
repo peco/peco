@@ -2,13 +2,13 @@ package peco
 
 import (
 	"io"
-	"io/ioutil"
 	"os"
 	"testing"
 	"time"
 
 	"context"
-	termbox "github.com/nsf/termbox-go"
+
+	"github.com/peco/peco/internal/keyseq"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -46,7 +46,7 @@ func TestIssue212_SanityCheck(t *testing.T) {
 	}
 
 	// Okay, this time create a dummy config file, and read that in
-	f, err := ioutil.TempFile("", "peco-test-config")
+	f, err := os.CreateTemp("", "peco-test-config")
 	if !assert.NoError(t, err, "Failed to create temporary config file: %s", err) {
 		return
 	}
@@ -102,9 +102,9 @@ func TestIssue345(t *testing.T) {
 
 	<-state.Ready()
 
-	ev := termbox.Event{
-		Type: termbox.EventKey,
-		Key:  termbox.KeyCtrlT,
+	ev := Event{
+		Type: EventKey,
+		Key:  keyseq.KeyCtrlT,
 	}
 	if !assert.NoError(t, state.Keymap().ExecuteAction(ctx, state, ev), "ExecuteAction should succeed") {
 		return

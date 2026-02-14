@@ -134,7 +134,7 @@ func (p *Pipeline) Run(ctx context.Context) (err error) {
 	// Setup the Acceptors, effectively chaining all nodes
 	// starting from the destination, working all the way
 	// up to the Source
-	var prevCh ChanOutput = ChanOutput(make(chan interface{}))
+	prevCh := ChanOutput(make(chan interface{}))
 	go p.dst.Accept(ctx, prevCh, nil)
 
 	for i := len(p.nodes) - 1; i >= 0; i-- {
