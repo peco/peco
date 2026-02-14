@@ -101,12 +101,11 @@ func (ecf *ExternalCmd) Apply(ctx context.Context, buf []line.Line, out pipeline
 		return errors.Wrap(err, `failed to start command`)
 	}
 
-	go cmd.Wait()
-
 	cmdCh := make(chan line.Line)
 	go func(ctx context.Context, cmdCh chan line.Line, rdr *bufio.Reader) {
 		defer func() { recover() }()
 		defer close(cmdCh)
+		defer cmd.Wait()
 		for {
 			select {
 			case <-ctx.Done():
