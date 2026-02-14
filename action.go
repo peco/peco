@@ -865,7 +865,7 @@ func doGoToPreviousSelection(ctx context.Context, state *Peco, _ Event) {
 	}
 	currentLine := l.ID()
 	previousLine := uint64(0)
-	lastLine := uint64(math.MaxUint64)
+	lastLine := uint64(0)
 	found := false
 
 	selection.Ascend(func(it btree.Item) bool {
@@ -877,7 +877,7 @@ func doGoToPreviousSelection(ctx context.Context, state *Peco, _ Event) {
 			}
 		}
 
-		if selectedLine.ID() >= lastLine {
+		if selectedLine.ID() > lastLine {
 			lastLine = selectedLine.ID()
 		}
 
