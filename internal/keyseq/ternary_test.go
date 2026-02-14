@@ -2,7 +2,6 @@ package keyseq
 
 import "testing"
 
-
 func TestBalance(t *testing.T) {
 	trie := NewTernaryTrie()
 

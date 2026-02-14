@@ -16,7 +16,7 @@ type KeyType uint16
 
 // Function keys
 const (
-	KeyF1  KeyType = 0xFFFF - iota
+	KeyF1 KeyType = 0xFFFF - iota
 	KeyF2
 	KeyF3
 	KeyF4
@@ -45,8 +45,8 @@ const (
 // and MouseLeft, so MouseLeft = KeyArrowRight - 2 (not -1).
 const (
 	MouseLeft   KeyType = 0xFFFF - iota - 23 // KeyArrowRight - 2
-	MouseMiddle                               // KeyArrowRight - 3
-	MouseRight                                // KeyArrowRight - 4
+	MouseMiddle                              // KeyArrowRight - 3
+	MouseRight                               // KeyArrowRight - 4
 )
 
 // Ctrl keys and special keys.

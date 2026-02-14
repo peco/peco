@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"strings"
 	"strconv"
+	"strings"
 
 	"github.com/goccy/go-yaml"
 	"github.com/peco/peco/filter"
@@ -157,7 +157,7 @@ func stringsToStyle(style *Style, raw []string) error {
 			}
 		} else {
 			if fg, err := strconv.ParseUint(s, 10, 8); err == nil {
-				style.fg = Attribute(fg+1)
+				style.fg = Attribute(fg + 1)
 			}
 		}
 
@@ -171,7 +171,7 @@ func stringsToStyle(style *Style, raw []string) error {
 		} else {
 			if strings.HasPrefix(s, "on_") {
 				if bg, err := strconv.ParseUint(s[3:], 10, 8); err == nil {
-					style.bg = Attribute(bg+1)
+					style.bg = Attribute(bg + 1)
 				}
 			}
 		}

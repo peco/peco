@@ -49,5 +49,3 @@ type Matched struct {
 	Line
 	indices [][]int
 }
-
-

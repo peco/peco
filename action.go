@@ -130,7 +130,7 @@ func init() {
 	ActionFunc(doToggleViewArround).Register("ViewArround", keyseq.KeyCtrlV)
 
 	ActionFunc(doGoToNextSelection).Register("GoToNextSelection", keyseq.KeyCtrlK)
-	ActionFunc(doGoToPreviousSelection).Register("	doGoToPreviousSelection", keyseq.KeyCtrlJ)
+	ActionFunc(doGoToPreviousSelection).Register("doGoToPreviousSelection", keyseq.KeyCtrlJ)
 
 	ActionFunc(doKonamiCommand).RegisterKeySequence(
 		"KonamiCommand",
@@ -331,7 +331,7 @@ func doFinish(ctx context.Context, state *Peco, _ Event) {
 	})
 
 	var err error
-	state.Hub().SendStatusMsg(ctx, "Executing " + ccarg)
+	state.Hub().SendStatusMsg(ctx, "Executing "+ccarg)
 	cmd := util.Shell(ccarg)
 	cmd.Stdin = &stdin
 	cmd.Stdout = state.Stdout

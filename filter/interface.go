@@ -56,7 +56,7 @@ type Regexp struct {
 	quotemeta bool
 	mutex     sync.Mutex
 	name      string
-	outCh pipeline.ChanOutput
+	outCh     pipeline.ChanOutput
 }
 
 type ExternalCmd struct {

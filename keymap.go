@@ -180,4 +180,3 @@ func (km *Keymap) ApplyKeybinding() error {
 
 	return errors.Wrap(k.Compile(), "failed to compile key binding patterns")
 }
-
