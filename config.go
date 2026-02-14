@@ -8,6 +8,7 @@ import (
 	"strings"
 	"strconv"
 
+	"github.com/goccy/go-yaml"
 	"github.com/peco/peco/filter"
 	"github.com/peco/peco/internal/util"
 	"github.com/pkg/errors"
@@ -35,9 +36,17 @@ func (c *Config) ReadFilename(filename string) error {
 	}
 	defer f.Close()
 
-	err = json.NewDecoder(f).Decode(c)
-	if err != nil {
-		return errors.Wrap(err, "failed to decode JSON")
+	switch ext := filepath.Ext(filename); ext {
+	case ".yaml", ".yml":
+		err = yaml.NewDecoder(f).Decode(c)
+		if err != nil {
+			return errors.Wrap(err, "failed to decode YAML")
+		}
+	default:
+		err = json.NewDecoder(f).Decode(c)
+		if err != nil {
+			return errors.Wrap(err, "failed to decode JSON")
+		}
 	}
 
 	if !IsValidLayoutType(LayoutType(c.Layout)) {
@@ -125,6 +134,15 @@ func (s *Style) UnmarshalJSON(buf []byte) error {
 	return stringsToStyle(s, raw)
 }
 
+// UnmarshalYAML decodes a YAML array of strings into a Style.
+func (s *Style) UnmarshalYAML(unmarshal func(interface{}) error) error {
+	var raw []string
+	if err := unmarshal(&raw); err != nil {
+		return errors.Wrap(err, "failed to unmarshal Style from YAML")
+	}
+	return stringsToStyle(s, raw)
+}
+
 func stringsToStyle(style *Style, raw []string) error {
 	style.fg = ColorDefault
 	style.bg = ColorDefault
@@ -176,13 +194,16 @@ func stringsToStyle(style *Style, raw []string) error {
 // when we run tests.
 type configLocateFunc func(string) (string, error)
 
+var configFilenames = []string{"config.json", "config.yaml", "config.yml"}
+
 func locateRcfileIn(dir string) (string, error) {
-	const basename = "config.json"
-	file := filepath.Join(dir, basename)
-	if _, err := os.Stat(file); err != nil {
-		return "", errors.Wrapf(err, "failed to stat file %s", file)
+	for _, basename := range configFilenames {
+		file := filepath.Join(dir, basename)
+		if _, err := os.Stat(file); err == nil {
+			return file, nil
+		}
 	}
-	return file, nil
+	return "", errors.Errorf("config file not found in %s", dir)
 }
 
 // LocateRcfile attempts to find the config file in various locations
@@ -190,9 +211,9 @@ func LocateRcfile(locater configLocateFunc) (string, error) {
 	// http://standards.freedesktop.org/basedir-spec/basedir-spec-latest.html
 	//
 	// Try in this order:
-	//	  $XDG_CONFIG_HOME/peco/config.json
-	//    $XDG_CONFIG_DIR/peco/config.json (where XDG_CONFIG_DIR is listed in $XDG_CONFIG_DIRS)
-	//	  ~/.peco/config.json
+	//	  $XDG_CONFIG_HOME/peco/config.{json,yaml,yml}
+	//    $XDG_CONFIG_DIR/peco/config.{json,yaml,yml} (where XDG_CONFIG_DIR is listed in $XDG_CONFIG_DIRS)
+	//	  ~/.peco/config.{json,yaml,yml}
 
 	home, uErr := homedirFunc()
 

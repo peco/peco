@@ -276,46 +276,46 @@ type FilteredBuffer struct {
 // Config holds all the data that can be configured in the
 // external configuration file
 type Config struct {
-	Action map[string][]string `json:"Action"`
+	Action map[string][]string `json:"Action" yaml:"Action"`
 	// Keymap used to be directly responsible for dispatching
 	// events against user input, but since then this has changed
 	// into something that just records the user's config input
-	Keymap              map[string]string `json:"Keymap"`
-	Matcher             string            `json:"Matcher"`        // Deprecated.
-	InitialMatcher      string            `json:"InitialMatcher"` // Use this instead of Matcher
-	InitialFilter       string            `json:"InitialFilter"`
-	Style               StyleSet          `json:"Style"`
-	Prompt              string            `json:"Prompt"`
-	Layout              string            `json:"Layout"`
-	Use256Color         bool              `json:"Use256Color"`
-	OnCancel            string            `json:"OnCancel"`
-	CustomMatcher       map[string][]string
-	CustomFilter        map[string]CustomFilterConfig
-	QueryExecutionDelay int
-	StickySelection     bool
-	MaxScanBufferSize   int
-	FuzzyLongestSort    bool
+	Keymap              map[string]string `json:"Keymap" yaml:"Keymap"`
+	Matcher             string            `json:"Matcher" yaml:"Matcher"`               // Deprecated.
+	InitialMatcher      string            `json:"InitialMatcher" yaml:"InitialMatcher"` // Use this instead of Matcher
+	InitialFilter       string            `json:"InitialFilter" yaml:"InitialFilter"`
+	Style               StyleSet          `json:"Style" yaml:"Style"`
+	Prompt              string            `json:"Prompt" yaml:"Prompt"`
+	Layout              string            `json:"Layout" yaml:"Layout"`
+	Use256Color         bool              `json:"Use256Color" yaml:"Use256Color"`
+	OnCancel            string            `json:"OnCancel" yaml:"OnCancel"`
+	CustomMatcher       map[string][]string                `json:"CustomMatcher" yaml:"CustomMatcher"`
+	CustomFilter        map[string]CustomFilterConfig      `json:"CustomFilter" yaml:"CustomFilter"`
+	QueryExecutionDelay int                                `json:"QueryExecutionDelay" yaml:"QueryExecutionDelay"`
+	StickySelection     bool                               `json:"StickySelection" yaml:"StickySelection"`
+	MaxScanBufferSize   int                                `json:"MaxScanBufferSize" yaml:"MaxScanBufferSize"`
+	FuzzyLongestSort    bool                               `json:"FuzzyLongestSort" yaml:"FuzzyLongestSort"`
 
 	// If this is true, then the prefix for single key jump mode
 	// is displayed by default.
-	SingleKeyJump SingleKeyJumpConfig `json:"SingleKeyJump"`
+	SingleKeyJump SingleKeyJumpConfig `json:"SingleKeyJump" yaml:"SingleKeyJump"`
 
 	// Use this prefix to denote currently selected line
-	SelectionPrefix string `json:"SelectionPrefix"`
+	SelectionPrefix string `json:"SelectionPrefix" yaml:"SelectionPrefix"`
 }
 
 type SingleKeyJumpConfig struct {
-	ShowPrefix bool `json:"ShowPrefix"`
+	ShowPrefix bool `json:"ShowPrefix" yaml:"ShowPrefix"`
 }
 
 // CustomFilterConfig is used to specify configuration parameters
 // to CustomFilters
 type CustomFilterConfig struct {
 	// Cmd is the name of the command to invoke
-	Cmd string
+	Cmd string `json:"Cmd" yaml:"Cmd"`
 
 	// TODO: need to check if how we use this is correct
-	Args []string
+	Args []string `json:"Args" yaml:"Args"`
 
 	// BufferThreshold defines how many lines peco buffers before
 	// invoking the external command. If this value is big, we
@@ -324,16 +324,16 @@ type CustomFilterConfig struct {
 	// If this value is small, we will execute the external command
 	// more often, but you pay the penalty of invoking that command
 	// more times.
-	BufferThreshold int
+	BufferThreshold int `json:"BufferThreshold" yaml:"BufferThreshold"`
 }
 
 // StyleSet holds styles for various sections
 type StyleSet struct {
-	Basic          Style `json:"Basic"`
-	SavedSelection Style `json:"SavedSelection"`
-	Selected       Style `json:"Selected"`
-	Query          Style `json:"Query"`
-	Matched        Style `json:"Matched"`
+	Basic          Style `json:"Basic" yaml:"Basic"`
+	SavedSelection Style `json:"SavedSelection" yaml:"SavedSelection"`
+	Selected       Style `json:"Selected" yaml:"Selected"`
+	Query          Style `json:"Query" yaml:"Query"`
+	Matched        Style `json:"Matched" yaml:"Matched"`
 }
 
 // Attribute represents terminal display attributes such as colors

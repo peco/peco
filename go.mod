@@ -4,6 +4,7 @@ go 1.24.0
 
 require (
 	github.com/gdamore/tcell/v2 v2.13.8
+	github.com/goccy/go-yaml v1.19.2
 	github.com/google/btree v1.1.3
 	github.com/jessevdk/go-flags v1.6.1
 	github.com/lestrrat-go/pdebug v0.0.0-20180220043849-39f9a71bcabe

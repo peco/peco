@@ -8,9 +8,38 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/goccy/go-yaml"
 	"github.com/pkg/errors"
-	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
+
+var expectedConfig = Config{
+	Keymap: map[string]string{
+		"C-j":      "peco.Finish",
+		"C-x,C-c": "peco.Finish",
+	},
+	InitialMatcher: IgnoreCaseMatch,
+	Layout:         DefaultLayoutType,
+	Prompt:         "[peco]",
+	Style: StyleSet{
+		Matched: Style{
+			fg: ColorCyan | AttrBold,
+			bg: ColorRed,
+		},
+		Query: Style{
+			fg: ColorYellow | AttrBold,
+			bg: ColorDefault,
+		},
+		Selected: Style{
+			fg: ColorBlack | AttrUnderline,
+			bg: ColorCyan,
+		},
+		SavedSelection: Style{
+			fg: ColorBlack | AttrBold,
+			bg: ColorCyan,
+		},
+	},
+}
 
 func TestReadRC(t *testing.T) {
 	txt := `
@@ -29,45 +58,37 @@ func TestReadRC(t *testing.T) {
 }
 `
 	var cfg Config
-	if !assert.NoError(t, cfg.Init(), "Config.Init should succeed") {
-		return
-	}
+	require.NoError(t, cfg.Init(), "Config.Init should succeed")
+	require.NoError(t, json.Unmarshal([]byte(txt), &cfg), "Unmarshalling config should succeed")
+	require.Equal(t, expectedConfig, cfg, "configuration matches expected")
+}
 
-	if !assert.NoError(t, json.Unmarshal([]byte(txt), &cfg), "Unmarshalling config should succeed") {
-		return
-	}
-
-	expected := Config{
-		Keymap: map[string]string{
-			"C-j":     "peco.Finish",
-			"C-x,C-c": "peco.Finish",
-		},
-		InitialMatcher: IgnoreCaseMatch,
-		Layout:         DefaultLayoutType,
-		Prompt:         "[peco]",
-		Style: StyleSet{
-			Matched: Style{
-				fg: ColorCyan | AttrBold,
-				bg: ColorRed,
-			},
-			Query: Style{
-				fg: ColorYellow | AttrBold,
-				bg: ColorDefault,
-			},
-			Selected: Style{
-				fg: ColorBlack | AttrUnderline,
-				bg: ColorCyan,
-			},
-			SavedSelection: Style{
-				fg: ColorBlack | AttrBold,
-				bg: ColorCyan,
-			},
-		},
-	}
-
-	if !assert.Equal(t, expected, cfg, "configuration matches expected") {
-		return
-	}
+func TestReadRCYAML(t *testing.T) {
+	txt := `
+Keymap:
+  C-j: peco.Finish
+  "C-x,C-c": peco.Finish
+Style:
+  Basic:
+    - on_default
+    - default
+  Selected:
+    - underline
+    - on_cyan
+    - black
+  Query:
+    - yellow
+    - bold
+  Matched:
+    - cyan
+    - bold
+    - on_red
+Prompt: "[peco]"
+`
+	var cfg Config
+	require.NoError(t, cfg.Init(), "Config.Init should succeed")
+	require.NoError(t, yaml.Unmarshal([]byte(txt), &cfg), "Unmarshalling YAML config should succeed")
+	require.Equal(t, expectedConfig, cfg, "YAML configuration matches expected")
 }
 
 type stringsToStyleTest struct {
@@ -119,21 +140,14 @@ func TestStringsToStyle(t *testing.T) {
 	var a Style
 	for _, test := range tests {
 		t.Logf("    checking %s...", test.strings)
-		if !assert.NoError(t, stringsToStyle(&a, test.strings), "stringsToStyle should succeed") {
-			return
-		}
-
-		if !assert.Equal(t, test.style, &a, "Expected '%s' to be '%#v', but got '%#v'", test.strings, test.style, a) {
-			return
-		}
+		require.NoError(t, stringsToStyle(&a, test.strings), "stringsToStyle should succeed")
+		require.Equal(t, test.style, &a, "Expected '%s' to be '%#v', but got '%#v'", test.strings, test.style, a)
 	}
 }
 
 func TestLocateRcfile(t *testing.T) {
 	dir, err := os.MkdirTemp("", "peco-")
-	if !assert.NoError(t, err, "Failed to create temporary directory: %s", err) {
-		return
-	}
+	require.NoError(t, err, "Failed to create temporary directory")
 
 	homedirFunc = func() (string, error) {
 		return dir, nil
@@ -150,13 +164,8 @@ func TestLocateRcfile(t *testing.T) {
 	i := 0
 	locater := func(dir string) (string, error) {
 		t.Logf("looking for file in %s", dir)
-		if !assert.True(t, i <= len(expected)-1, "Got %d directories, only have %d", i+1, len(expected)) {
-			return "", errors.New("error: Not found")
-		}
-
-		if !assert.Equal(t, expected[i], dir, "Expected %s, got %s", expected[i], dir) {
-			return "", errors.New("error: Not found")
-		}
+		require.True(t, i <= len(expected)-1, "Got %d directories, only have %d", i+1, len(expected))
+		require.Equal(t, expected[i], dir, "Expected %s, got %s", expected[i], dir)
 		i++
 		return "", errors.New("error: Not found")
 	}
@@ -176,5 +185,56 @@ func TestLocateRcfile(t *testing.T) {
 	os.Setenv("XDG_CONFIG_HOME", "")
 	i = 0
 	LocateRcfile(locater)
+}
 
+func TestLocateRcfileYAML(t *testing.T) {
+	dir := t.TempDir()
+
+	// Create config.yaml (but not config.json) in the dir
+	pecoDir := filepath.Join(dir, ".peco")
+	require.NoError(t, os.MkdirAll(pecoDir, 0o755))
+	require.NoError(t, os.WriteFile(filepath.Join(pecoDir, "config.yaml"), []byte("{}"), 0o644))
+
+	homedirFunc = func() (string, error) {
+		return dir, nil
+	}
+
+	// Clear XDG vars so it falls through to ~/.peco/
+	os.Setenv("XDG_CONFIG_HOME", "")
+	os.Setenv("XDG_CONFIG_DIRS", "")
+
+	file, err := LocateRcfile(locateRcfileIn)
+	require.NoError(t, err)
+	require.Equal(t, filepath.Join(pecoDir, "config.yaml"), file)
+}
+
+func TestReadFilenameYAML(t *testing.T) {
+	dir := t.TempDir()
+	yamlFile := filepath.Join(dir, "config.yaml")
+	require.NoError(t, os.WriteFile(yamlFile, []byte(`
+Keymap:
+  C-j: peco.Finish
+  "C-x,C-c": peco.Finish
+Style:
+  Basic:
+    - on_default
+    - default
+  Selected:
+    - underline
+    - on_cyan
+    - black
+  Query:
+    - yellow
+    - bold
+  Matched:
+    - cyan
+    - bold
+    - on_red
+Prompt: "[peco]"
+`), 0o644))
+
+	var cfg Config
+	require.NoError(t, cfg.Init())
+	require.NoError(t, cfg.ReadFilename(yamlFile))
+	require.Equal(t, expectedConfig, cfg)
 }
