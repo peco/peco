@@ -96,6 +96,7 @@ type Peco struct {
 	selection               *Selection
 	selectionPrefix         string
 	selectionRangeStart     RangeStart
+	exitZeroAndExit         bool // True if --exit-0 is enabled
 	selectOneAndExit        bool // True if --select-1 is enabled
 	singleKeyJumpMode       bool
 	singleKeyJumpPrefixes   []rune
@@ -442,6 +443,7 @@ type CLIOptions struct {
 	OptPrompt          string `long:"prompt" description:"specify the prompt string"`
 	OptLayout          string `long:"layout" description:"layout to be used. 'top-down' or 'bottom-up'. default is 'top-down'"`
 	OptSelect1         bool   `long:"select-1" description:"select first item and immediately exit if the input contains only 1 item"`
+	OptExitZero        bool   `long:"exit-0" description:"exit immediately with status 1 if the input is empty"`
 	OptOnCancel        string `long:"on-cancel" description:"specify action on user cancel. 'success' or 'error'.\ndefault is 'success'. This may change in future versions"`
 	OptSelectionPrefix string `long:"selection-prefix" description:"use a prefix instead of changing line color to indicate currently selected lines.\ndefault is to use colors. This option is experimental"`
 	OptExec            string `long:"exec" description:"execute command instead of finishing/terminating peco.\nPlease note that this command will receive selected line(s) from stdin,\nand will be executed via '/bin/sh -c' or 'cmd /c'"`
