@@ -38,6 +38,10 @@ var expectedConfig = Config{
 			fg: ColorBlack | AttrBold,
 			bg: ColorCyan,
 		},
+		Prompt: Style{
+			fg: ColorGreen | AttrBold,
+			bg: ColorDefault,
+		},
 	},
 }
 
@@ -52,7 +56,8 @@ func TestReadRC(t *testing.T) {
 		"Basic": ["on_default", "default"],
 		"Selected": ["underline", "on_cyan", "black"],
 		"Query": ["yellow", "bold"],
-		"Matched": ["cyan", "bold", "on_red"]
+		"Matched": ["cyan", "bold", "on_red"],
+		"Prompt": ["green", "bold"]
 	},
 	"Prompt": "[peco]"
 }
@@ -83,6 +88,9 @@ Style:
     - cyan
     - bold
     - on_red
+  Prompt:
+    - green
+    - bold
 Prompt: "[peco]"
 `
 	var cfg Config
@@ -230,6 +238,9 @@ Style:
     - cyan
     - bold
     - on_red
+  Prompt:
+    - green
+    - bold
 Prompt: "[peco]"
 `), 0o644))
 

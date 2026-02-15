@@ -123,6 +123,8 @@ func (ss *StyleSet) Init() {
 	ss.SavedSelection.bg = ColorCyan
 	ss.Selected.fg = ColorDefault | AttrUnderline
 	ss.Selected.bg = ColorMagenta
+	ss.Prompt.fg = ColorDefault
+	ss.Prompt.bg = ColorDefault
 }
 
 // UnmarshalJSON satisfies json.RawMessage.
