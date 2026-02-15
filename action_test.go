@@ -15,12 +15,13 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// recordingHub wraps nullHub but records SendPaging and SendStatusMsg calls.
+// recordingHub wraps nullHub but records SendPaging, SendStatusMsg, and SendDraw calls.
 type recordingHub struct {
 	nullHub
 	mu         sync.Mutex
 	pagingArgs []interface{}
 	statusMsgs []string
+	drawArgs   []interface{}
 }
 
 func (h *recordingHub) SendPaging(_ context.Context, v interface{}) {
@@ -33,6 +34,20 @@ func (h *recordingHub) SendStatusMsg(_ context.Context, msg string) {
 	h.mu.Lock()
 	defer h.mu.Unlock()
 	h.statusMsgs = append(h.statusMsgs, msg)
+}
+
+func (h *recordingHub) SendDraw(_ context.Context, v interface{}) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	h.drawArgs = append(h.drawArgs, v)
+}
+
+func (h *recordingHub) getDrawArgs() []interface{} {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	dst := make([]interface{}, len(h.drawArgs))
+	copy(dst, h.drawArgs)
+	return dst
 }
 
 func (h *recordingHub) getPagingArgs() []interface{} {
@@ -56,6 +71,7 @@ func (h *recordingHub) reset() {
 	defer h.mu.Unlock()
 	h.pagingArgs = nil
 	h.statusMsgs = nil
+	h.drawArgs = nil
 }
 
 func TestActionFunc(t *testing.T) {
@@ -571,4 +587,26 @@ func TestGHIssue428_PgUpPgDnDefaultBindings(t *testing.T) {
 		require.Equal(t, ToScrollPageUp, pagingArgs[0],
 			"PgUp should trigger ScrollPageUp")
 	})
+}
+
+// TestGHIssue455_RefreshScreenSendsForceSync verifies that doRefreshScreen
+// sends DrawOptions with both DisableCache and ForceSync set to true.
+func TestGHIssue455_RefreshScreenSendsForceSync(t *testing.T) {
+	ctx := context.Background()
+	rHub := &recordingHub{}
+
+	state := New()
+	state.hub = rHub
+	state.selection = NewSelection()
+	state.currentLineBuffer = NewMemoryBuffer()
+
+	doRefreshScreen(ctx, state, Event{})
+
+	drawArgs := rHub.getDrawArgs()
+	require.Len(t, drawArgs, 1, "expected exactly 1 SendDraw call")
+
+	opts, ok := drawArgs[0].(*DrawOptions)
+	require.True(t, ok, "SendDraw argument should be *DrawOptions")
+	require.True(t, opts.DisableCache, "DisableCache should be true")
+	require.True(t, opts.ForceSync, "ForceSync should be true for screen refresh")
 }

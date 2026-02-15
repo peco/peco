@@ -246,6 +246,19 @@ func (s *SimScreen) Size() (int, int) {
 func (s *SimScreen) Resume()  {}
 func (s *SimScreen) Suspend() {}
 
+// Sync records a "Sync" event via the interceptor. This satisfies the
+// optional syncer interface used by BasicLayout.DrawScreen when
+// ForceSync is requested.
+func (s *SimScreen) Sync() {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if s.closed {
+		return
+	}
+	s.record("Sync", interceptorArgs{})
+	s.screen.Sync()
+}
+
 func TestIDGen(t *testing.T) {
 	idgen := newIDGen()
 	ctx, cancel := context.WithCancel(context.Background())

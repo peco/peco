@@ -742,7 +742,7 @@ func doDeleteBackwardChar(ctx context.Context, state *Peco, e Event) {
 }
 
 func doRefreshScreen(ctx context.Context, state *Peco, _ Event) {
-	state.Hub().SendDraw(ctx, &DrawOptions{DisableCache: true})
+	state.Hub().SendDraw(ctx, &DrawOptions{DisableCache: true, ForceSync: true})
 }
 
 func doToggleQuery(ctx context.Context, state *Peco, _ Event) {
