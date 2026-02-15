@@ -285,3 +285,84 @@ func TestGHIssue460_MatchedStyleDoesNotBleedToEndOfLine(t *testing.T) {
 		}
 	})
 }
+
+// TestGHIssue455_DrawScreenForceSync verifies that BasicLayout.DrawScreen
+// calls Sync() (full redraw) instead of Flush() (differential) when
+// DrawOptions.ForceSync is true.
+func TestGHIssue455_DrawScreenForceSync(t *testing.T) {
+	setupState := func(t *testing.T) (*Peco, *SimScreen) {
+		t.Helper()
+
+		screen := NewDummyScreen()
+		state := New()
+		state.screen = screen
+		state.skipReadConfig = true
+		state.Filters().Add(filter.NewIgnoreCase())
+
+		mb := NewMemoryBuffer()
+		mb.lines = append(mb.lines, line.NewRaw(0, "line one", false))
+		state.currentLineBuffer = mb
+
+		loc := state.Location()
+		loc.SetPage(1)
+		loc.SetPerPage(10)
+		loc.SetLineNumber(0)
+
+		return state, screen
+	}
+
+	t.Run("ForceSync true calls Sync instead of final Flush", func(t *testing.T) {
+		state, screen := setupState(t)
+		layout := NewDefaultLayout(state)
+
+		screen.interceptor.reset()
+		layout.DrawScreen(state, &DrawOptions{DisableCache: true, ForceSync: true})
+
+		syncEvents := screen.interceptor.events["Sync"]
+		flushEvents := screen.interceptor.events["Flush"]
+
+		require.Len(t, syncEvents, 1, "expected exactly 1 Sync call")
+		// DrawPrompt internally calls Flush, but the final DrawScreen
+		// Flush should be replaced by Sync.
+		for i, ev := range screen.interceptor.events["Flush"] {
+			t.Logf("Flush event %d: %v", i, ev)
+		}
+		for i, ev := range screen.interceptor.events["Sync"] {
+			t.Logf("Sync event %d: %v", i, ev)
+		}
+		// The prompt's Flush still fires, but the final screen Flush
+		// is replaced by Sync. So Flush count should be 1 less than
+		// the non-ForceSync case.
+		flushCountWithSync := len(flushEvents)
+
+		// Compare against the non-ForceSync case
+		screen.interceptor.reset()
+		layout.DrawScreen(state, &DrawOptions{DisableCache: true, ForceSync: false})
+		flushCountWithout := len(screen.interceptor.events["Flush"])
+
+		require.Equal(t, flushCountWithout-1, flushCountWithSync,
+			"ForceSync should replace exactly one Flush call with Sync")
+	})
+
+	t.Run("ForceSync false does not call Sync", func(t *testing.T) {
+		state, screen := setupState(t)
+		layout := NewDefaultLayout(state)
+
+		screen.interceptor.reset()
+		layout.DrawScreen(state, &DrawOptions{DisableCache: true, ForceSync: false})
+
+		syncEvents := screen.interceptor.events["Sync"]
+		require.Empty(t, syncEvents, "expected no Sync calls when ForceSync is false")
+	})
+
+	t.Run("nil options does not call Sync", func(t *testing.T) {
+		state, screen := setupState(t)
+		layout := NewDefaultLayout(state)
+
+		screen.interceptor.reset()
+		layout.DrawScreen(state, nil)
+
+		syncEvents := screen.interceptor.events["Sync"]
+		require.Empty(t, syncEvents, "expected no Sync calls with nil options")
+	})
+}

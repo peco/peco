@@ -333,6 +333,7 @@ func selectionContains(state *Peco, n int) bool {
 type DrawOptions struct {
 	RunningQuery bool
 	DisableCache bool
+	ForceSync    bool
 }
 
 // Draw displays the ListArea on the screen
@@ -709,6 +710,14 @@ func (l *BasicLayout) DrawScreen(state *Peco, options *DrawOptions) {
 
 	l.DrawPrompt(state)
 	l.list.Draw(state, l, perPage, options)
+
+	if options != nil && options.ForceSync {
+		type syncer interface{ Sync() }
+		if s, ok := l.screen.(syncer); ok {
+			s.Sync()
+			return
+		}
+	}
 
 	if err := l.screen.Flush(); err != nil {
 		return

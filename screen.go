@@ -219,6 +219,18 @@ func (t *Termbox) Flush() error {
 	return nil
 }
 
+// Sync forces a complete redraw of every cell on the physical display.
+// This recovers from screen corruption caused by external output (e.g.,
+// STDERR messages written directly to the terminal).
+func (t *Termbox) Sync() {
+	t.mutex.Lock()
+	defer t.mutex.Unlock()
+	if t.screen == nil {
+		return
+	}
+	t.screen.Sync()
+}
+
 // PollEvent returns a channel that you can listen to for
 // terminal events. The actual polling is done in a
 // separate goroutine
