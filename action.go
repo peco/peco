@@ -93,13 +93,13 @@ func init() {
 	ActionFunc(doSelectUp).Register("SelectUp", keyseq.KeyArrowUp, keyseq.KeyCtrlP)
 	wrapDeprecated(doSelectDown, "SelectNext", "SelectUp/SelectDown").Register("SelectNext")
 
-	ActionFunc(doScrollPageDown).Register("ScrollPageDown", keyseq.KeyArrowRight)
+	ActionFunc(doScrollPageDown).Register("ScrollPageDown", keyseq.KeyArrowRight, keyseq.KeyPgdn)
 	wrapDeprecated(doScrollPageDown, "SelectNextPage", "ScrollPageDown/ScrollPageUp").Register("SelectNextPage")
 
 	ActionFunc(doSelectDown).Register("SelectDown", keyseq.KeyArrowDown, keyseq.KeyCtrlN)
 	wrapDeprecated(doSelectUp, "SelectPrevious", "SelectUp/SelectDown").Register("SelectPrevious")
 
-	ActionFunc(doScrollPageUp).Register("ScrollPageUp", keyseq.KeyArrowLeft)
+	ActionFunc(doScrollPageUp).Register("ScrollPageUp", keyseq.KeyArrowLeft, keyseq.KeyPgup)
 	wrapDeprecated(doScrollPageUp, "SelectPreviousPage", "ScrollPageDown/ScrollPageUp").Register("SelectPreviousPage")
 
 	ActionFunc(doScrollLeft).Register("ScrollLeft")
