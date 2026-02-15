@@ -19,6 +19,7 @@ import (
 	"github.com/peco/peco/internal/util"
 	"github.com/peco/peco/line"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 type nullHub struct{}
@@ -334,6 +335,7 @@ func TestApplyConfig(t *testing.T) {
 	opts.OptLayout = "bottom-up"
 	opts.OptSelect1 = true
 	opts.OptExitZero = true
+	opts.OptSelectAll = true
 	opts.OptOnCancel = "error"
 	opts.OptSelectionPrefix = ">"
 	opts.OptPrintQuery = true
@@ -376,6 +378,10 @@ func TestApplyConfig(t *testing.T) {
 	}
 
 	if !assert.Equal(t, opts.OptExitZero, p.exitZeroAndExit, "p.exitZeroAndExit should be equal to opts.OptExitZero") {
+		return
+	}
+
+	if !assert.Equal(t, opts.OptSelectAll, p.selectAllAndExit, "p.selectAllAndExit should be equal to opts.OptSelectAll") {
 		return
 	}
 
@@ -591,6 +597,173 @@ func TestExitZero(t *testing.T) {
 				}
 			}
 		}
+	})
+}
+
+func TestSelectAll(t *testing.T) {
+	t.Run("Multiple lines outputs all lines", func(t *testing.T) {
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+
+		p := newPeco()
+		p.Argv = []string{"--select-all"}
+		p.Stdin = bytes.NewBufferString("foo\nbar\nbaz\n")
+		var out bytes.Buffer
+		p.Stdout = &out
+
+		resultCh := make(chan error)
+		go func() {
+			defer close(resultCh)
+			select {
+			case <-ctx.Done():
+				return
+			case resultCh <- p.Run(ctx):
+				return
+			}
+		}()
+
+		select {
+		case <-ctx.Done():
+			t.Errorf("timeout reached")
+			return
+		case err := <-resultCh:
+			require.True(t, util.IsCollectResultsError(err), "isCollectResultsError")
+			p.PrintResults()
+		}
+
+		require.Equal(t, "foo\nbar\nbaz\n", out.String(), "output should match")
+	})
+
+	t.Run("Single line outputs that line", func(t *testing.T) {
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+
+		p := newPeco()
+		p.Argv = []string{"--select-all"}
+		p.Stdin = bytes.NewBufferString("only\n")
+		var out bytes.Buffer
+		p.Stdout = &out
+
+		resultCh := make(chan error)
+		go func() {
+			defer close(resultCh)
+			select {
+			case <-ctx.Done():
+				return
+			case resultCh <- p.Run(ctx):
+				return
+			}
+		}()
+
+		select {
+		case <-ctx.Done():
+			t.Errorf("timeout reached")
+			return
+		case err := <-resultCh:
+			require.True(t, util.IsCollectResultsError(err), "isCollectResultsError")
+			p.PrintResults()
+		}
+
+		require.Equal(t, "only\n", out.String(), "output should match")
+	})
+
+	t.Run("Empty input outputs nothing", func(t *testing.T) {
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+
+		p := newPeco()
+		p.Argv = []string{"--select-all"}
+		p.Stdin = bytes.NewBufferString("")
+		var out bytes.Buffer
+		p.Stdout = &out
+
+		resultCh := make(chan error)
+		go func() {
+			defer close(resultCh)
+			select {
+			case <-ctx.Done():
+				return
+			case resultCh <- p.Run(ctx):
+				return
+			}
+		}()
+
+		select {
+		case <-ctx.Done():
+			t.Errorf("timeout reached")
+			return
+		case err := <-resultCh:
+			require.True(t, util.IsCollectResultsError(err), "isCollectResultsError")
+			p.PrintResults()
+		}
+
+		require.Empty(t, out.String(), "output should be empty")
+	})
+
+	t.Run("With --print-query outputs query then all lines", func(t *testing.T) {
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+
+		p := newPeco()
+		p.Argv = []string{"--select-all", "--print-query", "--query", "test"}
+		p.Stdin = bytes.NewBufferString("foo\nbar\n")
+		var out bytes.Buffer
+		p.Stdout = &out
+
+		resultCh := make(chan error)
+		go func() {
+			defer close(resultCh)
+			select {
+			case <-ctx.Done():
+				return
+			case resultCh <- p.Run(ctx):
+				return
+			}
+		}()
+
+		select {
+		case <-ctx.Done():
+			t.Errorf("timeout reached")
+			return
+		case err := <-resultCh:
+			require.True(t, util.IsCollectResultsError(err), "isCollectResultsError")
+			p.PrintResults()
+		}
+
+		require.Equal(t, "test\n", out.String(), "output should have query and no matching lines")
+	})
+
+	t.Run("With query filters then selects all matches", func(t *testing.T) {
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+
+		p := newPeco()
+		p.Argv = []string{"--select-all", "--query", "foo"}
+		p.Stdin = bytes.NewBufferString("foo\nbar\nfoobar\n")
+		var out bytes.Buffer
+		p.Stdout = &out
+
+		resultCh := make(chan error)
+		go func() {
+			defer close(resultCh)
+			select {
+			case <-ctx.Done():
+				return
+			case resultCh <- p.Run(ctx):
+				return
+			}
+		}()
+
+		select {
+		case <-ctx.Done():
+			t.Errorf("timeout reached")
+			return
+		case err := <-resultCh:
+			require.True(t, util.IsCollectResultsError(err), "isCollectResultsError")
+			p.PrintResults()
+		}
+
+		require.Equal(t, "foo\nfoobar\n", out.String(), "output should contain only matching lines")
 	})
 }
 

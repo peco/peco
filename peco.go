@@ -319,6 +319,17 @@ func (p *Peco) exitZeroIfPossible() {
 	}
 }
 
+func (p *Peco) selectAllAndExitIfPossible() {
+	b := p.CurrentLineBuffer()
+	selection := p.Selection()
+	for i := 0; i < b.Size(); i++ {
+		if l, err := b.LineAt(i); err == nil {
+			selection.Add(l)
+		}
+	}
+	p.Exit(errCollectResults{})
+}
+
 func (p *Peco) Run(ctx context.Context) (err error) {
 	if pdebug.Enabled {
 		g := pdebug.Marker("Peco.Run").BindError(&err)
@@ -409,6 +420,15 @@ func (p *Peco) Run(ctx context.Context) (err error) {
 		}()
 	}
 
+	// If --select-all is enabled and there is no query, select all lines
+	// from the source and exit immediately
+	if p.selectAllAndExit && p.initialQuery == "" {
+		go func() {
+			<-p.source.SetupDone()
+			p.selectAllAndExitIfPossible()
+		}()
+	}
+
 	readyOnce.Do(func() { close(p.readyCh) })
 
 	// This has tobe AFTER close(p.readyCh), otherwise the query is
@@ -426,6 +446,8 @@ func (p *Peco) Run(ctx context.Context) (err error) {
 			// if we only have one item
 			if p.selectOneAndExit {
 				p.ExecQuery(p.selectOneAndExitIfPossible)
+			} else if p.selectAllAndExit {
+				p.ExecQuery(p.selectAllAndExitIfPossible)
 			} else {
 				p.ExecQuery(nil)
 			}
@@ -576,6 +598,7 @@ func (p *Peco) ApplyConfig(opts CLIOptions) error {
 	}
 	p.selectOneAndExit = opts.OptSelect1
 	p.exitZeroAndExit = opts.OptExitZero
+	p.selectAllAndExit = opts.OptSelectAll
 	p.printQuery = opts.OptPrintQuery
 	p.initialQuery = opts.OptQuery
 	p.initialFilter = opts.OptInitialFilter
