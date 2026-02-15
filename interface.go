@@ -346,6 +346,7 @@ type StyleSet struct {
 	Selected       Style `json:"Selected" yaml:"Selected"`
 	Query          Style `json:"Query" yaml:"Query"`
 	Matched        Style `json:"Matched" yaml:"Matched"`
+	Prompt         Style `json:"Prompt" yaml:"Prompt"`
 }
 
 // Attribute represents terminal display attributes such as colors

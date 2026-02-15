@@ -5,6 +5,7 @@ import (
 	"unicode/utf8"
 
 	"github.com/mattn/go-runewidth"
+	"github.com/peco/peco/filter"
 	"github.com/peco/peco/line"
 	"github.com/stretchr/testify/require"
 )
@@ -138,6 +139,60 @@ func TestMergeAttribute(t *testing.T) {
 		t.Errorf("expected %d, got %d", AttrBold|AttrUnderline|colors["white"], m)
 	}
 
+}
+
+// TestGHIssue294_PromptStyleUsedForPromptPrefix verifies that UserPrompt.Draw
+// uses the Prompt style (not Basic) when rendering the prompt prefix string.
+func TestGHIssue294_PromptStyleUsedForPromptPrefix(t *testing.T) {
+	styles := NewStyleSet()
+	styles.Prompt.fg = ColorGreen | AttrBold
+	styles.Prompt.bg = ColorBlue
+	// Make sure Basic is different so we can distinguish them.
+	styles.Basic.fg = ColorDefault
+	styles.Basic.bg = ColorDefault
+
+	screen := NewDummyScreen()
+	prompt := NewUserPrompt(screen, AnchorTop, 0, "QUERY>", styles)
+
+	state := New()
+	state.screen = screen
+	state.skipReadConfig = true
+	state.Filters().Add(filter.NewIgnoreCase())
+
+	prompt.Draw(state)
+
+	// Collect SetCell events for y=0 (the prompt row).
+	events := screen.interceptor.events["SetCell"]
+
+	promptStr := "QUERY>"
+	promptLen := len(promptStr)
+	require.True(t, len(events) >= promptLen,
+		"expected at least %d SetCell events, got %d", promptLen, len(events))
+
+	// The first promptLen cells should use the Prompt style colors.
+	for i := 0; i < promptLen; i++ {
+		ev := events[i]
+		x := ev[0].(int)
+		ch := ev[2].(rune)
+		fg := ev[3].(Attribute)
+		bg := ev[4].(Attribute)
+
+		require.Equal(t, i, x, "expected x=%d", i)
+		require.Equal(t, rune(promptStr[i]), ch, "expected character %c at position %d", promptStr[i], i)
+		require.Equal(t, styles.Prompt.fg, fg,
+			"cell at x=%d should use Prompt.fg, got %v", i, fg)
+		require.Equal(t, styles.Prompt.bg, bg,
+			"cell at x=%d should use Prompt.bg, got %v", i, bg)
+	}
+
+	// The cells after the prompt should NOT use the Prompt style —
+	// they should use the Query style (for the query text area).
+	if len(events) > promptLen {
+		ev := events[promptLen]
+		fg := ev[3].(Attribute)
+		require.NotEqual(t, styles.Prompt.fg, fg,
+			"cell after prompt should not use Prompt style")
+	}
 }
 
 // TestGHIssue460_MatchedStyleDoesNotBleedToEndOfLine verifies that matched

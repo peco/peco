@@ -99,8 +99,8 @@ func (u UserPrompt) Draw(state *Peco) {
 	// print "QUERY>"
 	u.screen.Print(PrintArgs{
 		Y:   location,
-		Fg:  u.styles.Basic.fg,
-		Bg:  u.styles.Basic.bg,
+		Fg:  u.styles.Prompt.fg,
+		Bg:  u.styles.Prompt.bg,
 		Msg: u.prompt,
 	})
 

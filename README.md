@@ -564,7 +564,7 @@ Note: If in case below keymap seems wrong, check the source code in [keymap.go](
 
 ## Styles
 
-For now, styles of following 5 items can be customized in `config.json`.
+For now, styles of following 6 items can be customized in `config.json`.
 
 ```json
 {
@@ -573,7 +573,8 @@ For now, styles of following 5 items can be customized in `config.json`.
         "SavedSelection": ["bold", "on_yellow", "white"],
         "Selected": ["underline", "on_cyan", "black"],
         "Query": ["yellow", "bold"],
-        "Matched": ["red", "on_blue"]
+        "Matched": ["red", "on_blue"],
+        "Prompt": ["green", "bold"]
     }
 }
 ```
@@ -583,6 +584,7 @@ For now, styles of following 5 items can be customized in `config.json`.
 - `Selected` for a currently selecting line
 - `Query` for a query line
 - `Matched` for a query matched word
+- `Prompt` for the query prompt prefix (e.g., `QUERY>`)
 
 ### Foreground Colors
 
