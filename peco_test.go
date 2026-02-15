@@ -333,6 +333,7 @@ func TestApplyConfig(t *testing.T) {
 	opts.OptInitialFilter = "Regexp"
 	opts.OptLayout = "bottom-up"
 	opts.OptSelect1 = true
+	opts.OptExitZero = true
 	opts.OptOnCancel = "error"
 	opts.OptSelectionPrefix = ">"
 	opts.OptPrintQuery = true
@@ -371,6 +372,10 @@ func TestApplyConfig(t *testing.T) {
 	}
 
 	if !assert.Equal(t, opts.OptSelect1, p.selectOneAndExit, "p.selectOneAndExit should be equal to opts.OptSelect1") {
+		return
+	}
+
+	if !assert.Equal(t, opts.OptExitZero, p.exitZeroAndExit, "p.exitZeroAndExit should be equal to opts.OptExitZero") {
 		return
 	}
 
@@ -502,6 +507,91 @@ func TestGHIssue367(t *testing.T) {
 	if !assert.Equal(t, "bar\n", buf.String(), "output should match") {
 		return
 	}
+}
+
+func TestExitZero(t *testing.T) {
+	t.Run("Empty input exits with status 1", func(t *testing.T) {
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+
+		p := newPeco()
+		p.Argv = []string{"--exit-0"}
+		p.Stdin = bytes.NewBufferString("")
+		var out bytes.Buffer
+		p.Stdout = &out
+
+		resultCh := make(chan error)
+		go func() {
+			defer close(resultCh)
+			select {
+			case <-ctx.Done():
+				return
+			case resultCh <- p.Run(ctx):
+				return
+			}
+		}()
+
+		select {
+		case <-ctx.Done():
+			t.Errorf("timeout reached")
+			return
+		case err := <-resultCh:
+			if !assert.True(t, util.IsIgnorableError(err), "error should be ignorable") {
+				return
+			}
+			st, ok := util.GetExitStatus(err)
+			if !assert.True(t, ok, "error should have exit status") {
+				return
+			}
+			if !assert.Equal(t, 1, st, "exit status should be 1") {
+				return
+			}
+		}
+
+		if !assert.Empty(t, out.String(), "output should be empty") {
+			return
+		}
+	})
+
+	t.Run("Non-empty input does not auto-exit", func(t *testing.T) {
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+
+		p := newPeco()
+		p.Argv = []string{"--exit-0"}
+		p.Stdin = bytes.NewBufferString("foo\n")
+		var out bytes.Buffer
+		p.Stdout = &out
+
+		resultCh := make(chan error)
+		go func() {
+			defer close(resultCh)
+			select {
+			case <-ctx.Done():
+				return
+			case resultCh <- p.Run(ctx):
+				return
+			}
+		}()
+
+		// Wait for peco to be ready, then cancel after a short delay
+		// If --exit-0 incorrectly triggered, we'd get an ignorable error
+		<-p.Ready()
+		time.AfterFunc(500*time.Millisecond, cancel)
+
+		select {
+		case <-ctx.Done():
+			// Expected: peco stayed running until we cancelled
+		case err := <-resultCh:
+			// If we got a result, it should NOT be an ignorable error with exit status 1
+			if util.IsIgnorableError(err) {
+				st, ok := util.GetExitStatus(err)
+				if ok && st == 1 {
+					t.Errorf("--exit-0 should not trigger when input is non-empty")
+				}
+			}
+		}
+	})
 }
 
 func TestPrintQuery(t *testing.T) {

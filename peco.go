@@ -313,6 +313,12 @@ func (p *Peco) selectOneAndExitIfPossible() {
 	}
 }
 
+func (p *Peco) exitZeroIfPossible() {
+	if p.CurrentLineBuffer().Size() == 0 {
+		p.Exit(setExitStatus(makeIgnorable(errors.New("no input, exiting")), 1))
+	}
+}
+
 func (p *Peco) Run(ctx context.Context) (err error) {
 	if pdebug.Enabled {
 		g := pdebug.Marker("Peco.Run").BindError(&err)
@@ -392,6 +398,14 @@ func (p *Peco) Run(ctx context.Context) (err error) {
 			// done reading the input
 			<-p.source.SetupDone()
 			p.selectOneAndExitIfPossible()
+		}()
+	}
+
+	// If this is enabled, exit immediately with status 1 when input is empty
+	if p.exitZeroAndExit {
+		go func() {
+			<-p.source.SetupDone()
+			p.exitZeroIfPossible()
 		}()
 	}
 
@@ -561,6 +575,7 @@ func (p *Peco) ApplyConfig(opts CLIOptions) error {
 		p.selectionPrefix = p.config.SelectionPrefix
 	}
 	p.selectOneAndExit = opts.OptSelect1
+	p.exitZeroAndExit = opts.OptExitZero
 	p.printQuery = opts.OptPrintQuery
 	p.initialQuery = opts.OptQuery
 	p.initialFilter = opts.OptInitialFilter
