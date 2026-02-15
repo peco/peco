@@ -325,6 +325,19 @@ left intact.
 
 Default value for StickySelection is false.
 
+### SuppressStatusMsg
+
+```json
+{
+    "SuppressStatusMsg": true
+}
+```
+
+SuppressStatusMsg suppresses the status message bar at the bottom of the screen.
+When set to true, messages like "Running query..." will not be displayed.
+
+Default value for SuppressStatusMsg is false.
+
 ### OnCancel
 
 ```json
@@ -807,6 +820,7 @@ Much code stolen from https://github.com/mattn/gof
     - [InitialFilter](#initialfilter)
     - [FuzzyLongestSort](#fuzzylongestsort)
     - [StickySelection](#stickyselection)
+    - [SuppressStatusMsg](#suppressstatusmsg)
     - [OnCancel](#oncancel)
     - [MaxScanBufferSize](#maxscanbuffersize)
   - [Keymaps](#keymaps)

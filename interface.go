@@ -212,13 +212,21 @@ type UserPrompt struct {
 	styles    *StyleSet
 }
 
-// StatusBar draws the status message bar
-type StatusBar struct {
+// StatusBar is the interface for printing status messages
+type StatusBar interface {
+	PrintStatus(string, time.Duration)
+}
+
+// screenStatusBar draws the status message bar on screen
+type screenStatusBar struct {
 	*AnchorSettings
 	clearTimer *time.Timer
 	styles     *StyleSet
 	timerMutex sync.Mutex
 }
+
+// nullStatusBar is a no-op status bar used when SuppressStatusMsg is true
+type nullStatusBar struct{}
 
 // ListArea represents the area where the actual line buffer is
 // displayed in the screen
@@ -235,9 +243,10 @@ type ListArea struct {
 // of components may be configurable, the actual types of components
 // that are used are set and static
 type BasicLayout struct {
-	*StatusBar
-	prompt *UserPrompt
-	list   *ListArea
+	statusBar StatusBar
+	screen    Screen
+	prompt    *UserPrompt
+	list      *ListArea
 }
 
 // Keymap holds all the key sequence to action map
@@ -297,6 +306,7 @@ type Config struct {
 	MaxScanBufferSize   int                                `json:"MaxScanBufferSize" yaml:"MaxScanBufferSize"`
 	FilterBufSize       int                                `json:"FilterBufSize" yaml:"FilterBufSize"`
 	FuzzyLongestSort    bool                               `json:"FuzzyLongestSort" yaml:"FuzzyLongestSort"`
+	SuppressStatusMsg   bool                               `json:"SuppressStatusMsg" yaml:"SuppressStatusMsg"`
 
 	// If this is true, then the prefix for single key jump mode
 	// is displayed by default.

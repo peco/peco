@@ -81,15 +81,26 @@ func TestPrintScreen(t *testing.T) {
 	verify("日本語")
 }
 
-func TestStatusBar(t *testing.T) {
+func TestScreenStatusBar(t *testing.T) {
 	screen := NewDummyScreen()
-	st := NewStatusBar(screen, AnchorBottom, 0, NewStyleSet())
+	st := newScreenStatusBar(screen, AnchorBottom, 0, NewStyleSet())
 	st.PrintStatus("Hello, World!", 0)
 
 	events := screen.interceptor.events
 	if l := len(events["Flush"]); l != 1 {
 		t.Errorf("Expected 1 Flush event, got %d", l)
 		return
+	}
+}
+
+func TestNullStatusBar(t *testing.T) {
+	screen := NewDummyScreen()
+	var st StatusBar = nullStatusBar{}
+	st.PrintStatus("Hello, World!", 0)
+
+	events := screen.interceptor.events
+	if l := len(events["Flush"]); l != 0 {
+		t.Errorf("Expected 0 Flush events with nullStatusBar, got %d", l)
 	}
 }
 
