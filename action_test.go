@@ -525,3 +525,50 @@ func TestGHIssue574_PreviousSelectionLastLineNotUpdated(t *testing.T) {
 			"should jump to ID=20, the nearest previous selected line")
 	})
 }
+
+func TestGHIssue428_PgUpPgDnDefaultBindings(t *testing.T) {
+	// Issue #428: PgUp/PgDn keys should be bound by default to
+	// ScrollPageUp/ScrollPageDown, just like Home/End are bound
+	// to ScrollFirstItem/ScrollLastItem.
+
+	ctx := context.Background()
+	rHub := &recordingHub{}
+
+	state := New()
+	state.hub = rHub
+	state.selection = NewSelection()
+	state.currentLineBuffer = NewMemoryBuffer()
+
+	// Populate the keymap with defaults (no custom config).
+	state.config.Keymap = map[string]string{}
+	state.config.Action = map[string][]string{}
+	require.NoError(t, state.populateKeymap(), "populateKeymap should succeed")
+
+	km := state.Keymap()
+
+	t.Run("PgDn triggers ScrollPageDown", func(t *testing.T) {
+		rHub.reset()
+
+		ev := Event{Key: keyseq.KeyPgdn}
+		err := km.ExecuteAction(ctx, state, ev)
+		require.NoError(t, err, "PgDn should resolve to an action")
+
+		pagingArgs := rHub.getPagingArgs()
+		require.Len(t, pagingArgs, 1, "expected one paging call")
+		require.Equal(t, ToScrollPageDown, pagingArgs[0],
+			"PgDn should trigger ScrollPageDown")
+	})
+
+	t.Run("PgUp triggers ScrollPageUp", func(t *testing.T) {
+		rHub.reset()
+
+		ev := Event{Key: keyseq.KeyPgup}
+		err := km.ExecuteAction(ctx, state, ev)
+		require.NoError(t, err, "PgUp should resolve to an action")
+
+		pagingArgs := rHub.getPagingArgs()
+		require.Len(t, pagingArgs, 1, "expected one paging call")
+		require.Equal(t, ToScrollPageUp, pagingArgs[0],
+			"PgUp should trigger ScrollPageUp")
+	})
+}

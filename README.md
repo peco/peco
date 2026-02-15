@@ -546,6 +546,8 @@ Note: If in case below keymap seems wrong, check the source code in [keymap.go](
 |ArrowDown|peco.SelectDown|
 |ArrowLeft|peco.ScrollPageUp|
 |ArrowRight|peco.ScrollPageDown|
+|Pgup|peco.ScrollPageUp|
+|Pgdn|peco.ScrollPageDown|
 
 ## Styles
 
