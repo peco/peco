@@ -208,16 +208,16 @@ func (u UserPrompt) Draw(state *Peco) {
 	u.screen.Flush()
 }
 
-// NewStatusBar creates a new StatusBar struct
-func NewStatusBar(screen Screen, anchor VerticalAnchor, anchorOffset int, styles *StyleSet) *StatusBar {
-	return &StatusBar{
+// newScreenStatusBar creates a new screenStatusBar struct
+func newScreenStatusBar(screen Screen, anchor VerticalAnchor, anchorOffset int, styles *StyleSet) *screenStatusBar {
+	return &screenStatusBar{
 		AnchorSettings: NewAnchorSettings(screen, anchor, anchorOffset),
 		clearTimer:     nil,
 		styles:         styles,
 	}
 }
 
-func (s *StatusBar) stopTimer() {
+func (s *screenStatusBar) stopTimer() {
 	s.timerMutex.Lock()
 	defer s.timerMutex.Unlock()
 	if t := s.clearTimer; t != nil {
@@ -226,7 +226,7 @@ func (s *StatusBar) stopTimer() {
 	}
 }
 
-func (s *StatusBar) setClearTimer(t *time.Timer) {
+func (s *screenStatusBar) setClearTimer(t *time.Timer) {
 	s.timerMutex.Lock()
 	defer s.timerMutex.Unlock()
 	s.clearTimer = t
@@ -234,9 +234,9 @@ func (s *StatusBar) setClearTimer(t *time.Timer) {
 
 // PrintStatus prints a new status message. This also resets the
 // timer created by ClearStatus()
-func (s *StatusBar) PrintStatus(msg string, clearDelay time.Duration) {
+func (s *screenStatusBar) PrintStatus(msg string, clearDelay time.Duration) {
 	if pdebug.Enabled {
-		g := pdebug.Marker("StatusBar.PrintStatus")
+		g := pdebug.Marker("screenStatusBar.PrintStatus")
 		defer g.End()
 	}
 
@@ -290,6 +290,14 @@ func (s *StatusBar) PrintStatus(msg string, clearDelay time.Duration) {
 			s.PrintStatus("", 0)
 		}))
 	}
+}
+
+// PrintStatus on nullStatusBar is a no-op
+func (nullStatusBar) PrintStatus(_ string, _ time.Duration) {}
+
+// PrintStatus on BasicLayout delegates to the StatusBar
+func (l *BasicLayout) PrintStatus(msg string, delay time.Duration) {
+	l.statusBar.PrintStatus(msg, delay)
 }
 
 // NewListArea creates a new ListArea struct
@@ -612,10 +620,20 @@ func maxOf(a, b int) int {
 	return b
 }
 
+// newStatusBar returns a StatusBar appropriate for the configuration.
+// If SuppressStatusMsg is true, a nullStatusBar (no-op) is returned.
+func newStatusBar(state *Peco) StatusBar {
+	if state.config.SuppressStatusMsg {
+		return nullStatusBar{}
+	}
+	return newScreenStatusBar(state.Screen(), AnchorBottom, 0+extraOffset, state.Styles())
+}
+
 // NewDefaultLayout creates a new Layout in the default format (top-down)
 func NewDefaultLayout(state *Peco) *BasicLayout {
 	return &BasicLayout{
-		StatusBar: NewStatusBar(state.Screen(), AnchorBottom, 0+extraOffset, state.Styles()),
+		statusBar: newStatusBar(state),
+		screen:    state.Screen(),
 		// The prompt is at the top
 		prompt: NewUserPrompt(state.Screen(), AnchorTop, 0, state.Prompt(), state.Styles()),
 		// The list area is at the top, after the prompt
@@ -627,7 +645,8 @@ func NewDefaultLayout(state *Peco) *BasicLayout {
 // NewBottomUpLayout creates a new Layout in bottom-up format
 func NewBottomUpLayout(state *Peco) *BasicLayout {
 	return &BasicLayout{
-		StatusBar: NewStatusBar(state.Screen(), AnchorBottom, 0+extraOffset, state.Styles()),
+		statusBar: newStatusBar(state),
+		screen:    state.Screen(),
 		// The prompt is at the bottom, above the status bar
 		prompt: NewUserPrompt(state.Screen(), AnchorBottom, 1+extraOffset, state.Prompt(), state.Styles()),
 		// The list area is at the bottom, above the prompt
