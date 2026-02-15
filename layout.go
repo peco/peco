@@ -572,31 +572,29 @@ func (l *ListArea) Draw(state *Peco, parent Layout, perPage int, options *DrawOp
 				Fg:      l.styles.Matched.fg,
 				Bg:      mergeAttribute(bgAttr, l.styles.Matched.bg),
 				Msg:     c,
-				Fill:    true,
 			})
 			prev += n
 			index += len(c)
 		}
 
-		m := matches[len(matches)-1]
-		if m[0] > index {
-			l.screen.Print(PrintArgs{
-				X:       prev,
-				Y:       y,
-				XOffset: xOffset,
-				Fg:      l.styles.Query.fg,
-				Bg:      mergeAttribute(bgAttr, l.styles.Query.bg),
-				Msg:     line[m[0]:m[1]],
-				Fill:    true,
-			})
-		} else if len(line) > m[1] {
+		if index < len(line) {
 			l.screen.Print(PrintArgs{
 				X:       prev,
 				Y:       y,
 				XOffset: xOffset,
 				Fg:      fgAttr,
 				Bg:      bgAttr,
-				Msg:     line[m[1]:],
+				Msg:     line[index:],
+				Fill:    true,
+			})
+		} else {
+			l.screen.Print(PrintArgs{
+				X:       prev,
+				Y:       y,
+				XOffset: xOffset,
+				Fg:      fgAttr,
+				Bg:      bgAttr,
+				Msg:     "",
 				Fill:    true,
 			})
 		}
