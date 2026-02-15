@@ -1,0 +1,25 @@
+name: Update man page
+
+on:
+  push:
+    branches: [master]
+    paths: ['README.md']
+
+jobs:
+  update-manpage:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - name: Install pandoc
+        run: sudo apt-get update && sudo apt-get install -y pandoc
+      - name: Generate man page
+        run: bash contrib/man/generate.sh
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@22a9089034f40e5a961c8808d113e2c98fb63676 # v7
+        with:
+          commit-message: "docs: regenerate man page from README"
+          title: "docs: update man page"
+          body: |
+            Auto-generated update to `contrib/man/peco.1` from changes to `README.md`.
+          branch: update-manpage
+          delete-branch: true
