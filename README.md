@@ -139,6 +139,16 @@ There's a third-party [peco package available](https://chocolatey.org/packages/p
 C:\> choco install peco
 ```
 
+### X-CMD (Linux, macOS, Windows WSL, Windows GitBash)
+
+peco is available from [x-cmd](https://www.x-cmd.com).
+
+To install peco, run:
+
+```shell
+x env use peco
+```
+
 ###  Linux / macOS / Windows (Conda, Mamba, Pixi)
 
 `conda`, `mamba` and `pixi` are platform-agnostic package managers for conda-format packages.
