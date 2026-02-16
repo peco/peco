@@ -39,6 +39,7 @@ func New(h SigReceivedHandler, sigs ...os.Signal) *Handler {
 
 func (h *Handler) Loop(ctx context.Context, cancel func()) error {
 	defer cancel()
+	defer signal.Stop(h.sigCh)
 
 	for {
 		select {
