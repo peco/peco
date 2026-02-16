@@ -17,6 +17,7 @@ func TestLayoutType(t *testing.T) {
 	}{
 		{LayoutTypeTopDown, true},
 		{LayoutTypeBottomUp, true},
+		{LayoutTypeTopDownQueryBottom, true},
 		{"foobar", false},
 	}
 	for _, l := range layouts {
@@ -365,4 +366,72 @@ func TestGHIssue455_DrawScreenForceSync(t *testing.T) {
 		syncEvents := screen.interceptor.events["Sync"]
 		require.Empty(t, syncEvents, "expected no Sync calls with nil options")
 	})
+}
+
+// TestNewLayout verifies the layout registry returns correct layout types.
+func TestNewLayout(t *testing.T) {
+	makeState := func() *Peco {
+		state := New()
+		state.screen = NewDummyScreen()
+		state.skipReadConfig = true
+		state.Filters().Add(filter.NewIgnoreCase())
+		return state
+	}
+
+	t.Run("top-down", func(t *testing.T) {
+		state := makeState()
+		layout := NewLayout(LayoutTypeTopDown, state)
+		require.NotNil(t, layout)
+		require.True(t, layout.SortTopDown(), "top-down layout should sort top-down")
+		require.Equal(t, AnchorTop, layout.prompt.anchor, "top-down prompt should be anchored at top")
+	})
+
+	t.Run("bottom-up", func(t *testing.T) {
+		state := makeState()
+		layout := NewLayout(LayoutTypeBottomUp, state)
+		require.NotNil(t, layout)
+		require.False(t, layout.SortTopDown(), "bottom-up layout should not sort top-down")
+		require.Equal(t, AnchorBottom, layout.prompt.anchor, "bottom-up prompt should be anchored at bottom")
+	})
+
+	t.Run("top-down-query-bottom", func(t *testing.T) {
+		state := makeState()
+		layout := NewLayout(LayoutTypeTopDownQueryBottom, state)
+		require.NotNil(t, layout)
+		require.True(t, layout.SortTopDown(), "top-down-query-bottom layout should sort top-down")
+		require.Equal(t, AnchorBottom, layout.prompt.anchor, "top-down-query-bottom prompt should be anchored at bottom")
+		require.Equal(t, AnchorTop, layout.list.anchor, "top-down-query-bottom list should be anchored at top")
+	})
+
+	t.Run("unknown falls back to top-down", func(t *testing.T) {
+		state := makeState()
+		layout := NewLayout("unknown-layout", state)
+		require.NotNil(t, layout)
+		require.True(t, layout.SortTopDown(), "fallback layout should sort top-down")
+		require.Equal(t, AnchorTop, layout.prompt.anchor, "fallback prompt should be anchored at top")
+	})
+}
+
+// TestTopDownQueryBottomLayout verifies the specific properties of the
+// top-down-query-bottom layout.
+func TestTopDownQueryBottomLayout(t *testing.T) {
+	state := New()
+	state.screen = NewDummyScreen()
+	state.skipReadConfig = true
+	state.Filters().Add(filter.NewIgnoreCase())
+
+	layout := NewTopDownQueryBottomLayout(state)
+
+	require.Equal(t, AnchorBottom, layout.prompt.anchor,
+		"prompt should be anchored at bottom")
+	require.Equal(t, 1+extraOffset, layout.prompt.anchorOffset,
+		"prompt anchor offset should be 1+extraOffset")
+	require.Equal(t, AnchorTop, layout.list.anchor,
+		"list should be anchored at top")
+	require.Equal(t, 0, layout.list.anchorOffset,
+		"list anchor offset should be 0")
+	require.True(t, layout.list.sortTopDown,
+		"list should sort top-down")
+	require.True(t, layout.SortTopDown(),
+		"SortTopDown() should return true")
 }

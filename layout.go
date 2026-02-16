@@ -15,9 +15,28 @@ import (
 
 var extraOffset int = 0
 
+// LayoutFactory is a function that creates a BasicLayout for the given Peco state.
+type LayoutFactory func(*Peco) *BasicLayout
+
+var layoutRegistry = map[LayoutType]LayoutFactory{}
+
+// RegisterLayout registers a layout factory under the given name.
+func RegisterLayout(name LayoutType, factory LayoutFactory) {
+	layoutRegistry[name] = factory
+}
+
+// NewLayout creates a layout by looking up the registry. Falls back to top-down.
+func NewLayout(layoutType LayoutType, state *Peco) *BasicLayout {
+	if factory, ok := layoutRegistry[layoutType]; ok {
+		return factory(state)
+	}
+	return layoutRegistry[LayoutTypeTopDown](state)
+}
+
 // IsValidLayoutType checks if a string is a supported layout type
 func IsValidLayoutType(v LayoutType) bool {
-	return v == LayoutTypeTopDown || v == LayoutTypeBottomUp
+	_, ok := layoutRegistry[v]
+	return ok
 }
 
 // IsValidVerticalAnchor checks if the specified anchor is supported
@@ -654,6 +673,31 @@ func NewBottomUpLayout(state *Peco) *BasicLayout {
 		// It's displayed in bottom-to-top order
 		list: NewListArea(state.Screen(), AnchorBottom, 2+extraOffset, false, state.Styles()),
 	}
+}
+
+// NewTopDownQueryBottomLayout creates a new Layout with list top-to-bottom
+// and the query prompt at the bottom.
+func NewTopDownQueryBottomLayout(state *Peco) *BasicLayout {
+	return &BasicLayout{
+		statusBar: newStatusBar(state),
+		screen:    state.Screen(),
+		// The prompt is at the bottom, above the status bar
+		prompt: NewUserPrompt(state.Screen(), AnchorBottom, 1+extraOffset, state.Prompt(), state.Styles()),
+		// The list area is at the top
+		// It's displayed in top-to-bottom order
+		list: NewListArea(state.Screen(), AnchorTop, 0, true, state.Styles()),
+	}
+}
+
+// SortTopDown returns whether this layout sorts lines from top to bottom.
+func (l *BasicLayout) SortTopDown() bool {
+	return l.list.sortTopDown
+}
+
+func init() {
+	RegisterLayout(LayoutTypeTopDown, NewDefaultLayout)
+	RegisterLayout(LayoutTypeBottomUp, NewBottomUpLayout)
+	RegisterLayout(LayoutTypeTopDownQueryBottom, NewTopDownQueryBottomLayout)
 }
 
 func (l *BasicLayout) PurgeDisplayCache() {

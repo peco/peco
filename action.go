@@ -437,8 +437,7 @@ func doToggleSelectionAndSelectNext(ctx context.Context, state *Peco, e Event) {
 	state.Hub().Batch(ctx, func(ctx context.Context) {
 		ctx = context.WithValue(ctx, isTopLevelActionCall, false)
 		doToggleSelection(ctx, state, e)
-		// XXX This is sucky. Fix later
-		if state.LayoutType() == "top-down" {
+		if state.LayoutType() != LayoutTypeBottomUp {
 			doSelectDown(ctx, state, e)
 		} else {
 			doSelectUp(ctx, state, e)

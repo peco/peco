@@ -33,9 +33,10 @@ const (
 )
 
 const (
-	DefaultLayoutType  = LayoutTypeTopDown // LayoutTypeTopDown makes the layout so the items read from top to bottom
-	LayoutTypeTopDown  = "top-down"        // LayoutTypeBottomUp changes the layout to read from bottom to up
-	LayoutTypeBottomUp = "bottom-up"
+	DefaultLayoutType            = LayoutTypeTopDown       // LayoutTypeTopDown makes the layout so the items read from top to bottom
+	LayoutTypeTopDown            = "top-down"              // LayoutTypeTopDown displays prompt at top, list top-to-bottom
+	LayoutTypeBottomUp           = "bottom-up"             // LayoutTypeBottomUp displays prompt at bottom, list bottom-to-top
+	LayoutTypeTopDownQueryBottom = "top-down-query-bottom"  // LayoutTypeTopDownQueryBottom displays list top-to-bottom, prompt at bottom
 )
 
 const (
@@ -195,6 +196,7 @@ type Layout interface {
 	DrawScreen(*Peco, *DrawOptions)
 	MovePage(*Peco, PagingRequest) (moved bool)
 	PurgeDisplayCache()
+	SortTopDown() bool
 }
 
 // AnchorSettings groups items that are required to control
@@ -457,7 +459,7 @@ type CLIOptions struct {
 	OptInitialMatcher  string `long:"initial-matcher" description:"specify the default matcher (deprecated)"`
 	OptInitialFilter   string `long:"initial-filter" description:"specify the default filter"`
 	OptPrompt          string `long:"prompt" description:"specify the prompt string"`
-	OptLayout          string `long:"layout" description:"layout to be used. 'top-down' or 'bottom-up'. default is 'top-down'"`
+	OptLayout          string `long:"layout" description:"layout to be used. 'top-down', 'bottom-up', or 'top-down-query-bottom'. default is 'top-down'"`
 	OptSelect1         bool   `long:"select-1" description:"select first item and immediately exit if the input contains only 1 item"`
 	OptExitZero        bool   `long:"exit-0" description:"exit immediately with status 1 if the input is empty"`
 	OptSelectAll       bool   `long:"select-all" description:"select all items and immediately exit"`
