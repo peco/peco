@@ -6,6 +6,7 @@ import (
 
 	"github.com/mattn/go-runewidth"
 	"github.com/peco/peco/filter"
+	"github.com/peco/peco/hub"
 	"github.com/peco/peco/line"
 	"github.com/stretchr/testify/require"
 )
@@ -232,7 +233,7 @@ func TestGHIssue460_MatchedStyleDoesNotBleedToEndOfLine(t *testing.T) {
 		loc.SetPerPage(10)
 		loc.SetLineNumber(1) // select line 1, so line 0 uses Basic style
 
-		listArea.Draw(state, nil, 10, &DrawOptions{DisableCache: true})
+		listArea.Draw(state, nil, 10, &hub.DrawOptions{DisableCache: true})
 
 		// Collect SetCell events for y=0 (our matched line).
 		var row []interceptorArgs
@@ -317,7 +318,7 @@ func TestGHIssue455_DrawScreenForceSync(t *testing.T) {
 		layout := NewDefaultLayout(state)
 
 		screen.interceptor.reset()
-		layout.DrawScreen(state, &DrawOptions{DisableCache: true, ForceSync: true})
+		layout.DrawScreen(state, &hub.DrawOptions{DisableCache: true, ForceSync: true})
 
 		syncEvents := screen.interceptor.events["Sync"]
 		flushEvents := screen.interceptor.events["Flush"]
@@ -338,7 +339,7 @@ func TestGHIssue455_DrawScreenForceSync(t *testing.T) {
 
 		// Compare against the non-ForceSync case
 		screen.interceptor.reset()
-		layout.DrawScreen(state, &DrawOptions{DisableCache: true, ForceSync: false})
+		layout.DrawScreen(state, &hub.DrawOptions{DisableCache: true, ForceSync: false})
 		flushCountWithout := len(screen.interceptor.events["Flush"])
 
 		require.Equal(t, flushCountWithout-1, flushCountWithSync,
@@ -350,7 +351,7 @@ func TestGHIssue455_DrawScreenForceSync(t *testing.T) {
 		layout := NewDefaultLayout(state)
 
 		screen.interceptor.reset()
-		layout.DrawScreen(state, &DrawOptions{DisableCache: true, ForceSync: false})
+		layout.DrawScreen(state, &hub.DrawOptions{DisableCache: true, ForceSync: false})
 
 		syncEvents := screen.interceptor.events["Sync"]
 		require.Empty(t, syncEvents, "expected no Sync calls when ForceSync is false")

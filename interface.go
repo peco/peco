@@ -37,18 +37,6 @@ func (o *OnCancelBehavior) UnmarshalText(b []byte) error {
 }
 
 const (
-	ToLineAbove       PagingRequestType = iota // ToLineAbove moves the selection to the line above
-	ToScrollPageDown                           // ToScrollPageDown moves the selection to the next page
-	ToLineBelow                                // ToLineBelow moves the selection to the line below
-	ToScrollPageUp                             // ToScrollPageUp moves the selection to the previous page
-	ToScrollLeft                               // ToScrollLeft scrolls screen to the left
-	ToScrollRight                              // ToScrollRight scrolls screen to the right
-	ToLineInPage                               // ToLineInPage jumps to a particular line on the page
-	ToScrollFirstItem                          // ToScrollFirstItem
-	ToScrollLastItem                           // ToScrollLastItem
-)
-
-const (
 	DefaultLayoutType            = LayoutTypeTopDown       // LayoutTypeTopDown makes the layout so the items read from top to bottom
 	LayoutTypeTopDown            = "top-down"              // LayoutTypeTopDown displays prompt at top, list top-to-bottom
 	LayoutTypeBottomUp           = "bottom-up"             // LayoutTypeBottomUp displays prompt at bottom, list bottom-to-top
@@ -170,16 +158,6 @@ type Keyseq interface {
 	InMiddleOfChain() bool
 }
 
-// PagingRequestType is the type of a paging request
-type PagingRequestType int
-
-// PagingRequest can be sent to move the selection cursor
-type PagingRequest interface {
-	Type() PagingRequestType
-}
-
-type JumpToLineRequest int
-
 // Selection stores the line ids that were selected by the user.
 // The contents of the Selection is always sorted from smallest to
 // largest line ID
@@ -228,8 +206,8 @@ type VerticalAnchor int
 type Layout interface {
 	PrintStatus(string, time.Duration)
 	DrawPrompt(*Peco)
-	DrawScreen(*Peco, *DrawOptions)
-	MovePage(*Peco, PagingRequest) (moved bool)
+	DrawScreen(*Peco, *hub.DrawOptions)
+	MovePage(*Peco, hub.PagingRequest) (moved bool)
 	PurgeDisplayCache()
 	SortTopDown() bool
 }
@@ -543,16 +521,16 @@ type Input struct {
 // is used.
 type MessageHub interface {
 	Batch(context.Context, func(context.Context), bool)
-	DrawCh() chan hub.Payload
-	PagingCh() chan hub.Payload
-	QueryCh() chan hub.Payload
-	SendDraw(context.Context, interface{})
+	DrawCh() chan *hub.Payload[*hub.DrawOptions]
+	PagingCh() chan *hub.Payload[hub.PagingRequest]
+	QueryCh() chan *hub.Payload[string]
+	SendDraw(context.Context, *hub.DrawOptions)
 	SendDrawPrompt(context.Context)
-	SendPaging(context.Context, interface{})
+	SendPaging(context.Context, hub.PagingRequest)
 	SendQuery(context.Context, string)
 	SendStatusMsg(context.Context, string)
 	SendStatusMsgAndClear(context.Context, string, time.Duration)
-	StatusMsgCh() chan hub.Payload
+	StatusMsgCh() chan *hub.Payload[hub.StatusMsg]
 }
 
 type filterProcessor struct {

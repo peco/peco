@@ -25,16 +25,16 @@ import (
 type nullHub struct{}
 
 func (h nullHub) Batch(_ context.Context, _ func(context.Context), _ bool)           {}
-func (h nullHub) DrawCh() chan hub.Payload                                           { return nil }
-func (h nullHub) PagingCh() chan hub.Payload                                         { return nil }
-func (h nullHub) QueryCh() chan hub.Payload                                          { return nil }
-func (h nullHub) SendDraw(_ context.Context, _ interface{})                          {}
+func (h nullHub) DrawCh() chan *hub.Payload[*hub.DrawOptions]                        { return nil }
+func (h nullHub) PagingCh() chan *hub.Payload[hub.PagingRequest]                     { return nil }
+func (h nullHub) QueryCh() chan *hub.Payload[string]                                 { return nil }
+func (h nullHub) SendDraw(_ context.Context, _ *hub.DrawOptions)                     {}
 func (h nullHub) SendDrawPrompt(context.Context)                                     {}
-func (h nullHub) SendPaging(_ context.Context, _ interface{})                        {}
+func (h nullHub) SendPaging(_ context.Context, _ hub.PagingRequest)                  {}
 func (h nullHub) SendQuery(_ context.Context, _ string)                              {}
 func (h nullHub) SendStatusMsg(_ context.Context, _ string)                          {}
 func (h nullHub) SendStatusMsgAndClear(_ context.Context, _ string, _ time.Duration) {}
-func (h nullHub) StatusMsgCh() chan hub.Payload                                      { return nil }
+func (h nullHub) StatusMsgCh() chan *hub.Payload[hub.StatusMsg]                      { return nil }
 
 type interceptorArgs []interface{}
 type interceptor struct {

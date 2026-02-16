@@ -10,6 +10,7 @@ import (
 	"context"
 
 	"github.com/peco/peco/filter"
+	"github.com/peco/peco/hub"
 	"github.com/peco/peco/internal/keyseq"
 	"github.com/peco/peco/line"
 	"github.com/stretchr/testify/assert"
@@ -20,12 +21,12 @@ import (
 type recordingHub struct {
 	nullHub
 	mu         sync.Mutex
-	pagingArgs []interface{}
+	pagingArgs []hub.PagingRequest
 	statusMsgs []string
-	drawArgs   []interface{}
+	drawArgs   []*hub.DrawOptions
 }
 
-func (h *recordingHub) SendPaging(_ context.Context, v interface{}) {
+func (h *recordingHub) SendPaging(_ context.Context, v hub.PagingRequest) {
 	h.mu.Lock()
 	defer h.mu.Unlock()
 	h.pagingArgs = append(h.pagingArgs, v)
@@ -37,24 +38,24 @@ func (h *recordingHub) SendStatusMsg(_ context.Context, msg string) {
 	h.statusMsgs = append(h.statusMsgs, msg)
 }
 
-func (h *recordingHub) SendDraw(_ context.Context, v interface{}) {
+func (h *recordingHub) SendDraw(_ context.Context, v *hub.DrawOptions) {
 	h.mu.Lock()
 	defer h.mu.Unlock()
 	h.drawArgs = append(h.drawArgs, v)
 }
 
-func (h *recordingHub) getDrawArgs() []interface{} {
+func (h *recordingHub) getDrawArgs() []*hub.DrawOptions {
 	h.mu.Lock()
 	defer h.mu.Unlock()
-	dst := make([]interface{}, len(h.drawArgs))
+	dst := make([]*hub.DrawOptions, len(h.drawArgs))
 	copy(dst, h.drawArgs)
 	return dst
 }
 
-func (h *recordingHub) getPagingArgs() []interface{} {
+func (h *recordingHub) getPagingArgs() []hub.PagingRequest {
 	h.mu.Lock()
 	defer h.mu.Unlock()
-	dst := make([]interface{}, len(h.pagingArgs))
+	dst := make([]hub.PagingRequest, len(h.pagingArgs))
 	copy(dst, h.pagingArgs)
 	return dst
 }
@@ -493,7 +494,7 @@ func TestGHIssue574_PreviousSelectionLastLineNotUpdated(t *testing.T) {
 		// Expect two paging calls: ToScrollFirstItem, then JumpToLineRequest(lastLine)
 		require.Len(t, pagingArgs, 2, "expected 2 paging args")
 
-		jlr, ok := pagingArgs[1].(JumpToLineRequest)
+		jlr, ok := pagingArgs[1].(hub.JumpToLineRequest)
 		require.True(t, ok, "second paging arg should be JumpToLineRequest")
 
 		// The bug: lastLine stays at math.MaxUint64 instead of being updated to 40.
@@ -519,7 +520,7 @@ func TestGHIssue574_PreviousSelectionLastLineNotUpdated(t *testing.T) {
 		pagingArgs := rHub.getPagingArgs()
 		require.Len(t, pagingArgs, 2, "expected 2 paging args")
 
-		jlr, ok := pagingArgs[1].(JumpToLineRequest)
+		jlr, ok := pagingArgs[1].(hub.JumpToLineRequest)
 		require.True(t, ok, "second paging arg should be JumpToLineRequest")
 		require.Equal(t, 40, jlr.Line(),
 			"should jump to the previous selected line (ID=40)")
@@ -540,7 +541,7 @@ func TestGHIssue574_PreviousSelectionLastLineNotUpdated(t *testing.T) {
 		pagingArgs := rHub.getPagingArgs()
 		require.Len(t, pagingArgs, 2, "expected 2 paging args")
 
-		jlr, ok := pagingArgs[1].(JumpToLineRequest)
+		jlr, ok := pagingArgs[1].(hub.JumpToLineRequest)
 		require.True(t, ok, "second paging arg should be JumpToLineRequest")
 		require.Equal(t, 20, jlr.Line(),
 			"should jump to ID=20, the nearest previous selected line")
@@ -585,7 +586,7 @@ func TestNextSelectionNavigation(t *testing.T) {
 		pagingArgs := rHub.getPagingArgs()
 		require.Len(t, pagingArgs, 2)
 
-		jlr, ok := pagingArgs[1].(JumpToLineRequest)
+		jlr, ok := pagingArgs[1].(hub.JumpToLineRequest)
 		require.True(t, ok)
 		require.Equal(t, 20, jlr.Line(),
 			"should jump to the next selected line (ID=20)")
@@ -605,7 +606,7 @@ func TestNextSelectionNavigation(t *testing.T) {
 		pagingArgs := rHub.getPagingArgs()
 		require.Len(t, pagingArgs, 2)
 
-		jlr, ok := pagingArgs[1].(JumpToLineRequest)
+		jlr, ok := pagingArgs[1].(hub.JumpToLineRequest)
 		require.True(t, ok)
 		require.Equal(t, 40, jlr.Line(),
 			"should jump to the next selected line (ID=40)")
@@ -627,7 +628,7 @@ func TestNextSelectionNavigation(t *testing.T) {
 		pagingArgs := rHub.getPagingArgs()
 		require.Len(t, pagingArgs, 2)
 
-		jlr, ok := pagingArgs[1].(JumpToLineRequest)
+		jlr, ok := pagingArgs[1].(hub.JumpToLineRequest)
 		require.True(t, ok)
 		require.Equal(t, 20, jlr.Line(),
 			"should wrap to the first selected line (ID=20)")
@@ -663,7 +664,7 @@ func TestGHIssue428_PgUpPgDnDefaultBindings(t *testing.T) {
 
 		pagingArgs := rHub.getPagingArgs()
 		require.Len(t, pagingArgs, 1, "expected one paging call")
-		require.Equal(t, ToScrollPageDown, pagingArgs[0],
+		require.Equal(t, hub.ToScrollPageDown, pagingArgs[0],
 			"PgDn should trigger ScrollPageDown")
 	})
 
@@ -676,7 +677,7 @@ func TestGHIssue428_PgUpPgDnDefaultBindings(t *testing.T) {
 
 		pagingArgs := rHub.getPagingArgs()
 		require.Len(t, pagingArgs, 1, "expected one paging call")
-		require.Equal(t, ToScrollPageUp, pagingArgs[0],
+		require.Equal(t, hub.ToScrollPageUp, pagingArgs[0],
 			"PgUp should trigger ScrollPageUp")
 	})
 }
@@ -697,8 +698,8 @@ func TestGHIssue455_RefreshScreenSendsForceSync(t *testing.T) {
 	drawArgs := rHub.getDrawArgs()
 	require.Len(t, drawArgs, 1, "expected exactly 1 SendDraw call")
 
-	opts, ok := drawArgs[0].(*DrawOptions)
-	require.True(t, ok, "SendDraw argument should be *DrawOptions")
+	opts := drawArgs[0]
+	require.NotNil(t, opts, "SendDraw argument should not be nil")
 	require.True(t, opts.DisableCache, "DisableCache should be true")
 	require.True(t, opts.ForceSync, "ForceSync should be true for screen refresh")
 }

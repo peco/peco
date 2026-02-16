@@ -1,5 +1,4 @@
-//go:generate stringer -type PagingRequestType -output stringer_paging_request_type.go .
-//go:generate stringer -type VerticalAnchor    -output stringer_vertical_anchor.go     .
+//go:generate stringer -type VerticalAnchor -output stringer_vertical_anchor.go .
 
 package peco
 
@@ -212,7 +211,7 @@ func (p *Peco) SetSingleKeyJumpMode(b bool) {
 
 func (p *Peco) ToggleSingleKeyJumpMode() {
 	p.singleKeyJumpMode = !p.singleKeyJumpMode
-	go p.Hub().SendDraw(context.Background(), &DrawOptions{DisableCache: true})
+	go p.Hub().SendDraw(context.Background(), &hub.DrawOptions{DisableCache: true})
 }
 
 func (p *Peco) SingleKeyJumpIndex(ch rune) (uint, bool) {
@@ -831,7 +830,7 @@ func (p *Peco) ExecQuery(nextFunc func()) bool {
 		defer g.End()
 	}
 
-	hub := p.Hub()
+	msgHub := p.Hub()
 
 	select {
 	case <-p.Ready():
@@ -851,8 +850,8 @@ func (p *Peco) ExecQuery(nextFunc func()) bool {
 		}
 		p.ResetCurrentLineBuffer()
 
-		hub.Batch(context.Background(), func(ctx context.Context) {
-			hub.SendDraw(ctx, &DrawOptions{DisableCache: true})
+		msgHub.Batch(context.Background(), func(ctx context.Context) {
+			msgHub.SendDraw(ctx, &hub.DrawOptions{DisableCache: true})
 			if nextFunc != nil {
 				nextFunc()
 			}

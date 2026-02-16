@@ -403,13 +403,10 @@ func isQueryRefinement(prev, new string) bool {
 
 // Work is the actual work horse that does the matching
 // in a goroutine of its own. It wraps Matcher.Match().
-func (f *Filter) Work(ctx context.Context, q hub.Payload) {
+func (f *Filter) Work(ctx context.Context, q *hub.Payload[string]) {
 	defer q.Done()
 
-	query, ok := q.Data().(string)
-	if !ok {
-		return
-	}
+	query := q.Data()
 
 	if pdebug.Enabled {
 		g := pdebug.Marker("Filter.Work (query=%#v, batch=%#v)", query, q.Batch())
@@ -473,7 +470,7 @@ func (f *Filter) Work(ctx context.Context, q hub.Payload) {
 	state.SetCurrentLineBuffer(buf)
 
 	go func(ctx context.Context) {
-		defer state.Hub().SendDraw(ctx, &DrawOptions{RunningQuery: true})
+		defer state.Hub().SendDraw(ctx, &hub.DrawOptions{RunningQuery: true})
 		if err := p.Run(ctx); err != nil {
 			state.Hub().SendStatusMsg(ctx, err.Error())
 		}
@@ -487,13 +484,13 @@ func (f *Filter) Work(ctx context.Context, q hub.Payload) {
 		t := time.NewTicker(50 * time.Millisecond)
 		defer t.Stop()
 		defer state.Hub().SendStatusMsg(ctx, "")
-		defer state.Hub().SendDraw(ctx, &DrawOptions{RunningQuery: true})
+		defer state.Hub().SendDraw(ctx, &hub.DrawOptions{RunningQuery: true})
 		for {
 			select {
 			case <-p.Done():
 				return
 			case <-t.C:
-				state.Hub().SendDraw(ctx, &DrawOptions{RunningQuery: true})
+				state.Hub().SendDraw(ctx, &hub.DrawOptions{RunningQuery: true})
 			}
 		}
 	}()
