@@ -882,6 +882,17 @@ func doGoToAdjacentSelection(ctx context.Context, state *Peco, forward bool) {
 	}
 }
 
+// resetQueryState clears the query, resets the caret, and (unless sticky
+// selection is enabled) clears the selection. Used by freeze/unfreeze to
+// return to a clean query state.
+func resetQueryState(state *Peco) {
+	state.Query().Reset()
+	state.Caret().SetPos(0)
+	if !state.config.StickySelection {
+		state.Selection().Reset()
+	}
+}
+
 func doFreezeResults(ctx context.Context, state *Peco, _ Event) {
 	if pdebug.Enabled {
 		g := pdebug.Marker("doFreezeResults")
@@ -903,13 +914,7 @@ func doFreezeResults(ctx context.Context, state *Peco, _ Event) {
 	frozen.MarkComplete()
 
 	state.SetFrozenSource(frozen)
-	state.Query().Reset()
-	state.Caret().SetPos(0)
-
-	if !state.config.StickySelection {
-		state.Selection().Reset()
-	}
-
+	resetQueryState(state)
 	state.SetCurrentLineBuffer(frozen)
 	state.Hub().SendStatusMsg(ctx, "Results frozen")
 	state.Hub().SendDrawPrompt(ctx)
@@ -927,13 +932,7 @@ func doUnfreezeResults(ctx context.Context, state *Peco, _ Event) {
 	}
 
 	state.ClearFrozenSource()
-	state.Query().Reset()
-	state.Caret().SetPos(0)
-
-	if !state.config.StickySelection {
-		state.Selection().Reset()
-	}
-
+	resetQueryState(state)
 	state.ResetCurrentLineBuffer()
 	state.Hub().SendStatusMsg(ctx, "Results unfrozen")
 	state.Hub().SendDrawPrompt(ctx)
