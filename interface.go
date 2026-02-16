@@ -512,6 +512,9 @@ type Input struct {
 	actions ActionMap
 	evsrc   chan Event
 	mod     *time.Timer
+	modGen  uint64 // generation counter to invalidate stale timer callbacks.
+	// uint64 holds up to ~1.8×10¹⁹. At most 2 increments per Esc key event
+	// and a generous 100 keystrokes/second, overflow would take ~2.9 trillion years.
 	mutex   sync.Mutex
 	state   *Peco
 }
