@@ -87,6 +87,45 @@ func TestActionFunc(t *testing.T) {
 	}
 }
 
+func TestPagingActions(t *testing.T) {
+	ctx := context.Background()
+
+	tests := []struct {
+		name     string
+		action   string
+		expected hub.PagingRequest
+	}{
+		{"SelectUp", "peco.SelectUp", hub.ToLineAbove},
+		{"SelectDown", "peco.SelectDown", hub.ToLineBelow},
+		{"ScrollPageUp", "peco.ScrollPageUp", hub.ToScrollPageUp},
+		{"ScrollPageDown", "peco.ScrollPageDown", hub.ToScrollPageDown},
+		{"ScrollLeft", "peco.ScrollLeft", hub.ToScrollLeft},
+		{"ScrollRight", "peco.ScrollRight", hub.ToScrollRight},
+		{"ScrollFirstItem", "peco.ScrollFirstItem", hub.ToScrollFirstItem},
+		{"ScrollLastItem", "peco.ScrollLastItem", hub.ToScrollLastItem},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			rHub := &recordingHub{}
+			state := New()
+			state.hub = rHub
+			state.selection = NewSelection()
+			state.currentLineBuffer = NewMemoryBuffer(0)
+
+			action, ok := nameToActions[tt.action]
+			require.True(t, ok, "action %s should exist", tt.action)
+
+			action.Execute(ctx, state, Event{})
+
+			pagingArgs := rHub.getPagingArgs()
+			require.Len(t, pagingArgs, 1, "expected exactly one SendPaging call")
+			require.Equal(t, tt.expected, pagingArgs[0],
+				"expected paging request %v, got %v", tt.expected, pagingArgs[0])
+		})
+	}
+}
+
 func TestActionNames(t *testing.T) {
 	// These names MUST exist
 	names := []string{
