@@ -79,13 +79,9 @@ func termsToRegexps(terms []string, fullQuery string, flags regexpFlags, quoteme
 	return regexps, nil
 }
 
-func (rf *Regexp) NewContext(ctx context.Context, query string) context.Context {
-	return newContext(ctx, query)
-}
-
 // NewRegexp creates a new regexp based filter
 func NewRegexp() *Regexp {
-	return &Regexp{
+	rf := &Regexp{
 		factory: &regexpQueryFactory{
 			compiled:  make(map[string]regexpQuery),
 			threshold: time.Minute,
@@ -95,24 +91,16 @@ func NewRegexp() *Regexp {
 		name:      "Regexp",
 		outCh:     pipeline.ChanOutput(make(chan interface{})),
 	}
+	rf.applyFn = rf.applyInternal
+	return rf
 }
 
 // NewIRegexp creates a new case-insensitive regexp based filter
 func NewIRegexp() *Regexp {
-	return &Regexp{
-		factory: &regexpQueryFactory{
-			compiled:  make(map[string]regexpQuery),
-			threshold: time.Minute,
-		},
-		flags:     regexpFlagList(regexpFlagList{"i"}),
-		quotemeta: false,
-		name:      "IRegexp",
-		outCh:     pipeline.ChanOutput(make(chan interface{})),
-	}
-}
-
-func (rf *Regexp) BufSize() int {
-	return 0
+	rf := NewRegexp()
+	rf.flags = regexpFlagList([]string{"i"})
+	rf.name = "IRegexp"
+	return rf
 }
 
 func (rf *Regexp) OutCh() <-chan interface{} {
@@ -255,20 +243,6 @@ func (rf *Regexp) applyInternal(ctx context.Context, lines []line.Line, emit fun
 		emit(line.NewMatched(l, deduped))
 	}
 	return nil
-}
-
-func (rf *Regexp) Apply(ctx context.Context, lines []line.Line, out pipeline.ChanOutput) error {
-	return rf.applyInternal(ctx, lines, func(l line.Line) {
-		out.Send(ctx, l)
-	})
-}
-
-func (rf *Regexp) ApplyCollect(ctx context.Context, lines []line.Line) ([]line.Line, error) {
-	result := make([]line.Line, 0, len(lines)/2)
-	err := rf.applyInternal(ctx, lines, func(l line.Line) {
-		result = append(result, l)
-	})
-	return result, err
 }
 
 func (rf *Regexp) SupportsParallel() bool {
