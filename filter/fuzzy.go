@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"math"
+	"regexp"
 	"sort"
 	"strings"
 	"unicode"
@@ -47,7 +48,22 @@ func (ff Fuzzy) String() string {
 
 func (ff *Fuzzy) applyInternal(ctx context.Context, lines []line.Line, emit func(line.Line)) error {
 	originalQuery := ctx.Value(queryKey).(string)
-	hasUpper := util.ContainsUpper(originalQuery)
+
+	// Parse negative terms and compile them as case-insensitive regexps
+	posTerms, negTerms := SplitQueryTerms(originalQuery)
+	var negRegexps []*regexp.Regexp
+	for _, t := range negTerms {
+		re, err := regexpFor(t, []string{"i"}, true)
+		if err != nil {
+			return fmt.Errorf("failed to compile negative term regexp '%s': %w", t, err)
+		}
+		negRegexps = append(negRegexps, re)
+	}
+
+	// Reconstruct the fuzzy query from positive terms joined together
+	fuzzyQuery := strings.Join(posTerms, "")
+
+	hasUpper := util.ContainsUpper(fuzzyQuery)
 	matched := []fuzzyMatchedItem{}
 
 LINE:
@@ -59,9 +75,30 @@ LINE:
 			default:
 			}
 		}
+
+		txt := l.DisplayString()
+
+		// Check negative terms first — skip if any match
+		excluded := false
+		for _, rx := range negRegexps {
+			if rx.MatchString(txt) {
+				excluded = true
+				break
+			}
+		}
+		if excluded {
+			continue LINE
+		}
+
+		// All-negative query: emit all non-excluded lines with nil indices
+		if len(fuzzyQuery) == 0 {
+			emit(line.NewMatched(l, nil))
+			continue LINE
+		}
+
 		// Find the first valid rune of the query
 		firstRune := utf8.RuneError
-		for _, r := range originalQuery {
+		for _, r := range fuzzyQuery {
 			if r != utf8.RuneError {
 				firstRune = r
 				break
@@ -72,7 +109,7 @@ LINE:
 		}
 
 		// Find the index of the first valid rune in the input line
-		txt := l.DisplayString()
+		txt = l.DisplayString()
 		firstRuneOffsets := []int{}
 		accum := 0
 		r := rune(0)
@@ -104,7 +141,7 @@ LINE:
 
 	OUTER:
 		for _, offset := range firstRuneOffsets {
-			query := originalQuery
+			query := fuzzyQuery
 			txt = l.DisplayString()[offset:]
 			base := offset
 			matches := [][]int{}

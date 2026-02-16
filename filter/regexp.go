@@ -39,18 +39,44 @@ func regexpFor(q string, flags []string, quotemeta bool) (*regexp.Regexp, error)
 	return re, nil
 }
 
-func queryToRegexps(query string, flags regexpFlags, quotemeta bool) ([]*regexp.Regexp, error) {
-	queries := strings.Split(strings.TrimSpace(query), " ")
-	regexps := make([]*regexp.Regexp, 0)
+// SplitQueryTerms splits a query string into positive and negative term slices.
+// Terms starting with `-` (followed by at least one non-hyphen char) are negative (the `-` is stripped).
+// Terms starting with `\-` are positive literals (the `\` is stripped).
+// Bare `-` or `--` are positive literals.
+// Empty tokens are skipped.
+func SplitQueryTerms(query string) (positive, negative []string) {
+	tokens := strings.Split(strings.TrimSpace(query), " ")
+	for _, tok := range tokens {
+		if tok == "" {
+			continue
+		}
+		if strings.HasPrefix(tok, `\-`) {
+			// Escaped negative: treat as literal positive term (strip the backslash)
+			positive = append(positive, tok[1:])
+		} else if tok == "-" || tok == "--" {
+			// Bare hyphen(s): literal positive
+			positive = append(positive, tok)
+		} else if strings.HasPrefix(tok, "-") {
+			// Negative term: strip the leading hyphen
+			negative = append(negative, tok[1:])
+		} else {
+			positive = append(positive, tok)
+		}
+	}
+	return
+}
 
-	for _, q := range queries {
-		re, err := regexpFor(q, flags.flags(query), quotemeta)
+// termsToRegexps compiles a slice of terms into regexps, using the full
+// original query for flag computation (needed for SmartCase).
+func termsToRegexps(terms []string, fullQuery string, flags regexpFlags, quotemeta bool) ([]*regexp.Regexp, error) {
+	regexps := make([]*regexp.Regexp, 0, len(terms))
+	for _, t := range terms {
+		re, err := regexpFor(t, flags.flags(fullQuery), quotemeta)
 		if err != nil {
-			return nil, errors.Wrapf(err, "failed to compile regular expression '%s'", q)
+			return nil, errors.Wrapf(err, "failed to compile regular expression '%s'", t)
 		}
 		regexps = append(regexps, re)
 	}
-
 	return regexps, nil
 }
 
@@ -98,21 +124,32 @@ func (rf *Regexp) OutCh() <-chan interface{} {
 
 const maxRegexpCacheSize = 100
 
-func (f *regexpQueryFactory) Compile(s string, flags regexpFlags, quotemeta bool) ([]*regexp.Regexp, error) {
+func (f *regexpQueryFactory) Compile(s string, flags regexpFlags, quotemeta bool) (positive, negative []*regexp.Regexp, err error) {
 	f.mutex.Lock()
 	defer f.mutex.Unlock()
 
 	rq, ok := f.compiled[s]
 	if ok {
 		if time.Since(rq.lastUsed) < f.threshold {
-			return rq.rx, nil
+			return rq.positive, rq.negative, nil
 		}
 		delete(f.compiled, s)
 	}
 
-	rxs, err := queryToRegexps(s, flags, quotemeta)
-	if err != nil {
-		return nil, errors.Wrap(err, `failed to compile regular expression`)
+	posTerms, negTerms := SplitQueryTerms(s)
+
+	var posRxs, negRxs []*regexp.Regexp
+	if len(posTerms) > 0 {
+		posRxs, err = termsToRegexps(posTerms, s, flags, quotemeta)
+		if err != nil {
+			return nil, nil, errors.Wrap(err, `failed to compile positive regular expressions`)
+		}
+	}
+	if len(negTerms) > 0 {
+		negRxs, err = termsToRegexps(negTerms, s, flags, quotemeta)
+		if err != nil {
+			return nil, nil, errors.Wrap(err, `failed to compile negative regular expressions`)
+		}
 	}
 
 	// Evict stale entries if cache is over the size limit
@@ -130,14 +167,15 @@ func (f *regexpQueryFactory) Compile(s string, flags regexpFlags, quotemeta bool
 	}
 
 	rq.lastUsed = time.Now()
-	rq.rx = rxs
+	rq.positive = posRxs
+	rq.negative = negRxs
 	f.compiled[s] = rq
-	return rxs, nil
+	return posRxs, negRxs, nil
 }
 
 func (rf *Regexp) applyInternal(ctx context.Context, lines []line.Line, emit func(line.Line)) error {
 	query := ctx.Value(queryKey).(string)
-	regexps, err := rf.factory.Compile(query, rf.flags, rf.quotemeta)
+	posRegexps, negRegexps, err := rf.factory.Compile(query, rf.flags, rf.quotemeta)
 	if err != nil {
 		return errors.Wrap(err, "failed to compile queries as regular expression")
 	}
@@ -151,10 +189,30 @@ func (rf *Regexp) applyInternal(ctx context.Context, lines []line.Line, emit fun
 			}
 		}
 		v := l.DisplayString()
+
+		// Check negative terms first (fail-fast, no index collection)
+		excluded := false
+		for _, rx := range negRegexps {
+			if rx.MatchString(v) {
+				excluded = true
+				break
+			}
+		}
+		if excluded {
+			continue
+		}
+
+		// All-negative query: emit line with nil indices (no highlighting)
+		if len(posRegexps) == 0 {
+			emit(line.NewMatched(l, nil))
+			continue
+		}
+
+		// Positive matching (existing AND logic)
 		allMatched := true
 		matches := [][]int{}
 	TryRegexps:
-		for _, rx := range regexps {
+		for _, rx := range posRegexps {
 			match := rx.FindAllStringSubmatchIndex(v, -1)
 			if match == nil {
 				allMatched = false

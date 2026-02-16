@@ -46,6 +46,37 @@ func TestIsQueryRefinement(t *testing.T) {
 	}
 }
 
+func TestIsQueryRefinementWithNegation(t *testing.T) {
+	tests := []struct {
+		prev     string
+		new      string
+		expected bool
+	}{
+		// Adding a negative term is a refinement (narrows results)
+		{"foo", "foo -bar", true},
+		// Adding more negative terms is still a refinement
+		{"foo -bar", "foo -bar -baz", true},
+		// Removing a negative term is NOT a refinement (widens results)
+		{"foo -bar -baz", "foo -bar", false},
+		// Extending positive while keeping negatives
+		{"foo -bar", "fooX -bar", true},
+		// All-negative refinement
+		{"-foo", "-foo -bar", true},
+		// Changing a negative term is not a refinement
+		{"-foo", "-bar", false},
+		// Adding positive to all-negative is a refinement
+		{"-foo", "hello -foo", true},
+	}
+
+	for _, tt := range tests {
+		name := fmt.Sprintf("%q->%q", tt.prev, tt.new)
+		t.Run(name, func(t *testing.T) {
+			result := isQueryRefinement(tt.prev, tt.new)
+			require.Equal(t, tt.expected, result)
+		})
+	}
+}
+
 func TestMemoryBufferSource(t *testing.T) {
 	// Create and populate a MemoryBuffer
 	mb := NewMemoryBuffer(0)

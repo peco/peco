@@ -42,7 +42,8 @@ type regexpQueryFactory struct {
 }
 
 type regexpQuery struct {
-	rx       []*regexp.Regexp
+	positive []*regexp.Regexp
+	negative []*regexp.Regexp
 	lastUsed time.Time
 }
 
