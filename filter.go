@@ -269,6 +269,15 @@ func acceptAndFilterSerial(ctx context.Context, f filter.Filter, bufsiz int, buf
 					flush <- buf
 					buf = buffer.GetLineListBuf()
 				}
+			case []line.Line:
+				if pdebug.Enabled {
+					lines += len(v)
+				}
+				buf = append(buf, v...)
+				if len(buf) >= bufsiz {
+					flush <- buf
+					buf = buffer.GetLineListBuf()
+				}
 			}
 		}
 	}
@@ -319,6 +328,16 @@ func acceptAndFilterParallel(ctx context.Context, f filter.Filter, bufsiz int, b
 					lines++
 				}
 				buf = append(buf, v)
+				if len(buf) >= bufsiz {
+					flush <- orderedChunk{seq: seq, lines: buf}
+					seq++
+					buf = buffer.GetLineListBuf()
+				}
+			case []line.Line:
+				if pdebug.Enabled {
+					lines += len(v)
+				}
+				buf = append(buf, v...)
 				if len(buf) >= bufsiz {
 					flush <- orderedChunk{seq: seq, lines: buf}
 					seq++

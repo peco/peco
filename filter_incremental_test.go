@@ -70,6 +70,10 @@ func TestMemoryBufferSource(t *testing.T) {
 			if pipeline.IsEndMark(v) {
 				goto done
 			}
+		case []line.Line:
+			for _, l := range v {
+				got = append(got, l.DisplayString())
+			}
 		case line.Line:
 			got = append(got, v.DisplayString())
 		}

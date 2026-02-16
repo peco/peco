@@ -149,6 +149,12 @@ func (mb *MemoryBuffer) Accept(ctx context.Context, in chan interface{}, _ pipel
 					}
 					return
 				}
+			case []line.Line:
+				batch = append(batch, v...)
+				mb.mutex.Lock()
+				mb.lines = append(mb.lines, batch...)
+				mb.mutex.Unlock()
+				batch = batch[:0]
 			case line.Line:
 				batch = append(batch, v)
 
@@ -168,6 +174,8 @@ func (mb *MemoryBuffer) Accept(ctx context.Context, in chan interface{}, _ pipel
 								mb.mutex.Unlock()
 								return
 							}
+						case []line.Line:
+							batch = append(batch, v2...)
 						case line.Line:
 							batch = append(batch, v2)
 						}
@@ -227,8 +235,13 @@ func NewMemoryBufferSource(buf *MemoryBuffer) *MemoryBufferSource {
 	return &MemoryBufferSource{buf: buf}
 }
 
-// Start iterates through the MemoryBuffer's lines and sends them to the
-// output channel, implementing pipeline.Source.
+// sourceBatchSize is the number of lines sent per batch from source to
+// the filter stage. Larger batches reduce channel operations but increase
+// latency to first result. 1024 is a good balance.
+const sourceBatchSize = 1024
+
+// Start iterates through the MemoryBuffer's lines and sends them in
+// batches to the output channel, implementing pipeline.Source.
 func (s *MemoryBufferSource) Start(ctx context.Context, out pipeline.ChanOutput) {
 	defer out.SendEndMark(ctx, "end of memory buffer source")
 
@@ -236,13 +249,17 @@ func (s *MemoryBufferSource) Start(ctx context.Context, out pipeline.ChanOutput)
 	lines := s.buf.lines
 	s.buf.mutex.RUnlock()
 
-	for _, l := range lines {
+	for i := 0; i < len(lines); i += sourceBatchSize {
 		select {
 		case <-ctx.Done():
 			return
 		default:
-			out.Send(ctx, l)
 		}
+		end := i + sourceBatchSize
+		if end > len(lines) {
+			end = len(lines)
+		}
+		out.Send(ctx, lines[i:end])
 	}
 }
 
