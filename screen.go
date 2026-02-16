@@ -13,9 +13,8 @@ import (
 	"github.com/peco/peco/internal/keyseq"
 )
 
-// Termbox implements the Screen interface using tcell/v2.
-// The name is kept for compatibility with the rest of the codebase.
-type Termbox struct {
+// TcellScreen implements the Screen interface using tcell/v2.
+type TcellScreen struct {
 	mutex     sync.Mutex
 	screen    tcell.Screen
 	resumeCh  chan chan struct{}
@@ -76,7 +75,7 @@ func tcellEventToEvent(tev tcell.Event) Event {
 		if key == tcell.KeyRune {
 			r := ev.Rune()
 			// Special case: space must be sent as KeySpace with Ch=0
-			// to match termbox behavior expected by doAcceptChar
+			// to match the convention expected by doAcceptChar
 			if r == ' ' {
 				return Event{
 					Type: EventKey,
@@ -159,7 +158,7 @@ func attributeToTcellStyle(fg, bg Attribute) tcell.Style {
 	return style
 }
 
-func (t *Termbox) Init(cfg *Config) error {
+func (t *TcellScreen) Init(cfg *Config) error {
 	screen, err := tcell.NewScreen()
 	if err != nil {
 		return fmt.Errorf("failed to create tcell screen: %w", err)
@@ -173,8 +172,8 @@ func (t *Termbox) Init(cfg *Config) error {
 	return t.PostInit(cfg)
 }
 
-func NewTermbox() *Termbox {
-	return &Termbox{
+func NewTcellScreen() *TcellScreen {
+	return &TcellScreen{
 		suspendCh: make(chan struct{}),
 		resumeCh:  make(chan chan struct{}),
 		doneCh:    make(chan struct{}),
@@ -184,7 +183,7 @@ func NewTermbox() *Termbox {
 // finiScreen finalizes the tcell screen without signaling a permanent
 // shutdown. Used by the suspend handler so the goroutine continues
 // to listen for further suspend/resume cycles.
-func (t *Termbox) finiScreen() {
+func (t *TcellScreen) finiScreen() {
 	t.mutex.Lock()
 	s := t.screen
 	t.screen = nil
@@ -197,16 +196,16 @@ func (t *Termbox) finiScreen() {
 
 // Close permanently shuts down the screen and signals all goroutines
 // started by PollEvent to exit.
-func (t *Termbox) Close() error {
+func (t *TcellScreen) Close() error {
 	if pdebug.Enabled {
-		pdebug.Printf("Termbox: Close")
+		pdebug.Printf("TcellScreen: Close")
 	}
 	t.finiScreen()
 	t.closeOnce.Do(func() { close(t.doneCh) })
 	return nil
 }
 
-func (t *Termbox) SetCursor(x, y int) {
+func (t *TcellScreen) SetCursor(x, y int) {
 	t.mutex.Lock()
 	defer t.mutex.Unlock()
 	if t.screen == nil {
@@ -218,12 +217,12 @@ func (t *Termbox) SetCursor(x, y int) {
 // SendEvent is used to allow programmers generate random
 // events, but it's only useful for testing purposes.
 // When interacting with tcell, this method is a noop
-func (t *Termbox) SendEvent(_ Event) {
+func (t *TcellScreen) SendEvent(_ Event) {
 	// no op
 }
 
 // Flush calls tcell's Show to synchronize the screen
-func (t *Termbox) Flush() error {
+func (t *TcellScreen) Flush() error {
 	t.mutex.Lock()
 	defer t.mutex.Unlock()
 	if t.screen == nil {
@@ -236,7 +235,7 @@ func (t *Termbox) Flush() error {
 // Sync forces a complete redraw of every cell on the physical display.
 // This recovers from screen corruption caused by external output (e.g.,
 // STDERR messages written directly to the terminal).
-func (t *Termbox) Sync() {
+func (t *TcellScreen) Sync() {
 	t.mutex.Lock()
 	defer t.mutex.Unlock()
 	if t.screen == nil {
@@ -248,7 +247,7 @@ func (t *Termbox) Sync() {
 // PollEvent returns a channel that you can listen to for
 // terminal events. The actual polling is done in a
 // separate goroutine
-func (t *Termbox) PollEvent(ctx context.Context, cfg *Config) chan Event {
+func (t *TcellScreen) PollEvent(ctx context.Context, cfg *Config) chan Event {
 	evCh := make(chan Event)
 
 	go func() {
@@ -313,14 +312,14 @@ func (t *Termbox) PollEvent(ctx context.Context, cfg *Config) chan Event {
 	return evCh
 }
 
-func (t *Termbox) Suspend() {
+func (t *TcellScreen) Suspend() {
 	select {
 	case t.suspendCh <- struct{}{}:
 	default:
 	}
 }
 
-func (t *Termbox) Resume(ctx context.Context) {
+func (t *TcellScreen) Resume(ctx context.Context) {
 	// Resume must be a block operation, because we can't safely proceed
 	// without actually knowing that the screen has been re-initialized.
 	// So we send a channel where we expect a reply back, and wait for that.
@@ -343,7 +342,7 @@ func (t *Termbox) Resume(ctx context.Context) {
 }
 
 // SetCell writes to the terminal
-func (t *Termbox) SetCell(x, y int, ch rune, fg, bg Attribute) {
+func (t *TcellScreen) SetCell(x, y int, ch rune, fg, bg Attribute) {
 	t.mutex.Lock()
 	defer t.mutex.Unlock()
 	if t.screen == nil {
@@ -354,7 +353,7 @@ func (t *Termbox) SetCell(x, y int, ch rune, fg, bg Attribute) {
 }
 
 // Size returns the dimensions of the current terminal
-func (t *Termbox) Size() (int, int) {
+func (t *TcellScreen) Size() (int, int) {
 	t.mutex.Lock()
 	defer t.mutex.Unlock()
 	if t.screen == nil {
@@ -374,7 +373,7 @@ type PrintArgs struct {
 	ANSIAttrs []ansi.AttrSpan // per-character ANSI attributes for this segment
 }
 
-func (t *Termbox) Print(args PrintArgs) int {
+func (t *TcellScreen) Print(args PrintArgs) int {
 	return screenPrint(t, args)
 }
 

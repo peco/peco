@@ -49,7 +49,7 @@ func (i *Input) handleInputEvent(ctx context.Context, ev Event) error {
 		return nil
 	case EventKey:
 		// ModAlt is a sequence of letters with a leading \x1b (=Esc).
-		// It would be nice if termbox differentiated this for us, but
+		// The terminal library doesn't differentiate this for us, so
 		// we workaround it by waiting (juuuust a few milliseconds) for
 		// extra key events. If no extra events arrive, it should be Esc
 

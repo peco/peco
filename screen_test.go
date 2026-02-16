@@ -8,12 +8,12 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// TestTermboxSuspendHandlerExitsOnClose verifies that the suspend handler
+// TestTcellScreenSuspendHandlerExitsOnClose verifies that the suspend handler
 // goroutine (started by PollEvent) exits when Close() is called, even if
 // the context has not been cancelled. This is the goroutine leak described
 // in CODE_REVIEW.md §7.1.
-func TestTermboxSuspendHandlerExitsOnClose(t *testing.T) {
-	tb := NewTermbox()
+func TestTcellScreenSuspendHandlerExitsOnClose(t *testing.T) {
+	tb := NewTcellScreen()
 
 	// Use a context that will NOT be cancelled during this test.
 	// The goroutine must exit via doneCh, not ctx.Done().
@@ -46,11 +46,11 @@ func TestTermboxSuspendHandlerExitsOnClose(t *testing.T) {
 	}
 }
 
-// TestTermboxPollingGoroutineExitsOnClose verifies that a goroutine blocked
+// TestTcellScreenPollingGoroutineExitsOnClose verifies that a goroutine blocked
 // on resumeCh (as the polling goroutine would be after screen finalization)
 // exits when Close() is called.
-func TestTermboxPollingGoroutineExitsOnClose(t *testing.T) {
-	tb := NewTermbox()
+func TestTcellScreenPollingGoroutineExitsOnClose(t *testing.T) {
+	tb := NewTcellScreen()
 
 	ctx := context.Background()
 
@@ -78,11 +78,11 @@ func TestTermboxPollingGoroutineExitsOnClose(t *testing.T) {
 	}
 }
 
-// TestTermboxCloseIdempotent verifies that Close() can be called multiple
+// TestTcellScreenCloseIdempotent verifies that Close() can be called multiple
 // times without panicking (important because the suspend handler calls
 // finiScreen and then Close() is called at shutdown).
-func TestTermboxCloseIdempotent(t *testing.T) {
-	tb := NewTermbox()
+func TestTcellScreenCloseIdempotent(t *testing.T) {
+	tb := NewTcellScreen()
 
 	require.NotPanics(t, func() {
 		tb.Close()
@@ -91,11 +91,11 @@ func TestTermboxCloseIdempotent(t *testing.T) {
 	})
 }
 
-// TestTermboxSuspendThenClose verifies that a suspend (which calls finiScreen)
+// TestTcellScreenSuspendThenClose verifies that a suspend (which calls finiScreen)
 // followed by a permanent Close() works correctly — the doneCh should be
 // closed by Close() even though finiScreen was already called.
-func TestTermboxSuspendThenClose(t *testing.T) {
-	tb := NewTermbox()
+func TestTcellScreenSuspendThenClose(t *testing.T) {
+	tb := NewTcellScreen()
 
 	ctx := context.Background()
 
@@ -130,8 +130,8 @@ func TestTermboxSuspendThenClose(t *testing.T) {
 	}
 }
 
-func TestTermboxResumeNoDeadlock(t *testing.T) {
-	tb := NewTermbox()
+func TestTcellScreenResumeNoDeadlock(t *testing.T) {
+	tb := NewTcellScreen()
 
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
@@ -158,8 +158,8 @@ func TestTermboxResumeNoDeadlock(t *testing.T) {
 	}
 }
 
-func TestTermboxResumeDoesNotDropSend(t *testing.T) {
-	tb := NewTermbox()
+func TestTcellScreenResumeDoesNotDropSend(t *testing.T) {
+	tb := NewTcellScreen()
 
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
@@ -181,8 +181,8 @@ func TestTermboxResumeDoesNotDropSend(t *testing.T) {
 	}
 }
 
-func TestTermboxResumeContextCancelled(t *testing.T) {
-	tb := NewTermbox()
+func TestTcellScreenResumeContextCancelled(t *testing.T) {
+	tb := NewTcellScreen()
 
 	ctx, cancel := context.WithCancel(context.Background())
 
@@ -203,8 +203,8 @@ func TestTermboxResumeContextCancelled(t *testing.T) {
 	}
 }
 
-func TestTermboxResumeContextCancelledWhileWaitingForReply(t *testing.T) {
-	tb := NewTermbox()
+func TestTcellScreenResumeContextCancelledWhileWaitingForReply(t *testing.T) {
+	tb := NewTcellScreen()
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()

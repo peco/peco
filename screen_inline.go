@@ -209,7 +209,7 @@ func (s *InlineScreen) PollEvent(ctx context.Context, cfg *Config) chan Event {
 	return evCh
 }
 
-// SendEvent is a no-op for InlineScreen (same as Termbox).
+// SendEvent is a no-op for InlineScreen (same as TcellScreen).
 func (s *InlineScreen) SendEvent(_ Event) {}
 
 // Suspend is a no-op for inline mode.

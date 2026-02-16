@@ -118,7 +118,7 @@ func New() *Peco {
 		idgen:             newIDGen(),
 		queryExecDelay:    50 * time.Millisecond,
 		readyCh:           make(chan struct{}),
-		screen:            NewTermbox(),
+		screen:            NewTcellScreen(),
 		selection:         NewSelection(),
 		maxScanBufferSize: bufio.MaxScanTokenSize,
 	}
@@ -425,7 +425,7 @@ func (p *Peco) Run(ctx context.Context) (err error) {
 	}
 	p.source = src
 
-	// If --height is specified, use InlineScreen instead of the default Termbox screen
+	// If --height is specified, use InlineScreen instead of the default TcellScreen
 	if p.heightSpec != nil {
 		p.screen = NewInlineScreen(*p.heightSpec)
 	}

@@ -806,34 +806,34 @@ For now, styles of following 7 items can be customized in `config.json`.
 
 ### Foreground Colors
 
-- `"black"` for `termbox.ColorBlack`
-- `"red"` for `termbox.ColorRed`
-- `"green"` for `termbox.ColorGreen`
-- `"yellow"` for `termbox.ColorYellow`
-- `"blue"` for `termbox.ColorBlue`
-- `"magenta"` for `termbox.ColorMagenta`
-- `"cyan"` for `termbox.ColorCyan`
-- `"white"` for `termbox.ColorWhite`
+- `"black"` for `tcell.ColorBlack`
+- `"red"` for `tcell.ColorRed`
+- `"green"` for `tcell.ColorGreen`
+- `"yellow"` for `tcell.ColorYellow`
+- `"blue"` for `tcell.ColorBlue`
+- `"magenta"` for `tcell.ColorMagenta`
+- `"cyan"` for `tcell.ColorCyan`
+- `"white"` for `tcell.ColorWhite`
 - `"0"`-`"255"` for 256color ([Use256Color](#use256color) must be enabled)
 
 ### Background Colors
 
-- `"on_black"` for `termbox.ColorBlack`
-- `"on_red"` for `termbox.ColorRed`
-- `"on_green"` for `termbox.ColorGreen`
-- `"on_yellow"` for `termbox.ColorYellow`
-- `"on_blue"` for `termbox.ColorBlue`
-- `"on_magenta"` for `termbox.ColorMagenta`
-- `"on_cyan"` for `termbox.ColorCyan`
-- `"on_white"` for `termbox.ColorWhite`
+- `"on_black"` for `tcell.ColorBlack`
+- `"on_red"` for `tcell.ColorRed`
+- `"on_green"` for `tcell.ColorGreen`
+- `"on_yellow"` for `tcell.ColorYellow`
+- `"on_blue"` for `tcell.ColorBlue`
+- `"on_magenta"` for `tcell.ColorMagenta`
+- `"on_cyan"` for `tcell.ColorCyan`
+- `"on_white"` for `tcell.ColorWhite`
 - `"on_0"`-`"on_255"` for 256color ([Use256Color](#use256color) must be enabled)
 
 ### Attributes
 
-- `"bold"` for fg: `termbox.AttrBold`
-- `"underline"` for fg: `termbox.AttrUnderline`
-- `"reverse"` for fg: `termbox.AttrReverse`
-- `"on_bold"` for bg: `termbox.AttrBold` (this attribute actually makes the background blink on some platforms/environments, e.g. linux console, xterm...)
+- `"bold"` for fg: `tcell.AttrBold`
+- `"underline"` for fg: `tcell.AttrUnderline`
+- `"reverse"` for fg: `tcell.AttrReverse`
+- `"on_bold"` for bg: `tcell.AttrBold` (this attribute actually makes the background blink on some platforms/environments, e.g. linux console, xterm...)
 
 ## CustomFilter
 
