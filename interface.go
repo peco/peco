@@ -462,18 +462,6 @@ type Source struct {
 	setupOnce  sync.Once
 }
 
-type State interface {
-	Keymap() *Keymap
-	Query() Query
-	Screen() Screen
-	SetCurrentCol(int)
-	CurrentCol() int
-	SetCurrentLine(int)
-	CurrentLine() int
-	SetSingleKeyJumpMode(bool)
-	SingleKeyJumpMode() bool
-}
-
 type CLIOptions struct {
 	OptHelp            bool   `short:"h" long:"help" description:"show this help message and exit"`
 	OptQuery           string `long:"query" description:"initial value for query"`
