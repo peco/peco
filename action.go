@@ -918,7 +918,7 @@ func doFreezeResults(ctx context.Context, state *Peco, _ Event) {
 			frozen.AppendLine(l)
 		}
 	}
-	close(frozen.done)
+	frozen.MarkComplete()
 
 	state.SetFrozenSource(frozen)
 	state.Query().Reset()

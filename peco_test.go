@@ -790,3 +790,56 @@ func TestPrintQuery(t *testing.T) {
 		}
 	})
 }
+
+func TestMemoryBufferMarkComplete(t *testing.T) {
+	t.Run("signals done channel", func(t *testing.T) {
+		mb := NewMemoryBuffer(0)
+		mb.MarkComplete()
+
+		select {
+		case <-mb.Done():
+			// expected
+		default:
+			t.Fatal("Done channel should be closed after MarkComplete")
+		}
+	})
+
+	t.Run("idempotent - multiple calls do not panic", func(t *testing.T) {
+		mb := NewMemoryBuffer(0)
+		mb.MarkComplete()
+		mb.MarkComplete() // must not panic
+		mb.MarkComplete() // must not panic
+
+		select {
+		case <-mb.Done():
+			// expected
+		default:
+			t.Fatal("Done channel should be closed after MarkComplete")
+		}
+	})
+
+	t.Run("works after Reset", func(t *testing.T) {
+		mb := NewMemoryBuffer(0)
+		mb.MarkComplete()
+
+		mb.Reset()
+
+		// After reset, done should be a new open channel
+		select {
+		case <-mb.Done():
+			t.Fatal("Done channel should not be closed after Reset")
+		default:
+			// expected
+		}
+
+		// MarkComplete should work again on the new channel
+		mb.MarkComplete()
+
+		select {
+		case <-mb.Done():
+			// expected
+		default:
+			t.Fatal("Done channel should be closed after second MarkComplete")
+		}
+	})
+}
