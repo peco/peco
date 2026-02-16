@@ -301,17 +301,26 @@ func (t *Termbox) Suspend() {
 	}
 }
 
-func (t *Termbox) Resume() {
+func (t *Termbox) Resume(ctx context.Context) {
 	// Resume must be a block operation, because we can't safely proceed
 	// without actually knowing that the screen has been re-initialized.
-	// So we send a channel where we expect a reply back, and wait for that
+	// So we send a channel where we expect a reply back, and wait for that.
+	//
+	// Both selects are guarded by ctx.Done() to avoid deadlock: if the
+	// polling goroutine is not yet waiting on resumeCh, a non-blocking
+	// send would silently drop the message and the subsequent receive
+	// would block forever.
 	ch := make(chan struct{})
 	select {
 	case t.resumeCh <- ch:
-	default:
+	case <-ctx.Done():
+		return
 	}
 
-	<-ch
+	select {
+	case <-ch:
+	case <-ctx.Done():
+	}
 }
 
 // SetCell writes to the terminal

@@ -369,7 +369,7 @@ func doFinish(ctx context.Context, state *Peco, _ Event) {
 	state.screen.Suspend()
 
 	err = cmd.Run()
-	state.screen.Resume()
+	state.screen.Resume(ctx)
 	state.Hub().SendDraw(ctx, &DrawOptions{DisableCache: true})
 	if err != nil {
 		// bail out, or otherwise the user cannot know what happened
