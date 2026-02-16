@@ -39,21 +39,6 @@ func regexpFor(q string, flags []string, quotemeta bool) (*regexp.Regexp, error)
 	return re, nil
 }
 
-func queryToRegexps(query string, flags regexpFlags, quotemeta bool) ([]*regexp.Regexp, error) {
-	queries := strings.Split(strings.TrimSpace(query), " ")
-	regexps := make([]*regexp.Regexp, 0)
-
-	for _, q := range queries {
-		re, err := regexpFor(q, flags.flags(query), quotemeta)
-		if err != nil {
-			return nil, errors.Wrapf(err, "failed to compile regular expression '%s'", q)
-		}
-		regexps = append(regexps, re)
-	}
-
-	return regexps, nil
-}
-
 // SplitQueryTerms splits a query string into positive and negative term slices.
 // Terms starting with `-` (followed by at least one non-hyphen char) are negative (the `-` is stripped).
 // Terms starting with `\-` are positive literals (the `\` is stripped).
