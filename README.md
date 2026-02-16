@@ -161,6 +161,20 @@ As of v0.2.5, if you would rather not move your eyes off of the bottom of the sc
 
 ![Executed `ps -ef | peco --layout=bottom-up` to toggle inverted layout mode](http://peco.github.io/images/peco-demo-layout-bottom-up.gif)
 
+## Inline Mode (--height)
+
+By default peco takes over the entire terminal screen using the alternate screen buffer. With `--height`, peco renders inline at the bottom of the terminal, preserving your scroll history above. This is similar to fzf's `--height` option.
+
+```
+# Render with 5 result lines at the bottom of the terminal
+ls | peco --height 5
+
+# Use 40% of the terminal height
+ls | peco --height 40%
+```
+
+All layout modes (`top-down`, `bottom-up`, `top-down-query-bottom`) work with `--height`. See [--height](#--height-numpercentage) for details.
+
 ## Works on Windows!
 
 I have been told that peco even works on windows :) Look ma! I'm not lying!
@@ -357,6 +371,27 @@ Upon exiting from the external command, the control goes back to peco where you 
 
 To exit out of peco when running in this mode, you must execute the Cancel command, usually the escape key.
 
+### --height `num|percentage`
+
+When specified, peco renders inline at the bottom of the terminal using only the requested number of lines, instead of taking over the full screen. This preserves your terminal scroll history above the peco interface.
+
+The value can be:
+
+- An absolute number of **result lines** (e.g. `--height 5`). The prompt and status bar are added automatically, so `--height 5` uses 7 terminal rows total (5 result lines + prompt + status bar).
+- A percentage of the terminal height (e.g. `--height 50%`). This refers to the total height including prompt and status bar.
+
+The minimum effective height is 3 rows (1 result line + prompt + status bar). Values that exceed the terminal height are clamped.
+
+```
+# Show 5 result lines inline
+ls | peco --height 5
+
+# Use 40% of the terminal
+ls | peco --height 40%
+```
+
+Without `--height`, peco uses the full terminal screen (default behavior, unchanged).
+
 # Configuration File
 
 peco by default consults a few locations for the config files.
@@ -457,6 +492,16 @@ responsible for reading the input lines. If you believe that your input has
 very long lines that prohibit peco from reading them, try increasing this number.
 
 The same time, the default MaxScanBuferSize is 256kb.
+
+### Height
+
+```json
+{
+    "Height": "10"
+}
+```
+
+`Height` is equivalent to using `--height` on the command line. When set, peco renders inline at the bottom of the terminal instead of using the full screen. The value is the number of result lines (e.g. `"10"`) or a percentage of terminal height (e.g. `"50%"`). The command line `--height` option takes precedence over this config value.
 
 ## Keymaps
 
@@ -892,6 +937,7 @@ Much code stolen from https://github.com/mattn/gof
   - [Multi-Stage Filtering (Freeze Results)](#multi-stage-filtering-freeze-results)
   - [Horizontal Scrolling](#horizontal-scrolling)
   - [Selectable Layout](#selectable-layout)
+  - [Inline Mode (--height)](#inline-mode---height)
   - [Works on Windows!](#works-on-windows)
 - [Installation](#installation)
     - [Just want the binary?](#just-want-the-binary)
@@ -918,6 +964,7 @@ Much code stolen from https://github.com/mattn/gof
     - [--on-cancel `success|error`](#--on-cancel-successerror)
     - [--selection-prefix `string`](#--selection-prefix-string)
     - [--exec `string`](#--exec-string)
+    - [--height `num|percentage`](#--height-numpercentage)
 - [Configuration File](#configuration-file)
   - [Global](#global)
     - [Prompt](#prompt)
@@ -928,6 +975,7 @@ Much code stolen from https://github.com/mattn/gof
     - [SuppressStatusMsg](#suppressstatusmsg)
     - [OnCancel](#oncancel)
     - [MaxScanBufferSize](#maxscanbuffersize)
+    - [Height](#height)
   - [Keymaps](#keymaps)
     - [Key sequences](#key-sequences)
     - [Combined actions](#combined-actions)
