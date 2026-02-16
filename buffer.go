@@ -113,6 +113,10 @@ func (mb *MemoryBuffer) Accept(ctx context.Context, in chan interface{}, _ pipel
 		mb.mutex.Unlock()
 	}()
 
+	// batch collects lines from the channel so we can append them
+	// under a single lock acquisition instead of locking per line.
+	batch := make([]line.Line, 0, 256)
+
 	start := time.Now()
 	for {
 		select {
@@ -128,12 +132,46 @@ func (mb *MemoryBuffer) Accept(ctx context.Context, in chan interface{}, _ pipel
 					if pdebug.Enabled {
 						pdebug.Printf("MemoryBuffer received end mark (read %d lines, %s since starting accept loop)", len(mb.lines), time.Since(start).String())
 					}
+					// Flush remaining batch
+					if len(batch) > 0 {
+						mb.mutex.Lock()
+						mb.lines = append(mb.lines, batch...)
+						mb.mutex.Unlock()
+					}
 					return
 				}
 			case line.Line:
+				batch = append(batch, v)
+
+				// Drain any additional ready values without blocking
+			drain:
+				for {
+					select {
+					case v2 := <-in:
+						switch v2 := v2.(type) {
+						case error:
+							if pipeline.IsEndMark(v2) {
+								if pdebug.Enabled {
+									pdebug.Printf("MemoryBuffer received end mark (read %d lines, %s since starting accept loop)", len(mb.lines)+len(batch), time.Since(start).String())
+								}
+								mb.mutex.Lock()
+								mb.lines = append(mb.lines, batch...)
+								mb.mutex.Unlock()
+								return
+							}
+						case line.Line:
+							batch = append(batch, v2)
+						}
+					default:
+						break drain
+					}
+				}
+
+				// Flush the batch
 				mb.mutex.Lock()
-				mb.lines = append(mb.lines, v)
+				mb.lines = append(mb.lines, batch...)
 				mb.mutex.Unlock()
+				batch = batch[:0]
 			}
 		}
 	}
