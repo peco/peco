@@ -392,7 +392,7 @@ func doCancel(ctx context.Context, state *Peco, e Event) {
 
 	// peco.Cancel -> end program, exit with failure
 	err := makeIgnorable(errors.New("user canceled"))
-	if state.onCancel == errorKey {
+	if state.onCancel == OnCancelError {
 		err = setExitStatus(err, 1)
 	}
 	state.Exit(err)

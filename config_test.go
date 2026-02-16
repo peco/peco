@@ -220,6 +220,64 @@ func TestLocateRcfileYAML(t *testing.T) {
 	require.Equal(t, filepath.Join(pecoDir, "config.yaml"), file)
 }
 
+func TestOnCancelBehavior(t *testing.T) {
+	t.Run("valid values via JSON", func(t *testing.T) {
+		for _, tc := range []struct {
+			input    string
+			expected OnCancelBehavior
+		}{
+			{`{"OnCancel":"success"}`, OnCancelSuccess},
+			{`{"OnCancel":"error"}`, OnCancelError},
+			{`{}`, ""}, // absent key stays at zero value; default applied later in ApplyConfig
+		} {
+			var cfg Config
+			require.NoError(t, cfg.Init())
+			require.NoError(t, json.Unmarshal([]byte(tc.input), &cfg))
+			require.Equal(t, tc.expected, cfg.OnCancel)
+		}
+	})
+
+	t.Run("valid values via YAML", func(t *testing.T) {
+		for _, tc := range []struct {
+			input    string
+			expected OnCancelBehavior
+		}{
+			{"OnCancel: success", OnCancelSuccess},
+			{"OnCancel: error", OnCancelError},
+		} {
+			var cfg Config
+			require.NoError(t, cfg.Init())
+			require.NoError(t, yaml.Unmarshal([]byte(tc.input), &cfg))
+			require.Equal(t, tc.expected, cfg.OnCancel)
+		}
+	})
+
+	t.Run("invalid value via JSON", func(t *testing.T) {
+		var cfg Config
+		require.NoError(t, cfg.Init())
+		err := json.Unmarshal([]byte(`{"OnCancel":"bogus"}`), &cfg)
+		require.Error(t, err)
+		require.Contains(t, err.Error(), "bogus")
+	})
+
+	t.Run("invalid value via YAML", func(t *testing.T) {
+		var cfg Config
+		require.NoError(t, cfg.Init())
+		err := yaml.Unmarshal([]byte("OnCancel: bogus"), &cfg)
+		require.Error(t, err)
+		require.Contains(t, err.Error(), "bogus")
+	})
+
+	t.Run("invalid CLI option rejected", func(t *testing.T) {
+		p := newPeco()
+		var opts CLIOptions
+		opts.OptOnCancel = "bogus"
+		err := p.ApplyConfig(opts)
+		require.Error(t, err)
+		require.Contains(t, err.Error(), "bogus")
+	})
+}
+
 func TestReadFilenameYAML(t *testing.T) {
 	dir := t.TempDir()
 	yamlFile := filepath.Join(dir, "config.yaml")

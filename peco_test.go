@@ -398,7 +398,7 @@ func TestApplyConfig(t *testing.T) {
 		return
 	}
 
-	if !assert.Equal(t, opts.OptOnCancel, p.onCancel, "p.onCancel should be equal to opts.OptOnCancel") {
+	if !assert.Equal(t, OnCancelBehavior(opts.OptOnCancel), p.onCancel, "p.onCancel should be equal to opts.OptOnCancel") {
 		return
 	}
 
