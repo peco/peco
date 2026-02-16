@@ -2,6 +2,7 @@ package peco
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"math"
 	"os"
@@ -15,7 +16,6 @@ import (
 	"github.com/peco/peco/internal/keyseq"
 	"github.com/peco/peco/internal/util"
 	"github.com/peco/peco/line"
-	"github.com/pkg/errors"
 )
 
 // This is the global map of canonical action name to actions
@@ -373,7 +373,7 @@ func doFinish(ctx context.Context, state *Peco, _ Event) {
 	state.Hub().SendDraw(ctx, &DrawOptions{DisableCache: true})
 	if err != nil {
 		// bail out, or otherwise the user cannot know what happened
-		state.Exit(errors.Wrap(err, `failed to execute command`))
+		state.Exit(fmt.Errorf("failed to execute command: %w", err))
 	}
 }
 

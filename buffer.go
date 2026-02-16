@@ -1,6 +1,8 @@
 package peco
 
 import (
+	"errors"
+	"fmt"
 	"sync"
 	"time"
 
@@ -10,7 +12,6 @@ import (
 	runewidth "github.com/mattn/go-runewidth"
 	"github.com/peco/peco/line"
 	"github.com/peco/peco/pipeline"
-	"github.com/pkg/errors"
 )
 
 func NewFilteredBuffer(src Buffer, page, perPage int) *FilteredBuffer {
@@ -60,7 +61,7 @@ func (flb *FilteredBuffer) MaxColumn() int {
 // different line number in the source buffer.
 func (flb FilteredBuffer) LineAt(i int) (line.Line, error) {
 	if i >= len(flb.selection) {
-		return nil, errors.Errorf("specified index %d is out of range", len(flb.selection))
+		return nil, fmt.Errorf("specified index %d is out of range", len(flb.selection))
 	}
 	return flb.src.LineAt(flb.selection[i])
 }
@@ -356,7 +357,7 @@ func (cb *ContextBuffer) Size() int {
 // LineAt returns the line at index i.
 func (cb *ContextBuffer) LineAt(i int) (line.Line, error) {
 	if i < 0 || i >= len(cb.entries) {
-		return nil, errors.Errorf("specified index %d is out of range (size=%d)", i, len(cb.entries))
+		return nil, fmt.Errorf("specified index %d is out of range (size=%d)", i, len(cb.entries))
 	}
 	return cb.entries[i], nil
 }

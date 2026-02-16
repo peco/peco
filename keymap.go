@@ -2,13 +2,14 @@ package peco
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"sort"
 	"strings"
 	"time"
 
 	"github.com/lestrrat-go/pdebug"
 	"github.com/peco/peco/internal/keyseq"
-	"github.com/pkg/errors"
 )
 
 // NewKeymap creates a new Keymap struct
@@ -105,7 +106,7 @@ const maxResolveActionDepth = 100
 
 func (km Keymap) resolveActionName(name string, depth int) (Action, error) {
 	if depth >= maxResolveActionDepth {
-		return nil, errors.Errorf("could not resolve %s: deep recursion", name)
+		return nil, fmt.Errorf("could not resolve %s: deep recursion", name)
 	}
 
 	// Can it be resolved via regular nameToActions ?
@@ -130,7 +131,7 @@ func (km Keymap) resolveActionName(name string, depth int) (Action, error) {
 		return v, nil
 	}
 
-	return nil, errors.Errorf("could not resolve %s: no such action", name)
+	return nil, fmt.Errorf("could not resolve %s: no such action", name)
 }
 
 // ApplyKeybinding applies all of the custom key bindings on top of
@@ -154,7 +155,7 @@ func (km *Keymap) ApplyKeybinding() error {
 
 		v, err := km.resolveActionName(as, 0)
 		if err != nil {
-			return errors.Wrapf(err, "failed to resolve action name %s", as)
+			return fmt.Errorf("failed to resolve action name %s: %w", as, err)
 		}
 		kb[s] = v
 	}
@@ -172,11 +173,14 @@ func (km *Keymap) ApplyKeybinding() error {
 		a := kb[s]
 		list, err := keyseq.ToKeyList(s)
 		if err != nil {
-			return errors.Wrapf(err, "urnknown key %s: %s", s, err)
+			return fmt.Errorf("urnknown key %s: %w", s, err)
 		}
 
 		k.Add(list, a)
 	}
 
-	return errors.Wrap(k.Compile(), "failed to compile key binding patterns")
+	if err := k.Compile(); err != nil {
+		return fmt.Errorf("failed to compile key binding patterns: %w", err)
+	}
+	return nil
 }

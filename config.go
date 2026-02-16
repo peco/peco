@@ -2,6 +2,7 @@ package peco
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -11,7 +12,6 @@ import (
 	"github.com/goccy/go-yaml"
 	"github.com/peco/peco/filter"
 	"github.com/peco/peco/internal/util"
-	"github.com/pkg/errors"
 )
 
 var homedirFunc = util.Homedir
@@ -32,7 +32,7 @@ func (c *Config) Init() error {
 func (c *Config) ReadFilename(filename string) error {
 	f, err := os.Open(filename)
 	if err != nil {
-		return errors.Wrapf(err, "failed to open file %s", filename)
+		return fmt.Errorf("failed to open file %s: %w", filename, err)
 	}
 	defer f.Close()
 
@@ -40,17 +40,17 @@ func (c *Config) ReadFilename(filename string) error {
 	case ".yaml", ".yml":
 		err = yaml.NewDecoder(f).Decode(c)
 		if err != nil {
-			return errors.Wrap(err, "failed to decode YAML")
+			return fmt.Errorf("failed to decode YAML: %w", err)
 		}
 	default:
 		err = json.NewDecoder(f).Decode(c)
 		if err != nil {
-			return errors.Wrap(err, "failed to decode JSON")
+			return fmt.Errorf("failed to decode JSON: %w", err)
 		}
 	}
 
 	if !IsValidLayoutType(LayoutType(c.Layout)) {
-		return errors.Errorf("invalid layout type: %s", c.Layout)
+		return fmt.Errorf("invalid layout type: %s", c.Layout)
 	}
 
 	if len(c.CustomMatcher) > 0 {
@@ -58,7 +58,7 @@ func (c *Config) ReadFilename(filename string) error {
 
 		for n, cfg := range c.CustomMatcher {
 			if _, ok := c.CustomFilter[n]; ok {
-				return errors.Errorf("failed to create CustomFilter: '%s' already exists. Refusing to overwrite with deprecated CustomMatcher config", n)
+				return fmt.Errorf("failed to create CustomFilter: '%s' already exists. Refusing to overwrite with deprecated CustomMatcher config", n)
 			}
 
 			c.CustomFilter[n] = CustomFilterConfig{
@@ -133,7 +133,7 @@ func (ss *StyleSet) Init() {
 func (s *Style) UnmarshalJSON(buf []byte) error {
 	raw := []string{}
 	if err := json.Unmarshal(buf, &raw); err != nil {
-		return errors.Wrapf(err, "failed to unmarshal Style")
+		return fmt.Errorf("failed to unmarshal Style: %w", err)
 	}
 	return stringsToStyle(s, raw)
 }
@@ -142,7 +142,7 @@ func (s *Style) UnmarshalJSON(buf []byte) error {
 func (s *Style) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	var raw []string
 	if err := unmarshal(&raw); err != nil {
-		return errors.Wrap(err, "failed to unmarshal Style from YAML")
+		return fmt.Errorf("failed to unmarshal Style from YAML: %w", err)
 	}
 	return stringsToStyle(s, raw)
 }
@@ -207,7 +207,7 @@ func locateRcfileIn(dir string) (string, error) {
 			return file, nil
 		}
 	}
-	return "", errors.Errorf("config file not found in %s", dir)
+	return "", fmt.Errorf("config file not found in %s", dir)
 }
 
 // LocateRcfile attempts to find the config file in various locations

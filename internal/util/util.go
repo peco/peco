@@ -1,6 +1,7 @@
 package util
 
 import (
+	"errors"
 	"regexp"
 	"unicode"
 )
@@ -33,10 +34,6 @@ func StripANSISequence(s string) string {
 	return reANSIEscapeChars.ReplaceAllString(s, "")
 }
 
-type causer interface {
-	Cause() error
-}
-
 type ignorable interface {
 	Ignorable() bool
 }
@@ -50,43 +47,28 @@ type exitStatuser interface {
 }
 
 func IsIgnorableError(err error) bool {
-	for e := err; e != nil; {
-		switch v := e.(type) {
-		case ignorable:
+	for e := err; e != nil; e = errors.Unwrap(e) {
+		if v, ok := e.(ignorable); ok {
 			return v.Ignorable()
-		case causer:
-			e = v.Cause()
-		default:
-			return false
 		}
 	}
 	return false
 }
 
 func IsCollectResultsError(err error) bool {
-	for e := err; e != nil; {
-		switch v := e.(type) {
-		case collectResults:
+	for e := err; e != nil; e = errors.Unwrap(e) {
+		if v, ok := e.(collectResults); ok {
 			return v.CollectResults()
-		case causer:
-			e = v.Cause()
-		default:
-			return false
 		}
 	}
 	return false
 }
 
 func GetExitStatus(err error) (int, bool) {
-	for e := err; e != nil; {
+	for e := err; e != nil; e = errors.Unwrap(e) {
 		if ese, ok := e.(exitStatuser); ok {
 			return ese.ExitStatus(), true
 		}
-		if cerr, ok := e.(causer); ok {
-			e = cerr.Cause()
-			continue
-		}
-		break
 	}
 	return 1, false
 }

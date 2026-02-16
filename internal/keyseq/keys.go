@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"strings"
 	"unicode/utf8"
-
-	"github.com/pkg/errors"
 )
 
 // KeyType represents a keyboard key. Values are defined to match termbox-go's
@@ -204,7 +202,7 @@ func ToKeyList(ksk string) (KeyList, error) {
 
 		k, m, ch, err := ToKey(term)
 		if err != nil {
-			return list, errors.Wrapf(err, "failed to convert '%s'", term)
+			return list, fmt.Errorf("failed to convert '%s': %w", term, err)
 		}
 
 		list = append(list, Key{m, k, ch})
@@ -223,7 +221,7 @@ func KeyEventToString(key KeyType, ch rune, mod ModifierKey) (string, error) {
 		var ok bool
 		s, ok = keyToString[key]
 		if !ok {
-			return "", errors.Errorf("no such key %d (ch=%c)", key, ch)
+			return "", fmt.Errorf("no such key %d (ch=%c)", key, ch)
 		}
 
 		// Special case for ArrowUp/Down/Left/Right
@@ -291,5 +289,5 @@ done:
 		return 0, modifier, ch, nil
 	}
 
-	return 0, modifier, 0, errors.Errorf("no such key %s", key)
+	return 0, modifier, 0, fmt.Errorf("no such key %s", key)
 }

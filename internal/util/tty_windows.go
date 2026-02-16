@@ -1,11 +1,10 @@
 package util
 
 import (
+	"fmt"
 	"os"
 	"syscall"
 	"unsafe"
-
-	"github.com/pkg/errors"
 )
 
 var (
@@ -23,7 +22,7 @@ func getStdHandle(h int) (fd syscall.Handle) {
 func setStdHandle(stdhandle int32, handle syscall.Handle) error {
 	r1, _, err := procSetStdHandle.Call(uintptr(stdhandle), uintptr(handle))
 	if r1 == 0 && err != nil {
-		return errors.Wrap(err, "failed to call SetStdHandle")
+		return fmt.Errorf("failed to call SetStdHandle: %w", err)
 	}
 	return nil
 }
@@ -55,7 +54,10 @@ func TtyReady() error {
 	os.Stdin = _stdin
 	syscall.Stdin = syscall.Handle(os.Stdin.Fd())
 
-	return errors.Wrap(setStdHandle(syscall.STD_INPUT_HANDLE, syscall.Stdin), "failed to check for TtyReady")
+	if err = setStdHandle(syscall.STD_INPUT_HANDLE, syscall.Stdin); err != nil {
+		return fmt.Errorf("failed to check for TtyReady: %w", err)
+	}
+	return nil
 }
 
 // TtyTerm restores any state, if necessary
