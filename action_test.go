@@ -670,7 +670,7 @@ func TestDoFreezeResults(t *testing.T) {
 		lines := makeLines("frozen1", "frozen2")
 		frozen := NewMemoryBuffer(0)
 		frozen.lines = lines
-		close(frozen.done)
+		frozen.MarkComplete()
 		state.SetFrozenSource(frozen)
 
 		state.ResetCurrentLineBuffer()
@@ -695,7 +695,7 @@ func TestDoFreezeResults(t *testing.T) {
 
 		frozen := NewMemoryBuffer(0)
 		frozen.lines = makeLines("frozen1")
-		close(frozen.done)
+		frozen.MarkComplete()
 		state.SetFrozenSource(frozen)
 		state.currentLineBuffer = frozen
 

@@ -1,6 +1,7 @@
 package peco
 
 import (
+	"sync"
 	"time"
 
 	"context"
@@ -102,7 +103,20 @@ func (mb *MemoryBuffer) Reset() {
 		defer g.End()
 	}
 	mb.done = make(chan struct{})
+	mb.doneOnce = sync.Once{}
 	mb.lines = []line.Line(nil)
+}
+
+// MarkComplete signals that the buffer is fully populated. It is safe
+// to call multiple times; only the first call closes the done channel.
+// Use this instead of manually closing the done channel when populating
+// a MemoryBuffer outside of the pipeline (e.g. freeze).
+func (mb *MemoryBuffer) MarkComplete() {
+	mb.doneOnce.Do(func() {
+		mb.mutex.Lock()
+		close(mb.done)
+		mb.mutex.Unlock()
+	})
 }
 
 func (mb *MemoryBuffer) Done() <-chan struct{} {
@@ -116,11 +130,7 @@ func (mb *MemoryBuffer) Accept(ctx context.Context, in chan interface{}, _ pipel
 		g := pdebug.Marker("MemoryBuffer.Accept")
 		defer g.End()
 	}
-	defer func() {
-		mb.mutex.Lock()
-		close(mb.done)
-		mb.mutex.Unlock()
-	}()
+	defer mb.MarkComplete()
 
 	// batch collects lines from the channel so we can append them
 	// under a single lock acquisition instead of locking per line.
