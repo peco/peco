@@ -42,9 +42,7 @@ func (q *Query) DeleteRange(start, end int) {
 		return
 	}
 
-	// everything up to "start" is left in tact
-	// everything between start <-> end is deleted
-	// everything up to "start" is left in tact
+	// everything up to "start" is left intact
 	// everything between start <-> end is deleted
 	copy(q.query[start:], q.query[end:])
 	q.query = q.query[:l-(end-start)]
