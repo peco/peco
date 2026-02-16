@@ -177,6 +177,7 @@ type sliceSource struct {
 }
 
 func (s *sliceSource) Start(ctx context.Context, out pipeline.ChanOutput) {
+	defer close(out)
 	for _, l := range s.lines {
 		select {
 		case <-ctx.Done():
@@ -185,7 +186,6 @@ func (s *sliceSource) Start(ctx context.Context, out pipeline.ChanOutput) {
 			out.Send(ctx, l)
 		}
 	}
-	out.SendEndMark(ctx, "end of sliceSource")
 }
 
 func (s *sliceSource) Reset() {}

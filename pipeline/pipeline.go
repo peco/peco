@@ -4,39 +4,22 @@ package pipeline
 import (
 	"context"
 	"errors"
-	"fmt"
 
 	pdebug "github.com/lestrrat-go/pdebug"
+	"github.com/peco/peco/line"
 )
 
-// EndMark returns true
-func (e EndMark) EndMark() bool {
-	return true
-}
-
-// Error returns the error string "end of input"
-func (e EndMark) Error() string {
-	return "end of input"
-}
-
-// IsEndMark is an utility function that checks if the given error
-// object is an EndMark
-func IsEndMark(err error) bool {
-	var em EndMarker
-	if errors.As(err, &em) {
-		return em.EndMark()
-	}
-	return false
-}
-
 func NilOutput(ctx context.Context) ChanOutput {
-	ch := make(chan interface{})
+	ch := make(chan line.Line)
 	go func() {
 		for {
 			select {
 			case <-ctx.Done():
 				return
-			case <-ch:
+			case _, ok := <-ch:
+				if !ok {
+					return
+				}
 			}
 		}
 	}()
@@ -45,14 +28,14 @@ func NilOutput(ctx context.Context) ChanOutput {
 }
 
 // OutCh returns the channel that acceptors can listen to
-func (oc ChanOutput) OutCh() <-chan interface{} {
+func (oc ChanOutput) OutCh() <-chan line.Line {
 	return oc
 }
 
 // Send sends the data `v` through this channel. It blocks until the value
 // is sent or the context is cancelled. This avoids the timer allocation
 // overhead of the previous implementation while still supporting cancellation.
-func (oc ChanOutput) Send(ctx context.Context, v interface{}) (err error) {
+func (oc ChanOutput) Send(ctx context.Context, v line.Line) (err error) {
 	if oc == nil {
 		return errors.New("nil channel")
 	}
@@ -63,15 +46,6 @@ func (oc ChanOutput) Send(ctx context.Context, v interface{}) (err error) {
 	case <-ctx.Done():
 		return ctx.Err()
 	}
-}
-
-// SendEndMark sends an end mark. If ctx is cancelled, the end mark is
-// dropped since all pipeline stages are shutting down via context anyway.
-func (oc ChanOutput) SendEndMark(ctx context.Context, s string) error {
-	if err := oc.Send(ctx, fmt.Errorf("%s: %w", s, EndMark{})); err != nil {
-		return fmt.Errorf("failed to send end mark: %w", err)
-	}
-	return nil
 }
 
 // New creates a new Pipeline
@@ -139,12 +113,12 @@ func (p *Pipeline) Run(ctx context.Context) (err error) {
 	// Use buffered channels between pipeline stages to allow pipelining
 	const chanBufSize = 256
 
-	prevCh := ChanOutput(make(chan interface{}, chanBufSize))
+	prevCh := ChanOutput(make(chan line.Line, chanBufSize))
 	go p.dst.Accept(ctx, prevCh, nil)
 
 	for i := len(p.nodes) - 1; i >= 0; i-- {
 		cur := p.nodes[i]
-		ch := make(chan interface{}, chanBufSize)
+		ch := make(chan line.Line, chanBufSize)
 		go cur.Accept(ctx, ch, prevCh)
 		prevCh = ChanOutput(ch)
 	}

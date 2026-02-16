@@ -31,13 +31,11 @@ func collectOutput(ctx context.Context, out pipeline.ChanOutput) []line.Line {
 		select {
 		case <-ctx.Done():
 			return results
-		case v, ok := <-out.OutCh():
+		case l, ok := <-out.OutCh():
 			if !ok {
 				return results
 			}
-			if l, ok := v.(line.Line); ok {
-				results = append(results, l)
-			}
+			results = append(results, l)
 		}
 	}
 }
@@ -54,7 +52,7 @@ func TestExternalCmd_CancelCleansUpGoroutine(t *testing.T) {
 	// it completes quickly. Instead, use "sleep" which blocks for a long time.
 	ecf := NewExternalCmd("sleep", "sleep", []string{"60"}, 0, idgen, false)
 	ctx, cancel := context.WithCancel(ecf.NewContext(context.Background(), "test"))
-	out := pipeline.ChanOutput(make(chan interface{}, 256))
+	out := pipeline.ChanOutput(make(chan line.Line, 256))
 
 	// Record goroutine count before Apply
 	runtime.GC()
@@ -112,7 +110,7 @@ func TestExternalCmdFilter_NullSep(t *testing.T) {
 		ecf := NewExternalCmd("grep", "grep", []string{"ap"}, 0, idgen, true)
 
 		ctx := ecf.NewContext(context.Background(), "ap")
-		out := pipeline.ChanOutput(make(chan interface{}, 256))
+		out := pipeline.ChanOutput(make(chan line.Line, 256))
 
 		var results []line.Line
 		done := make(chan struct{})
@@ -149,7 +147,7 @@ func TestExternalCmdFilter_NullSep(t *testing.T) {
 		ecf := NewExternalCmd("grep", "grep", []string{"ap"}, 0, idgen, false)
 
 		ctx := ecf.NewContext(context.Background(), "ap")
-		out := pipeline.ChanOutput(make(chan interface{}, 256))
+		out := pipeline.ChanOutput(make(chan line.Line, 256))
 
 		var results []line.Line
 		done := make(chan struct{})
@@ -184,7 +182,7 @@ func TestExternalCmdFilter_NullSep(t *testing.T) {
 		ecf := NewExternalCmd("grep", "grep", []string{"-F", "$QUERY"}, 0, idgen, true)
 
 		ctx := ecf.NewContext(context.Background(), "dup")
-		out := pipeline.ChanOutput(make(chan interface{}, 256))
+		out := pipeline.ChanOutput(make(chan line.Line, 256))
 
 		var results []line.Line
 		done := make(chan struct{})

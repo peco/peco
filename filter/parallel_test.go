@@ -61,16 +61,14 @@ func TestParallelFilterProducesSameResults(t *testing.T) {
 			ctx := ft.filter.NewContext(context.Background(), ft.query)
 
 			// Run sequentially
-			seqCh := make(chan interface{}, numLines)
+			seqCh := make(chan line.Line, numLines)
 			err := ft.filter.Apply(ctx, lines, pipeline.ChanOutput(seqCh))
 			require.NoError(t, err)
 			close(seqCh)
 
 			var seqResults []string
-			for v := range seqCh {
-				if l, ok := v.(line.Line); ok {
-					seqResults = append(seqResults, l.DisplayString())
-				}
+			for l := range seqCh {
+				seqResults = append(seqResults, l.DisplayString())
 			}
 
 			// Run on chunks (simulating parallel) - split into multiple chunks
@@ -83,15 +81,13 @@ func TestParallelFilterProducesSameResults(t *testing.T) {
 				}
 				chunk := lines[start:end]
 
-				ch := make(chan interface{}, len(chunk))
+				ch := make(chan line.Line, len(chunk))
 				err := ft.filter.Apply(ctx, chunk, pipeline.ChanOutput(ch))
 				require.NoError(t, err)
 				close(ch)
 
-				for v := range ch {
-					if l, ok := v.(line.Line); ok {
-						parResults = append(parResults, l.DisplayString())
-					}
+				for l := range ch {
+					parResults = append(parResults, l.DisplayString())
 				}
 			}
 
@@ -119,7 +115,7 @@ func TestParallelFilterContextCancellation(t *testing.T) {
 		cancel()
 	}()
 
-	ch := make(chan interface{}, numLines)
+	ch := make(chan line.Line, numLines)
 	err := f.Apply(ctx, lines, pipeline.ChanOutput(ch))
 
 	// Should return context error (cancelled)

@@ -47,15 +47,13 @@ func TestApplyAndApplyCollectConsistency(t *testing.T) {
 			defer cancel()
 
 			// Collect via Apply (channel path)
-			ch := make(chan interface{}, len(lines)+1)
+			ch := make(chan line.Line, len(lines)+1)
 			err := tt.filter.Apply(ctx, lines, pipeline.ChanOutput(ch))
 			require.NoError(t, err, "Apply should succeed")
 			close(ch)
 
 			var applyResults []string
-			for v := range ch {
-				l, ok := v.(line.Line)
-				require.True(t, ok, "channel value should be line.Line")
+			for l := range ch {
 				applyResults = append(applyResults, l.DisplayString())
 			}
 
@@ -126,17 +124,15 @@ func TestNewContextStoresQuery(t *testing.T) {
 			ctx := tt.filter.NewContext(context.Background(), "test-query")
 			// The query should be stored in context — verify by running Apply
 			// with a line that matches "test-query"
-			ch := make(chan interface{}, 2)
+			ch := make(chan line.Line, 2)
 			lines := makeLines("this is a test-query line")
 			err := tt.filter.Apply(ctx, lines, pipeline.ChanOutput(ch))
 			require.NoError(t, err)
 			close(ch)
 
 			var results []line.Line
-			for v := range ch {
-				if l, ok := v.(line.Line); ok {
-					results = append(results, l)
-				}
+			for l := range ch {
+				results = append(results, l)
 			}
 			require.Len(t, results, 1, "query stored by NewContext should be used by Apply")
 		})

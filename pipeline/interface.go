@@ -4,21 +4,14 @@ import (
 	"sync"
 
 	"context"
+
+	"github.com/peco/peco/line"
 )
-
-// EndMarker is an interface for things that tell us the input
-// sequence has ended
-type EndMarker interface {
-	error
-	EndMark() bool
-}
-
-// EndMark is a dummy struct that gets send as an EOL mark of sorts
-type EndMark struct{}
 
 type Source interface {
 	// Start should be able to be called repeatedly, producing the
-	// same data to be consumed by the chained Acceptors
+	// same data to be consumed by the chained Acceptors.
+	// The implementation must close out when done sending.
 	Start(context.Context, ChanOutput)
 
 	Reset()
@@ -30,9 +23,10 @@ type Suspender interface {
 }
 
 // Acceptor is an object that can accept input, and send to
-// an optional output
+// an optional output. The implementation must close out (if non-nil)
+// when in is exhausted or the context is cancelled.
 type Acceptor interface {
-	Accept(context.Context, chan interface{}, ChanOutput)
+	Accept(context.Context, <-chan line.Line, ChanOutput)
 }
 
 // Destination is a special case Acceptor that has no more Acceptors
@@ -52,9 +46,6 @@ type Pipeline struct {
 	dst   Destination
 }
 
-type Output interface {
-	Send(context.Context, interface{}) error
-}
-
-// ChanOutput is an alias to `chan interface{}`
-type ChanOutput chan interface{}
+// ChanOutput is a typed channel for sending line.Line values between
+// pipeline stages.
+type ChanOutput chan line.Line

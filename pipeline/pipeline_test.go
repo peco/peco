@@ -10,6 +10,8 @@ import (
 	"time"
 
 	"context"
+
+	"github.com/peco/peco/line"
 )
 
 type RegexpFilter struct {
@@ -22,38 +24,35 @@ func NewRegexpFilter(rx *regexp.Regexp) *RegexpFilter {
 	}
 }
 
-func (rf *RegexpFilter) Accept(ctx context.Context, in chan interface{}, out ChanOutput) {
+func (rf *RegexpFilter) Accept(ctx context.Context, in <-chan line.Line, out ChanOutput) {
 	defer fmt.Println("END RegexpFilter.Accept")
-	defer out.SendEndMark(ctx, "end of RegexpFilter")
+	defer close(out)
 	for {
 		select {
 		case <-ctx.Done():
 			return
-		case v := <-in:
-			if err, ok := v.(error); ok {
-				if IsEndMark(err) {
-					return
-				}
+		case v, ok := <-in:
+			if !ok {
+				return
 			}
-
-			if s, ok := v.(string); ok {
-				if rf.rx.MatchString(s) {
-					out.Send(ctx, s)
-				}
+			if rf.rx.MatchString(v.DisplayString()) {
+				out.Send(ctx, v)
 			}
 		}
 	}
 }
 
 type LineFeeder struct {
-	lines []string
+	lines []line.Line
 }
 
 func NewLineFeeder(rdr io.Reader) *LineFeeder {
 	scan := bufio.NewScanner(rdr)
-	var lines []string
+	var lines []line.Line
+	var id uint64
 	for scan.Scan() {
-		lines = append(lines, scan.Text())
+		lines = append(lines, line.NewRaw(id, scan.Text(), false, false))
+		id++
 	}
 	return &LineFeeder{
 		lines: lines,
@@ -66,14 +65,14 @@ func (f *LineFeeder) Reset() {
 func (f *LineFeeder) Start(ctx context.Context, out ChanOutput) {
 	fmt.Println("START LineFeeder.Start")
 	defer fmt.Println("END LineFeeder.Start")
-	defer out.SendEndMark(ctx, "end of LineFeeder")
-	for _, s := range f.lines {
-		out.Send(ctx, s)
+	defer close(out)
+	for _, l := range f.lines {
+		out.Send(ctx, l)
 	}
 }
 
 type Receiver struct {
-	lines []string
+	lines []line.Line
 	done  chan struct{}
 }
 
@@ -92,7 +91,7 @@ func (r *Receiver) Done() <-chan struct{} {
 	return r.done
 }
 
-func (r *Receiver) Accept(ctx context.Context, in chan interface{}, out ChanOutput) {
+func (r *Receiver) Accept(ctx context.Context, in <-chan line.Line, out ChanOutput) {
 	defer fmt.Println("END Receiver.Accept")
 	defer close(r.done)
 
@@ -100,16 +99,11 @@ func (r *Receiver) Accept(ctx context.Context, in chan interface{}, out ChanOutp
 		select {
 		case <-ctx.Done():
 			return
-		case v := <-in:
-			if err, ok := v.(error); ok {
-				if IsEndMark(err) {
-					return
-				}
+		case v, ok := <-in:
+			if !ok {
+				return
 			}
-
-			if s, ok := v.(string); ok {
-				r.lines = append(r.lines, s)
-			}
+			r.lines = append(r.lines, v)
 		}
 	}
 }
@@ -133,5 +127,10 @@ barfoo
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	p.Run(ctx)
-	t.Logf("%#v", dst.lines)
+
+	var got []string
+	for _, l := range dst.lines {
+		got = append(got, l.DisplayString())
+	}
+	t.Logf("%#v", got)
 }
