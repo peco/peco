@@ -45,7 +45,7 @@ func (ff Fuzzy) String() string {
 	return "Fuzzy"
 }
 
-func (ff *Fuzzy) Apply(ctx context.Context, lines []line.Line, out pipeline.ChanOutput) error {
+func (ff *Fuzzy) applyInternal(ctx context.Context, lines []line.Line, emit func(line.Line)) error {
 	originalQuery := ctx.Value(queryKey).(string)
 	hasUpper := util.ContainsUpper(originalQuery)
 	matched := []fuzzyMatchedItem{}
@@ -151,10 +151,24 @@ LINE:
 	}
 
 	for i := range matched {
-		out.Send(line.NewMatched(matched[i].line, matched[i].matches))
+		emit(line.NewMatched(matched[i].line, matched[i].matches))
 	}
 
 	return nil
+}
+
+func (ff *Fuzzy) Apply(ctx context.Context, lines []line.Line, out pipeline.ChanOutput) error {
+	return ff.applyInternal(ctx, lines, func(l line.Line) {
+		out.Send(l)
+	})
+}
+
+func (ff *Fuzzy) ApplyCollect(ctx context.Context, lines []line.Line) ([]line.Line, error) {
+	result := make([]line.Line, 0, len(lines)/2)
+	err := ff.applyInternal(ctx, lines, func(l line.Line) {
+		result = append(result, l)
+	})
+	return result, err
 }
 
 func popRune(s string) (string, rune, int) {

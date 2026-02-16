@@ -88,6 +88,10 @@ func parallelFlusher(ctx context.Context, f filter.Filter, incoming chan ordered
 	// resultCh collects filtered results from workers
 	resultCh := make(chan orderedResult, numWorkers*2)
 
+	// Check once whether the filter supports direct collection (bypasses
+	// per-chunk channel allocation and goroutine spawn).
+	collector, canCollect := f.(filter.Collector)
+
 	// Start workers
 	var workerWg sync.WaitGroup
 	workerWg.Add(numWorkers)
@@ -102,26 +106,30 @@ func parallelFlusher(ctx context.Context, f filter.Filter, incoming chan ordered
 				default:
 				}
 
-				// Collect matches into a local slice instead of sending to out directly
-				collector := make([]line.Line, 0, len(chunk.lines)/2)
-				collectCh := make(chan interface{}, len(chunk.lines))
-
-				// Apply the filter, collecting results into collectCh
-				go func(chunk orderedChunk) {
-					f.Apply(ctx, chunk.lines, pipeline.ChanOutput(collectCh))
-					close(collectCh)
-				}(chunk)
-
-				for v := range collectCh {
-					if l, ok := v.(line.Line); ok {
-						collector = append(collector, l)
+				var matched []line.Line
+				if canCollect {
+					// Fast path: collect results directly into a slice
+					matched, _ = collector.ApplyCollect(ctx, chunk.lines)
+				} else {
+					// Fallback: use channel-based Apply for filters that
+					// don't implement Collector (e.g. ExternalCmd)
+					collectCh := make(chan interface{}, len(chunk.lines))
+					go func(chunk orderedChunk) {
+						f.Apply(ctx, chunk.lines, pipeline.ChanOutput(collectCh))
+						close(collectCh)
+					}(chunk)
+					matched = make([]line.Line, 0, len(chunk.lines)/2)
+					for v := range collectCh {
+						if l, ok := v.(line.Line); ok {
+							matched = append(matched, l)
+						}
 					}
 				}
 
 				buffer.ReleaseLineListBuf(chunk.lines)
 
 				select {
-				case resultCh <- orderedResult{seq: chunk.seq, matched: collector}:
+				case resultCh <- orderedResult{seq: chunk.seq, matched: matched}:
 				case <-ctx.Done():
 				}
 			}

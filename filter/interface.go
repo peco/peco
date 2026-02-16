@@ -79,3 +79,11 @@ type Filter interface {
 	// global state across all lines (e.g. sorted output) should return false.
 	SupportsParallel() bool
 }
+
+// Collector is an optional interface that filters can implement to return
+// matched lines directly as a slice, bypassing channel-based output.
+// This avoids per-chunk channel allocation and goroutine overhead in the
+// parallel filter path.
+type Collector interface {
+	ApplyCollect(context.Context, []line.Line) ([]line.Line, error)
+}
