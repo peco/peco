@@ -18,12 +18,7 @@ import (
 )
 
 func TestIssue212_SanityCheck(t *testing.T) {
-	state := newPeco()
-	ctx, cancel := context.WithCancel(context.Background())
-	go state.Run(ctx)
-	defer cancel()
-
-	<-state.Ready()
+	state, ctx := setupPecoTest(t)
 
 	// Check if the default layout type is honored */
 	// This the main issue on 212, but while we're at it, we're just
