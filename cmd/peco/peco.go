@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"os"
-	"runtime"
 
 	"context"
 
@@ -25,9 +24,6 @@ func main() {
 func _main() int {
 	if pdebug.Enabled {
 		pdebug.DefaultCtx.Writer = os.Stderr
-	}
-	if envvar := os.Getenv("GOMAXPROCS"); envvar == "" {
-		runtime.GOMAXPROCS(runtime.NumCPU())
 	}
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
