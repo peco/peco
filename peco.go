@@ -644,9 +644,14 @@ func (p *Peco) ApplyConfig(opts CLIOptions) error {
 
 	p.use256Color = p.config.Use256Color
 
-	p.onCancel = successKey
-	if opts.OptOnCancel == errorKey || p.config.OnCancel == errorKey {
-		p.onCancel = errorKey
+	p.onCancel = p.config.OnCancel
+	if p.onCancel == "" {
+		p.onCancel = OnCancelSuccess
+	}
+	if opts.OptOnCancel != "" {
+		if err := p.onCancel.UnmarshalText([]byte(opts.OptOnCancel)); err != nil {
+			return fmt.Errorf("invalid --on-cancel value: %w", err)
+		}
 	}
 	p.bufferSize = opts.OptBufferSize
 	if v := opts.OptSelectionPrefix; len(v) > 0 {

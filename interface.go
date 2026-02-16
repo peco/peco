@@ -1,6 +1,7 @@
 package peco
 
 import (
+	"fmt"
 	"io"
 	"sync"
 	"time"
@@ -15,10 +16,25 @@ import (
 	"github.com/peco/peco/pipeline"
 )
 
+// OnCancelBehavior specifies what happens when the user cancels peco.
+type OnCancelBehavior string
+
 const (
-	successKey = "success"
-	errorKey   = "error"
+	OnCancelSuccess OnCancelBehavior = "success"
+	OnCancelError   OnCancelBehavior = "error"
 )
+
+func (o *OnCancelBehavior) UnmarshalText(b []byte) error {
+	switch s := string(b); s {
+	case "", "success":
+		*o = OnCancelSuccess
+	case "error":
+		*o = OnCancelError
+	default:
+		return fmt.Errorf("invalid OnCancel value %q: must be %q or %q", s, OnCancelSuccess, OnCancelError)
+	}
+	return nil
+}
 
 const (
 	ToLineAbove       PagingRequestType = iota // ToLineAbove moves the selection to the line above
@@ -84,7 +100,7 @@ type Peco struct {
 	location                Location
 	maxScanBufferSize       int
 	mutex                   sync.Mutex
-	onCancel                string
+	onCancel                OnCancelBehavior
 	printQuery              bool
 	prompt                  string
 	query                   Query
@@ -324,7 +340,7 @@ type Config struct {
 	Prompt              string            `json:"Prompt" yaml:"Prompt"`
 	Layout              string            `json:"Layout" yaml:"Layout"`
 	Use256Color         bool              `json:"Use256Color" yaml:"Use256Color"`
-	OnCancel            string            `json:"OnCancel" yaml:"OnCancel"`
+	OnCancel            OnCancelBehavior  `json:"OnCancel" yaml:"OnCancel"`
 	CustomMatcher       map[string][]string                `json:"CustomMatcher" yaml:"CustomMatcher"`
 	CustomFilter        map[string]CustomFilterConfig      `json:"CustomFilter" yaml:"CustomFilter"`
 	QueryExecutionDelay int                                `json:"QueryExecutionDelay" yaml:"QueryExecutionDelay"`
