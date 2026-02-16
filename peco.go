@@ -531,7 +531,9 @@ func (p *Peco) parseCommandLine(opts *CLIOptions, args *[]string, argv []string)
 	}
 
 	if opts.OptHelp {
-		p.Stdout.Write(opts.help())
+		if _, err := p.Stdout.Write(opts.help()); err != nil {
+			return fmt.Errorf("failed to write help: %w", err)
+		}
 		return makeIgnorable(errors.New("user asked to show help message"))
 	}
 
@@ -953,5 +955,5 @@ func (p *Peco) PrintResults() {
 		buf.WriteString(line.Output())
 		buf.WriteByte('\n')
 	}
-	p.Stdout.Write(buf.Bytes())
+	_, _ = p.Stdout.Write(buf.Bytes())
 }
