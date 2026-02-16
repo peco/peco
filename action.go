@@ -439,17 +439,25 @@ func doScrollLastItem(ctx context.Context, state *Peco, e Event) {
 	state.Hub().SendPaging(ctx, hub.ToScrollLastItem)
 }
 
-func doToggleSelectionAndSelectNext(ctx context.Context, state *Peco, e Event) {
+// batchAction extracts the top-level action call flag from the context,
+// runs fn inside a Hub.Batch, and marks nested calls as non-top-level.
+func batchAction(ctx context.Context, state *Peco, fn func(context.Context)) {
 	toplevel, _ := ctx.Value(isTopLevelActionCall).(bool)
 	state.Hub().Batch(ctx, func(ctx context.Context) {
 		ctx = context.WithValue(ctx, isTopLevelActionCall, false)
+		fn(ctx)
+	}, toplevel)
+}
+
+func doToggleSelectionAndSelectNext(ctx context.Context, state *Peco, e Event) {
+	batchAction(ctx, state, func(ctx context.Context) {
 		doToggleSelection(ctx, state, e)
 		if state.LayoutType() != LayoutTypeBottomUp {
 			doSelectDown(ctx, state, e)
 		} else {
 			doSelectUp(ctx, state, e)
 		}
-	}, toplevel)
+	})
 }
 
 func doInvertSelection(ctx context.Context, state *Peco, _ Event) {
@@ -1023,22 +1031,18 @@ func doSingleKeyJump(ctx context.Context, state *Peco, e Event) {
 		return
 	}
 
-	toplevel, _ := ctx.Value(isTopLevelActionCall).(bool)
-	state.Hub().Batch(ctx, func(ctx context.Context) {
-		ctx = context.WithValue(ctx, isTopLevelActionCall, false)
+	batchAction(ctx, state, func(ctx context.Context) {
 		state.Hub().SendPaging(ctx, hub.JumpToLineRequest(index))
 		doFinish(ctx, state, e)
-	}, toplevel)
+	})
 }
 
 func makeCombinedAction(actions ...Action) ActionFunc {
 	return ActionFunc(func(ctx context.Context, state *Peco, e Event) {
-		toplevel, _ := ctx.Value(isTopLevelActionCall).(bool)
-		state.Hub().Batch(ctx, func(ctx context.Context) {
-			ctx = context.WithValue(ctx, isTopLevelActionCall, false)
+		batchAction(ctx, state, func(ctx context.Context) {
 			for _, a := range actions {
 				a.Execute(ctx, state, e)
 			}
-		}, toplevel)
+		})
 	})
 }
