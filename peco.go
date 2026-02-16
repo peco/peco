@@ -378,6 +378,11 @@ func (p *Peco) Run(ctx context.Context) (err error) {
 	}
 	p.source = src
 
+	// If --height is specified, use InlineScreen instead of the default Termbox screen
+	if p.heightSpec != nil {
+		p.screen = NewInlineScreen(*p.heightSpec)
+	}
+
 	go func() {
 		<-p.source.Ready()
 		// screen.Init must be called within Run() because we
@@ -609,6 +614,21 @@ func (p *Peco) ApplyConfig(opts CLIOptions) error {
 		p.initialFilter = opts.OptInitialMatcher
 	}
 	p.fuzzyLongestSort = p.config.FuzzyLongestSort
+
+	// Height: CLI option overrides config
+	var heightStr string
+	if v := opts.OptHeight; v != "" {
+		heightStr = v
+	} else if v := p.config.Height; v != "" {
+		heightStr = v
+	}
+	if heightStr != "" {
+		spec, err := ParseHeightSpec(heightStr)
+		if err != nil {
+			return errors.Wrap(err, "failed to parse height specification")
+		}
+		p.heightSpec = &spec
+	}
 
 	if err := p.populateFilters(); err != nil {
 		return errors.Wrap(err, "failed to populate filters")
