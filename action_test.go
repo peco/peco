@@ -547,6 +547,93 @@ func TestGHIssue574_PreviousSelectionLastLineNotUpdated(t *testing.T) {
 	})
 }
 
+func TestNextSelectionNavigation(t *testing.T) {
+	ctx := context.Background()
+
+	lines := []line.Line{
+		line.NewRaw(10, "line-10", false, false),
+		line.NewRaw(20, "line-20", false, false),
+		line.NewRaw(30, "line-30", false, false),
+		line.NewRaw(40, "line-40", false, false),
+		line.NewRaw(50, "line-50", false, false),
+	}
+
+	mb := NewMemoryBuffer(0)
+	mb.lines = lines
+
+	rHub := &recordingHub{}
+
+	state := New()
+	state.hub = rHub
+	state.selection = NewSelection()
+	state.currentLineBuffer = mb
+
+	state.Selection().Add(lines[1]) // ID=20
+	state.Selection().Add(lines[3]) // ID=40
+
+	t.Run("next selection found", func(t *testing.T) {
+		// Cursor at line index 0 (ID=10). Next selection should be ID=20.
+		state.Location().SetLineNumber(0)
+		rHub.reset()
+
+		doGoToNextSelection(ctx, state, Event{})
+
+		statusMsgs := rHub.getStatusMsgs()
+		require.NotEmpty(t, statusMsgs)
+		require.Equal(t, "Next Selection", statusMsgs[0])
+
+		pagingArgs := rHub.getPagingArgs()
+		require.Len(t, pagingArgs, 2)
+
+		jlr, ok := pagingArgs[1].(JumpToLineRequest)
+		require.True(t, ok)
+		require.Equal(t, 20, jlr.Line(),
+			"should jump to the next selected line (ID=20)")
+	})
+
+	t.Run("skips to nearest next selection", func(t *testing.T) {
+		// Cursor at line index 1 (ID=20). Next selection should be ID=40.
+		state.Location().SetLineNumber(1)
+		rHub.reset()
+
+		doGoToNextSelection(ctx, state, Event{})
+
+		statusMsgs := rHub.getStatusMsgs()
+		require.NotEmpty(t, statusMsgs)
+		require.Equal(t, "Next Selection", statusMsgs[0])
+
+		pagingArgs := rHub.getPagingArgs()
+		require.Len(t, pagingArgs, 2)
+
+		jlr, ok := pagingArgs[1].(JumpToLineRequest)
+		require.True(t, ok)
+		require.Equal(t, 40, jlr.Line(),
+			"should jump to the next selected line (ID=40)")
+	})
+
+	t.Run("wrap around to first selected line", func(t *testing.T) {
+		// Cursor at line index 4 (ID=50), past all selections.
+		// Should wrap around to the first selected line (ID=20).
+		state.Location().SetLineNumber(4)
+		rHub.reset()
+
+		doGoToNextSelection(ctx, state, Event{})
+
+		statusMsgs := rHub.getStatusMsgs()
+		require.NotEmpty(t, statusMsgs)
+		require.Equal(t, "Next Selection (first)", statusMsgs[0],
+			"should wrap around when no next selection exists")
+
+		pagingArgs := rHub.getPagingArgs()
+		require.Len(t, pagingArgs, 2)
+
+		jlr, ok := pagingArgs[1].(JumpToLineRequest)
+		require.True(t, ok)
+		require.Equal(t, 20, jlr.Line(),
+			"should wrap to the first selected line (ID=20)")
+	})
+}
+
 func TestGHIssue428_PgUpPgDnDefaultBindings(t *testing.T) {
 	// Issue #428: PgUp/PgDn keys should be bound by default to
 	// ScrollPageUp/ScrollPageDown, just like Home/End are bound
