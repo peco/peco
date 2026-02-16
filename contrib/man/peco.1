@@ -313,6 +313,51 @@ do not appear at all, try increasing \f[V]MaxScanBufferSize\f[R] in your
 config.
 The default is 256 (KB), which limits the maximum length of a single
 input line.
+.SS Context Lines (Zoom In/Out)
+.PP
+When filtering results (e.g.\ searching for \[lq]error\[rq] in a log
+file), you often need to see the surrounding lines to understand the
+context.
+peco supports expanding filtered results to show context lines around
+each match, similar to \f[V]grep -C\f[R].
+.PP
+Two actions are available:
+.IP \[bu] 2
+\f[B]\f[VB]peco.ZoomIn\f[B]\f[R] \[em] Expands the current filtered view
+by showing 3 lines of context (before and after) around every matched
+line.
+Overlapping context ranges are merged automatically.
+Context lines are displayed with the \f[V]Context\f[R] style (bold by
+default) to visually distinguish them from matched lines.
+.IP \[bu] 2
+\f[B]\f[VB]peco.ZoomOut\f[B]\f[R] \[em] Collapses back to the original
+filtered view, restoring the cursor position.
+.PP
+These actions are \f[B]not bound to any key by default\f[R].
+Add keybindings in your config file:
+.IP
+.nf
+\f[C]
+{
+    \[dq]Keymap\[dq]: {
+        \[dq]C-o\[dq]: \[dq]peco.ZoomIn\[dq],
+        \[dq]C-i\[dq]: \[dq]peco.ZoomOut\[dq]
+    }
+}
+\f[R]
+.fi
+.PP
+Notes: - ZoomIn only works when there is an active filter query.
+If you are viewing the unfiltered source, it is a no-op.
+- You cannot zoom in twice \[em] zooming in while already zoomed shows a
+status message.
+- The cursor position is preserved: after ZoomIn, the cursor stays on
+the same matched line; after ZoomOut, it returns to where it was before
+zooming.
+- Context lines cannot be selected \[em] only the original matched lines
+participate in selection.
+- The \f[V]Context\f[R] style can be customized in the config file (see
+Styles).
 .SS Selectable Layout
 .PP
 As of v0.2.5, if you would rather not move your eyes off of the bottom
@@ -1277,6 +1322,16 @@ T}@T{
 Discard frozen results and revert to the original input
 T}
 T{
+peco.ZoomIn
+T}@T{
+Expand filtered results with context lines around each match
+T}
+T{
+peco.ZoomOut
+T}@T{
+Collapse back to the filtered view (undo ZoomIn)
+T}
+T{
 peco.Finish
 T}@T{
 Exits from peco with success status
@@ -1430,7 +1485,7 @@ T}
 .TE
 .SS Styles
 .PP
-For now, styles of following 6 items can be customized in
+For now, styles of following 7 items can be customized in
 \f[V]config.json\f[R].
 .IP
 .nf
@@ -1442,7 +1497,8 @@ For now, styles of following 6 items can be customized in
         \[dq]Selected\[dq]: [\[dq]underline\[dq], \[dq]on_cyan\[dq], \[dq]black\[dq]],
         \[dq]Query\[dq]: [\[dq]yellow\[dq], \[dq]bold\[dq]],
         \[dq]Matched\[dq]: [\[dq]red\[dq], \[dq]on_blue\[dq]],
-        \[dq]Prompt\[dq]: [\[dq]green\[dq], \[dq]bold\[dq]]
+        \[dq]Prompt\[dq]: [\[dq]green\[dq], \[dq]bold\[dq]],
+        \[dq]Context\[dq]: [\[dq]bold\[dq]]
     }
 }
 \f[R]
@@ -1459,6 +1515,8 @@ For now, styles of following 6 items can be customized in
 \f[V]Matched\f[R] for a query matched word
 .IP \[bu] 2
 \f[V]Prompt\f[R] for the query prompt prefix (e.g., \f[V]QUERY>\f[R])
+.IP \[bu] 2
+\f[V]Context\f[R] for context lines shown by ZoomIn (default: bold)
 .SS Foreground Colors
 .IP \[bu] 2
 \f[V]\[dq]black\[dq]\f[R] for \f[V]termbox.ColorBlack\f[R]
@@ -1761,6 +1819,8 @@ Select Filters
 Multi-Stage Filtering (Freeze Results)
 .IP \[bu] 2
 Horizontal Scrolling
+.IP \[bu] 2
+Context Lines (Zoom In/Out)
 .IP \[bu] 2
 Selectable Layout
 .IP \[bu] 2
