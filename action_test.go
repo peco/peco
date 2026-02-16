@@ -368,21 +368,17 @@ func TestDoAcceptChar(t *testing.T) {
 
 	message := "Hello, World!"
 	writeQueryToPrompt(t, state.screen, message)
-	time.Sleep(500 * time.Millisecond)
-
-	if qs := state.Query().String(); qs != message {
-		t.Errorf("Expected query to be populated as '%s', but got '%s'", message, qs)
-	}
+	require.Eventually(t, func() bool {
+		return state.Query().String() == message
+	}, 5*time.Second, 10*time.Millisecond, "Expected query to be populated as '%s'", message)
 
 	state.Caret().Move(-1 * len("World!"))
 	writeQueryToPrompt(t, state.screen, "Cruel ")
 
-	time.Sleep(500 * time.Millisecond)
-
 	expected := "Hello, Cruel World!"
-	if qs := state.Query().String(); qs != expected {
-		t.Errorf("Expected query to be populated as '%s', but got '%s'", expected, qs)
-	}
+	require.Eventually(t, func() bool {
+		return state.Query().String() == expected
+	}, 5*time.Second, 10*time.Millisecond, "Expected query to be populated as '%s'", expected)
 }
 
 func TestRotateFilter(t *testing.T) {
@@ -404,14 +400,13 @@ func TestRotateFilter(t *testing.T) {
 	first := state.Filters().Current()
 	prev = first
 	for i := 0; i < size; i++ {
+		prevFilter := prev
 		state.screen.SendEvent(Event{Type: EventKey, Key: keyseq.KeyCtrlR})
 
-		time.Sleep(500 * time.Millisecond)
-		f := state.Filters().Current()
-		if f == prev {
-			t.Errorf("failed to rotate")
-		}
-		prev = f
+		require.Eventually(t, func() bool {
+			return state.Filters().Current() != prevFilter
+		}, 5*time.Second, 10*time.Millisecond, "filter should have rotated at iteration %d", i)
+		prev = state.Filters().Current()
 	}
 
 	if first != prev {
@@ -434,18 +429,15 @@ func TestBeginningOfLineAndEndOfLine(t *testing.T) {
 	writeQueryToPrompt(t, state.screen, message)
 	state.screen.SendEvent(Event{Type: EventKey, Key: keyseq.KeyCtrlA})
 
-	time.Sleep(time.Second)
-	if !assert.Equal(t, state.Caret().Pos(), 0, "Expected caret position to be 0, got %d", state.Caret().Pos()) {
-		return
-	}
+	require.Eventually(t, func() bool {
+		return state.Caret().Pos() == 0
+	}, 5*time.Second, 10*time.Millisecond, "Expected caret position to be 0")
 
 	state.screen.SendEvent(Event{Type: EventKey, Key: keyseq.KeyCtrlE})
-	time.Sleep(time.Second)
 
-	if !assert.Equal(t, state.Caret().Pos(), len(message), "Expected caret position to be %d, got %d", len(message), state.Caret().Pos()) {
-		return
-	}
-
+	require.Eventually(t, func() bool {
+		return state.Caret().Pos() == len(message)
+	}, 5*time.Second, 10*time.Millisecond, "Expected caret position to be %d", len(message))
 }
 
 func TestBackToInitialFilter(t *testing.T) {
@@ -467,16 +459,14 @@ func TestBackToInitialFilter(t *testing.T) {
 	}
 
 	state.screen.SendEvent(Event{Type: EventKey, Key: keyseq.KeyCtrlR})
-	time.Sleep(time.Second)
-	if !assert.Equal(t, state.Filters().Index(), 1, "Expected filter to be at position 1, got %d", state.Filters().Index()) {
-		return
-	}
+	require.Eventually(t, func() bool {
+		return state.Filters().Index() == 1
+	}, 5*time.Second, 10*time.Millisecond, "Expected filter to be at position 1")
 
 	state.screen.SendEvent(Event{Type: EventKey, Key: keyseq.KeyCtrlQ})
-	time.Sleep(time.Second)
-	if !assert.Equal(t, state.Filters().Index(), 0, "Expected filter to be at position 0, got %d", state.Filters().Index()) {
-		return
-	}
+	require.Eventually(t, func() bool {
+		return state.Filters().Index() == 0
+	}, 5*time.Second, 10*time.Millisecond, "Expected filter to be at position 0")
 }
 
 func TestGHIssue574_PreviousSelectionLastLineNotUpdated(t *testing.T) {
