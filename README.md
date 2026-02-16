@@ -84,6 +84,23 @@ The Fuzzy filter allows you to find matches using partial patterns. For example,
 
 ![Executed `ps aux | peco`, then typed `google`, which matches the Chrome.app under IgnoreCase filter type. When you change it to Regexp filter, this is no longer the case. But you can type `(?i)google` instead to toggle case-insensitive mode](http://peco.github.io/images/peco-demo-matcher.gif)
 
+## Horizontal Scrolling
+
+When input lines are longer than the terminal width, they are clipped at the edge of the screen. You can scroll horizontally to reveal the rest of the line using the `peco.ScrollLeft` and `peco.ScrollRight` actions. These actions are **not bound to any key by default** -- you need to add keybindings in your config file:
+
+```json
+{
+    "Keymap": {
+        "ArrowLeft": "peco.ScrollLeft",
+        "ArrowRight": "peco.ScrollRight"
+    }
+}
+```
+
+Each scroll moves by half the terminal width.
+
+If your input contains very long lines (e.g. minified files) and they do not appear at all, try increasing `MaxScanBufferSize` in your config. The default is 256 (KB), which limits the maximum length of a single input line.
+
 ## Selectable Layout
 
 As of v0.2.5, if you would rather not move your eyes off of the bottom of the screen, you can change the screen layout by either providing the `--layout=bottom-up` command line option, or set the `Layout` variable in your configuration file
@@ -816,6 +833,7 @@ Much code stolen from https://github.com/mattn/gof
   - [Select Multiple Lines](#select-multiple-lines)
   - [Select Range Of Lines](#select-range-of-lines)
   - [Select Filters](#select-filters)
+  - [Horizontal Scrolling](#horizontal-scrolling)
   - [Selectable Layout](#selectable-layout)
   - [Works on Windows!](#works-on-windows)
 - [Installation](#installation)
