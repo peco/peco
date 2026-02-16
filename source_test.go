@@ -43,7 +43,7 @@ func TestSource(t *testing.T) {
 	go ig.Run(ctx)
 
 	r := addReadDelay(strings.NewReader(strings.Join(lines, "\n")), 2*time.Second)
-	s := NewSource("-", r, false, ig, 0, false)
+	s := NewSource("-", r, false, ig, 0, false, false)
 	p := New()
 	p.hub = nullHub{}
 	go s.Setup(ctx, p)

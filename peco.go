@@ -578,7 +578,7 @@ func (p *Peco) SetupSource(ctx context.Context) (s *Source, err error) {
 		return nil, errors.New("you must supply something to work with via filename or stdin")
 	}
 
-	src := NewSource(filename, in, isInfinite, p.idgen, p.bufferSize, p.enableSep)
+	src := NewSource(filename, in, isInfinite, p.idgen, p.bufferSize, p.enableSep, p.enableANSI)
 
 	// Block until we receive something from `in`
 	if pdebug.Enabled {
@@ -621,6 +621,7 @@ func (p *Peco) ApplyConfig(opts CLIOptions) error {
 	}
 
 	p.enableSep = opts.OptEnableNullSep
+	p.enableANSI = opts.OptANSI || p.config.ANSI
 
 	if i := opts.OptInitialIndex; i >= 0 {
 		p.Location().SetLineNumber(i)

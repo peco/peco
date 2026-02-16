@@ -107,6 +107,7 @@ type Peco struct {
 	heightSpec              *HeightSpec
 	skipReadConfig          bool
 	styles                  StyleSet
+	enableANSI              bool // Enable ANSI color code support
 	use256Color             bool
 	fuzzyLongestSort        bool
 
@@ -332,6 +333,7 @@ type Config struct {
 	FilterBufSize       int                                `json:"FilterBufSize" yaml:"FilterBufSize"`
 	FuzzyLongestSort    bool                               `json:"FuzzyLongestSort" yaml:"FuzzyLongestSort"`
 	SuppressStatusMsg   bool                               `json:"SuppressStatusMsg" yaml:"SuppressStatusMsg"`
+	ANSI                bool                               `json:"ANSI" yaml:"ANSI"`
 
 	// If this is true, then the prefix for single key jump mode
 	// is displayed by default.
@@ -447,6 +449,7 @@ type Source struct {
 
 	capacity   int
 	enableSep  bool
+	enableANSI bool
 	idgen      line.IDGenerator
 	in         io.Reader
 	inClosed   bool
@@ -490,6 +493,7 @@ type CLIOptions struct {
 	OptSelectionPrefix string `long:"selection-prefix" description:"use a prefix instead of changing line color to indicate currently selected lines.\ndefault is to use colors. This option is experimental"`
 	OptExec            string `long:"exec" description:"execute command instead of finishing/terminating peco.\nPlease note that this command will receive selected line(s) from stdin,\nand will be executed via '/bin/sh -c' or 'cmd /c'"`
 	OptPrintQuery      bool   `long:"print-query" description:"print out the current query as first line of output"`
+	OptANSI            bool   `long:"ansi" description:"enable ANSI color code support"`
 	OptHeight          string `long:"height" description:"display height in lines or percentage (e.g. '10', '50%')"`
 }
 

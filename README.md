@@ -155,6 +155,30 @@ Each scroll moves by half the terminal width.
 
 If your input contains very long lines (e.g. minified files) and they do not appear at all, try increasing `MaxScanBufferSize` in your config. The default is 256 (KB), which limits the maximum length of a single input line.
 
+## ANSI Color Support
+
+When the `--ansi` flag is enabled, peco parses ANSI SGR (Select Graphic Rendition) escape sequences from the input and renders the original colors in the terminal. This lets you pipe colored output from tools like `git log --color`, `rg --color=always`, or `ls --color` through peco while preserving the visual formatting.
+
+```
+git log --color=always | peco --ansi
+rg --color=always pattern | peco --ansi
+ls --color=always | peco --ansi
+```
+
+Supported ANSI features:
+- Basic 8 foreground and background colors (30-37, 40-47)
+- 256-color palette (38;5;N, 48;5;N)
+- 24-bit truecolor (38;2;R;G;B, 48;2;R;G;B)
+- Bold, underline, and reverse attributes
+- Reset sequences
+
+When ANSI mode is enabled:
+- Filtering and matching operate against the **stripped** (plain text) version of each line, so escape codes do not interfere with your queries
+- ANSI colors are displayed as the **base layer**; peco's own selection and match highlighting take precedence over ANSI colors
+- Selected lines' output preserves the **original** ANSI codes, so downstream tools receive colored text
+
+ANSI mode can also be enabled permanently via the configuration file (see [ANSI](#ansi) under Global configuration).
+
 ## Context Lines (Zoom In/Out)
 
 When filtering results (e.g. searching for "error" in a log file), you often need to see the surrounding lines to understand the context. peco supports expanding filtered results to show context lines around each match, similar to `grep -C`.
@@ -399,6 +423,12 @@ Upon exiting from the external command, the control goes back to peco where you 
 
 To exit out of peco when running in this mode, you must execute the Cancel command, usually the escape key.
 
+### --ansi
+
+Enables ANSI color code support. When this flag is set, peco parses ANSI SGR escape sequences from the input and renders the colors in the terminal UI. Filtering is performed against the plain text with ANSI codes stripped, and selected output preserves the original ANSI codes.
+
+See [ANSI Color Support](#ansi-color-support) in the Features section for details.
+
 ### --height `num|percentage`
 
 When specified, peco renders inline at the bottom of the terminal using only the requested number of lines, instead of taking over the full screen. This preserves your terminal scroll history above the peco interface.
@@ -439,6 +469,7 @@ Below are configuration sections that you may specify in your config file:
 * [Prompt](#prompt)
 * [InitialMatcher](#initialmatcher)
 * [Use256Color](#use256color)
+* [ANSI](#ansi)
 
 ## Global
 
@@ -520,6 +551,20 @@ responsible for reading the input lines. If you believe that your input has
 very long lines that prohibit peco from reading them, try increasing this number.
 
 The same time, the default MaxScanBuferSize is 256kb.
+
+### ANSI
+
+```json
+{
+    "ANSI": true
+}
+```
+
+Enables ANSI color code support. When set to `true`, peco parses and renders ANSI SGR escape sequences from the input. This is equivalent to using the `--ansi` command line flag. The command line flag takes precedence if both are specified.
+
+Default value for ANSI is `false`.
+
+See [ANSI Color Support](#ansi-color-support) in the Features section for details.
 
 ### Height
 
@@ -968,6 +1013,7 @@ Much code stolen from https://github.com/mattn/gof
   - [Select Filters](#select-filters)
   - [Multi-Stage Filtering (Freeze Results)](#multi-stage-filtering-freeze-results)
   - [Horizontal Scrolling](#horizontal-scrolling)
+  - [ANSI Color Support](#ansi-color-support)
   - [Context Lines (Zoom In/Out)](#context-lines-zoom-inout)
   - [Selectable Layout](#selectable-layout)
   - [Inline Mode (--height)](#inline-mode---height)
@@ -997,6 +1043,7 @@ Much code stolen from https://github.com/mattn/gof
     - [--on-cancel `success|error`](#--on-cancel-successerror)
     - [--selection-prefix `string`](#--selection-prefix-string)
     - [--exec `string`](#--exec-string)
+    - [--ansi](#--ansi)
     - [--height `num|percentage`](#--height-numpercentage)
 - [Configuration File](#configuration-file)
   - [Global](#global)
@@ -1008,6 +1055,7 @@ Much code stolen from https://github.com/mattn/gof
     - [SuppressStatusMsg](#suppressstatusmsg)
     - [OnCancel](#oncancel)
     - [MaxScanBufferSize](#maxscanbuffersize)
+    - [ANSI](#ansi)
     - [Height](#height)
   - [Keymaps](#keymaps)
     - [Key sequences](#key-sequences)

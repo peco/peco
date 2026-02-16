@@ -8,6 +8,7 @@ import (
 	"github.com/gdamore/tcell/v2"
 	pdebug "github.com/lestrrat-go/pdebug"
 	"github.com/mattn/go-runewidth"
+	"github.com/peco/peco/internal/ansi"
 	"github.com/peco/peco/internal/keyseq"
 	"github.com/pkg/errors"
 )
@@ -335,13 +336,14 @@ func (t *Termbox) Size() (int, int) {
 }
 
 type PrintArgs struct {
-	X       int
-	XOffset int
-	Y       int
-	Fg      Attribute
-	Bg      Attribute
-	Msg     string
-	Fill    bool
+	X         int
+	XOffset   int
+	Y         int
+	Fg        Attribute
+	Bg        Attribute
+	Msg       string
+	Fill      bool
+	ANSIAttrs []ansi.AttrSpan // per-character ANSI attributes for this segment
 }
 
 func (t *Termbox) Print(args PrintArgs) int {
@@ -357,6 +359,12 @@ func screenPrint(t Screen, args PrintArgs) int {
 	x := args.X
 	y := args.Y
 	xOffset := args.XOffset
+
+	// ANSI span tracking
+	ansiAttrs := args.ANSIAttrs
+	spanIdx := 0
+	spanPos := 0
+
 	for len(msg) > 0 {
 		c, w := utf8.DecodeRuneInString(msg)
 		if c == utf8.RuneError {
@@ -364,16 +372,34 @@ func screenPrint(t Screen, args PrintArgs) int {
 			w = 1
 		}
 		msg = msg[w:]
+
+		// Determine effective fg/bg for this character
+		efg, ebg := fg, bg
+		if ansiAttrs != nil && spanIdx < len(ansiAttrs) {
+			span := ansiAttrs[spanIdx]
+			if Attribute(span.Fg) != ColorDefault {
+				efg = Attribute(span.Fg)
+			}
+			if Attribute(span.Bg) != ColorDefault {
+				ebg = Attribute(span.Bg)
+			}
+			spanPos++
+			if spanPos >= span.Length {
+				spanIdx++
+				spanPos = 0
+			}
+		}
+
 		if c == '\t' {
 			// In case we found a tab, we draw it as 4 spaces
 			n := 4 - (x+xOffset)%4
 			for i := int(0); i <= n; i++ {
-				t.SetCell(int(x+i), int(y), ' ', fg, bg)
+				t.SetCell(int(x+i), int(y), ' ', efg, ebg)
 			}
 			written += n
 			x += n
 		} else {
-			t.SetCell(int(x), int(y), c, fg, bg)
+			t.SetCell(int(x), int(y), c, efg, ebg)
 			n := int(runewidth.RuneWidth(c))
 			x += n
 			written += n

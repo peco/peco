@@ -451,11 +451,11 @@ func TestGHIssue574_PreviousSelectionLastLineNotUpdated(t *testing.T) {
 	// Create lines with known IDs.
 	// We use IDs 10, 20, 30, 40, 50 for five lines.
 	lines := []line.Line{
-		line.NewRaw(10, "line-10", false),
-		line.NewRaw(20, "line-20", false),
-		line.NewRaw(30, "line-30", false),
-		line.NewRaw(40, "line-40", false),
-		line.NewRaw(50, "line-50", false),
+		line.NewRaw(10, "line-10", false, false),
+		line.NewRaw(20, "line-20", false, false),
+		line.NewRaw(30, "line-30", false, false),
+		line.NewRaw(40, "line-40", false, false),
+		line.NewRaw(50, "line-50", false, false),
 	}
 
 	// Build a MemoryBuffer containing those lines.
@@ -622,7 +622,7 @@ func TestDoFreezeResults(t *testing.T) {
 	makeLines := func(values ...string) []line.Line {
 		lines := make([]line.Line, len(values))
 		for i, v := range values {
-			lines[i] = line.NewRaw(uint64(i), v, false)
+			lines[i] = line.NewRaw(uint64(i), v, false, false)
 		}
 		return lines
 	}
@@ -747,7 +747,7 @@ func TestContextBuffer(t *testing.T) {
 	makeSource := func(n int) *MemoryBuffer {
 		mb := NewMemoryBuffer(n)
 		for i := 0; i < n; i++ {
-			mb.lines = append(mb.lines, line.NewRaw(uint64(i), fmt.Sprintf("line-%d", i), false))
+			mb.lines = append(mb.lines, line.NewRaw(uint64(i), fmt.Sprintf("line-%d", i), false, false))
 		}
 		return mb
 	}
@@ -886,7 +886,7 @@ func TestDoZoomInOut(t *testing.T) {
 	makeState := func() (*Peco, *recordingHub, *MemoryBuffer, *MemoryBuffer) {
 		source := NewMemoryBuffer(10)
 		for i := 0; i < 10; i++ {
-			source.lines = append(source.lines, line.NewRaw(uint64(i), fmt.Sprintf("line-%d", i), false))
+			source.lines = append(source.lines, line.NewRaw(uint64(i), fmt.Sprintf("line-%d", i), false, false))
 		}
 
 		// Filtered buffer: matches at indices 3 and 7

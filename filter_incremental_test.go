@@ -83,7 +83,7 @@ func TestMemoryBufferSource(t *testing.T) {
 	expected := []string{"alpha", "bravo", "charlie", "delta", "echo"}
 
 	for i, s := range expected {
-		mb.lines = append(mb.lines, line.NewRaw(uint64(i), s, false))
+		mb.lines = append(mb.lines, line.NewRaw(uint64(i), s, false, false))
 	}
 
 	// Wrap as source
@@ -116,7 +116,7 @@ done:
 func TestMemoryBufferSourceCancellation(t *testing.T) {
 	mb := NewMemoryBuffer(0)
 	for i := 0; i < 10000; i++ {
-		mb.lines = append(mb.lines, line.NewRaw(uint64(i), fmt.Sprintf("line-%d", i), false))
+		mb.lines = append(mb.lines, line.NewRaw(uint64(i), fmt.Sprintf("line-%d", i), false, false))
 	}
 
 	src := NewMemoryBufferSource(mb)
@@ -150,12 +150,12 @@ func TestIncrementalFiltering(t *testing.T) {
 
 	// Create test lines
 	allLines := []line.Line{
-		line.NewRaw(0, "foobar test", false),
-		line.NewRaw(1, "football game", false),
-		line.NewRaw(2, "barfoo other", false),
-		line.NewRaw(3, "something else", false),
-		line.NewRaw(4, "foobaz entry", false),
-		line.NewRaw(5, "the foobird flies", false),
+		line.NewRaw(0, "foobar test", false, false),
+		line.NewRaw(1, "football game", false, false),
+		line.NewRaw(2, "barfoo other", false, false),
+		line.NewRaw(3, "something else", false, false),
+		line.NewRaw(4, "foobaz entry", false, false),
+		line.NewRaw(5, "the foobird flies", false, false),
 	}
 
 	f := filter.NewIgnoreCase()

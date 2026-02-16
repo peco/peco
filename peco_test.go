@@ -268,7 +268,7 @@ func TestIDGen(t *testing.T) {
 
 	lines := []*line.Raw{}
 	for i := 0; i < 1000000; i++ {
-		lines = append(lines, line.NewRaw(idgen.Next(), fmt.Sprintf("%d", i), false))
+		lines = append(lines, line.NewRaw(idgen.Next(), fmt.Sprintf("%d", i), false, false))
 	}
 
 	sel := NewSelection()

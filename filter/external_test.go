@@ -46,9 +46,9 @@ func TestExternalCmdFilter_NullSep(t *testing.T) {
 
 		// Create lines with null separator: display\0output
 		lines := []line.Line{
-			line.NewRaw(idgen.Next(), "apple\x00/fruit/apple", true),
-			line.NewRaw(idgen.Next(), "banana\x00/fruit/banana", true),
-			line.NewRaw(idgen.Next(), "apricot\x00/fruit/apricot", true),
+			line.NewRaw(idgen.Next(), "apple\x00/fruit/apple", true, false),
+			line.NewRaw(idgen.Next(), "banana\x00/fruit/banana", true, false),
+			line.NewRaw(idgen.Next(), "apricot\x00/fruit/apricot", true, false),
 		}
 
 		// Verify the lines are set up correctly
@@ -88,9 +88,9 @@ func TestExternalCmdFilter_NullSep(t *testing.T) {
 		idgen := &testIDGen{}
 
 		lines := []line.Line{
-			line.NewRaw(idgen.Next(), "apple", false),
-			line.NewRaw(idgen.Next(), "banana", false),
-			line.NewRaw(idgen.Next(), "apricot", false),
+			line.NewRaw(idgen.Next(), "apple", false, false),
+			line.NewRaw(idgen.Next(), "banana", false, false),
+			line.NewRaw(idgen.Next(), "apricot", false, false),
 		}
 
 		ecf := NewExternalCmd("grep", "grep", []string{"ap"}, 0, idgen, false)
@@ -122,9 +122,9 @@ func TestExternalCmdFilter_NullSep(t *testing.T) {
 
 		// Three lines with the same display text but different outputs
 		lines := []line.Line{
-			line.NewRaw(idgen.Next(), "dup\x00first", true),
-			line.NewRaw(idgen.Next(), "dup\x00second", true),
-			line.NewRaw(idgen.Next(), "dup\x00third", true),
+			line.NewRaw(idgen.Next(), "dup\x00first", true, false),
+			line.NewRaw(idgen.Next(), "dup\x00second", true, false),
+			line.NewRaw(idgen.Next(), "dup\x00third", true, false),
 		}
 
 		// Use grep to return all lines (match literal "dup")
