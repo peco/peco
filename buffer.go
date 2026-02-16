@@ -222,6 +222,150 @@ func bufferLineAt(lines []line.Line, n int) (line.Line, error) {
 	return lines[n], nil
 }
 
+// ContextBuffer holds an expanded view of a filtered buffer, inserting
+// context lines from the source around each match (similar to grep -C).
+type ContextBuffer struct {
+	entries           []line.Line
+	maxcols           int
+	filtered          Buffer // original filtered buffer, for reference
+	matchEntryIndices []int  // maps filtered buffer index -> entries index
+}
+
+// NewContextBuffer builds a ContextBuffer by expanding the filtered buffer
+// with contextSize lines of surrounding context from the source.
+func NewContextBuffer(filtered Buffer, source Buffer, contextSize int) *ContextBuffer {
+	cb := &ContextBuffer{
+		filtered: filtered,
+	}
+
+	filteredSize := filtered.Size()
+	if filteredSize == 0 {
+		return cb
+	}
+
+	sourceSize := source.Size()
+
+	// Step 1: Collect source indices of matched lines
+	type matchInfo struct {
+		srcIdx      int
+		filteredIdx int
+		line        line.Line
+	}
+	matches := make([]matchInfo, 0, filteredSize)
+	for i := 0; i < filteredSize; i++ {
+		l, err := filtered.LineAt(i)
+		if err != nil {
+			continue
+		}
+		srcIdx := int(l.ID())
+		matches = append(matches, matchInfo{srcIdx: srcIdx, filteredIdx: i, line: l})
+	}
+
+	if len(matches) == 0 {
+		return cb
+	}
+
+	// Step 2: Compute context ranges and merge overlapping ones
+	type contextRange struct {
+		start int // inclusive
+		end   int // inclusive
+	}
+	ranges := make([]contextRange, 0, len(matches))
+	for _, m := range matches {
+		start := m.srcIdx - contextSize
+		if start < 0 {
+			start = 0
+		}
+		end := m.srcIdx + contextSize
+		if end >= sourceSize {
+			end = sourceSize - 1
+		}
+		ranges = append(ranges, contextRange{start: start, end: end})
+	}
+
+	// Merge overlapping/adjacent ranges
+	merged := []contextRange{ranges[0]}
+	for i := 1; i < len(ranges); i++ {
+		last := &merged[len(merged)-1]
+		if ranges[i].start <= last.end+1 {
+			if ranges[i].end > last.end {
+				last.end = ranges[i].end
+			}
+		} else {
+			merged = append(merged, ranges[i])
+		}
+	}
+
+	// Step 3: Build a set of matched source indices for quick lookup
+	matchedSet := make(map[int]int, len(matches)) // srcIdx -> matches slice index
+	for i, m := range matches {
+		matchedSet[m.srcIdx] = i
+	}
+
+	// Step 4: Build entries
+	cb.entries = make([]line.Line, 0, merged[len(merged)-1].end-merged[0].start+1)
+	cb.matchEntryIndices = make([]int, filteredSize)
+	// Initialize to -1 so unmapped entries are obvious
+	for i := range cb.matchEntryIndices {
+		cb.matchEntryIndices[i] = -1
+	}
+
+	for _, r := range merged {
+		for idx := r.start; idx <= r.end; idx++ {
+			if mi, ok := matchedSet[idx]; ok {
+				// Use the filtered (matched) line, preserving match highlighting
+				cb.matchEntryIndices[matches[mi].filteredIdx] = len(cb.entries)
+				cb.entries = append(cb.entries, matches[mi].line)
+			} else {
+				// Context line from source
+				srcLine, err := source.LineAt(idx)
+				if err != nil {
+					continue
+				}
+				cb.entries = append(cb.entries, &ContextLine{srcLine})
+			}
+		}
+	}
+
+	// Step 5: Compute maxcols
+	for _, l := range cb.entries {
+		cols := runewidth.StringWidth(l.DisplayString())
+		if cols > cb.maxcols {
+			cb.maxcols = cols
+		}
+	}
+
+	return cb
+}
+
+// Size returns the number of lines in the context buffer.
+func (cb *ContextBuffer) Size() int {
+	return len(cb.entries)
+}
+
+// LineAt returns the line at index i.
+func (cb *ContextBuffer) LineAt(i int) (line.Line, error) {
+	if i < 0 || i >= len(cb.entries) {
+		return nil, errors.Errorf("specified index %d is out of range (size=%d)", i, len(cb.entries))
+	}
+	return cb.entries[i], nil
+}
+
+func (cb *ContextBuffer) linesInRange(start, end int) []line.Line {
+	return cb.entries[start:end]
+}
+
+// MaxColumn returns the max column size for horizontal scrolling.
+func (cb *ContextBuffer) MaxColumn() int {
+	return cb.maxcols
+}
+
+// MatchEntryIndices returns the mapping from filtered buffer index to
+// entries index. Used by ZoomIn to map the cursor position.
+func (cb *ContextBuffer) MatchEntryIndices() []int {
+	return cb.matchEntryIndices
+}
+
 // MemoryBufferSource wraps a completed MemoryBuffer as a pipeline.Source,
 // allowing previous filter results to be reused as the input for
 // incremental filtering.

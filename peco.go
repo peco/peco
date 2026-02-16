@@ -242,6 +242,36 @@ func (p *Peco) ClearFrozenSource() {
 	p.frozenSource = nil
 }
 
+// PreZoomBuffer returns the saved buffer from before ZoomIn, or nil if not zoomed.
+func (p *Peco) PreZoomBuffer() Buffer {
+	p.mutex.Lock()
+	defer p.mutex.Unlock()
+	return p.preZoomBuffer
+}
+
+// SetPreZoomState saves the current buffer and cursor position before zooming in.
+func (p *Peco) SetPreZoomState(buf Buffer, lineNo int) {
+	p.mutex.Lock()
+	defer p.mutex.Unlock()
+	p.preZoomBuffer = buf
+	p.preZoomLineNo = lineNo
+}
+
+// ClearPreZoomState clears the saved zoom state.
+func (p *Peco) ClearPreZoomState() {
+	p.mutex.Lock()
+	defer p.mutex.Unlock()
+	p.preZoomBuffer = nil
+	p.preZoomLineNo = 0
+}
+
+// PreZoomLineNo returns the saved cursor position from before ZoomIn.
+func (p *Peco) PreZoomLineNo() int {
+	p.mutex.Lock()
+	defer p.mutex.Unlock()
+	return p.preZoomLineNo
+}
+
 func (p *Peco) Filters() *filter.Set {
 	return &p.filters
 }

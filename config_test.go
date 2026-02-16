@@ -42,6 +42,10 @@ var expectedConfig = Config{
 			fg: ColorGreen | AttrBold,
 			bg: ColorDefault,
 		},
+		Context: Style{
+			fg: ColorDefault | AttrBold,
+			bg: ColorDefault,
+		},
 	},
 }
 

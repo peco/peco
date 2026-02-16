@@ -132,6 +132,9 @@ func init() {
 	ActionFunc(doFreezeResults).Register("FreezeResults")
 	ActionFunc(doUnfreezeResults).Register("UnfreezeResults")
 
+	ActionFunc(doZoomIn).Register("ZoomIn")
+	ActionFunc(doZoomOut).Register("ZoomOut")
+
 	ActionFunc(doGoToNextSelection).Register("GoToNextSelection")
 	ActionFunc(doGoToPreviousSelection).Register("GoToPreviousSelection", keyseq.KeyCtrlJ)
 
@@ -952,6 +955,80 @@ func doUnfreezeResults(ctx context.Context, state *Peco, _ Event) {
 	state.ResetCurrentLineBuffer()
 	state.Hub().SendStatusMsg(ctx, "Results unfrozen")
 	state.Hub().SendDrawPrompt(ctx)
+}
+
+func doZoomIn(ctx context.Context, state *Peco, _ Event) {
+	if pdebug.Enabled {
+		g := pdebug.Marker("doZoomIn")
+		defer g.End()
+	}
+
+	// Already zoomed in?
+	if state.PreZoomBuffer() != nil {
+		state.Hub().SendStatusMsg(ctx, "Already zoomed in")
+		return
+	}
+
+	// Get the current line buffer
+	currentBuf := state.CurrentLineBuffer()
+
+	// If the current buffer is the source (no active filter), nothing to zoom into
+	if currentBuf == state.source {
+		state.Hub().SendStatusMsg(ctx, "Nothing to zoom into")
+		return
+	}
+
+	source := state.source
+	contextSize := 3
+
+	contextBuf := NewContextBuffer(currentBuf, source, contextSize)
+	if contextBuf.Size() == 0 {
+		state.Hub().SendStatusMsg(ctx, "Nothing to zoom into")
+		return
+	}
+
+	// Save current state for ZoomOut
+	loc := state.Location()
+	curLineNo := loc.LineNumber()
+	state.SetPreZoomState(currentBuf, curLineNo)
+
+	// Map cursor to the new context buffer position
+	newLineNo := 0
+	indices := contextBuf.MatchEntryIndices()
+	if curLineNo >= 0 && curLineNo < len(indices) && indices[curLineNo] >= 0 {
+		newLineNo = indices[curLineNo]
+	}
+
+	state.mutex.Lock()
+	state.currentLineBuffer = contextBuf
+	state.mutex.Unlock()
+
+	loc.SetLineNumber(newLineNo)
+	state.Hub().SendDraw(ctx, &DrawOptions{DisableCache: true})
+}
+
+func doZoomOut(ctx context.Context, state *Peco, _ Event) {
+	if pdebug.Enabled {
+		g := pdebug.Marker("doZoomOut")
+		defer g.End()
+	}
+
+	preZoom := state.PreZoomBuffer()
+	if preZoom == nil {
+		state.Hub().SendStatusMsg(ctx, "Not zoomed in")
+		return
+	}
+
+	loc := state.Location()
+	savedLineNo := state.PreZoomLineNo()
+
+	state.mutex.Lock()
+	state.currentLineBuffer = preZoom
+	state.mutex.Unlock()
+
+	loc.SetLineNumber(savedLineNo)
+	state.ClearPreZoomState()
+	state.Hub().SendDraw(ctx, &DrawOptions{DisableCache: true})
 }
 
 func doSingleKeyJump(ctx context.Context, state *Peco, e Event) {

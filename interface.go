@@ -118,10 +118,23 @@ type Peco struct {
 	// "freezes" the current results to filter on top of them.
 	frozenSource *MemoryBuffer
 
+	// preZoomBuffer holds the filtered buffer before ZoomIn was applied,
+	// so ZoomOut can restore it. nil means not zoomed.
+	preZoomBuffer Buffer
+	// preZoomLineNo holds the cursor position before ZoomIn was applied.
+	preZoomLineNo int
+
 	// cancelFunc is called for Exit()
 	cancelFunc func()
 	// Errors are stored here
 	err error
+}
+
+// ContextLine wraps a line.Line to mark it as a context line (non-matched
+// surrounding line shown during ZoomIn). Detected via type assertion in
+// ListArea.Draw() to apply the Context style.
+type ContextLine struct {
+	line.Line
 }
 
 type MatchIndexer interface {
@@ -363,6 +376,7 @@ type StyleSet struct {
 	Query          Style `json:"Query" yaml:"Query"`
 	Matched        Style `json:"Matched" yaml:"Matched"`
 	Prompt         Style `json:"Prompt" yaml:"Prompt"`
+	Context        Style `json:"Context" yaml:"Context"`
 }
 
 // Attribute represents terminal display attributes such as colors
