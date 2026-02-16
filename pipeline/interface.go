@@ -53,7 +53,7 @@ type Pipeline struct {
 }
 
 type Output interface {
-	Send(interface{}) error
+	Send(context.Context, interface{}) error
 }
 
 // ChanOutput is an alias to `chan interface{}`

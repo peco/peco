@@ -9,7 +9,6 @@ import (
 
 	"github.com/lestrrat-go/pdebug"
 	"github.com/mattn/go-runewidth"
-	"github.com/nsf/termbox-go"
 	"github.com/peco/peco/line"
 	"github.com/pkg/errors"
 )
@@ -26,12 +25,20 @@ func IsValidVerticalAnchor(anchor VerticalAnchor) bool {
 	return anchor == AnchorTop || anchor == AnchorBottom
 }
 
-// Utility function
-func mergeAttribute(a, b termbox.Attribute) termbox.Attribute {
-	if a&0x0F == 0 || b&0x0F == 0 {
-		return a | b
+// mergeAttribute merges two Attribute values (typically backgrounds).
+// If either has a default color (0), the non-default color wins via OR.
+// Otherwise, color bits are merged using OR on 0-based indices.
+// Attribute flags (bold, underline, reverse, true color) are always OR'd.
+func mergeAttribute(a, b Attribute) Attribute {
+	const flagMask = AttrTrueColor | AttrBold | AttrUnderline | AttrReverse
+	aColor := a &^ flagMask
+	bColor := b &^ flagMask
+	flags := (a | b) & flagMask
+
+	if aColor == 0 || bColor == 0 {
+		return (aColor | bColor) | flags
 	}
-	return ((a - 1) | (b - 1)) + 1
+	return (((aColor - 1) | (bColor - 1)) + 1) | flags
 }
 
 // NewAnchorSettings creates a new AnchorSetting struct. Panics if
@@ -92,8 +99,8 @@ func (u UserPrompt) Draw(state *Peco) {
 	// print "QUERY>"
 	u.screen.Print(PrintArgs{
 		Y:   location,
-		Fg:  u.styles.Basic.fg,
-		Bg:  u.styles.Basic.bg,
+		Fg:  u.styles.Prompt.fg,
+		Bg:  u.styles.Prompt.bg,
 		Msg: u.prompt,
 	})
 
@@ -128,8 +135,8 @@ func (u UserPrompt) Draw(state *Peco) {
 		u.screen.Print(PrintArgs{
 			X:    u.promptLen + 1,
 			Y:    location,
-			Bg:   bg | termbox.AttrReverse,
-			Fg:   fg | termbox.AttrReverse,
+			Bg:   bg | AttrReverse,
+			Fg:   fg | AttrReverse,
 			Msg:  " ",
 			Fill: false,
 		})
@@ -154,8 +161,8 @@ func (u UserPrompt) Draw(state *Peco) {
 		u.screen.Print(PrintArgs{
 			X:    posX,
 			Y:    location,
-			Fg:   fg | termbox.AttrReverse,
-			Bg:   bg | termbox.AttrReverse,
+			Fg:   fg | AttrReverse,
+			Bg:   bg | AttrReverse,
 			Msg:  " ",
 			Fill: false,
 		})
@@ -163,17 +170,15 @@ func (u UserPrompt) Draw(state *Peco) {
 		posX = c.Pos() + u.promptLen + 1
 		// the caret is in the middle of the string
 		prev := int(0)
-		var i int
-		for r := range q.Runes() {
+		for i, r := range q.RuneSlice() {
 			fg := u.styles.Query.fg
 			bg := u.styles.Query.bg
 			if i == c.Pos() {
-				fg |= termbox.AttrReverse
-				bg |= termbox.AttrReverse
+				fg |= AttrReverse
+				bg |= AttrReverse
 			}
 			u.screen.SetCell(int(u.promptLen+1+prev), int(location), r, fg, bg)
 			prev += int(runewidth.RuneWidth(r))
-			i++
 		}
 		fg := u.styles.Query.fg
 		bg := u.styles.Query.bg
@@ -203,16 +208,16 @@ func (u UserPrompt) Draw(state *Peco) {
 	u.screen.Flush()
 }
 
-// NewStatusBar creates a new StatusBar struct
-func NewStatusBar(screen Screen, anchor VerticalAnchor, anchorOffset int, styles *StyleSet) *StatusBar {
-	return &StatusBar{
+// newScreenStatusBar creates a new screenStatusBar struct
+func newScreenStatusBar(screen Screen, anchor VerticalAnchor, anchorOffset int, styles *StyleSet) *screenStatusBar {
+	return &screenStatusBar{
 		AnchorSettings: NewAnchorSettings(screen, anchor, anchorOffset),
 		clearTimer:     nil,
 		styles:         styles,
 	}
 }
 
-func (s *StatusBar) stopTimer() {
+func (s *screenStatusBar) stopTimer() {
 	s.timerMutex.Lock()
 	defer s.timerMutex.Unlock()
 	if t := s.clearTimer; t != nil {
@@ -221,7 +226,7 @@ func (s *StatusBar) stopTimer() {
 	}
 }
 
-func (s *StatusBar) setClearTimer(t *time.Timer) {
+func (s *screenStatusBar) setClearTimer(t *time.Timer) {
 	s.timerMutex.Lock()
 	defer s.timerMutex.Unlock()
 	s.clearTimer = t
@@ -229,9 +234,9 @@ func (s *StatusBar) setClearTimer(t *time.Timer) {
 
 // PrintStatus prints a new status message. This also resets the
 // timer created by ClearStatus()
-func (s *StatusBar) PrintStatus(msg string, clearDelay time.Duration) {
+func (s *screenStatusBar) PrintStatus(msg string, clearDelay time.Duration) {
 	if pdebug.Enabled {
-		g := pdebug.Marker("StatusBar.PrintStatus")
+		g := pdebug.Marker("screenStatusBar.PrintStatus")
 		defer g.End()
 	}
 
@@ -271,8 +276,8 @@ func (s *StatusBar) PrintStatus(msg string, clearDelay time.Duration) {
 		s.screen.Print(PrintArgs{
 			X:   int(w - width),
 			Y:   location,
-			Fg:  fgAttr | termbox.AttrReverse | termbox.AttrBold | termbox.AttrReverse,
-			Bg:  bgAttr | termbox.AttrReverse,
+			Fg:  fgAttr | AttrReverse | AttrBold | AttrReverse,
+			Bg:  bgAttr | AttrReverse,
 			Msg: msg,
 		})
 	}
@@ -285,6 +290,14 @@ func (s *StatusBar) PrintStatus(msg string, clearDelay time.Duration) {
 			s.PrintStatus("", 0)
 		}))
 	}
+}
+
+// PrintStatus on nullStatusBar is a no-op
+func (nullStatusBar) PrintStatus(_ string, _ time.Duration) {}
+
+// PrintStatus on BasicLayout delegates to the StatusBar
+func (l *BasicLayout) PrintStatus(msg string, delay time.Duration) {
+	l.statusBar.PrintStatus(msg, delay)
 }
 
 // NewListArea creates a new ListArea struct
@@ -320,6 +333,7 @@ func selectionContains(state *Peco, n int) bool {
 type DrawOptions struct {
 	RunningQuery bool
 	DisableCache bool
+	ForceSync    bool
 }
 
 // Draw displays the ListArea on the screen
@@ -416,7 +430,7 @@ func (l *ListArea) Draw(state *Peco, parent Layout, perPage int, options *DrawOp
 	}
 
 	var cached, written int
-	var fgAttr, bgAttr termbox.Attribute
+	var fgAttr, bgAttr Attribute
 	var selectionPrefix = state.selectionPrefix
 	var prefix = ""
 
@@ -500,7 +514,7 @@ func (l *ListArea) Draw(state *Peco, parent Layout, perPage int, options *DrawOp
 					X:       x,
 					Y:       y,
 					XOffset: xOffset,
-					Fg:      fgAttr | termbox.AttrBold | termbox.AttrReverse,
+					Fg:      fgAttr | AttrBold | AttrReverse,
 					Bg:      bgAttr,
 					Msg:     string(prefixes[n]),
 				})
@@ -567,31 +581,29 @@ func (l *ListArea) Draw(state *Peco, parent Layout, perPage int, options *DrawOp
 				Fg:      l.styles.Matched.fg,
 				Bg:      mergeAttribute(bgAttr, l.styles.Matched.bg),
 				Msg:     c,
-				Fill:    true,
 			})
 			prev += n
 			index += len(c)
 		}
 
-		m := matches[len(matches)-1]
-		if m[0] > index {
-			l.screen.Print(PrintArgs{
-				X:       prev,
-				Y:       y,
-				XOffset: xOffset,
-				Fg:      l.styles.Query.fg,
-				Bg:      mergeAttribute(bgAttr, l.styles.Query.bg),
-				Msg:     line[m[0]:m[1]],
-				Fill:    true,
-			})
-		} else if len(line) > m[1] {
+		if index < len(line) {
 			l.screen.Print(PrintArgs{
 				X:       prev,
 				Y:       y,
 				XOffset: xOffset,
 				Fg:      fgAttr,
 				Bg:      bgAttr,
-				Msg:     line[m[1]:len(line)],
+				Msg:     line[index:],
+				Fill:    true,
+			})
+		} else {
+			l.screen.Print(PrintArgs{
+				X:       prev,
+				Y:       y,
+				XOffset: xOffset,
+				Fg:      fgAttr,
+				Bg:      bgAttr,
+				Msg:     "",
 				Fill:    true,
 			})
 		}
@@ -609,10 +621,20 @@ func maxOf(a, b int) int {
 	return b
 }
 
+// newStatusBar returns a StatusBar appropriate for the configuration.
+// If SuppressStatusMsg is true, a nullStatusBar (no-op) is returned.
+func newStatusBar(state *Peco) StatusBar {
+	if state.config.SuppressStatusMsg {
+		return nullStatusBar{}
+	}
+	return newScreenStatusBar(state.Screen(), AnchorBottom, 0+extraOffset, state.Styles())
+}
+
 // NewDefaultLayout creates a new Layout in the default format (top-down)
 func NewDefaultLayout(state *Peco) *BasicLayout {
 	return &BasicLayout{
-		StatusBar: NewStatusBar(state.Screen(), AnchorBottom, 0+extraOffset, state.Styles()),
+		statusBar: newStatusBar(state),
+		screen:    state.Screen(),
 		// The prompt is at the top
 		prompt: NewUserPrompt(state.Screen(), AnchorTop, 0, state.Prompt(), state.Styles()),
 		// The list area is at the top, after the prompt
@@ -624,7 +646,8 @@ func NewDefaultLayout(state *Peco) *BasicLayout {
 // NewBottomUpLayout creates a new Layout in bottom-up format
 func NewBottomUpLayout(state *Peco) *BasicLayout {
 	return &BasicLayout{
-		StatusBar: NewStatusBar(state.Screen(), AnchorBottom, 0+extraOffset, state.Styles()),
+		statusBar: newStatusBar(state),
+		screen:    state.Screen(),
 		// The prompt is at the bottom, above the status bar
 		prompt: NewUserPrompt(state.Screen(), AnchorBottom, 1+extraOffset, state.Prompt(), state.Styles()),
 		// The list area is at the bottom, above the prompt
@@ -687,6 +710,14 @@ func (l *BasicLayout) DrawScreen(state *Peco, options *DrawOptions) {
 
 	l.DrawPrompt(state)
 	l.list.Draw(state, l, perPage, options)
+
+	if options != nil && options.ForceSync {
+		type syncer interface{ Sync() }
+		if s, ok := l.screen.(syncer); ok {
+			s.Sync()
+			return
+		}
+	}
 
 	if err := l.screen.Flush(); err != nil {
 		return

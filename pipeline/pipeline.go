@@ -2,8 +2,6 @@
 package pipeline
 
 import (
-	"time"
-
 	"context"
 
 	pdebug "github.com/lestrrat-go/pdebug"
@@ -49,27 +47,26 @@ func (oc ChanOutput) OutCh() <-chan interface{} {
 	return oc
 }
 
-// Send sends the data `v` through this channel
-func (oc ChanOutput) Send(v interface{}) (err error) {
+// Send sends the data `v` through this channel. It blocks until the value
+// is sent or the context is cancelled. This avoids the timer allocation
+// overhead of the previous implementation while still supporting cancellation.
+func (oc ChanOutput) Send(ctx context.Context, v interface{}) (err error) {
 	if oc == nil {
 		return errors.New("nil channel")
 	}
 
-	// We allow ourselves a timeout of 1 second.
-	t := time.NewTimer(time.Second)
-	defer t.Stop()
-
 	select {
 	case oc <- v:
-	case <-t.C:
-		return errors.New("failed to send (not listening)")
+		return nil
+	case <-ctx.Done():
+		return ctx.Err()
 	}
-	return nil
 }
 
-// SendEndMark sends an end mark
-func (oc ChanOutput) SendEndMark(s string) error {
-	return errors.Wrap(oc.Send(errors.Wrap(EndMark{}, s)), "failed to send end mark")
+// SendEndMark sends an end mark. If ctx is cancelled, the end mark is
+// dropped since all pipeline stages are shutting down via context anyway.
+func (oc ChanOutput) SendEndMark(ctx context.Context, s string) error {
+	return errors.Wrap(oc.Send(ctx, errors.Wrap(EndMark{}, s)), "failed to send end mark")
 }
 
 // New creates a new Pipeline
@@ -134,12 +131,15 @@ func (p *Pipeline) Run(ctx context.Context) (err error) {
 	// Setup the Acceptors, effectively chaining all nodes
 	// starting from the destination, working all the way
 	// up to the Source
-	var prevCh ChanOutput = ChanOutput(make(chan interface{}))
+	// Use buffered channels between pipeline stages to allow pipelining
+	const chanBufSize = 256
+
+	prevCh := ChanOutput(make(chan interface{}, chanBufSize))
 	go p.dst.Accept(ctx, prevCh, nil)
 
 	for i := len(p.nodes) - 1; i >= 0; i-- {
 		cur := p.nodes[i]
-		ch := make(chan interface{}) //
+		ch := make(chan interface{}, chanBufSize)
 		go cur.Accept(ctx, ch, prevCh)
 		prevCh = ChanOutput(ch)
 	}

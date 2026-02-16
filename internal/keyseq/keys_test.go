@@ -4,82 +4,82 @@ import (
 	"testing"
 	"unicode/utf8"
 
-	"github.com/nsf/termbox-go"
+	"github.com/stretchr/testify/require"
 )
 
 func TestKeymapStrToKeyValue(t *testing.T) {
-	expected := map[string]termbox.Key{
-		"F1":          termbox.KeyF1,
-		"F2":          termbox.KeyF2,
-		"F3":          termbox.KeyF3,
-		"F4":          termbox.KeyF4,
-		"F5":          termbox.KeyF5,
-		"F6":          termbox.KeyF6,
-		"F7":          termbox.KeyF7,
-		"F8":          termbox.KeyF8,
-		"F9":          termbox.KeyF9,
-		"F10":         termbox.KeyF10,
-		"F11":         termbox.KeyF11,
-		"F12":         termbox.KeyF12,
-		"Insert":      termbox.KeyInsert,
-		"Delete":      termbox.KeyDelete,
-		"Home":        termbox.KeyHome,
-		"End":         termbox.KeyEnd,
-		"Pgup":        termbox.KeyPgup,
-		"Pgdn":        termbox.KeyPgdn,
-		"ArrowUp":     termbox.KeyArrowUp,
-		"ArrowDown":   termbox.KeyArrowDown,
-		"ArrowLeft":   termbox.KeyArrowLeft,
-		"ArrowRight":  termbox.KeyArrowRight,
-		"MouseLeft":   termbox.MouseLeft,
-		"MouseRight":  termbox.MouseRight,
-		"MouseMiddle": termbox.MouseMiddle,
-		"BS":          termbox.KeyBackspace,
-		"Tab":         termbox.KeyTab,
-		"Enter":       termbox.KeyEnter,
-		"Esc":         termbox.KeyEsc,
-		"Space":       termbox.KeySpace,
-		"BS2":         termbox.KeyBackspace2,
-		"C-8":         termbox.KeyCtrl8,
-		"C-~":         termbox.KeyCtrlTilde,
-		"C-2":         termbox.KeyCtrl2,
-		"C-Space":     termbox.KeyCtrlSpace,
-		"C-a":         termbox.KeyCtrlA,
-		"C-b":         termbox.KeyCtrlB,
-		"C-c":         termbox.KeyCtrlC,
-		"C-d":         termbox.KeyCtrlD,
-		"C-e":         termbox.KeyCtrlE,
-		"C-f":         termbox.KeyCtrlF,
-		"C-g":         termbox.KeyCtrlG,
-		"C-h":         termbox.KeyCtrlH,
-		"C-i":         termbox.KeyCtrlI,
-		"C-j":         termbox.KeyCtrlJ,
-		"C-k":         termbox.KeyCtrlK,
-		"C-l":         termbox.KeyCtrlL,
-		"C-m":         termbox.KeyCtrlM,
-		"C-n":         termbox.KeyCtrlN,
-		"C-o":         termbox.KeyCtrlO,
-		"C-p":         termbox.KeyCtrlP,
-		"C-q":         termbox.KeyCtrlQ,
-		"C-r":         termbox.KeyCtrlR,
-		"C-s":         termbox.KeyCtrlS,
-		"C-t":         termbox.KeyCtrlT,
-		"C-u":         termbox.KeyCtrlU,
-		"C-v":         termbox.KeyCtrlV,
-		"C-w":         termbox.KeyCtrlW,
-		"C-x":         termbox.KeyCtrlX,
-		"C-y":         termbox.KeyCtrlY,
-		"C-z":         termbox.KeyCtrlZ,
-		"C-[":         termbox.KeyCtrlLsqBracket,
-		"C-3":         termbox.KeyCtrl3,
-		"C-4":         termbox.KeyCtrl4,
-		"C-\\":        termbox.KeyCtrlBackslash,
-		"C-5":         termbox.KeyCtrl5,
-		"C-]":         termbox.KeyCtrlRsqBracket,
-		"C-6":         termbox.KeyCtrl6,
-		"C-7":         termbox.KeyCtrl7,
-		"C-/":         termbox.KeyCtrlSlash,
-		"C-_":         termbox.KeyCtrlUnderscore,
+	expected := map[string]KeyType{
+		"F1":          KeyF1,
+		"F2":          KeyF2,
+		"F3":          KeyF3,
+		"F4":          KeyF4,
+		"F5":          KeyF5,
+		"F6":          KeyF6,
+		"F7":          KeyF7,
+		"F8":          KeyF8,
+		"F9":          KeyF9,
+		"F10":         KeyF10,
+		"F11":         KeyF11,
+		"F12":         KeyF12,
+		"Insert":      KeyInsert,
+		"Delete":      KeyDelete,
+		"Home":        KeyHome,
+		"End":         KeyEnd,
+		"Pgup":        KeyPgup,
+		"Pgdn":        KeyPgdn,
+		"ArrowUp":     KeyArrowUp,
+		"ArrowDown":   KeyArrowDown,
+		"ArrowLeft":   KeyArrowLeft,
+		"ArrowRight":  KeyArrowRight,
+		"MouseLeft":   MouseLeft,
+		"MouseRight":  MouseRight,
+		"MouseMiddle": MouseMiddle,
+		"BS":          KeyBackspace,
+		"Tab":         KeyTab,
+		"Enter":       KeyEnter,
+		"Esc":         KeyEsc,
+		"Space":       KeySpace,
+		"BS2":         KeyBackspace2,
+		"C-8":         KeyCtrl8,
+		"C-~":         KeyCtrlTilde,
+		"C-2":         KeyCtrl2,
+		"C-Space":     KeyCtrlSpace,
+		"C-a":         KeyCtrlA,
+		"C-b":         KeyCtrlB,
+		"C-c":         KeyCtrlC,
+		"C-d":         KeyCtrlD,
+		"C-e":         KeyCtrlE,
+		"C-f":         KeyCtrlF,
+		"C-g":         KeyCtrlG,
+		"C-h":         KeyCtrlH,
+		"C-i":         KeyCtrlI,
+		"C-j":         KeyCtrlJ,
+		"C-k":         KeyCtrlK,
+		"C-l":         KeyCtrlL,
+		"C-m":         KeyCtrlM,
+		"C-n":         KeyCtrlN,
+		"C-o":         KeyCtrlO,
+		"C-p":         KeyCtrlP,
+		"C-q":         KeyCtrlQ,
+		"C-r":         KeyCtrlR,
+		"C-s":         KeyCtrlS,
+		"C-t":         KeyCtrlT,
+		"C-u":         KeyCtrlU,
+		"C-v":         KeyCtrlV,
+		"C-w":         KeyCtrlW,
+		"C-x":         KeyCtrlX,
+		"C-y":         KeyCtrlY,
+		"C-z":         KeyCtrlZ,
+		"C-[":         KeyCtrlLsqBracket,
+		"C-3":         KeyCtrl3,
+		"C-4":         KeyCtrl4,
+		"C-\\":        KeyCtrlBackslash,
+		"C-5":         KeyCtrl5,
+		"C-]":         KeyCtrlRsqBracket,
+		"C-6":         KeyCtrl6,
+		"C-7":         KeyCtrl7,
+		"C-/":         KeyCtrlSlash,
+		"C-_":         KeyCtrlUnderscore,
 	}
 
 	t.Logf("Checking key name -> actual key value mapping...")
@@ -100,13 +100,13 @@ func TestKeymapStrToKeyValue(t *testing.T) {
 
 func TestKeymapStrToKeyValueWithAlt(t *testing.T) {
 	expected := map[string]struct {
-		key termbox.Key
+		key KeyType
 		ch  rune
 	}{
 		"M-v":         {0, 'v'},
-		"M-C-v":       {termbox.KeyCtrlV, rune(0)},
-		"M-Space":     {termbox.KeySpace, rune(0)},
-		"M-MouseLeft": {termbox.MouseLeft, rune(0)},
+		"M-C-v":       {KeyCtrlV, rune(0)},
+		"M-Space":     {KeySpace, rune(0)},
+		"M-MouseLeft": {MouseLeft, rune(0)},
 	}
 
 	t.Logf("Checking Alt prefixed key name mapping...")
@@ -153,4 +153,125 @@ func TestKeymapStrToKeyValueCh(t *testing.T) {
 		}
 	}
 
+}
+
+func TestKeymapStrToKeyValueWithCtrl(t *testing.T) {
+	tests := []struct {
+		name string
+		key  KeyType
+	}{
+		{"C-ArrowLeft", KeyArrowLeft},
+		{"C-ArrowRight", KeyArrowRight},
+		{"C-ArrowUp", KeyArrowUp},
+		{"C-ArrowDown", KeyArrowDown},
+		{"C-Home", KeyHome},
+		{"C-End", KeyEnd},
+		{"C-Delete", KeyDelete},
+		{"C-Insert", KeyInsert},
+		{"C-Pgup", KeyPgup},
+		{"C-Pgdn", KeyPgdn},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			k, modifier, ch, err := ToKey(tc.name)
+			require.NoError(t, err)
+			require.Equal(t, tc.key, k)
+			require.Equal(t, ModCtrl, modifier)
+			require.Equal(t, rune(0), ch)
+		})
+	}
+}
+
+func TestKeymapStrToKeyValueWithShift(t *testing.T) {
+	tests := []struct {
+		name string
+		key  KeyType
+	}{
+		{"S-ArrowUp", KeyArrowUp},
+		{"S-ArrowDown", KeyArrowDown},
+		{"S-ArrowLeft", KeyArrowLeft},
+		{"S-ArrowRight", KeyArrowRight},
+		{"S-Home", KeyHome},
+		{"S-End", KeyEnd},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			k, modifier, ch, err := ToKey(tc.name)
+			require.NoError(t, err)
+			require.Equal(t, tc.key, k)
+			require.Equal(t, ModShift, modifier)
+			require.Equal(t, rune(0), ch)
+		})
+	}
+}
+
+func TestKeymapStrToKeyValueWithCombinedModifiers(t *testing.T) {
+	tests := []struct {
+		name     string
+		key      KeyType
+		modifier ModifierKey
+	}{
+		{"C-M-ArrowLeft", KeyArrowLeft, ModCtrl | ModAlt},
+		{"M-C-ArrowLeft", KeyArrowLeft, ModCtrl | ModAlt},
+		{"C-S-Delete", KeyDelete, ModCtrl | ModShift},
+		{"C-S-M-Home", KeyHome, ModCtrl | ModShift | ModAlt},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			k, modifier, ch, err := ToKey(tc.name)
+			require.NoError(t, err)
+			require.Equal(t, tc.key, k)
+			require.Equal(t, tc.modifier, modifier)
+			require.Equal(t, rune(0), ch)
+		})
+	}
+}
+
+func TestModifierKeyString(t *testing.T) {
+	tests := []struct {
+		mod      ModifierKey
+		expected string
+	}{
+		{ModNone, ""},
+		{ModAlt, "M"},
+		{ModCtrl, "C"},
+		{ModShift, "S"},
+		{ModCtrl | ModAlt, "C-M"},
+		{ModCtrl | ModShift, "C-S"},
+		{ModShift | ModAlt, "S-M"},
+		{ModCtrl | ModShift | ModAlt, "C-S-M"},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.expected, func(t *testing.T) {
+			require.Equal(t, tc.expected, tc.mod.String())
+		})
+	}
+}
+
+func TestKeyEventToStringWithModifiers(t *testing.T) {
+	tests := []struct {
+		name     string
+		key      KeyType
+		ch       rune
+		mod      ModifierKey
+		expected string
+	}{
+		{"Ctrl+Left", KeyArrowLeft, 0, ModCtrl, "C-<"},
+		{"Shift+Right", KeyArrowRight, 0, ModShift, "S->"},
+		{"Ctrl+Alt+Delete", KeyDelete, 0, ModCtrl | ModAlt, "C-M-Delete"},
+		{"Alt+char", 0, 'v', ModAlt, "M-v"},
+		{"no modifier", KeyHome, 0, ModNone, "Home"},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			s, err := KeyEventToString(tc.key, tc.ch, tc.mod)
+			require.NoError(t, err)
+			require.Equal(t, tc.expected, s)
+		})
+	}
 }

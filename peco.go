@@ -115,7 +115,7 @@ func New() *Peco {
 		Stderr:            os.Stderr,
 		Stdin:             os.Stdin,
 		Stdout:            os.Stdout,
-		currentLineBuffer: NewMemoryBuffer(), // XXX revisit this
+		currentLineBuffer: NewMemoryBuffer(0), // XXX revisit this
 		idgen:             newIDGen(),
 		queryExecDelay:    50 * time.Millisecond,
 		readyCh:           make(chan struct{}),
@@ -260,6 +260,8 @@ func (p *Peco) Exit(err error) {
 }
 
 func (p *Peco) Keymap() Keymap {
+	p.mutex.Lock()
+	defer p.mutex.Unlock()
 	return p.keymap
 }
 
@@ -298,17 +300,34 @@ func (p *Peco) Setup() (err error) {
 }
 
 func (p *Peco) selectOneAndExitIfPossible() {
-	// TODO: mutex
 	// If we have only one line, we just want to bail out
 	// printing that one line as the result
 	if b := p.CurrentLineBuffer(); b.Size() == 1 {
 		if l, err := b.LineAt(0); err == nil {
-			p.resultCh = make(chan line.Line)
+			ch := make(chan line.Line)
+			p.SetResultCh(ch)
 			p.Exit(errCollectResults{})
-			p.resultCh <- l
-			close(p.resultCh)
+			ch <- l
+			close(ch)
 		}
 	}
+}
+
+func (p *Peco) exitZeroIfPossible() {
+	if p.CurrentLineBuffer().Size() == 0 {
+		p.Exit(setExitStatus(makeIgnorable(errors.New("no input, exiting")), 1))
+	}
+}
+
+func (p *Peco) selectAllAndExitIfPossible() {
+	b := p.CurrentLineBuffer()
+	selection := p.Selection()
+	for i := 0; i < b.Size(); i++ {
+		if l, err := b.LineAt(i); err == nil {
+			selection.Add(l)
+		}
+	}
+	p.Exit(errCollectResults{})
 }
 
 func (p *Peco) Run(ctx context.Context) (err error) {
@@ -393,6 +412,23 @@ func (p *Peco) Run(ctx context.Context) (err error) {
 		}()
 	}
 
+	// If this is enabled, exit immediately with status 1 when input is empty
+	if p.exitZeroAndExit {
+		go func() {
+			<-p.source.SetupDone()
+			p.exitZeroIfPossible()
+		}()
+	}
+
+	// If --select-all is enabled and there is no query, select all lines
+	// from the source and exit immediately
+	if p.selectAllAndExit && p.initialQuery == "" {
+		go func() {
+			<-p.source.SetupDone()
+			p.selectAllAndExitIfPossible()
+		}()
+	}
+
 	readyOnce.Do(func() { close(p.readyCh) })
 
 	// This has tobe AFTER close(p.readyCh), otherwise the query is
@@ -410,6 +446,8 @@ func (p *Peco) Run(ctx context.Context) (err error) {
 			// if we only have one item
 			if p.selectOneAndExit {
 				p.ExecQuery(p.selectOneAndExitIfPossible)
+			} else if p.selectAllAndExit {
+				p.ExecQuery(p.selectAllAndExitIfPossible)
 			} else {
 				p.ExecQuery(nil)
 			}
@@ -559,6 +597,8 @@ func (p *Peco) ApplyConfig(opts CLIOptions) error {
 		p.selectionPrefix = p.config.SelectionPrefix
 	}
 	p.selectOneAndExit = opts.OptSelect1
+	p.exitZeroAndExit = opts.OptExitZero
+	p.selectAllAndExit = opts.OptSelectAll
 	p.printQuery = opts.OptPrintQuery
 	p.initialQuery = opts.OptQuery
 	p.initialFilter = opts.OptInitialFilter
@@ -623,6 +663,7 @@ func (p *Peco) populateFilters() error {
 	p.filters.Add(filter.NewIgnoreCase())
 	p.filters.Add(filter.NewCaseSensitive())
 	p.filters.Add(filter.NewSmartCase())
+	p.filters.Add(filter.NewIRegexp())
 	p.filters.Add(filter.NewRegexp())
 	p.filters.Add(filter.NewFuzzy(p.fuzzyLongestSort))
 
@@ -640,7 +681,9 @@ func (p *Peco) populateKeymap() error {
 	if err := k.ApplyKeybinding(); err != nil {
 		return errors.Wrap(err, "failed to apply key bindings")
 	}
+	p.mutex.Lock()
 	p.keymap = k
+	p.mutex.Unlock()
 	return nil
 }
 

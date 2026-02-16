@@ -28,7 +28,7 @@ func regexpFor(q string, flags []string, quotemeta bool) (*regexp.Regexp, error)
 		reTxt = regexp.QuoteMeta(q)
 	}
 
-	if flags != nil && len(flags) > 0 {
+	if len(flags) > 0 {
 		reTxt = fmt.Sprintf("(?%s)%s", strings.Join(flags, ""), reTxt)
 	}
 
@@ -72,7 +72,21 @@ func NewRegexp() *Regexp {
 	}
 }
 
-func (rf Regexp) BufSize() int {
+// NewIRegexp creates a new case-insensitive regexp based filter
+func NewIRegexp() *Regexp {
+	return &Regexp{
+		factory: &regexpQueryFactory{
+			compiled:  make(map[string]regexpQuery),
+			threshold: time.Minute,
+		},
+		flags:     regexpFlagList(regexpFlagList{"i"}),
+		quotemeta: false,
+		name:      "IRegexp",
+		outCh:     pipeline.ChanOutput(make(chan interface{})),
+	}
+}
+
+func (rf *Regexp) BufSize() int {
 	return 0
 }
 
@@ -81,6 +95,8 @@ func (rf *Regexp) OutCh() <-chan interface{} {
 	defer rf.mutex.Unlock()
 	return rf.outCh
 }
+
+const maxRegexpCacheSize = 100
 
 func (f *regexpQueryFactory) Compile(s string, flags regexpFlags, quotemeta bool) ([]*regexp.Regexp, error) {
 	f.mutex.Lock()
@@ -99,20 +115,41 @@ func (f *regexpQueryFactory) Compile(s string, flags regexpFlags, quotemeta bool
 		return nil, errors.Wrap(err, `failed to compile regular expression`)
 	}
 
+	// Evict stale entries if cache is over the size limit
+	if len(f.compiled) >= maxRegexpCacheSize {
+		now := time.Now()
+		for k, v := range f.compiled {
+			if now.Sub(v.lastUsed) >= f.threshold {
+				delete(f.compiled, k)
+			}
+		}
+		// If still over limit after evicting stale entries, clear all
+		if len(f.compiled) >= maxRegexpCacheSize {
+			f.compiled = make(map[string]regexpQuery)
+		}
+	}
+
 	rq.lastUsed = time.Now()
 	rq.rx = rxs
 	f.compiled[s] = rq
 	return rxs, nil
 }
 
-func (rf *Regexp) Apply(ctx context.Context, lines []line.Line, out pipeline.ChanOutput) error {
+func (rf *Regexp) applyInternal(ctx context.Context, lines []line.Line, emit func(line.Line)) error {
 	query := ctx.Value(queryKey).(string)
 	regexps, err := rf.factory.Compile(query, rf.flags, rf.quotemeta)
 	if err != nil {
 		return errors.Wrap(err, "failed to compile queries as regular expression")
 	}
 
-	for _, l := range lines {
+	for i, l := range lines {
+		if i%1000 == 0 {
+			select {
+			case <-ctx.Done():
+				return ctx.Err()
+			default:
+			}
+		}
 		v := l.DisplayString()
 		allMatched := true
 		matches := [][]int{}
@@ -158,12 +195,30 @@ func (rf *Regexp) Apply(ctx context.Context, lines []line.Line, out pipeline.Cha
 				deduped = append(deduped, m)
 			}
 		}
-		out.Send(line.NewMatched(l, deduped))
+		emit(line.NewMatched(l, deduped))
 	}
 	return nil
 }
 
-func (rf Regexp) String() string {
+func (rf *Regexp) Apply(ctx context.Context, lines []line.Line, out pipeline.ChanOutput) error {
+	return rf.applyInternal(ctx, lines, func(l line.Line) {
+		out.Send(ctx, l)
+	})
+}
+
+func (rf *Regexp) ApplyCollect(ctx context.Context, lines []line.Line) ([]line.Line, error) {
+	result := make([]line.Line, 0, len(lines)/2)
+	err := rf.applyInternal(ctx, lines, func(l line.Line) {
+		result = append(result, l)
+	})
+	return result, err
+}
+
+func (rf *Regexp) SupportsParallel() bool {
+	return true
+}
+
+func (rf *Regexp) String() string {
 	return rf.name
 }
 
@@ -182,8 +237,8 @@ func NewCaseSensitive() *Regexp {
 	return rf
 }
 
-// SmartCase turns ON the ignore-case flag in the regexp
-// if the query contains a upper-case character
+// NewSmartCase creates a filter that turns ON the ignore-case flag in the regexp
+// if the query contains no upper-case character
 func NewSmartCase() *Regexp {
 	rf := NewRegexp()
 	rf.quotemeta = true

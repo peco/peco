@@ -16,7 +16,6 @@ var ErrFilterNotFound = errors.New("specified filter was not found")
 var ignoreCaseFlags = regexpFlagList([]string{"i"})
 var defaultFlags = regexpFlagList{}
 var queryKey = &struct{}{}
-var incomingBufferKey = &struct{}{}
 
 // DefaultCustomFilterBufferThreshold is the default value
 // for BufferThreshold setting on CustomFilters.
@@ -57,7 +56,6 @@ type Regexp struct {
 	quotemeta bool
 	mutex     sync.Mutex
 	name      string
-	onEnd     func()
 	outCh     pipeline.ChanOutput
 }
 
@@ -76,4 +74,16 @@ type Filter interface {
 	BufSize() int
 	NewContext(context.Context, string) context.Context
 	String() string
+	// SupportsParallel returns true if this filter can safely be invoked
+	// concurrently on independent chunks of lines. Filters that require
+	// global state across all lines (e.g. sorted output) should return false.
+	SupportsParallel() bool
+}
+
+// Collector is an optional interface that filters can implement to return
+// matched lines directly as a slice, bypassing channel-based output.
+// This avoids per-chunk channel allocation and goroutine overhead in the
+// parallel filter path.
+type Collector interface {
+	ApplyCollect(context.Context, []line.Line) ([]line.Line, error)
 }

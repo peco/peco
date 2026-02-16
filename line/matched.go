@@ -9,4 +9,3 @@ func NewMatched(rl Line, matches [][]int) *Matched {
 func (ml Matched) Indices() [][]int {
 	return ml.indices
 }
-

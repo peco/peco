@@ -1,15 +1,10 @@
+//go:build !windows
 // +build !windows
 
 package peco
 
-import "github.com/nsf/termbox-go"
-
+// PostInit is a no-op on POSIX systems. tcell auto-detects
+// color capability via terminfo.
 func (t *Termbox) PostInit(cfg *Config) error {
-	// This has no effect on Windows,
-	// because termbox.SetOutputMode always sets termbox.OutputNormal on Windows.
-	if cfg.Use256Color {
-		termbox.SetOutputMode(termbox.Output256)
-	}
-
 	return nil
 }

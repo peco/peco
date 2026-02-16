@@ -5,7 +5,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/nsf/termbox-go"
 	"github.com/pkg/errors"
 )
 
@@ -15,15 +14,16 @@ var ErrNoMatch = errors.New("could not match key to any action")
 type ModifierKey int
 
 const (
-	ModNone ModifierKey = iota
-	ModAlt
-	ModMax
+	ModNone  ModifierKey = 0
+	ModAlt   ModifierKey = 1 << 0 // 0x01
+	ModCtrl  ModifierKey = 1 << 1 // 0x02
+	ModShift ModifierKey = 1 << 2 // 0x04
 )
 
 // Key is data in one trie node in the KeySequence
 type Key struct {
 	Modifier ModifierKey // Alt, etc
-	Key      termbox.Key
+	Key      KeyType
 	Ch       rune
 }
 
@@ -36,12 +36,17 @@ func (kl KeyList) String() string {
 }
 
 func (m ModifierKey) String() string {
-	switch m {
-	case ModAlt:
-		return "M"
-	default:
-		return ""
+	var parts []string
+	if m&ModCtrl != 0 {
+		parts = append(parts, "C")
 	}
+	if m&ModShift != 0 {
+		parts = append(parts, "S")
+	}
+	if m&ModAlt != 0 {
+		parts = append(parts, "M")
+	}
+	return strings.Join(parts, "-")
 }
 
 func (k Key) String() string {
@@ -59,7 +64,7 @@ func (k Key) String() string {
 	return s
 }
 
-func NewKeyFromKey(k termbox.Key) Key {
+func NewKeyFromKey(k KeyType) Key {
 	return Key{
 		Modifier: 0,
 		Key:      k,
@@ -92,13 +97,13 @@ func (k Key) Compare(x Key) int {
 	return 0
 }
 
-func (k KeyList) Equals(x KeyList) bool {
-	if len(k) != len(x) {
+func (kl KeyList) Equals(x KeyList) bool {
+	if len(kl) != len(x) {
 		return false
 	}
 
-	for i := 0; i < len(k); i++ {
-		if k[i].Compare(x[i]) != 0 {
+	for i := 0; i < len(kl); i++ {
+		if kl[i].Compare(x[i]) != 0 {
 			return false
 		}
 	}

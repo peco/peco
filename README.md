@@ -59,7 +59,7 @@ Not only can you select multiple lines one by one, you can select a range of lin
 
 ## Select Filters
 
-Different types of filters are available. Default is case-insensitive filter, so lines with any case will match. You can toggle between IgnoreCase, CaseSensitive, SmartCase, Regexp and Fuzzy filters.
+Different types of filters are available. Default is case-insensitive filter, so lines with any case will match. You can toggle between IgnoreCase, CaseSensitive, SmartCase, Regexp case insensitive, Regexp and Fuzzy filters.
 
 The SmartCase filter uses case-*insensitive* matching when all of the queries are lower case, and case-*sensitive* matching otherwise.
 
@@ -149,6 +149,23 @@ To install peco, run:
 x env use peco
 ```
 
+###  Linux / macOS / Windows (Conda, Mamba, Pixi)
+
+`conda`, `mamba` and `pixi` are platform-agnostic package managers for conda-format packages.
+
+This means that the same command can be used to install peco across Windows, MacOS, and Linux.
+
+```
+# conda
+conda install -c conda-forge peco
+
+# mamba
+mamba install -c conda-forge peco
+
+# install user-globally using pixi
+pixi global install peco
+```
+
 ### Building peco yourself
 
 Make sure to clone the source code under $GOPATH (i.e. $GOPATH/src/github.com/peco/peco). This is required
@@ -217,9 +234,9 @@ Changes how peco interprets incoming data. When this flag is set, you may insert
 
 Specifies the initial line position upon start up. E.g. If you want to start out with the second line selected, set it to "1" (because the index is 0 based).
 
-### --initial-filter `IgnoreCase|CaseSensitive|SmartCase|Regexp|Fuzzy`
+### --initial-filter `IgnoreCase|CaseSensitive|SmartCase|IRegexp|Regexp|Fuzzy`
 
-Specifies the initial filter to use upon start up. You should specify the name of the filter like `IgnoreCase`, `CaseSensitive`, `SmartCase`, `Regexp` and `Fuzzy`. Default is `IgnoreCase`.
+Specifies the initial filter to use upon start up. You should specify the name of the filter like `IgnoreCase`, `CaseSensitive`, `SmartCase`, `IRegexp`, `Regexp` and `Fuzzy`. Default is `IgnoreCase`.
 
 ### --prompt
 
@@ -318,6 +335,19 @@ left intact.
 
 Default value for StickySelection is false.
 
+### SuppressStatusMsg
+
+```json
+{
+    "SuppressStatusMsg": true
+}
+```
+
+SuppressStatusMsg suppresses the status message bar at the bottom of the screen.
+When set to true, messages like "Running query..." will not be displayed.
+
+Default value for SuppressStatusMsg is false.
+
 ### OnCancel
 
 ```json
@@ -403,6 +433,21 @@ As a similar example, a common idiom in emacs is that `C-c C-c` means "take the 
 
 Since v0.1.8, in addition to values below, you may put a `M-` prefix on any
 key item to use Alt/Option key as a mask.
+
+You can also use `C-` and `S-` prefixes on navigation keys to bind Ctrl and Shift modified keys. Multiple modifiers can be combined. For example:
+
+```json
+{
+    "Keymap": {
+        "C-ArrowLeft": "peco.BackwardWord",
+        "C-ArrowRight": "peco.ForwardWord",
+        "S-ArrowUp": "peco.SelectUp",
+        "C-M-Delete": "peco.DeleteForwardWord"
+    }
+}
+```
+
+Note: `C-` on single characters (e.g. `C-a`) refers to ASCII control codes as before. `C-` as a modifier applies to navigation keys such as `ArrowLeft`, `Home`, `Delete`, etc.
 
 | Name        | Notes |
 |-------------|-------|
@@ -524,10 +569,12 @@ Note: If in case below keymap seems wrong, check the source code in [keymap.go](
 |ArrowDown|peco.SelectDown|
 |ArrowLeft|peco.ScrollPageUp|
 |ArrowRight|peco.ScrollPageDown|
+|Pgup|peco.ScrollPageUp|
+|Pgdn|peco.ScrollPageDown|
 
 ## Styles
 
-For now, styles of following 5 items can be customized in `config.json`.
+For now, styles of following 6 items can be customized in `config.json`.
 
 ```json
 {
@@ -536,7 +583,8 @@ For now, styles of following 5 items can be customized in `config.json`.
         "SavedSelection": ["bold", "on_yellow", "white"],
         "Selected": ["underline", "on_cyan", "black"],
         "Query": ["yellow", "bold"],
-        "Matched": ["red", "on_blue"]
+        "Matched": ["red", "on_blue"],
+        "Prompt": ["green", "bold"]
     }
 }
 ```
@@ -546,6 +594,7 @@ For now, styles of following 5 items can be customized in `config.json`.
 - `Selected` for a currently selecting line
 - `Query` for a query line
 - `Matched` for a query matched word
+- `Prompt` for the query prompt prefix (e.g., `QUERY>`)
 
 ### Foreground Colors
 
@@ -582,7 +631,7 @@ For now, styles of following 5 items can be customized in `config.json`.
 
 This is an experimental feature. Please note that some details of this specification may change
 
-By default `peco` comes with `IgnoreCase`, `CaseSensitive`, `SmartCase`, `Regexp` and `Fuzzy` filters, but since v0.1.3, it is possible to create your own custom filter.
+By default `peco` comes with `IgnoreCase`, `CaseSensitive`, `SmartCase`, `IRegexp`, `Regexp` and `Fuzzy` filters, but since v0.1.3, it is possible to create your own custom filter.
 
 The filter will be executed via  `Command.Run()` as an external process, and it will be passed the query values in the command line, and the original unaltered buffer is passed via `os.Stdin`. Your filter must perform the matching, and print out to `os.Stdout` matched lines. Your filter MAY be called multiple times if the buffer
 given to peco is big enough. See `BufferThreshold` below.
@@ -676,7 +725,6 @@ First, fork this repo, and get your clone locally.
 
 1. Make sure you have [go](http://golang.org) installed, with GOPATH appropriately set
 2. Make sure you have `make` installed
-3. Run `make installdeps` (You only need to do this once)
 
 To test, run
 
@@ -687,7 +735,7 @@ make test
 To build, run
 
 ```
-make build
+make
 ```
 
 This will create a `peco` binary in `$(RELEASE_DIR)/peco_$(GOOS)_$(GOARCH)/peco$(SUFFIX)`. Or, of course, you can just run
@@ -772,7 +820,7 @@ Much code stolen from https://github.com/mattn/gof
     - [-b, --buffer-size <num>](#-b---buffer-size-num)
     - [--null](#--null)
     - [--initial-index](#--initial-index)
-    - [--initial-filter `IgnoreCase|CaseSensitive|SmartCase|Regexp|Fuzzy`](#--initial-filter-ignorecasecasesensitivesmartcaseregexpfuzzy)
+    - [--initial-filter `IgnoreCase|CaseSensitive|SmartCase|IRegexp|Regexp|Fuzzy`](#--initial-filter-ignorecasecasesensitivesmartcaseiregexpregexpfuzzy)
     - [--prompt](#--prompt)
     - [--layout `top-down|bottom-up`](#--layout-top-downbottom-up)
     - [--select-1](#--select-1)
@@ -786,6 +834,7 @@ Much code stolen from https://github.com/mattn/gof
     - [InitialFilter](#initialfilter)
     - [FuzzyLongestSort](#fuzzylongestsort)
     - [StickySelection](#stickyselection)
+    - [SuppressStatusMsg](#suppressstatusmsg)
     - [OnCancel](#oncancel)
     - [MaxScanBufferSize](#maxscanbuffersize)
   - [Keymaps](#keymaps)

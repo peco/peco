@@ -8,7 +8,6 @@ import (
 	"context"
 
 	"github.com/google/btree"
-	"github.com/nsf/termbox-go"
 	"github.com/peco/peco/filter"
 	"github.com/peco/peco/hub"
 	"github.com/peco/peco/internal/keyseq"
@@ -49,6 +48,7 @@ const (
 	IgnoreCaseMatch    = "IgnoreCase"
 	CaseSensitiveMatch = "CaseSensitive"
 	SmartCaseMatch     = "SmartCase"
+	IRegexpMatch       = "IRegexp"
 	RegexpMatch        = "Regexp"
 )
 
@@ -96,7 +96,9 @@ type Peco struct {
 	selection               *Selection
 	selectionPrefix         string
 	selectionRangeStart     RangeStart
+	exitZeroAndExit         bool // True if --exit-0 is enabled
 	selectOneAndExit        bool // True if --select-1 is enabled
+	selectAllAndExit        bool // True if --select-all is enabled
 	singleKeyJumpMode       bool
 	singleKeyJumpPrefixes   []rune
 	singleKeyJumpPrefixMap  map[rune]uint
@@ -132,9 +134,10 @@ type Keyseq interface {
 	InMiddleOfChain() bool
 }
 
-// PagingRequest can be sent to move the selection cursor
+// PagingRequestType is the type of a paging request
 type PagingRequestType int
 
+// PagingRequest can be sent to move the selection cursor
 type PagingRequest interface {
 	Type() PagingRequestType
 }
@@ -145,31 +148,24 @@ type JumpToLineRequest int
 // The contents of the Selection is always sorted from smallest to
 // largest line ID
 type Selection struct {
-	mutex sync.Mutex
+	mutex sync.RWMutex
 	tree  *btree.BTree
 }
 
-// Screen hides termbox from the consuming code so that
+// Screen hides the terminal library from the consuming code so that
 // it can be swapped out for testing
 type Screen interface {
 	Init(*Config) error
 	Close() error
 	Flush() error
-	PollEvent(context.Context, *Config) chan termbox.Event
+	PollEvent(context.Context, *Config) chan Event
 	Print(PrintArgs) int
 	Resume()
-	SetCell(int, int, rune, termbox.Attribute, termbox.Attribute)
+	SetCell(int, int, rune, Attribute, Attribute)
 	SetCursor(int, int)
 	Size() (int, int)
-	SendEvent(termbox.Event)
+	SendEvent(Event)
 	Suspend()
-}
-
-// Termbox just hands out the processing to the termbox library
-type Termbox struct {
-	mutex     sync.Mutex
-	resumeCh  chan chan struct{}
-	suspendCh chan struct{}
 }
 
 // View handles the drawing/updating the screen
@@ -217,13 +213,21 @@ type UserPrompt struct {
 	styles    *StyleSet
 }
 
-// StatusBar draws the status message bar
-type StatusBar struct {
+// StatusBar is the interface for printing status messages
+type StatusBar interface {
+	PrintStatus(string, time.Duration)
+}
+
+// screenStatusBar draws the status message bar on screen
+type screenStatusBar struct {
 	*AnchorSettings
 	clearTimer *time.Timer
 	styles     *StyleSet
 	timerMutex sync.Mutex
 }
+
+// nullStatusBar is a no-op status bar used when SuppressStatusMsg is true
+type nullStatusBar struct{}
 
 // ListArea represents the area where the actual line buffer is
 // displayed in the screen
@@ -240,9 +244,10 @@ type ListArea struct {
 // of components may be configurable, the actual types of components
 // that are used are set and static
 type BasicLayout struct {
-	*StatusBar
-	prompt *UserPrompt
-	list   *ListArea
+	statusBar StatusBar
+	screen    Screen
+	prompt    *UserPrompt
+	list      *ListArea
 }
 
 // Keymap holds all the key sequence to action map
@@ -254,7 +259,11 @@ type Keymap struct {
 
 // Filter is responsible for the actual "grep" part of peco
 type Filter struct {
-	state *Peco
+	state          *Peco
+	prevQuery      string
+	prevResults    *MemoryBuffer
+	prevFilterName string
+	prevMu         sync.Mutex
 }
 
 // Action describes an action that can be executed upon receiving user
@@ -262,13 +271,13 @@ type Filter struct {
 // but most everything is implemented in terms of ActionFunc, which is
 // callback based Action
 type Action interface {
-	Register(string, ...termbox.Key)
+	Register(string, ...keyseq.KeyType)
 	RegisterKeySequence(string, keyseq.KeyList)
-	Execute(context.Context, *Peco, termbox.Event)
+	Execute(context.Context, *Peco, Event)
 }
 
 // ActionFunc is a type of Action that is basically just a callback.
-type ActionFunc func(context.Context, *Peco, termbox.Event)
+type ActionFunc func(context.Context, *Peco, Event)
 
 // FilteredBuffer holds a "filtered" buffer. It holds a reference to
 // the source buffer (note: should be immutable) and a list of indices
@@ -282,46 +291,48 @@ type FilteredBuffer struct {
 // Config holds all the data that can be configured in the
 // external configuration file
 type Config struct {
-	Action map[string][]string `json:"Action"`
+	Action map[string][]string `json:"Action" yaml:"Action"`
 	// Keymap used to be directly responsible for dispatching
 	// events against user input, but since then this has changed
 	// into something that just records the user's config input
-	Keymap              map[string]string `json:"Keymap"`
-	Matcher             string            `json:"Matcher"`        // Deprecated.
-	InitialMatcher      string            `json:"InitialMatcher"` // Use this instead of Matcher
-	InitialFilter       string            `json:"InitialFilter"`
-	Style               StyleSet          `json:"Style"`
-	Prompt              string            `json:"Prompt"`
-	Layout              string            `json:"Layout"`
-	Use256Color         bool              `json:"Use256Color"`
-	OnCancel            string            `json:"OnCancel"`
-	CustomMatcher       map[string][]string
-	CustomFilter        map[string]CustomFilterConfig
-	QueryExecutionDelay int
-	StickySelection     bool
-	MaxScanBufferSize   int
-	FuzzyLongestSort    bool
+	Keymap              map[string]string `json:"Keymap" yaml:"Keymap"`
+	Matcher             string            `json:"Matcher" yaml:"Matcher"`               // Deprecated.
+	InitialMatcher      string            `json:"InitialMatcher" yaml:"InitialMatcher"` // Use this instead of Matcher
+	InitialFilter       string            `json:"InitialFilter" yaml:"InitialFilter"`
+	Style               StyleSet          `json:"Style" yaml:"Style"`
+	Prompt              string            `json:"Prompt" yaml:"Prompt"`
+	Layout              string            `json:"Layout" yaml:"Layout"`
+	Use256Color         bool              `json:"Use256Color" yaml:"Use256Color"`
+	OnCancel            string            `json:"OnCancel" yaml:"OnCancel"`
+	CustomMatcher       map[string][]string                `json:"CustomMatcher" yaml:"CustomMatcher"`
+	CustomFilter        map[string]CustomFilterConfig      `json:"CustomFilter" yaml:"CustomFilter"`
+	QueryExecutionDelay int                                `json:"QueryExecutionDelay" yaml:"QueryExecutionDelay"`
+	StickySelection     bool                               `json:"StickySelection" yaml:"StickySelection"`
+	MaxScanBufferSize   int                                `json:"MaxScanBufferSize" yaml:"MaxScanBufferSize"`
+	FilterBufSize       int                                `json:"FilterBufSize" yaml:"FilterBufSize"`
+	FuzzyLongestSort    bool                               `json:"FuzzyLongestSort" yaml:"FuzzyLongestSort"`
+	SuppressStatusMsg   bool                               `json:"SuppressStatusMsg" yaml:"SuppressStatusMsg"`
 
 	// If this is true, then the prefix for single key jump mode
 	// is displayed by default.
-	SingleKeyJump SingleKeyJumpConfig `json:"SingleKeyJump"`
+	SingleKeyJump SingleKeyJumpConfig `json:"SingleKeyJump" yaml:"SingleKeyJump"`
 
 	// Use this prefix to denote currently selected line
-	SelectionPrefix string `json:"SelectionPrefix"`
+	SelectionPrefix string `json:"SelectionPrefix" yaml:"SelectionPrefix"`
 }
 
 type SingleKeyJumpConfig struct {
-	ShowPrefix bool `json:"ShowPrefix"`
+	ShowPrefix bool `json:"ShowPrefix" yaml:"ShowPrefix"`
 }
 
 // CustomFilterConfig is used to specify configuration parameters
 // to CustomFilters
 type CustomFilterConfig struct {
 	// Cmd is the name of the command to invoke
-	Cmd string
+	Cmd string `json:"Cmd" yaml:"Cmd"`
 
 	// TODO: need to check if how we use this is correct
-	Args []string
+	Args []string `json:"Args" yaml:"Args"`
 
 	// BufferThreshold defines how many lines peco buffers before
 	// invoking the external command. If this value is big, we
@@ -330,22 +341,55 @@ type CustomFilterConfig struct {
 	// If this value is small, we will execute the external command
 	// more often, but you pay the penalty of invoking that command
 	// more times.
-	BufferThreshold int
+	BufferThreshold int `json:"BufferThreshold" yaml:"BufferThreshold"`
 }
 
 // StyleSet holds styles for various sections
 type StyleSet struct {
-	Basic          Style `json:"Basic"`
-	SavedSelection Style `json:"SavedSelection"`
-	Selected       Style `json:"Selected"`
-	Query          Style `json:"Query"`
-	Matched        Style `json:"Matched"`
+	Basic          Style `json:"Basic" yaml:"Basic"`
+	SavedSelection Style `json:"SavedSelection" yaml:"SavedSelection"`
+	Selected       Style `json:"Selected" yaml:"Selected"`
+	Query          Style `json:"Query" yaml:"Query"`
+	Matched        Style `json:"Matched" yaml:"Matched"`
+	Prompt         Style `json:"Prompt" yaml:"Prompt"`
 }
 
-// Style describes termbox styles
+// Attribute represents terminal display attributes such as colors
+// and text styling (bold, underline, reverse). It is a uint32 bitfield:
+//
+//	Bits 0-8:   Palette color index (0=default, 1-256 for 256-color palette)
+//	Bits 0-23:  RGB color value (when AttrTrueColor flag is set)
+//	Bit 24:     AttrTrueColor flag — distinguishes true color from palette
+//	Bit 25:     AttrBold
+//	Bit 26:     AttrUnderline
+//	Bit 27:     AttrReverse
+//	Bits 28-31: Reserved
+type Attribute uint32
+
+// Named palette color constants (values 0-8).
+const (
+	ColorDefault Attribute = 0x0000
+	ColorBlack   Attribute = 0x0001
+	ColorRed     Attribute = 0x0002
+	ColorGreen   Attribute = 0x0003
+	ColorYellow  Attribute = 0x0004
+	ColorBlue    Attribute = 0x0005
+	ColorMagenta Attribute = 0x0006
+	ColorCyan    Attribute = 0x0007
+	ColorWhite   Attribute = 0x0008
+)
+
+const (
+	AttrTrueColor Attribute = 0x01000000
+	AttrBold      Attribute = 0x02000000
+	AttrUnderline Attribute = 0x04000000
+	AttrReverse   Attribute = 0x08000000
+)
+
+// Style describes display attributes for foreground and background.
 type Style struct {
-	fg termbox.Attribute
-	bg termbox.Attribute
+	fg Attribute
+	bg Attribute
 }
 
 type Caret struct {
@@ -354,6 +398,7 @@ type Caret struct {
 }
 
 type Location struct {
+	mutex   sync.RWMutex
 	col     int
 	lineno  int
 	maxPage int
@@ -414,6 +459,8 @@ type CLIOptions struct {
 	OptPrompt          string `long:"prompt" description:"specify the prompt string"`
 	OptLayout          string `long:"layout" description:"layout to be used. 'top-down' or 'bottom-up'. default is 'top-down'"`
 	OptSelect1         bool   `long:"select-1" description:"select first item and immediately exit if the input contains only 1 item"`
+	OptExitZero        bool   `long:"exit-0" description:"exit immediately with status 1 if the input is empty"`
+	OptSelectAll       bool   `long:"select-all" description:"select all items and immediately exit"`
 	OptOnCancel        string `long:"on-cancel" description:"specify action on user cancel. 'success' or 'error'.\ndefault is 'success'. This may change in future versions"`
 	OptSelectionPrefix string `long:"selection-prefix" description:"use a prefix instead of changing line color to indicate currently selected lines.\ndefault is to use colors. This option is experimental"`
 	OptExec            string `long:"exec" description:"execute command instead of finishing/terminating peco.\nPlease note that this command will receive selected line(s) from stdin,\nand will be executed via '/bin/sh -c' or 'cmd /c'"`
@@ -445,12 +492,12 @@ type MemoryBuffer struct {
 }
 
 type ActionMap interface {
-	ExecuteAction(context.Context, *Peco, termbox.Event) error
+	ExecuteAction(context.Context, *Peco, Event) error
 }
 
 type Input struct {
 	actions ActionMap
-	evsrc   chan termbox.Event
+	evsrc   chan Event
 	mod     *time.Timer
 	mutex   sync.Mutex
 	state   *Peco
@@ -474,6 +521,7 @@ type MessageHub interface {
 }
 
 type filterProcessor struct {
-	filter filter.Filter
-	query  string
+	filter  filter.Filter
+	query   string
+	bufSize int
 }

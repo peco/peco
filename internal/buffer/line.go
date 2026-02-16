@@ -6,11 +6,11 @@ import (
 	"github.com/peco/peco/line"
 )
 
-const filterBufSize = 1000
+const DefaultFilterBufSize = 1000
 
 var lineListPool = sync.Pool{
 	New: func() interface{} {
-		return make([]line.Line, 0, filterBufSize)
+		return make([]line.Line, 0, DefaultFilterBufSize)
 	},
 }
 
@@ -19,7 +19,7 @@ func ReleaseLineListBuf(l []line.Line) {
 		return
 	}
 	l = l[0:0]
-	lineListPool.Put(l)
+	lineListPool.Put(l) //nolint:staticcheck // SA6002: converting to pointer-based pool breaks tests
 }
 
 func GetLineListBuf() []line.Line {

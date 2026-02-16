@@ -35,7 +35,7 @@ func (p payload) Done() {
 	p.done <- struct{}{}
 }
 
-// NewHub creates a new Hub struct
+// New creates a new Hub struct
 func New(bufsiz int) *Hub {
 	return &Hub{
 		isSync:      false,
@@ -75,12 +75,12 @@ var doneChPool = sync.Pool{
 	},
 }
 
-func (r *payload) waitDone() {
-	// MAKE SURE r.done is valid. XXX needs locking?
-	<-r.done
+func (p *payload) waitDone() {
+	// MAKE SURE p.done is valid. XXX needs locking?
+	<-p.done
 
-	ch := r.done
-	r.done = nil
+	ch := p.done
+	p.done = nil
 
 	defer doneChPool.Put(ch)
 }

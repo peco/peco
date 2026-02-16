@@ -5,7 +5,9 @@ import (
 	"unicode/utf8"
 
 	"github.com/mattn/go-runewidth"
-	"github.com/nsf/termbox-go"
+	"github.com/peco/peco/filter"
+	"github.com/peco/peco/line"
+	"github.com/stretchr/testify/require"
 )
 
 func TestLayoutType(t *testing.T) {
@@ -40,8 +42,8 @@ func TestPrintScreen(t *testing.T) {
 			screen.Print(PrintArgs{
 				X:    initX,
 				Y:    initY,
-				Fg:   termbox.ColorDefault,
-				Bg:   termbox.ColorDefault,
+				Fg:   ColorDefault,
+				Bg:   ColorDefault,
 				Msg:  msg,
 				Fill: fill,
 			})
@@ -80,15 +82,26 @@ func TestPrintScreen(t *testing.T) {
 	verify("日本語")
 }
 
-func TestStatusBar(t *testing.T) {
+func TestScreenStatusBar(t *testing.T) {
 	screen := NewDummyScreen()
-	st := NewStatusBar(screen, AnchorBottom, 0, NewStyleSet())
+	st := newScreenStatusBar(screen, AnchorBottom, 0, NewStyleSet())
 	st.PrintStatus("Hello, World!", 0)
 
 	events := screen.interceptor.events
 	if l := len(events["Flush"]); l != 1 {
 		t.Errorf("Expected 1 Flush event, got %d", l)
 		return
+	}
+}
+
+func TestNullStatusBar(t *testing.T) {
+	screen := NewDummyScreen()
+	var st StatusBar = nullStatusBar{}
+	st.PrintStatus("Hello, World!", 0)
+
+	events := screen.interceptor.events
+	if l := len(events["Flush"]); l != 0 {
+		t.Errorf("Expected 0 Flush events with nullStatusBar, got %d", l)
 	}
 }
 
@@ -122,8 +135,234 @@ func TestMergeAttribute(t *testing.T) {
 	}
 
 	// merge attributes
-	if m := mergeAttribute(termbox.AttrBold|colors["red"], termbox.AttrUnderline|colors["cyan"]); m != termbox.AttrBold|termbox.AttrUnderline|colors["white"] {
-		t.Errorf("expected %d, got %d", termbox.AttrBold|termbox.AttrUnderline|colors["white"], m)
+	if m := mergeAttribute(AttrBold|colors["red"], AttrUnderline|colors["cyan"]); m != AttrBold|AttrUnderline|colors["white"] {
+		t.Errorf("expected %d, got %d", AttrBold|AttrUnderline|colors["white"], m)
 	}
 
+}
+
+// TestGHIssue294_PromptStyleUsedForPromptPrefix verifies that UserPrompt.Draw
+// uses the Prompt style (not Basic) when rendering the prompt prefix string.
+func TestGHIssue294_PromptStyleUsedForPromptPrefix(t *testing.T) {
+	styles := NewStyleSet()
+	styles.Prompt.fg = ColorGreen | AttrBold
+	styles.Prompt.bg = ColorBlue
+	// Make sure Basic is different so we can distinguish them.
+	styles.Basic.fg = ColorDefault
+	styles.Basic.bg = ColorDefault
+
+	screen := NewDummyScreen()
+	prompt := NewUserPrompt(screen, AnchorTop, 0, "QUERY>", styles)
+
+	state := New()
+	state.screen = screen
+	state.skipReadConfig = true
+	state.Filters().Add(filter.NewIgnoreCase())
+
+	prompt.Draw(state)
+
+	// Collect SetCell events for y=0 (the prompt row).
+	events := screen.interceptor.events["SetCell"]
+
+	promptStr := "QUERY>"
+	promptLen := len(promptStr)
+	require.True(t, len(events) >= promptLen,
+		"expected at least %d SetCell events, got %d", promptLen, len(events))
+
+	// The first promptLen cells should use the Prompt style colors.
+	for i := 0; i < promptLen; i++ {
+		ev := events[i]
+		x := ev[0].(int)
+		ch := ev[2].(rune)
+		fg := ev[3].(Attribute)
+		bg := ev[4].(Attribute)
+
+		require.Equal(t, i, x, "expected x=%d", i)
+		require.Equal(t, rune(promptStr[i]), ch, "expected character %c at position %d", promptStr[i], i)
+		require.Equal(t, styles.Prompt.fg, fg,
+			"cell at x=%d should use Prompt.fg, got %v", i, fg)
+		require.Equal(t, styles.Prompt.bg, bg,
+			"cell at x=%d should use Prompt.bg, got %v", i, bg)
+	}
+
+	// The cells after the prompt should NOT use the Prompt style —
+	// they should use the Query style (for the query text area).
+	if len(events) > promptLen {
+		ev := events[promptLen]
+		fg := ev[3].(Attribute)
+		require.NotEqual(t, styles.Prompt.fg, fg,
+			"cell after prompt should not use Prompt style")
+	}
+}
+
+// TestGHIssue460_MatchedStyleDoesNotBleedToEndOfLine verifies that matched
+// text highlighting in ListArea.Draw does not extend to the screen edge.
+func TestGHIssue460_MatchedStyleDoesNotBleedToEndOfLine(t *testing.T) {
+	// Use a distinct Matched.bg so we can detect it in SetCell events.
+	styles := NewStyleSet()
+	styles.Matched.bg = ColorBlue
+
+	matchedBg := mergeAttribute(styles.Basic.bg, styles.Matched.bg) // ColorBlue
+	basicBg := styles.Basic.bg                                      // ColorDefault
+
+	// Helper: set up a Peco state with one matched line and draw it,
+	// returning the SetCell events for the line's row (y=0).
+	drawAndCollect := func(t *testing.T, text string, matches [][]int) []interceptorArgs {
+		t.Helper()
+
+		screen := NewDummyScreen()
+		listArea := NewListArea(screen, AnchorTop, 0, true, styles)
+
+		state := New()
+		state.screen = screen
+		state.skipReadConfig = true
+
+		mb := NewMemoryBuffer(0)
+		raw := line.NewRaw(0, text, false)
+		matched := line.NewMatched(raw, matches)
+		mb.lines = append(mb.lines, matched)
+		// Add a second line so we can set the cursor on it,
+		// keeping line 0 in Basic (non-selected) style.
+		mb.lines = append(mb.lines, line.NewRaw(1, "other", false))
+		state.currentLineBuffer = mb
+
+		loc := state.Location()
+		loc.SetPage(1)
+		loc.SetPerPage(10)
+		loc.SetLineNumber(1) // select line 1, so line 0 uses Basic style
+
+		listArea.Draw(state, nil, 10, &DrawOptions{DisableCache: true})
+
+		// Collect SetCell events for y=0 (our matched line).
+		var row []interceptorArgs
+		for _, ev := range screen.interceptor.events["SetCell"] {
+			if ev[1].(int) == 0 {
+				row = append(row, ev)
+			}
+		}
+		return row
+	}
+
+	t.Run("match at end of line", func(t *testing.T) {
+		// "hello world" with "world" matched at end [6,11].
+		row := drawAndCollect(t, "hello world", [][]int{{6, 11}})
+
+		screenWidth := 80
+		require.Equal(t, screenWidth, len(row),
+			"expected SetCell events to cover the full screen width")
+
+		for _, ev := range row {
+			x := ev[0].(int)
+			bg := ev[4].(Attribute)
+			if x >= 6 && x <= 10 {
+				require.Equal(t, matchedBg, bg,
+					"cell at x=%d should have matched bg", x)
+			} else {
+				require.Equal(t, basicBg, bg,
+					"cell at x=%d should have basic bg, not matched bg", x)
+			}
+		}
+	})
+
+	t.Run("match in middle of line", func(t *testing.T) {
+		// "hello world, goodbye" with "world" matched at [6,11].
+		row := drawAndCollect(t, "hello world, goodbye", [][]int{{6, 11}})
+
+		screenWidth := 80
+		require.Equal(t, screenWidth, len(row),
+			"expected SetCell events to cover the full screen width")
+
+		for _, ev := range row {
+			x := ev[0].(int)
+			bg := ev[4].(Attribute)
+			if x >= 6 && x <= 10 {
+				require.Equal(t, matchedBg, bg,
+					"cell at x=%d should have matched bg", x)
+			} else {
+				require.Equal(t, basicBg, bg,
+					"cell at x=%d should have basic bg, not matched bg", x)
+			}
+		}
+	})
+}
+
+// TestGHIssue455_DrawScreenForceSync verifies that BasicLayout.DrawScreen
+// calls Sync() (full redraw) instead of Flush() (differential) when
+// DrawOptions.ForceSync is true.
+func TestGHIssue455_DrawScreenForceSync(t *testing.T) {
+	setupState := func(t *testing.T) (*Peco, *SimScreen) {
+		t.Helper()
+
+		screen := NewDummyScreen()
+		state := New()
+		state.screen = screen
+		state.skipReadConfig = true
+		state.Filters().Add(filter.NewIgnoreCase())
+
+		mb := NewMemoryBuffer(0)
+		mb.lines = append(mb.lines, line.NewRaw(0, "line one", false))
+		state.currentLineBuffer = mb
+
+		loc := state.Location()
+		loc.SetPage(1)
+		loc.SetPerPage(10)
+		loc.SetLineNumber(0)
+
+		return state, screen
+	}
+
+	t.Run("ForceSync true calls Sync instead of final Flush", func(t *testing.T) {
+		state, screen := setupState(t)
+		layout := NewDefaultLayout(state)
+
+		screen.interceptor.reset()
+		layout.DrawScreen(state, &DrawOptions{DisableCache: true, ForceSync: true})
+
+		syncEvents := screen.interceptor.events["Sync"]
+		flushEvents := screen.interceptor.events["Flush"]
+
+		require.Len(t, syncEvents, 1, "expected exactly 1 Sync call")
+		// DrawPrompt internally calls Flush, but the final DrawScreen
+		// Flush should be replaced by Sync.
+		for i, ev := range screen.interceptor.events["Flush"] {
+			t.Logf("Flush event %d: %v", i, ev)
+		}
+		for i, ev := range screen.interceptor.events["Sync"] {
+			t.Logf("Sync event %d: %v", i, ev)
+		}
+		// The prompt's Flush still fires, but the final screen Flush
+		// is replaced by Sync. So Flush count should be 1 less than
+		// the non-ForceSync case.
+		flushCountWithSync := len(flushEvents)
+
+		// Compare against the non-ForceSync case
+		screen.interceptor.reset()
+		layout.DrawScreen(state, &DrawOptions{DisableCache: true, ForceSync: false})
+		flushCountWithout := len(screen.interceptor.events["Flush"])
+
+		require.Equal(t, flushCountWithout-1, flushCountWithSync,
+			"ForceSync should replace exactly one Flush call with Sync")
+	})
+
+	t.Run("ForceSync false does not call Sync", func(t *testing.T) {
+		state, screen := setupState(t)
+		layout := NewDefaultLayout(state)
+
+		screen.interceptor.reset()
+		layout.DrawScreen(state, &DrawOptions{DisableCache: true, ForceSync: false})
+
+		syncEvents := screen.interceptor.events["Sync"]
+		require.Empty(t, syncEvents, "expected no Sync calls when ForceSync is false")
+	})
+
+	t.Run("nil options does not call Sync", func(t *testing.T) {
+		state, screen := setupState(t)
+		layout := NewDefaultLayout(state)
+
+		screen.interceptor.reset()
+		layout.DrawScreen(state, nil)
+
+		syncEvents := screen.interceptor.events["Sync"]
+		require.Empty(t, syncEvents, "expected no Sync calls with nil options")
+	})
 }

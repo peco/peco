@@ -5,8 +5,8 @@ import (
 	"sort"
 	"strings"
 	"time"
+
 	"github.com/lestrrat-go/pdebug"
-	"github.com/nsf/termbox-go"
 	"github.com/peco/peco/internal/keyseq"
 	"github.com/pkg/errors"
 )
@@ -24,9 +24,11 @@ func (km Keymap) Sequence() Keyseq {
 	return km.seq
 }
 
-const isTopLevelActionCall = "peco.isTopLevelActionCall"
+type contextKey string
 
-func (km Keymap) ExecuteAction(ctx context.Context, state *Peco, ev termbox.Event) (err error) {
+const isTopLevelActionCall contextKey = "peco.isTopLevelActionCall"
+
+func (km Keymap) ExecuteAction(ctx context.Context, state *Peco, ev Event) (err error) {
 	if pdebug.Enabled {
 		g := pdebug.Marker("Keymap.ExecuteAction %v", ev).BindError(&err)
 		defer g.End()
@@ -42,15 +44,10 @@ func (km Keymap) ExecuteAction(ctx context.Context, state *Peco, ev termbox.Even
 	return nil
 }
 
-// LookupAction returns the appropriate action for the given termbox event
-func (km Keymap) LookupAction(ev termbox.Event) Action {
-	modifier := keyseq.ModNone
-	if (ev.Mod & termbox.ModAlt) != 0 {
-		modifier = keyseq.ModAlt
-	}
-
+// LookupAction returns the appropriate action for the given event
+func (km Keymap) LookupAction(ev Event) Action {
 	key := keyseq.Key{
-		Modifier: modifier,
+		Modifier: ev.Mod,
 		Key:      ev.Key,
 		Ch:       ev.Ch,
 	}
@@ -77,8 +74,8 @@ func (km Keymap) LookupAction(ev termbox.Event) Action {
 }
 
 func wrapRememberSequence(a Action) Action {
-	return ActionFunc(func(ctx context.Context, state *Peco, ev termbox.Event) {
-		if s, err := keyseq.EventToString(ev); err == nil {
+	return ActionFunc(func(ctx context.Context, state *Peco, ev Event) {
+		if s, err := keyseq.KeyEventToString(ev.Key, ev.Ch, ev.Mod); err == nil {
 			seq := state.Inputseq()
 			seq.Add(s)
 			state.Hub().SendStatusMsg(ctx, strings.Join(seq.KeyNames(), " "))
@@ -88,9 +85,9 @@ func wrapRememberSequence(a Action) Action {
 }
 
 func wrapClearSequence(a Action) Action {
-	return ActionFunc(func(ctx context.Context, state *Peco, ev termbox.Event) {
+	return ActionFunc(func(ctx context.Context, state *Peco, ev Event) {
 		seq := state.Inputseq()
-		if s, err := keyseq.EventToString(ev); err == nil {
+		if s, err := keyseq.KeyEventToString(ev.Key, ev.Ch, ev.Mod); err == nil {
 			seq.Add(s)
 		}
 
@@ -182,9 +179,4 @@ func (km *Keymap) ApplyKeybinding() error {
 	}
 
 	return errors.Wrap(k.Compile(), "failed to compile key binding patterns")
-}
-
-// TODO: this needs to be fixed.
-func (km Keymap) hasModifierMaps() bool {
-	return false
 }

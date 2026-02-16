@@ -13,9 +13,13 @@ import (
 	"github.com/peco/peco/pipeline"
 )
 
-// Creates a new Source. Does not start processing the input until you
+// NewSource creates a new Source. Does not start processing the input until you
 // call Setup()
 func NewSource(name string, in io.Reader, isInfinite bool, idgen line.IDGenerator, capacity int, enableSep bool) *Source {
+	var lines []line.Line
+	if capacity > 0 {
+		lines = make([]line.Line, 0, capacity)
+	}
 	s := &Source{
 		name:       name,
 		capacity:   capacity,
@@ -24,6 +28,7 @@ func NewSource(name string, in io.Reader, isInfinite bool, idgen line.IDGenerato
 		in:         in, // Note that this may be closed, so do not rely on it
 		inClosed:   false,
 		isInfinite: isInfinite,
+		lines:      lines,
 		ready:      make(chan struct{}),
 		setupDone:  make(chan struct{}),
 		ChanOutput: pipeline.ChanOutput(make(chan interface{})),
@@ -165,7 +170,7 @@ func (s *Source) Start(ctx context.Context, out pipeline.ChanOutput) {
 		defer g.End()
 		defer func() { pdebug.Printf("Source sent %d lines", sent) }()
 	}
-	defer out.SendEndMark("end of input")
+	defer out.SendEndMark(ctx, "end of input")
 
 	var resume bool
 	select {
@@ -175,8 +180,9 @@ func (s *Source) Start(ctx context.Context, out pipeline.ChanOutput) {
 	}
 
 	if !resume {
-		// no fancy resume handling needed. just go
-		for _, l := range s.lines {
+		// no fancy resume handling needed. Send lines in batches
+		// to reduce channel operations.
+		for i := 0; i < len(s.lines); i += sourceBatchSize {
 			select {
 			case <-ctx.Done():
 				if pdebug.Enabled {
@@ -184,9 +190,13 @@ func (s *Source) Start(ctx context.Context, out pipeline.ChanOutput) {
 				}
 				return
 			default:
-				out.Send(l)
-				sent++
 			}
+			end := i + sourceBatchSize
+			if end > len(s.lines) {
+				end = len(s.lines)
+			}
+			out.Send(ctx, s.lines[i:end])
+			sent += end - i
 		}
 		return
 	}
@@ -206,7 +216,8 @@ func (s *Source) Start(ctx context.Context, out pipeline.ChanOutput) {
 			return
 		}
 
-		for i := prev; i < upto; i++ {
+		// Send available lines in batches
+		for i := prev; i < upto; i += sourceBatchSize {
 			select {
 			case <-ctx.Done():
 				if pdebug.Enabled {
@@ -214,10 +225,14 @@ func (s *Source) Start(ctx context.Context, out pipeline.ChanOutput) {
 				}
 				return
 			default:
-				l, _ := s.LineAt(i)
-				out.Send(l)
-				sent++
 			}
+			end := i + sourceBatchSize
+			if end > upto {
+				end = upto
+			}
+			batch := s.linesInRange(i, end)
+			out.Send(ctx, batch)
+			sent += len(batch)
 		}
 		// Remember how far we have processed
 		prev = upto
@@ -227,6 +242,10 @@ func (s *Source) Start(ctx context.Context, out pipeline.ChanOutput) {
 		case <-s.setupDone:
 			setupDone = true
 		default:
+			// Avoid busy-looping while waiting for more data
+			if upto == prev {
+				time.Sleep(time.Millisecond)
+			}
 		}
 
 	}
@@ -280,7 +299,9 @@ func (s *Source) Append(l line.Line) {
 	if s.capacity > 0 && len(s.lines) > s.capacity {
 		diff := len(s.lines) - s.capacity
 
-		// Golang's version of array realloc
-		s.lines = s.lines[diff:s.capacity:s.capacity]
+		// Copy to a new slice to allow GC of discarded lines
+		newLines := make([]line.Line, s.capacity)
+		copy(newLines, s.lines[diff:])
+		s.lines = newLines
 	}
 }
