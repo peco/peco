@@ -32,9 +32,16 @@ func (h nullHub) SendDraw(_ context.Context, _ *hub.DrawOptions)                
 func (h nullHub) SendDrawPrompt(context.Context)                                     {}
 func (h nullHub) SendPaging(_ context.Context, _ hub.PagingRequest)                  {}
 func (h nullHub) SendQuery(_ context.Context, _ string)                              {}
-func (h nullHub) SendStatusMsg(_ context.Context, _ string)                          {}
-func (h nullHub) SendStatusMsgAndClear(_ context.Context, _ string, _ time.Duration) {}
+func (h nullHub) SendStatusMsg(_ context.Context, _ string, _ time.Duration) {}
 func (h nullHub) StatusMsgCh() chan *hub.Payload[hub.StatusMsg]                      { return nil }
+
+// Compile-time interface compliance checks.
+var (
+	_ MessageHub  = (*hub.Hub)(nil)
+	_ HubSender   = (*hub.Hub)(nil)
+	_ HubReceiver = (*hub.Hub)(nil)
+	_ MessageHub  = nullHub{}
+)
 
 type interceptorArgs []interface{}
 type interceptor struct {

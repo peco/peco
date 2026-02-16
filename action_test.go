@@ -32,7 +32,7 @@ func (h *recordingHub) SendPaging(_ context.Context, v hub.PagingRequest) {
 	h.pagingArgs = append(h.pagingArgs, v)
 }
 
-func (h *recordingHub) SendStatusMsg(_ context.Context, msg string) {
+func (h *recordingHub) SendStatusMsg(_ context.Context, msg string, _ time.Duration) {
 	h.mu.Lock()
 	defer h.mu.Unlock()
 	h.statusMsgs = append(h.statusMsgs, msg)

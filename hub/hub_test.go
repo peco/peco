@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/peco/peco/hub"
+	"github.com/stretchr/testify/require"
 )
 
 func TestHub(t *testing.T) {
@@ -59,7 +60,7 @@ func TestHub(t *testing.T) {
 	h.Batch(ctx, func(ctx context.Context) {
 		h.SendQuery(ctx, "Hello World!")
 		h.SendDraw(ctx, &hub.DrawOptions{})
-		h.SendStatusMsg(ctx, "Hello, World!")
+		h.SendStatusMsg(ctx, "Hello, World!", 0)
 		h.SendPaging(ctx, hub.PagingRequestType(1))
 	}, true)
 
@@ -84,4 +85,36 @@ func TestHub(t *testing.T) {
 			t.Errorf("%s executed before %s?!", next, cur)
 		}
 	}
+}
+
+func TestSendStatusMsg(t *testing.T) {
+	t.Run("zero delay", func(t *testing.T) {
+		h := hub.New(5)
+		ctx := context.Background()
+
+		go func() {
+			h.SendStatusMsg(ctx, "hello", 0)
+		}()
+
+		p := <-h.StatusMsgCh()
+		defer p.Done()
+
+		require.Equal(t, "hello", p.Data().Message())
+		require.Equal(t, time.Duration(0), p.Data().Delay())
+	})
+
+	t.Run("non-zero delay", func(t *testing.T) {
+		h := hub.New(5)
+		ctx := context.Background()
+
+		go func() {
+			h.SendStatusMsg(ctx, "temporary", 500*time.Millisecond)
+		}()
+
+		p := <-h.StatusMsgCh()
+		defer p.Done()
+
+		require.Equal(t, "temporary", p.Data().Message())
+		require.Equal(t, 500*time.Millisecond, p.Data().Delay())
+	})
 }

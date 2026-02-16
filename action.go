@@ -62,7 +62,7 @@ func (a ActionFunc) RegisterKeySequence(name string, k keyseq.KeyList) {
 
 func wrapDeprecated(fn func(context.Context, *Peco, Event), oldName, newName string) ActionFunc {
 	return ActionFunc(func(ctx context.Context, state *Peco, e Event) {
-		state.Hub().SendStatusMsg(ctx, fmt.Sprintf("%s is deprecated. Use %s", oldName, newName))
+		state.Hub().SendStatusMsg(ctx, fmt.Sprintf("%s is deprecated. Use %s", oldName, newName), 0)
 		fn(ctx, state, e)
 	})
 }
@@ -353,7 +353,7 @@ func doFinish(ctx context.Context, state *Peco, _ Event) {
 	})
 
 	var err error
-	state.Hub().SendStatusMsg(ctx, "Executing "+ccarg)
+	state.Hub().SendStatusMsg(ctx, "Executing "+ccarg, 0)
 	cmd := util.Shell(ccarg)
 	cmd.Stdin = &stdin
 	cmd.Stdout = state.Stdout
@@ -732,7 +732,7 @@ func doToggleQuery(ctx context.Context, state *Peco, _ Event) {
 }
 
 func doKonamiCommand(ctx context.Context, state *Peco, e Event) {
-	state.Hub().SendStatusMsg(ctx, "All your filters are belongs to us")
+	state.Hub().SendStatusMsg(ctx, "All your filters are belongs to us", 0)
 }
 
 func doToggleSingleKeyJump(ctx context.Context, state *Peco, e Event) {
@@ -784,7 +784,7 @@ func doGoToAdjacentSelection(ctx context.Context, state *Peco, forward bool) {
 	selection := state.Selection()
 
 	if selection.Len() == 0 {
-		state.Hub().SendStatusMsg(ctx, "No Selection")
+		state.Hub().SendStatusMsg(ctx, "No Selection", 0)
 		return
 	}
 
@@ -833,11 +833,11 @@ func doGoToAdjacentSelection(ctx context.Context, state *Peco, forward bool) {
 	}
 
 	if found {
-		state.Hub().SendStatusMsg(ctx, label+" Selection")
+		state.Hub().SendStatusMsg(ctx, label+" Selection", 0)
 		state.Hub().SendPaging(ctx, hub.ToScrollFirstItem)
 		state.Hub().SendPaging(ctx, hub.JumpToLineRequest(target))
 	} else {
-		state.Hub().SendStatusMsg(ctx, label+" Selection (first)")
+		state.Hub().SendStatusMsg(ctx, label+" Selection (first)", 0)
 		state.Hub().SendPaging(ctx, hub.ToScrollFirstItem)
 		state.Hub().SendPaging(ctx, hub.JumpToLineRequest(wrapTarget))
 	}
@@ -862,7 +862,7 @@ func doFreezeResults(ctx context.Context, state *Peco, _ Event) {
 
 	b := state.CurrentLineBuffer()
 	if b.Size() == 0 {
-		state.Hub().SendStatusMsg(ctx, "Nothing to freeze")
+		state.Hub().SendStatusMsg(ctx, "Nothing to freeze", 0)
 		return
 	}
 
@@ -877,7 +877,7 @@ func doFreezeResults(ctx context.Context, state *Peco, _ Event) {
 	state.SetFrozenSource(frozen)
 	resetQueryState(state)
 	state.SetCurrentLineBuffer(frozen)
-	state.Hub().SendStatusMsg(ctx, "Results frozen")
+	state.Hub().SendStatusMsg(ctx, "Results frozen", 0)
 	state.Hub().SendDrawPrompt(ctx)
 }
 
@@ -888,14 +888,14 @@ func doUnfreezeResults(ctx context.Context, state *Peco, _ Event) {
 	}
 
 	if state.FrozenSource() == nil {
-		state.Hub().SendStatusMsg(ctx, "No frozen results")
+		state.Hub().SendStatusMsg(ctx, "No frozen results", 0)
 		return
 	}
 
 	state.ClearFrozenSource()
 	resetQueryState(state)
 	state.ResetCurrentLineBuffer()
-	state.Hub().SendStatusMsg(ctx, "Results unfrozen")
+	state.Hub().SendStatusMsg(ctx, "Results unfrozen", 0)
 	state.Hub().SendDrawPrompt(ctx)
 }
 
@@ -907,7 +907,7 @@ func doZoomIn(ctx context.Context, state *Peco, _ Event) {
 
 	// Already zoomed in?
 	if state.PreZoomBuffer() != nil {
-		state.Hub().SendStatusMsg(ctx, "Already zoomed in")
+		state.Hub().SendStatusMsg(ctx, "Already zoomed in", 0)
 		return
 	}
 
@@ -916,7 +916,7 @@ func doZoomIn(ctx context.Context, state *Peco, _ Event) {
 
 	// If the current buffer is the source (no active filter), nothing to zoom into
 	if currentBuf == state.source {
-		state.Hub().SendStatusMsg(ctx, "Nothing to zoom into")
+		state.Hub().SendStatusMsg(ctx, "Nothing to zoom into", 0)
 		return
 	}
 
@@ -925,7 +925,7 @@ func doZoomIn(ctx context.Context, state *Peco, _ Event) {
 
 	contextBuf := NewContextBuffer(currentBuf, source, contextSize)
 	if contextBuf.Size() == 0 {
-		state.Hub().SendStatusMsg(ctx, "Nothing to zoom into")
+		state.Hub().SendStatusMsg(ctx, "Nothing to zoom into", 0)
 		return
 	}
 
@@ -957,7 +957,7 @@ func doZoomOut(ctx context.Context, state *Peco, _ Event) {
 
 	preZoom := state.PreZoomBuffer()
 	if preZoom == nil {
-		state.Hub().SendStatusMsg(ctx, "Not zoomed in")
+		state.Hub().SendStatusMsg(ctx, "Not zoomed in", 0)
 		return
 	}
 

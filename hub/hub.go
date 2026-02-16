@@ -151,9 +151,11 @@ func (h *Hub) StatusMsgCh() chan *Payload[StatusMsg] {
 	return h.statusMsgCh
 }
 
-// SendStatusMsg sends a string to be displayed in the status message
-func (h *Hub) SendStatusMsg(ctx context.Context, q string) {
-	h.SendStatusMsgAndClear(ctx, q, 0)
+// SendStatusMsg sends a string to be displayed in the status message.
+// If clearDelay is non-zero, the message will be cleared after that duration.
+func (h *Hub) SendStatusMsg(ctx context.Context, q string, clearDelay time.Duration) {
+	msg := newStatusMsgReq(q, clearDelay)
+	send(ctx, h.StatusMsgCh(), NewPayload[StatusMsg](msg, isBatchCtx(ctx)))
 }
 
 // StatusMsg is an interface for status message requests.
@@ -180,13 +182,6 @@ func newStatusMsgReq(s string, d time.Duration) *statusMsgReq {
 		msg:   s,
 		delay: d,
 	}
-}
-
-// SendStatusMsgAndClear sends a string to be displayed in the status message,
-// as well as a delay until the message should be cleared
-func (h *Hub) SendStatusMsgAndClear(ctx context.Context, q string, clearDelay time.Duration) {
-	msg := newStatusMsgReq(q, clearDelay)
-	send(ctx, h.StatusMsgCh(), NewPayload[StatusMsg](msg, isBatchCtx(ctx)))
 }
 
 // PagingCh returns the channel to page through the results

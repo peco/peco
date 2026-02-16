@@ -443,7 +443,7 @@ func (f *Filter) Work(ctx context.Context, q *hub.Payload[string]) {
 	go func(ctx context.Context) {
 		defer state.Hub().SendDraw(ctx, &hub.DrawOptions{RunningQuery: true})
 		if err := p.Run(ctx); err != nil {
-			state.Hub().SendStatusMsg(ctx, err.Error())
+			state.Hub().SendStatusMsg(ctx, err.Error(), 0)
 		}
 	}(ctx)
 
@@ -454,7 +454,7 @@ func (f *Filter) Work(ctx context.Context, q *hub.Payload[string]) {
 		}
 		t := time.NewTicker(50 * time.Millisecond)
 		defer t.Stop()
-		defer state.Hub().SendStatusMsg(ctx, "")
+		defer state.Hub().SendStatusMsg(ctx, "", 0)
 		defer state.Hub().SendDraw(ctx, &hub.DrawOptions{RunningQuery: true})
 		for {
 			select {
@@ -512,7 +512,7 @@ func (f *Filter) Loop(ctx context.Context, cancel func()) error {
 			previous = workcancel
 			mutex.Unlock()
 
-			f.state.Hub().SendStatusMsg(ctx, "Running query...")
+			f.state.Hub().SendStatusMsg(ctx, "Running query...", 0)
 
 			go f.Work(workctx, q)
 		}

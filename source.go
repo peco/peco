@@ -84,7 +84,7 @@ func (s *Source) Setup(ctx context.Context, state *Peco) {
 		notifycb := func() {
 			// close the ready channel so others can be notified
 			// that there's at least 1 line in the buffer
-			state.Hub().SendStatusMsg(ctx, "")
+			state.Hub().SendStatusMsg(ctx, "", 0)
 			close(s.ready)
 		}
 
@@ -131,7 +131,7 @@ func (s *Source) Setup(ctx context.Context, state *Peco) {
 			}
 		}()
 
-		state.Hub().SendStatusMsg(ctx, "Waiting for input...")
+		state.Hub().SendStatusMsg(ctx, "Waiting for input...", 0)
 
 		readCount := 0
 		for loop := true; loop; {
