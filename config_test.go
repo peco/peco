@@ -2,6 +2,7 @@ package peco
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -9,7 +10,6 @@ import (
 	"testing"
 
 	"github.com/goccy/go-yaml"
-	"github.com/pkg/errors"
 	"github.com/stretchr/testify/require"
 )
 

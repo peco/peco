@@ -2,6 +2,7 @@ package peco
 
 import (
 	"context"
+	"fmt"
 	"sync"
 	"unicode/utf8"
 
@@ -10,7 +11,6 @@ import (
 	"github.com/mattn/go-runewidth"
 	"github.com/peco/peco/internal/ansi"
 	"github.com/peco/peco/internal/keyseq"
-	"github.com/pkg/errors"
 )
 
 // Termbox implements the Screen interface using tcell/v2.
@@ -160,11 +160,11 @@ func attributeToTcellStyle(fg, bg Attribute) tcell.Style {
 func (t *Termbox) Init(cfg *Config) error {
 	screen, err := tcell.NewScreen()
 	if err != nil {
-		return errors.Wrap(err, "failed to create tcell screen")
+		return fmt.Errorf("failed to create tcell screen: %w", err)
 	}
 
 	if err := screen.Init(); err != nil {
-		return errors.Wrap(err, "failed to initialize tcell screen")
+		return fmt.Errorf("failed to initialize tcell screen: %w", err)
 	}
 
 	t.screen = screen

@@ -3,9 +3,10 @@ package pipeline
 
 import (
 	"context"
+	"errors"
+	"fmt"
 
 	pdebug "github.com/lestrrat-go/pdebug"
-	"github.com/pkg/errors"
 )
 
 // EndMark returns true
@@ -21,7 +22,8 @@ func (e EndMark) Error() string {
 // IsEndMark is an utility function that checks if the given error
 // object is an EndMark
 func IsEndMark(err error) bool {
-	if em, ok := errors.Cause(err).(EndMarker); ok {
+	var em EndMarker
+	if errors.As(err, &em) {
 		return em.EndMark()
 	}
 	return false
@@ -66,7 +68,10 @@ func (oc ChanOutput) Send(ctx context.Context, v interface{}) (err error) {
 // SendEndMark sends an end mark. If ctx is cancelled, the end mark is
 // dropped since all pipeline stages are shutting down via context anyway.
 func (oc ChanOutput) SendEndMark(ctx context.Context, s string) error {
-	return errors.Wrap(oc.Send(ctx, errors.Wrap(EndMark{}, s)), "failed to send end mark")
+	if err := oc.Send(ctx, fmt.Errorf("%s: %w", s, EndMark{})); err != nil {
+		return fmt.Errorf("failed to send end mark: %w", err)
+	}
+	return nil
 }
 
 // New creates a new Pipeline

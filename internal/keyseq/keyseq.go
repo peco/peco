@@ -1,11 +1,10 @@
 package keyseq
 
 import (
+	"errors"
 	"strings"
 	"sync"
 	"time"
-
-	"github.com/pkg/errors"
 )
 
 var ErrInSequence = errors.New("expected a key sequence")

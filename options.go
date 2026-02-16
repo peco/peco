@@ -2,13 +2,13 @@ package peco
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"os"
 	"reflect"
 	"strings"
 
 	"github.com/jessevdk/go-flags"
-	"github.com/pkg/errors"
 )
 
 func (options *CLIOptions) parse(s []string) ([]string, error) {
@@ -16,11 +16,11 @@ func (options *CLIOptions) parse(s []string) ([]string, error) {
 	args, err := p.ParseArgs(s)
 	if err != nil {
 		os.Stderr.Write(options.help())
-		return nil, errors.Wrap(err, "invalid command line options")
+		return nil, fmt.Errorf("invalid command line options: %w", err)
 	}
 
 	if err := options.Validate(); err != nil {
-		return nil, errors.Wrap(err, "invalid command line arguments")
+		return nil, fmt.Errorf("invalid command line arguments: %w", err)
 	}
 
 	return args, nil

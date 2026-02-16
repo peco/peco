@@ -1,6 +1,7 @@
 package peco
 
 import (
+	"errors"
 	"fmt"
 	"strconv"
 	"strings"
@@ -11,7 +12,6 @@ import (
 	"github.com/mattn/go-runewidth"
 	"github.com/peco/peco/internal/ansi"
 	"github.com/peco/peco/line"
-	"github.com/pkg/errors"
 )
 
 var extraOffset int = 0

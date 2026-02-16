@@ -4,13 +4,13 @@ import (
 	"bufio"
 	"bytes"
 	"context"
+	"fmt"
 	"os/exec"
 	"sync"
 
 	pdebug "github.com/lestrrat-go/pdebug"
 	"github.com/peco/peco/line"
 	"github.com/peco/peco/pipeline"
-	"github.com/pkg/errors"
 )
 
 // NewExternalCmd creates a new filter that uses an external
@@ -98,12 +98,12 @@ func (ecf *ExternalCmd) Apply(ctx context.Context, buf []line.Line, out pipeline
 	cmd.Stdin = inbuf
 	r, err := cmd.StdoutPipe()
 	if err != nil {
-		return errors.Wrap(err, `failed to get stdout pipe`)
+		return fmt.Errorf("failed to get stdout pipe: %w", err)
 	}
 
 	err = cmd.Start()
 	if err != nil {
-		return errors.Wrap(err, `failed to start command`)
+		return fmt.Errorf("failed to start command: %w", err)
 	}
 
 	var wg sync.WaitGroup

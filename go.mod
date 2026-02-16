@@ -9,7 +9,6 @@ require (
 	github.com/jessevdk/go-flags v1.6.1
 	github.com/lestrrat-go/pdebug v0.0.0-20180220043849-39f9a71bcabe
 	github.com/mattn/go-runewidth v0.0.19
-	github.com/pkg/errors v0.9.1
 	github.com/stretchr/testify v1.11.1
 )
 

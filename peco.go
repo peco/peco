@@ -6,6 +6,7 @@ package peco
 import (
 	"bufio"
 	"bytes"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -25,7 +26,6 @@ import (
 	"github.com/peco/peco/line"
 	"github.com/peco/peco/pipeline"
 	"github.com/peco/peco/sig"
-	"github.com/pkg/errors"
 )
 
 const version = "v0.5.11"
@@ -35,7 +35,7 @@ type errIgnorable struct {
 }
 
 func (e errIgnorable) Ignorable() bool { return true }
-func (e errIgnorable) Cause() error {
+func (e errIgnorable) Unwrap() error {
 	return e.err
 }
 func (e errIgnorable) Error() string {
@@ -53,7 +53,7 @@ type errWithExitStatus struct {
 func (e errWithExitStatus) Error() string {
 	return e.err.Error()
 }
-func (e errWithExitStatus) Cause() error {
+func (e errWithExitStatus) Unwrap() error {
 	return e.err
 }
 func (e errWithExitStatus) ExitStatus() int {
@@ -320,25 +320,25 @@ func (p *Peco) Setup() (err error) {
 	}
 
 	if err := p.config.Init(); err != nil {
-		return errors.Wrap(err, "failed to initialize config")
+		return fmt.Errorf("failed to initialize config: %w", err)
 	}
 
 	var opts CLIOptions
 	if err := p.parseCommandLine(&opts, &p.args, p.Argv); err != nil {
-		return errors.Wrap(err, "failed to parse command line")
+		return fmt.Errorf("failed to parse command line: %w", err)
 	}
 
 	// Read config
 	if !p.skipReadConfig { // This can only be set via test
 		if err := readConfig(&p.config, opts.OptRcfile); err != nil {
-			return errors.Wrap(err, "failed to setup configuration")
+			return fmt.Errorf("failed to setup configuration: %w", err)
 		}
 	}
 
 	// Take Args, Config, Options, and apply the configuration to
 	// the peco object
 	if err := p.ApplyConfig(opts); err != nil {
-		return errors.Wrap(err, "failed to apply configuration")
+		return fmt.Errorf("failed to apply configuration: %w", err)
 	}
 
 	// XXX p.Keymap et al should be initialized around here
@@ -389,7 +389,7 @@ func (p *Peco) Run(ctx context.Context) (err error) {
 	defer readyOnce.Do(func() { close(p.readyCh) })
 
 	if err := p.Setup(); err != nil {
-		return errors.Wrap(err, "failed to setup peco")
+		return fmt.Errorf("failed to setup peco: %w", err)
 	}
 
 	var _cancelOnce sync.Once
@@ -422,7 +422,7 @@ func (p *Peco) Run(ctx context.Context) (err error) {
 	// Setup source buffer
 	src, err := p.SetupSource(ctx)
 	if err != nil {
-		return errors.Wrap(err, "failed to setup input source")
+		return fmt.Errorf("failed to setup input source: %w", err)
 	}
 	p.source = src
 
@@ -523,7 +523,7 @@ func (p *Peco) Run(ctx context.Context) (err error) {
 func (p *Peco) parseCommandLine(opts *CLIOptions, args *[]string, argv []string) error {
 	remaining, err := opts.parse(argv)
 	if err != nil {
-		return errors.Wrap(err, "failed to parse command line options")
+		return fmt.Errorf("failed to parse command line options: %w", err)
 	}
 
 	if opts.OptHelp {
@@ -560,7 +560,7 @@ func (p *Peco) SetupSource(ctx context.Context) (s *Source, err error) {
 	case len(p.args) > 1:
 		f, err := os.Open(p.args[1])
 		if err != nil {
-			return nil, errors.Wrap(err, "failed to open file for input")
+			return nil, fmt.Errorf("failed to open file for input: %w", err)
 		}
 		if pdebug.Enabled {
 			pdebug.Printf("Using %s as input", p.args[1])
@@ -598,7 +598,7 @@ func (p *Peco) SetupSource(ctx context.Context) (s *Source, err error) {
 func readConfig(cfg *Config, filename string) error {
 	if filename != "" {
 		if err := cfg.ReadFilename(filename); err != nil {
-			return errors.Wrap(err, "failed to read config file")
+			return fmt.Errorf("failed to read config file: %w", err)
 		}
 	}
 
@@ -678,29 +678,29 @@ func (p *Peco) ApplyConfig(opts CLIOptions) error {
 	if heightStr != "" {
 		spec, err := ParseHeightSpec(heightStr)
 		if err != nil {
-			return errors.Wrap(err, "failed to parse height specification")
+			return fmt.Errorf("failed to parse height specification: %w", err)
 		}
 		p.heightSpec = &spec
 	}
 
 	if err := p.populateFilters(); err != nil {
-		return errors.Wrap(err, "failed to populate filters")
+		return fmt.Errorf("failed to populate filters: %w", err)
 	}
 
 	if err := p.populateKeymap(); err != nil {
-		return errors.Wrap(err, "failed to populate keymap")
+		return fmt.Errorf("failed to populate keymap: %w", err)
 	}
 
 	if err := p.populateStyles(); err != nil {
-		return errors.Wrap(err, "failed to populate styles")
+		return fmt.Errorf("failed to populate styles: %w", err)
 	}
 
 	if err := p.populateInitialFilter(); err != nil {
-		return errors.Wrap(err, "failed to populate initial filter")
+		return fmt.Errorf("failed to populate initial filter: %w", err)
 	}
 
 	if err := p.populateSingleKeyJump(); err != nil {
-		return errors.Wrap(err, "failed to populate single key jump configuration")
+		return fmt.Errorf("failed to populate single key jump configuration: %w", err)
 	}
 
 	return nil
@@ -709,7 +709,7 @@ func (p *Peco) ApplyConfig(opts CLIOptions) error {
 func (p *Peco) populateInitialFilter() error {
 	if v := p.initialFilter; len(v) > 0 {
 		if err := p.filters.SetCurrentByName(v); err != nil {
-			return errors.Wrap(err, "failed to set filter")
+			return fmt.Errorf("failed to set filter: %w", err)
 		}
 	}
 	return nil
@@ -752,7 +752,7 @@ func (p *Peco) populateKeymap() error {
 	// Create a new keymap object
 	k := NewKeymap(p.config.Keymap, p.config.Action)
 	if err := k.ApplyKeybinding(); err != nil {
-		return errors.Wrap(err, "failed to apply key bindings")
+		return fmt.Errorf("failed to apply key bindings: %w", err)
 	}
 	p.mutex.Lock()
 	p.keymap = k

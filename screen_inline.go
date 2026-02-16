@@ -8,7 +8,6 @@ import (
 
 	"github.com/gdamore/tcell/v2"
 	pdebug "github.com/lestrrat-go/pdebug"
-	"github.com/pkg/errors"
 )
 
 // InlineScreen implements the Screen interface for rendering peco in a
@@ -41,12 +40,12 @@ func (s *InlineScreen) Init(cfg *Config) error {
 	screen, err := tcell.NewScreen()
 	if err != nil {
 		os.Setenv("TCELL_ALTSCREEN", s.savedAltscreen)
-		return errors.Wrap(err, "failed to create tcell screen")
+		return fmt.Errorf("failed to create tcell screen: %w", err)
 	}
 
 	if err := screen.Init(); err != nil {
 		os.Setenv("TCELL_ALTSCREEN", s.savedAltscreen)
-		return errors.Wrap(err, "failed to initialize tcell screen")
+		return fmt.Errorf("failed to initialize tcell screen: %w", err)
 	}
 
 	s.mutex.Lock()

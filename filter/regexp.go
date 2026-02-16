@@ -11,7 +11,6 @@ import (
 	"github.com/peco/peco/internal/util"
 	"github.com/peco/peco/line"
 	"github.com/peco/peco/pipeline"
-	"github.com/pkg/errors"
 )
 
 func (r regexpFlagList) flags(_ string) []string {
@@ -34,7 +33,7 @@ func regexpFor(q string, flags []string, quotemeta bool) (*regexp.Regexp, error)
 
 	re, err := regexp.Compile(reTxt)
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to compile regular expression '%s'", reTxt)
+		return nil, fmt.Errorf("failed to compile regular expression '%s': %w", reTxt, err)
 	}
 	return re, nil
 }
@@ -73,7 +72,7 @@ func termsToRegexps(terms []string, fullQuery string, flags regexpFlags, quoteme
 	for _, t := range terms {
 		re, err := regexpFor(t, flags.flags(fullQuery), quotemeta)
 		if err != nil {
-			return nil, errors.Wrapf(err, "failed to compile regular expression '%s'", t)
+			return nil, fmt.Errorf("failed to compile regular expression '%s': %w", t, err)
 		}
 		regexps = append(regexps, re)
 	}
@@ -142,13 +141,13 @@ func (f *regexpQueryFactory) Compile(s string, flags regexpFlags, quotemeta bool
 	if len(posTerms) > 0 {
 		posRxs, err = termsToRegexps(posTerms, s, flags, quotemeta)
 		if err != nil {
-			return nil, nil, errors.Wrap(err, `failed to compile positive regular expressions`)
+			return nil, nil, fmt.Errorf("failed to compile positive regular expressions: %w", err)
 		}
 	}
 	if len(negTerms) > 0 {
 		negRxs, err = termsToRegexps(negTerms, s, flags, quotemeta)
 		if err != nil {
-			return nil, nil, errors.Wrap(err, `failed to compile negative regular expressions`)
+			return nil, nil, fmt.Errorf("failed to compile negative regular expressions: %w", err)
 		}
 	}
 
@@ -177,7 +176,7 @@ func (rf *Regexp) applyInternal(ctx context.Context, lines []line.Line, emit fun
 	query := ctx.Value(queryKey).(string)
 	posRegexps, negRegexps, err := rf.factory.Compile(query, rf.flags, rf.quotemeta)
 	if err != nil {
-		return errors.Wrap(err, "failed to compile queries as regular expression")
+		return fmt.Errorf("failed to compile queries as regular expression: %w", err)
 	}
 
 	for i, l := range lines {
