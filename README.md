@@ -45,6 +45,21 @@ Multiple terms turn the query into an "AND" query:
 When you find that line that you want, press enter, and the resulting line
 is printed to stdout, which allows you to pipe it to other tools
 
+## Negative Matching
+
+You can exclude lines from the results by prefixing a term with `-`. For example, the query `SSO -tests -javadoc` shows lines matching "SSO" that do NOT contain "tests" or "javadoc".
+
+| Query | Meaning |
+|-------|---------|
+| `foo -bar` | Lines matching "foo" but not containing "bar" |
+| `-foo -bar` | All lines not containing "foo" or "bar" |
+| `\-foo` | Literal match for "-foo" (escaped with backslash) |
+| `-` | Literal match for a hyphen character |
+
+Negative matching works with all built-in filters (IgnoreCase, CaseSensitive, SmartCase, Regexp, IRegexp, and Fuzzy). For the Fuzzy filter, negative terms use regexp-based exclusion rather than fuzzy matching. External custom filters receive the query as-is and are responsible for their own parsing.
+
+Only positive terms produce match highlighting. Lines matched solely by negative exclusion (e.g. an all-negative query like `-foo`) are shown without highlighting.
+
 ## Select Multiple Lines
 
 You can select multiple lines! (this example uses C-Space)
@@ -797,6 +812,7 @@ Much code stolen from https://github.com/mattn/gof
   - [Demo](#demo)
 - [Features](#features)
   - [Incremental Search](#incremental-search)
+  - [Negative Matching](#negative-matching)
   - [Select Multiple Lines](#select-multiple-lines)
   - [Select Range Of Lines](#select-range-of-lines)
   - [Select Filters](#select-filters)

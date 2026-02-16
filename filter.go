@@ -2,6 +2,7 @@ package peco
 
 import (
 	"runtime"
+	"sort"
 	"strings"
 	"sync"
 	"time"
@@ -356,13 +357,48 @@ func NewFilter(state *Peco) *Filter {
 
 // isQueryRefinement returns true if newQuery is a refinement of prevQuery,
 // meaning the new query can only produce a subset of the previous results.
+// With negative terms, refinement requires:
+// 1. Positive portion of prev is a prefix of positive portion of new
+// 2. All previous negative terms are still present in new
+// 3. New query may have additional positive or negative terms
 func isQueryRefinement(prev, new string) bool {
 	prev = strings.TrimSpace(prev)
 	new = strings.TrimSpace(new)
 	if prev == "" || new == "" {
 		return false
 	}
-	return strings.HasPrefix(new, prev)
+
+	prevPos, prevNeg := filter.SplitQueryTerms(prev)
+	newPos, newNeg := filter.SplitQueryTerms(new)
+
+	// Positive portion: the joined prev positive terms must be a prefix of the joined new positive terms
+	prevPosStr := strings.Join(prevPos, " ")
+	newPosStr := strings.Join(newPos, " ")
+	if prevPosStr != "" && !strings.HasPrefix(newPosStr, prevPosStr) {
+		return false
+	}
+
+	// All previous negative terms must still be present in new negative terms
+	if len(prevNeg) > 0 {
+		sort.Strings(prevNeg)
+		sort.Strings(newNeg)
+		newNegSet := make(map[string]struct{}, len(newNeg))
+		for _, t := range newNeg {
+			newNegSet[t] = struct{}{}
+		}
+		for _, t := range prevNeg {
+			if _, ok := newNegSet[t]; !ok {
+				return false
+			}
+		}
+	}
+
+	// At least one positive or negative term must exist in both
+	if len(prevPos) == 0 && len(prevNeg) == 0 {
+		return false
+	}
+
+	return true
 }
 
 // Work is the actual work horse that does the matching

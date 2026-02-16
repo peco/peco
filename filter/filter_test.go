@@ -9,6 +9,7 @@ import (
 	"github.com/peco/peco/line"
 	"github.com/peco/peco/pipeline"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 type indexer interface {
@@ -221,6 +222,250 @@ func testFuzzyLongest(octx context.Context, t *testing.T, filter Filter) {
 			}
 		})
 	}
+}
+
+// testFuzzyMatch tests if non-sorted & sorted Fuzzy filter returns the expected result
+func TestSplitQueryTerms(t *testing.T) {
+	tests := []struct {
+		name    string
+		query   string
+		wantPos []string
+		wantNeg []string
+	}{
+		{
+			name:    "simple positive",
+			query:   "foo bar",
+			wantPos: []string{"foo", "bar"},
+		},
+		{
+			name:    "single negative",
+			query:   "-foo",
+			wantNeg: []string{"foo"},
+		},
+		{
+			name:    "mixed positive and negative",
+			query:   "foo -bar baz",
+			wantPos: []string{"foo", "baz"},
+			wantNeg: []string{"bar"},
+		},
+		{
+			name:    "all negative",
+			query:   "-foo -bar",
+			wantNeg: []string{"foo", "bar"},
+		},
+		{
+			name:    "escaped negative becomes positive",
+			query:   `\-foo`,
+			wantPos: []string{"-foo"},
+		},
+		{
+			name:    "bare hyphen is positive literal",
+			query:   "-",
+			wantPos: []string{"-"},
+		},
+		{
+			name:    "double hyphen is positive literal",
+			query:   "--",
+			wantPos: []string{"--"},
+		},
+		{
+			name:    "mixed with escaping",
+			query:   `foo -bar \-baz`,
+			wantPos: []string{"foo", "-baz"},
+			wantNeg: []string{"bar"},
+		},
+		{
+			name:    "extra spaces are skipped",
+			query:   "  foo   -bar  ",
+			wantPos: []string{"foo"},
+			wantNeg: []string{"bar"},
+		},
+		{
+			name:  "empty query",
+			query: "",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			gotPos, gotNeg := SplitQueryTerms(tt.query)
+			require.Equal(t, tt.wantPos, gotPos, "positive terms")
+			require.Equal(t, tt.wantNeg, gotNeg, "negative terms")
+		})
+	}
+}
+
+// collectFilterResults runs the filter and collects all emitted lines.
+func collectFilterResults(t *testing.T, f Filter, query string, inputLines []line.Line) []line.Line {
+	t.Helper()
+	ctx, cancel := context.WithTimeout(f.NewContext(context.Background(), query), 10*time.Second)
+	defer cancel()
+
+	ch := make(chan interface{}, len(inputLines)+1)
+	err := f.Apply(ctx, inputLines, pipeline.ChanOutput(ch))
+	require.NoError(t, err, "filter.Apply should succeed")
+	close(ch)
+
+	var results []line.Line
+	for v := range ch {
+		l, ok := v.(line.Line)
+		require.True(t, ok, "result should be a line.Line")
+		results = append(results, l)
+	}
+	return results
+}
+
+func makeLines(inputs ...string) []line.Line {
+	lines := make([]line.Line, len(inputs))
+	for i, s := range inputs {
+		lines[i] = line.NewRaw(uint64(i), s, false)
+	}
+	return lines
+}
+
+func TestNegativeMatchingRegexp(t *testing.T) {
+	filters := map[string]Filter{
+		"IgnoreCase":    NewIgnoreCase(),
+		"CaseSensitive": NewCaseSensitive(),
+		"SmartCase":     NewSmartCase(),
+		"Regexp":        NewRegexp(),
+	}
+
+	for name, f := range filters {
+		t.Run(name, func(t *testing.T) {
+			lines := makeLines(
+				"hello world",
+				"hello tests",
+				"goodbye world",
+				"goodbye tests",
+			)
+
+			t.Run("positive with negative exclusion", func(t *testing.T) {
+				results := collectFilterResults(t, f, "hello -tests", lines)
+				require.Len(t, results, 1)
+				require.Equal(t, "hello world", results[0].DisplayString())
+			})
+
+			t.Run("multiple negative terms", func(t *testing.T) {
+				results := collectFilterResults(t, f, "hello -world -tests", lines)
+				require.Len(t, results, 0)
+			})
+		})
+	}
+}
+
+func TestAllNegativeQuery(t *testing.T) {
+	filters := map[string]Filter{
+		"IgnoreCase": NewIgnoreCase(),
+		"Regexp":     NewRegexp(),
+		"Fuzzy":      NewFuzzy(false),
+	}
+
+	lines := makeLines(
+		"alpha",
+		"beta",
+		"gamma",
+	)
+
+	for name, f := range filters {
+		t.Run(name, func(t *testing.T) {
+			results := collectFilterResults(t, f, "-beta", lines)
+			require.Len(t, results, 2)
+			var names []string
+			for _, r := range results {
+				names = append(names, r.DisplayString())
+			}
+			require.Contains(t, names, "alpha")
+			require.Contains(t, names, "gamma")
+		})
+	}
+}
+
+func TestNegativeNoHighlight(t *testing.T) {
+	f := NewIgnoreCase()
+	lines := makeLines("alpha", "beta", "gamma")
+	results := collectFilterResults(t, f, "-beta", lines)
+	require.Len(t, results, 2)
+
+	for _, r := range results {
+		idx, ok := r.(indexer)
+		require.True(t, ok, "result should implement indexer")
+		require.Nil(t, idx.Indices(), "all-negative query should produce nil indices")
+	}
+}
+
+func TestNegativeMatchingFuzzy(t *testing.T) {
+	f := NewFuzzy(false)
+	lines := makeLines(
+		"hello world",
+		"hello tests",
+		"goodbye world",
+		"goodbye tests",
+	)
+
+	t.Run("fuzzy positive with negative exclusion", func(t *testing.T) {
+		// Fuzzy query "hlo" should match "hello" lines; -tests excludes one
+		results := collectFilterResults(t, f, "hlo -tests", lines)
+		require.Len(t, results, 1)
+		require.Equal(t, "hello world", results[0].DisplayString())
+	})
+
+	t.Run("fuzzy all-negative", func(t *testing.T) {
+		results := collectFilterResults(t, f, "-world", lines)
+		require.Len(t, results, 2)
+		var names []string
+		for _, r := range results {
+			names = append(names, r.DisplayString())
+		}
+		require.Contains(t, names, "hello tests")
+		require.Contains(t, names, "goodbye tests")
+	})
+}
+
+func TestLiteralHyphenMatching(t *testing.T) {
+	lines := makeLines(
+		"hello-world",
+		"hello world",
+		"-foo bar",
+		"foo bar",
+		"--verbose flag",
+		"verbose flag",
+	)
+
+	f := NewIgnoreCase()
+
+	t.Run("escaped negative matches literal hyphen-prefixed term", func(t *testing.T) {
+		// \-foo should match lines containing literal "-foo"
+		results := collectFilterResults(t, f, `\-foo`, lines)
+		require.Len(t, results, 1)
+		require.Equal(t, "-foo bar", results[0].DisplayString())
+	})
+
+	t.Run("bare hyphen matches lines containing hyphen", func(t *testing.T) {
+		// bare "-" should be a positive literal matching any line with a hyphen
+		results := collectFilterResults(t, f, "-", lines)
+		require.Len(t, results, 3)
+		var names []string
+		for _, r := range results {
+			names = append(names, r.DisplayString())
+		}
+		require.Contains(t, names, "hello-world")
+		require.Contains(t, names, "-foo bar")
+		require.Contains(t, names, "--verbose flag")
+	})
+
+	t.Run("double hyphen matches lines containing double hyphen", func(t *testing.T) {
+		results := collectFilterResults(t, f, "--", lines)
+		require.Len(t, results, 1)
+		require.Equal(t, "--verbose flag", results[0].DisplayString())
+	})
+
+	t.Run("escaped negative with positive term", func(t *testing.T) {
+		// Search for lines containing both "bar" and literal "-foo"
+		results := collectFilterResults(t, f, `bar \-foo`, lines)
+		require.Len(t, results, 1)
+		require.Equal(t, "-foo bar", results[0].DisplayString())
+	})
 }
 
 // testFuzzyMatch tests if non-sorted & sorted Fuzzy filter returns the expected result
