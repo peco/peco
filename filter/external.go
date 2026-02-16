@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"context"
 	"os/exec"
+	"sync"
 
 	pdebug "github.com/lestrrat-go/pdebug"
 	"github.com/peco/peco/line"
@@ -105,8 +106,11 @@ func (ecf *ExternalCmd) Apply(ctx context.Context, buf []line.Line, out pipeline
 		return errors.Wrap(err, `failed to start command`)
 	}
 
+	var wg sync.WaitGroup
 	cmdCh := make(chan line.Line)
+	wg.Add(1)
 	go func(ctx context.Context, cmdCh chan line.Line, rdr *bufio.Reader) {
+		defer wg.Done()
 		defer func() { recover() }()
 		defer close(cmdCh)
 		defer cmd.Wait()
@@ -152,6 +156,7 @@ func (ecf *ExternalCmd) Apply(ctx context.Context, buf []line.Line, out pipeline
 		if p := cmd.Process; p != nil {
 			p.Kill()
 		}
+		wg.Wait()
 	}()
 
 	for {

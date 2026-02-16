@@ -2,8 +2,10 @@ package filter
 
 import (
 	"context"
+	"runtime"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/peco/peco/line"
 	"github.com/peco/peco/pipeline"
@@ -38,6 +40,57 @@ func collectOutput(ctx context.Context, out pipeline.ChanOutput) []line.Line {
 			}
 		}
 	}
+}
+
+func TestExternalCmd_CancelCleansUpGoroutine(t *testing.T) {
+	idgen := &testIDGen{}
+
+	lines := []line.Line{
+		line.NewRaw(idgen.Next(), "hello", false, false),
+	}
+
+	// Use "cat" which reads stdin and writes to stdout; it will block
+	// waiting for EOF on stdin, but since we provide input via a buffer
+	// it completes quickly. Instead, use "sleep" which blocks for a long time.
+	ecf := NewExternalCmd("sleep", "sleep", []string{"60"}, 0, idgen, false)
+	ctx, cancel := context.WithCancel(ecf.NewContext(context.Background(), "test"))
+	out := pipeline.ChanOutput(make(chan interface{}, 256))
+
+	// Record goroutine count before Apply
+	runtime.GC()
+	before := runtime.NumGoroutine()
+
+	done := make(chan error, 1)
+	go func() {
+		done <- ecf.Apply(ctx, lines, out)
+	}()
+
+	// Give the command time to start
+	time.Sleep(50 * time.Millisecond)
+
+	// Cancel the context
+	cancel()
+
+	// Apply should return promptly
+	select {
+	case err := <-done:
+		require.NoError(t, err)
+	case <-time.After(5 * time.Second):
+		t.Fatal("Apply did not return after context cancellation")
+	}
+
+	// Wait briefly for goroutine cleanup, then verify no goroutine leak
+	deadline := time.Now().Add(3 * time.Second)
+	for time.Now().Before(deadline) {
+		runtime.GC()
+		after := runtime.NumGoroutine()
+		// Allow some slack (test infrastructure goroutines)
+		if after <= before+1 {
+			return
+		}
+		time.Sleep(50 * time.Millisecond)
+	}
+	t.Errorf("goroutine leak: before=%d, after=%d", before, runtime.NumGoroutine())
 }
 
 func TestExternalCmdFilter_NullSep(t *testing.T) {
