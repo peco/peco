@@ -60,8 +60,17 @@ func (i *Input) handleInputEvent(ctx context.Context, ev Event) error {
 		m.Lock()
 		if ev.Ch == 0 && ev.Key == 27 && i.mod == nil {
 			tmp := ev
+			i.modGen++
+			gen := i.modGen
 			i.mod = time.AfterFunc(50*time.Millisecond, func() {
 				m.Lock()
+				if i.modGen != gen {
+					// A subsequent key event already cancelled this timer.
+					// Stop() may have returned false (timer already fired),
+					// but the generation was bumped, so we must not execute.
+					m.Unlock()
+					return
+				}
 				i.mod = nil
 				m.Unlock()
 				i.state.Keymap().ExecuteAction(ctx, i.state, tmp)
@@ -76,6 +85,7 @@ func (i *Input) handleInputEvent(ctx context.Context, ev Event) error {
 		m.Lock()
 		if i.mod != nil {
 			i.mod.Stop()
+			i.modGen++ // invalidate any pending timer callback
 			i.mod = nil
 			ev.Mod = keyseq.ModAlt
 		}
