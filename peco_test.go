@@ -95,6 +95,16 @@ func newPeco() *Peco {
 	return state
 }
 
+func setupPecoTest(t *testing.T) (*Peco, context.Context) {
+	t.Helper()
+	state := newPeco()
+	ctx, cancel := context.WithCancel(context.Background())
+	t.Cleanup(cancel)
+	go state.Run(ctx)
+	<-state.Ready()
+	return state, ctx
+}
+
 // keyseqToTcellKey maps peco keyseq navigation/function key constants back
 // to tcell key constants, for injecting events into SimulationScreen.
 var keyseqToTcellKey = map[keyseq.KeyType]tcell.Key{

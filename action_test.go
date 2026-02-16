@@ -172,15 +172,9 @@ func expectQueryString(t *testing.T, q *Query, expect string) bool {
 }
 
 func TestDoDeleteForwardChar(t *testing.T) {
-	state := newPeco()
+	state, ctx := setupPecoTest(t)
 	q := state.Query()
 	c := state.Caret()
-
-	ctx, cancel := context.WithCancel(context.Background())
-	go state.Run(ctx)
-	defer cancel()
-
-	<-state.Ready()
 
 	q.Set("Hello, World!")
 	c.SetPos(5)
@@ -208,15 +202,9 @@ func TestDoDeleteForwardChar(t *testing.T) {
 }
 
 func TestDoDeleteForwardWord(t *testing.T) {
-	state := newPeco()
+	state, ctx := setupPecoTest(t)
 	q := state.Query()
 	c := state.Caret()
-
-	ctx, cancel := context.WithCancel(context.Background())
-	go state.Run(ctx)
-	defer cancel()
-
-	<-state.Ready()
 
 	q.Set("Hello, World!")
 	c.SetPos(5)
@@ -264,15 +252,9 @@ func TestDoDeleteForwardWord(t *testing.T) {
 }
 
 func TestDoDeleteBackwardChar(t *testing.T) {
-	state := newPeco()
+	state, ctx := setupPecoTest(t)
 	q := state.Query()
 	c := state.Caret()
-
-	ctx, cancel := context.WithCancel(context.Background())
-	go state.Run(ctx)
-	defer cancel()
-
-	<-state.Ready()
 
 	q.Set("Hello, World!")
 	c.SetPos(5)
@@ -296,15 +278,9 @@ func TestDoDeleteBackwardChar(t *testing.T) {
 }
 
 func TestDoDeleteBackwardWord(t *testing.T) {
-	state := newPeco()
+	state, ctx := setupPecoTest(t)
 	q := state.Query()
 	c := state.Caret()
-
-	ctx, cancel := context.WithCancel(context.Background())
-	go state.Run(ctx)
-	defer cancel()
-
-	<-state.Ready()
 
 	// In case of an overflow (bug)
 	q.Set("foo")
@@ -358,13 +334,7 @@ func writeQueryToPrompt(t *testing.T, screen Screen, message string) {
 }
 
 func TestDoAcceptChar(t *testing.T) {
-	state := newPeco()
-
-	ctx, cancel := context.WithCancel(context.Background())
-	go state.Run(ctx)
-	defer cancel()
-
-	<-state.Ready()
+	state, _ := setupPecoTest(t)
 
 	message := "Hello, World!"
 	writeQueryToPrompt(t, state.screen, message)
@@ -382,13 +352,7 @@ func TestDoAcceptChar(t *testing.T) {
 }
 
 func TestRotateFilter(t *testing.T) {
-	state := newPeco()
-
-	ctx, cancel := context.WithCancel(context.Background())
-	go state.Run(ctx)
-	defer cancel()
-
-	<-state.Ready()
+	state, _ := setupPecoTest(t)
 
 	size := state.filters.Size()
 	if size <= 1 {
@@ -417,13 +381,7 @@ func TestRotateFilter(t *testing.T) {
 }
 
 func TestBeginningOfLineAndEndOfLine(t *testing.T) {
-	state := newPeco()
-
-	ctx, cancel := context.WithCancel(context.Background())
-	go state.Run(ctx)
-	defer cancel()
-
-	<-state.Ready()
+	state, _ := setupPecoTest(t)
 
 	message := "Hello, World!"
 	writeQueryToPrompt(t, state.screen, message)
@@ -441,13 +399,7 @@ func TestBeginningOfLineAndEndOfLine(t *testing.T) {
 }
 
 func TestBackToInitialFilter(t *testing.T) {
-	state := newPeco()
-
-	ctx, cancel := context.WithCancel(context.Background())
-	go state.Run(ctx)
-	defer cancel()
-
-	<-state.Ready()
+	state, _ := setupPecoTest(t)
 
 	state.config.Keymap["C-q"] = "peco.BackToInitialFilter"
 	if !assert.NoError(t, state.populateKeymap(), "populateKeymap expected to succeed") {
