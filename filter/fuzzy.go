@@ -37,17 +37,28 @@ func (ff *Fuzzy) NewContext(ctx context.Context, query string) context.Context {
 	return newContext(ctx, query)
 }
 
+func (ff Fuzzy) SupportsParallel() bool {
+	return !ff.sortLongest
+}
+
 func (ff Fuzzy) String() string {
 	return "Fuzzy"
 }
 
-func (ff *Fuzzy) Apply(ctx context.Context, lines []line.Line, out pipeline.ChanOutput) error {
+func (ff *Fuzzy) applyInternal(ctx context.Context, lines []line.Line, emit func(line.Line)) error {
 	originalQuery := ctx.Value(queryKey).(string)
 	hasUpper := util.ContainsUpper(originalQuery)
 	matched := []fuzzyMatchedItem{}
 
 LINE:
-	for _, l := range lines {
+	for i, l := range lines {
+		if i%1000 == 0 {
+			select {
+			case <-ctx.Done():
+				return ctx.Err()
+			default:
+			}
+		}
 		// Find the first valid rune of the query
 		firstRune := utf8.RuneError
 		for _, r := range originalQuery {
@@ -140,10 +151,24 @@ LINE:
 	}
 
 	for i := range matched {
-		out.Send(line.NewMatched(matched[i].line, matched[i].matches))
+		emit(line.NewMatched(matched[i].line, matched[i].matches))
 	}
 
 	return nil
+}
+
+func (ff *Fuzzy) Apply(ctx context.Context, lines []line.Line, out pipeline.ChanOutput) error {
+	return ff.applyInternal(ctx, lines, func(l line.Line) {
+		out.Send(ctx, l)
+	})
+}
+
+func (ff *Fuzzy) ApplyCollect(ctx context.Context, lines []line.Line) ([]line.Line, error) {
+	result := make([]line.Line, 0, len(lines)/2)
+	err := ff.applyInternal(ctx, lines, func(l line.Line) {
+		result = append(result, l)
+	})
+	return result, err
 }
 
 func popRune(s string) (string, rune, int) {

@@ -135,14 +135,21 @@ func (f *regexpQueryFactory) Compile(s string, flags regexpFlags, quotemeta bool
 	return rxs, nil
 }
 
-func (rf *Regexp) Apply(ctx context.Context, lines []line.Line, out pipeline.ChanOutput) error {
+func (rf *Regexp) applyInternal(ctx context.Context, lines []line.Line, emit func(line.Line)) error {
 	query := ctx.Value(queryKey).(string)
 	regexps, err := rf.factory.Compile(query, rf.flags, rf.quotemeta)
 	if err != nil {
 		return errors.Wrap(err, "failed to compile queries as regular expression")
 	}
 
-	for _, l := range lines {
+	for i, l := range lines {
+		if i%1000 == 0 {
+			select {
+			case <-ctx.Done():
+				return ctx.Err()
+			default:
+			}
+		}
 		v := l.DisplayString()
 		allMatched := true
 		matches := [][]int{}
@@ -188,9 +195,27 @@ func (rf *Regexp) Apply(ctx context.Context, lines []line.Line, out pipeline.Cha
 				deduped = append(deduped, m)
 			}
 		}
-		out.Send(line.NewMatched(l, deduped))
+		emit(line.NewMatched(l, deduped))
 	}
 	return nil
+}
+
+func (rf *Regexp) Apply(ctx context.Context, lines []line.Line, out pipeline.ChanOutput) error {
+	return rf.applyInternal(ctx, lines, func(l line.Line) {
+		out.Send(ctx, l)
+	})
+}
+
+func (rf *Regexp) ApplyCollect(ctx context.Context, lines []line.Line) ([]line.Line, error) {
+	result := make([]line.Line, 0, len(lines)/2)
+	err := rf.applyInternal(ctx, lines, func(l line.Line) {
+		result = append(result, l)
+	})
+	return result, err
+}
+
+func (rf *Regexp) SupportsParallel() bool {
+	return true
 }
 
 func (rf *Regexp) String() string {

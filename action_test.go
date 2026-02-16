@@ -454,7 +454,7 @@ func TestGHIssue574_PreviousSelectionLastLineNotUpdated(t *testing.T) {
 	}
 
 	// Build a MemoryBuffer containing those lines.
-	mb := NewMemoryBuffer()
+	mb := NewMemoryBuffer(0)
 	mb.lines = lines
 
 	rHub := &recordingHub{}
@@ -553,7 +553,7 @@ func TestGHIssue428_PgUpPgDnDefaultBindings(t *testing.T) {
 	state := New()
 	state.hub = rHub
 	state.selection = NewSelection()
-	state.currentLineBuffer = NewMemoryBuffer()
+	state.currentLineBuffer = NewMemoryBuffer(0)
 
 	// Populate the keymap with defaults (no custom config).
 	state.config.Keymap = map[string]string{}
@@ -598,7 +598,7 @@ func TestGHIssue455_RefreshScreenSendsForceSync(t *testing.T) {
 	state := New()
 	state.hub = rHub
 	state.selection = NewSelection()
-	state.currentLineBuffer = NewMemoryBuffer()
+	state.currentLineBuffer = NewMemoryBuffer(0)
 
 	doRefreshScreen(ctx, state, Event{})
 

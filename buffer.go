@@ -69,9 +69,18 @@ func (flb FilteredBuffer) Size() int {
 	return len(flb.selection)
 }
 
-func NewMemoryBuffer() *MemoryBuffer {
+const defaultMemoryBufferCap = 1024
+
+// NewMemoryBuffer creates a new MemoryBuffer. If cap > 0, the lines
+// slice is pre-allocated with that capacity; otherwise it defaults to
+// defaultMemoryBufferCap.
+func NewMemoryBuffer(cap int) *MemoryBuffer {
+	if cap <= 0 {
+		cap = defaultMemoryBufferCap
+	}
 	mb := &MemoryBuffer{}
-	mb.Reset()
+	mb.done = make(chan struct{})
+	mb.lines = make([]line.Line, 0, cap)
 	return mb
 }
 
@@ -113,6 +122,10 @@ func (mb *MemoryBuffer) Accept(ctx context.Context, in chan interface{}, _ pipel
 		mb.mutex.Unlock()
 	}()
 
+	// batch collects lines from the channel so we can append them
+	// under a single lock acquisition instead of locking per line.
+	batch := make([]line.Line, 0, 256)
+
 	start := time.Now()
 	for {
 		select {
@@ -128,15 +141,65 @@ func (mb *MemoryBuffer) Accept(ctx context.Context, in chan interface{}, _ pipel
 					if pdebug.Enabled {
 						pdebug.Printf("MemoryBuffer received end mark (read %d lines, %s since starting accept loop)", len(mb.lines), time.Since(start).String())
 					}
+					// Flush remaining batch
+					if len(batch) > 0 {
+						mb.mutex.Lock()
+						mb.lines = append(mb.lines, batch...)
+						mb.mutex.Unlock()
+					}
 					return
 				}
-			case line.Line:
+			case []line.Line:
+				batch = append(batch, v...)
 				mb.mutex.Lock()
-				mb.lines = append(mb.lines, v)
+				mb.lines = append(mb.lines, batch...)
 				mb.mutex.Unlock()
+				batch = batch[:0]
+			case line.Line:
+				batch = append(batch, v)
+
+				// Drain any additional ready values without blocking
+			drain:
+				for {
+					select {
+					case v2 := <-in:
+						switch v2 := v2.(type) {
+						case error:
+							if pipeline.IsEndMark(v2) {
+								if pdebug.Enabled {
+									pdebug.Printf("MemoryBuffer received end mark (read %d lines, %s since starting accept loop)", len(mb.lines)+len(batch), time.Since(start).String())
+								}
+								mb.mutex.Lock()
+								mb.lines = append(mb.lines, batch...)
+								mb.mutex.Unlock()
+								return
+							}
+						case []line.Line:
+							batch = append(batch, v2...)
+						case line.Line:
+							batch = append(batch, v2)
+						}
+					default:
+						break drain
+					}
+				}
+
+				// Flush the batch
+				mb.mutex.Lock()
+				mb.lines = append(mb.lines, batch...)
+				mb.mutex.Unlock()
+				batch = batch[:0]
 			}
 		}
 	}
+}
+
+// AppendLine adds a line to the buffer. This is used by the benchmark tool
+// to populate a MemoryBuffer that will be used as a pipeline source.
+func (mb *MemoryBuffer) AppendLine(l line.Line) {
+	mb.mutex.Lock()
+	mb.lines = append(mb.lines, l)
+	mb.mutex.Unlock()
 }
 
 func (mb *MemoryBuffer) LineAt(n int) (line.Line, error) {
@@ -158,3 +221,48 @@ func bufferLineAt(lines []line.Line, n int) (line.Line, error) {
 
 	return lines[n], nil
 }
+
+// MemoryBufferSource wraps a completed MemoryBuffer as a pipeline.Source,
+// allowing previous filter results to be reused as the input for
+// incremental filtering.
+type MemoryBufferSource struct {
+	buf *MemoryBuffer
+}
+
+// NewMemoryBufferSource creates a new MemoryBufferSource from an existing
+// MemoryBuffer. The buffer should be fully populated (pipeline completed).
+func NewMemoryBufferSource(buf *MemoryBuffer) *MemoryBufferSource {
+	return &MemoryBufferSource{buf: buf}
+}
+
+// sourceBatchSize is the number of lines sent per batch from source to
+// the filter stage. Larger batches reduce channel operations but increase
+// latency to first result. 1024 is a good balance.
+const sourceBatchSize = 1024
+
+// Start iterates through the MemoryBuffer's lines and sends them in
+// batches to the output channel, implementing pipeline.Source.
+func (s *MemoryBufferSource) Start(ctx context.Context, out pipeline.ChanOutput) {
+	defer out.SendEndMark(ctx, "end of memory buffer source")
+
+	s.buf.mutex.RLock()
+	lines := s.buf.lines
+	s.buf.mutex.RUnlock()
+
+	for i := 0; i < len(lines); i += sourceBatchSize {
+		select {
+		case <-ctx.Done():
+			return
+		default:
+		}
+		end := i + sourceBatchSize
+		if end > len(lines) {
+			end = len(lines)
+		}
+		out.Send(ctx, lines[i:end])
+	}
+}
+
+// Reset is a no-op for MemoryBufferSource since the underlying buffer
+// is immutable (from a completed pipeline run).
+func (s *MemoryBufferSource) Reset() {}
