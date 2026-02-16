@@ -86,7 +86,8 @@ func TestPrintScreen(t *testing.T) {
 
 func TestScreenStatusBar(t *testing.T) {
 	screen := NewDummyScreen()
-	st := newScreenStatusBar(screen, AnchorBottom, 0, NewStyleSet())
+	st, err := newScreenStatusBar(screen, AnchorBottom, 0, NewStyleSet())
+	require.NoError(t, err)
 	st.PrintStatus("Hello, World!", 0)
 
 	events := screen.interceptor.events
@@ -154,7 +155,8 @@ func TestGHIssue294_PromptStyleUsedForPromptPrefix(t *testing.T) {
 	styles.Basic.bg = ColorDefault
 
 	screen := NewDummyScreen()
-	prompt := NewUserPrompt(screen, AnchorTop, 0, "QUERY>", styles)
+	prompt, err := NewUserPrompt(screen, AnchorTop, 0, "QUERY>", styles)
+	require.NoError(t, err)
 
 	state := New()
 	state.screen = screen
@@ -213,7 +215,8 @@ func TestGHIssue460_MatchedStyleDoesNotBleedToEndOfLine(t *testing.T) {
 		t.Helper()
 
 		screen := NewDummyScreen()
-		listArea := NewListArea(screen, AnchorTop, 0, true, styles)
+		listArea, err := NewListArea(screen, AnchorTop, 0, true, styles)
+		require.NoError(t, err)
 
 		state := New()
 		state.screen = screen
@@ -315,7 +318,8 @@ func TestGHIssue455_DrawScreenForceSync(t *testing.T) {
 
 	t.Run("ForceSync true calls Sync instead of final Flush", func(t *testing.T) {
 		state, screen := setupState(t)
-		layout := NewDefaultLayout(state)
+		layout, err := NewDefaultLayout(state)
+		require.NoError(t, err)
 
 		screen.interceptor.reset()
 		layout.DrawScreen(state, &hub.DrawOptions{DisableCache: true, ForceSync: true})
@@ -348,7 +352,8 @@ func TestGHIssue455_DrawScreenForceSync(t *testing.T) {
 
 	t.Run("ForceSync false does not call Sync", func(t *testing.T) {
 		state, screen := setupState(t)
-		layout := NewDefaultLayout(state)
+		layout, err := NewDefaultLayout(state)
+		require.NoError(t, err)
 
 		screen.interceptor.reset()
 		layout.DrawScreen(state, &hub.DrawOptions{DisableCache: true, ForceSync: false})
@@ -359,7 +364,8 @@ func TestGHIssue455_DrawScreenForceSync(t *testing.T) {
 
 	t.Run("nil options does not call Sync", func(t *testing.T) {
 		state, screen := setupState(t)
-		layout := NewDefaultLayout(state)
+		layout, err := NewDefaultLayout(state)
+		require.NoError(t, err)
 
 		screen.interceptor.reset()
 		layout.DrawScreen(state, nil)
@@ -381,24 +387,24 @@ func TestNewLayout(t *testing.T) {
 
 	t.Run("top-down", func(t *testing.T) {
 		state := makeState()
-		layout := NewLayout(LayoutTypeTopDown, state)
-		require.NotNil(t, layout)
+		layout, err := NewLayout(LayoutTypeTopDown, state)
+		require.NoError(t, err)
 		require.True(t, layout.SortTopDown(), "top-down layout should sort top-down")
 		require.Equal(t, AnchorTop, layout.prompt.anchor, "top-down prompt should be anchored at top")
 	})
 
 	t.Run("bottom-up", func(t *testing.T) {
 		state := makeState()
-		layout := NewLayout(LayoutTypeBottomUp, state)
-		require.NotNil(t, layout)
+		layout, err := NewLayout(LayoutTypeBottomUp, state)
+		require.NoError(t, err)
 		require.False(t, layout.SortTopDown(), "bottom-up layout should not sort top-down")
 		require.Equal(t, AnchorBottom, layout.prompt.anchor, "bottom-up prompt should be anchored at bottom")
 	})
 
 	t.Run("top-down-query-bottom", func(t *testing.T) {
 		state := makeState()
-		layout := NewLayout(LayoutTypeTopDownQueryBottom, state)
-		require.NotNil(t, layout)
+		layout, err := NewLayout(LayoutTypeTopDownQueryBottom, state)
+		require.NoError(t, err)
 		require.True(t, layout.SortTopDown(), "top-down-query-bottom layout should sort top-down")
 		require.Equal(t, AnchorBottom, layout.prompt.anchor, "top-down-query-bottom prompt should be anchored at bottom")
 		require.Equal(t, AnchorTop, layout.list.anchor, "top-down-query-bottom list should be anchored at top")
@@ -406,8 +412,8 @@ func TestNewLayout(t *testing.T) {
 
 	t.Run("unknown falls back to top-down", func(t *testing.T) {
 		state := makeState()
-		layout := NewLayout("unknown-layout", state)
-		require.NotNil(t, layout)
+		layout, err := NewLayout("unknown-layout", state)
+		require.NoError(t, err)
 		require.True(t, layout.SortTopDown(), "fallback layout should sort top-down")
 		require.Equal(t, AnchorTop, layout.prompt.anchor, "fallback prompt should be anchored at top")
 	})
@@ -421,7 +427,8 @@ func TestTopDownQueryBottomLayout(t *testing.T) {
 	state.skipReadConfig = true
 	state.Filters().Add(filter.NewIgnoreCase())
 
-	layout := NewTopDownQueryBottomLayout(state)
+	layout, err := NewTopDownQueryBottomLayout(state)
+	require.NoError(t, err)
 
 	require.Equal(t, AnchorBottom, layout.prompt.anchor,
 		"prompt should be anchored at bottom")
@@ -435,4 +442,32 @@ func TestTopDownQueryBottomLayout(t *testing.T) {
 		"list should sort top-down")
 	require.True(t, layout.SortTopDown(),
 		"SortTopDown() should return true")
+}
+
+// TestInvalidAnchorReturnsError verifies that invalid vertical anchors
+// produce errors instead of panics.
+func TestInvalidAnchorReturnsError(t *testing.T) {
+	screen := NewDummyScreen()
+	invalidAnchor := VerticalAnchor(99)
+
+	t.Run("NewAnchorSettings", func(t *testing.T) {
+		_, err := NewAnchorSettings(screen, invalidAnchor, 0)
+		require.Error(t, err)
+		require.Contains(t, err.Error(), "invalid vertical anchor")
+	})
+
+	t.Run("NewUserPrompt", func(t *testing.T) {
+		_, err := NewUserPrompt(screen, invalidAnchor, 0, "QUERY>", NewStyleSet())
+		require.Error(t, err)
+	})
+
+	t.Run("NewListArea", func(t *testing.T) {
+		_, err := NewListArea(screen, invalidAnchor, 0, true, NewStyleSet())
+		require.Error(t, err)
+	})
+
+	t.Run("newScreenStatusBar", func(t *testing.T) {
+		_, err := newScreenStatusBar(screen, invalidAnchor, 0, NewStyleSet())
+		require.Error(t, err)
+	})
 }

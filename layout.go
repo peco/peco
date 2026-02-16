@@ -3,7 +3,6 @@ package peco
 import (
 	"errors"
 	"fmt"
-	"strconv"
 	"strings"
 	"time"
 	"unicode/utf8"
@@ -23,7 +22,7 @@ type ansiLiner interface {
 }
 
 // LayoutFactory is a function that creates a BasicLayout for the given Peco state.
-type LayoutFactory func(*Peco) *BasicLayout
+type LayoutFactory func(*Peco) (*BasicLayout, error)
 
 var layoutRegistry = map[LayoutType]LayoutFactory{}
 
@@ -33,7 +32,7 @@ func RegisterLayout(name LayoutType, factory LayoutFactory) {
 }
 
 // NewLayout creates a layout by looking up the registry. Falls back to top-down.
-func NewLayout(layoutType LayoutType, state *Peco) *BasicLayout {
+func NewLayout(layoutType LayoutType, state *Peco) (*BasicLayout, error) {
 	if factory, ok := layoutRegistry[layoutType]; ok {
 		return factory(state)
 	}
@@ -67,50 +66,51 @@ func mergeAttribute(a, b Attribute) Attribute {
 	return (((aColor - 1) | (bColor - 1)) + 1) | flags
 }
 
-// NewAnchorSettings creates a new AnchorSetting struct. Panics if
-// an unknown VerticalAnchor is sent
-func NewAnchorSettings(screen Screen, anchor VerticalAnchor, offset int) *AnchorSettings {
+// NewAnchorSettings creates a new AnchorSetting struct.
+func NewAnchorSettings(screen Screen, anchor VerticalAnchor, offset int) (*AnchorSettings, error) {
 	if !IsValidVerticalAnchor(anchor) {
-		panic("Invalid vertical anchor specified")
+		return nil, fmt.Errorf("invalid vertical anchor: %d", anchor)
 	}
 
 	return &AnchorSettings{
 		anchor:       anchor,
 		anchorOffset: offset,
 		screen:       screen,
-	}
+	}, nil
 }
 
 // AnchorPosition returns the starting y-offset, based on the
 // anchor type and offset
 func (as AnchorSettings) AnchorPosition() int {
-	var pos int
 	switch as.anchor {
 	case AnchorTop:
-		pos = as.anchorOffset
+		return as.anchorOffset
 	case AnchorBottom:
 		_, h := as.screen.Size()
-		pos = int(h) - as.anchorOffset - 1 // -1 is required because y is 0 base, but h is 1 base
+		return int(h) - as.anchorOffset - 1 // -1 is required because y is 0 base, but h is 1 base
 	default:
-		panic("Unknown anchor type!")
+		return 0
 	}
-
-	return pos
 }
 
 // NewUserPrompt creates a new UserPrompt struct
-func NewUserPrompt(screen Screen, anchor VerticalAnchor, anchorOffset int, prompt string, styles *StyleSet) *UserPrompt {
+func NewUserPrompt(screen Screen, anchor VerticalAnchor, anchorOffset int, prompt string, styles *StyleSet) (*UserPrompt, error) {
 	if len(prompt) <= 0 { // default
 		prompt = "QUERY>"
 	}
 	promptLen := runewidth.StringWidth(prompt)
 
+	as, err := NewAnchorSettings(screen, anchor, anchorOffset)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create user prompt: %w", err)
+	}
+
 	return &UserPrompt{
-		AnchorSettings: NewAnchorSettings(screen, anchor, anchorOffset),
+		AnchorSettings: as,
 		prompt:         prompt,
 		promptLen:      int(promptLen),
 		styles:         styles,
-	}
+	}, nil
 }
 
 // Draw draws the query prompt
@@ -235,12 +235,17 @@ func (u UserPrompt) Draw(state *Peco) {
 }
 
 // newScreenStatusBar creates a new screenStatusBar struct
-func newScreenStatusBar(screen Screen, anchor VerticalAnchor, anchorOffset int, styles *StyleSet) *screenStatusBar {
+func newScreenStatusBar(screen Screen, anchor VerticalAnchor, anchorOffset int, styles *StyleSet) (*screenStatusBar, error) {
+	as, err := NewAnchorSettings(screen, anchor, anchorOffset)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create status bar: %w", err)
+	}
+
 	return &screenStatusBar{
-		AnchorSettings: NewAnchorSettings(screen, anchor, anchorOffset),
+		AnchorSettings: as,
 		clearTimer:     nil,
 		styles:         styles,
-	}
+	}, nil
 }
 
 func (s *screenStatusBar) stopTimer() {
@@ -327,14 +332,19 @@ func (l *BasicLayout) PrintStatus(msg string, delay time.Duration) {
 }
 
 // NewListArea creates a new ListArea struct
-func NewListArea(screen Screen, anchor VerticalAnchor, anchorOffset int, sortTopDown bool, styles *StyleSet) *ListArea {
+func NewListArea(screen Screen, anchor VerticalAnchor, anchorOffset int, sortTopDown bool, styles *StyleSet) (*ListArea, error) {
+	as, err := NewAnchorSettings(screen, anchor, anchorOffset)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create list area: %w", err)
+	}
+
 	return &ListArea{
-		AnchorSettings: NewAnchorSettings(screen, anchor, anchorOffset),
+		AnchorSettings: as,
 		displayCache:   []line.Line{},
 		dirty:          false,
 		sortTopDown:    sortTopDown,
 		styles:         styles,
-	}
+	}, nil
 }
 
 func (l *ListArea) purgeDisplayCache() {
@@ -364,7 +374,7 @@ func (l *ListArea) Draw(state *Peco, parent Layout, perPage int, options *hub.Dr
 	}
 
 	if perPage < 1 {
-		panic("perPage < 1 (was " + strconv.Itoa(perPage) + ")")
+		return
 	}
 
 	loc := state.Location()
@@ -681,51 +691,78 @@ func maxOf(a, b int) int {
 
 // newStatusBar returns a StatusBar appropriate for the configuration.
 // If SuppressStatusMsg is true, a nullStatusBar (no-op) is returned.
-func newStatusBar(state *Peco) StatusBar {
+func newStatusBar(state *Peco) (StatusBar, error) {
 	if state.config.SuppressStatusMsg {
-		return nullStatusBar{}
+		return nullStatusBar{}, nil
 	}
 	return newScreenStatusBar(state.Screen(), AnchorBottom, 0+extraOffset, state.Styles())
 }
 
 // NewDefaultLayout creates a new Layout in the default format (top-down)
-func NewDefaultLayout(state *Peco) *BasicLayout {
-	return &BasicLayout{
-		statusBar: newStatusBar(state),
-		screen:    state.Screen(),
-		// The prompt is at the top
-		prompt: NewUserPrompt(state.Screen(), AnchorTop, 0, state.Prompt(), state.Styles()),
-		// The list area is at the top, after the prompt
-		// It's also displayed top-to-bottom order
-		list: NewListArea(state.Screen(), AnchorTop, 1, true, state.Styles()),
+func NewDefaultLayout(state *Peco) (*BasicLayout, error) {
+	sb, err := newStatusBar(state)
+	if err != nil {
+		return nil, err
 	}
+	prompt, err := NewUserPrompt(state.Screen(), AnchorTop, 0, state.Prompt(), state.Styles())
+	if err != nil {
+		return nil, err
+	}
+	list, err := NewListArea(state.Screen(), AnchorTop, 1, true, state.Styles())
+	if err != nil {
+		return nil, err
+	}
+	return &BasicLayout{
+		statusBar: sb,
+		screen:    state.Screen(),
+		prompt:    prompt,
+		list:      list,
+	}, nil
 }
 
 // NewBottomUpLayout creates a new Layout in bottom-up format
-func NewBottomUpLayout(state *Peco) *BasicLayout {
-	return &BasicLayout{
-		statusBar: newStatusBar(state),
-		screen:    state.Screen(),
-		// The prompt is at the bottom, above the status bar
-		prompt: NewUserPrompt(state.Screen(), AnchorBottom, 1+extraOffset, state.Prompt(), state.Styles()),
-		// The list area is at the bottom, above the prompt
-		// It's displayed in bottom-to-top order
-		list: NewListArea(state.Screen(), AnchorBottom, 2+extraOffset, false, state.Styles()),
+func NewBottomUpLayout(state *Peco) (*BasicLayout, error) {
+	sb, err := newStatusBar(state)
+	if err != nil {
+		return nil, err
 	}
+	prompt, err := NewUserPrompt(state.Screen(), AnchorBottom, 1+extraOffset, state.Prompt(), state.Styles())
+	if err != nil {
+		return nil, err
+	}
+	list, err := NewListArea(state.Screen(), AnchorBottom, 2+extraOffset, false, state.Styles())
+	if err != nil {
+		return nil, err
+	}
+	return &BasicLayout{
+		statusBar: sb,
+		screen:    state.Screen(),
+		prompt:    prompt,
+		list:      list,
+	}, nil
 }
 
 // NewTopDownQueryBottomLayout creates a new Layout with list top-to-bottom
 // and the query prompt at the bottom.
-func NewTopDownQueryBottomLayout(state *Peco) *BasicLayout {
-	return &BasicLayout{
-		statusBar: newStatusBar(state),
-		screen:    state.Screen(),
-		// The prompt is at the bottom, above the status bar
-		prompt: NewUserPrompt(state.Screen(), AnchorBottom, 1+extraOffset, state.Prompt(), state.Styles()),
-		// The list area is at the top
-		// It's displayed in top-to-bottom order
-		list: NewListArea(state.Screen(), AnchorTop, 0, true, state.Styles()),
+func NewTopDownQueryBottomLayout(state *Peco) (*BasicLayout, error) {
+	sb, err := newStatusBar(state)
+	if err != nil {
+		return nil, err
 	}
+	prompt, err := NewUserPrompt(state.Screen(), AnchorBottom, 1+extraOffset, state.Prompt(), state.Styles())
+	if err != nil {
+		return nil, err
+	}
+	list, err := NewListArea(state.Screen(), AnchorTop, 0, true, state.Styles())
+	if err != nil {
+		return nil, err
+	}
+	return &BasicLayout{
+		statusBar: sb,
+		screen:    state.Screen(),
+		prompt:    prompt,
+		list:      list,
+	}, nil
 }
 
 // SortTopDown returns whether this layout sorts lines from top to bottom.
