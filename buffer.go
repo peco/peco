@@ -139,6 +139,14 @@ func (mb *MemoryBuffer) Accept(ctx context.Context, in chan interface{}, _ pipel
 	}
 }
 
+// AppendLine adds a line to the buffer. This is used by the benchmark tool
+// to populate a MemoryBuffer that will be used as a pipeline source.
+func (mb *MemoryBuffer) AppendLine(l line.Line) {
+	mb.mutex.Lock()
+	mb.lines = append(mb.lines, l)
+	mb.mutex.Unlock()
+}
+
 func (mb *MemoryBuffer) LineAt(n int) (line.Line, error) {
 	mb.mutex.RLock()
 	defer mb.mutex.RUnlock()
@@ -158,3 +166,39 @@ func bufferLineAt(lines []line.Line, n int) (line.Line, error) {
 
 	return lines[n], nil
 }
+
+// MemoryBufferSource wraps a completed MemoryBuffer as a pipeline.Source,
+// allowing previous filter results to be reused as the input for
+// incremental filtering.
+type MemoryBufferSource struct {
+	buf *MemoryBuffer
+}
+
+// NewMemoryBufferSource creates a new MemoryBufferSource from an existing
+// MemoryBuffer. The buffer should be fully populated (pipeline completed).
+func NewMemoryBufferSource(buf *MemoryBuffer) *MemoryBufferSource {
+	return &MemoryBufferSource{buf: buf}
+}
+
+// Start iterates through the MemoryBuffer's lines and sends them to the
+// output channel, implementing pipeline.Source.
+func (s *MemoryBufferSource) Start(ctx context.Context, out pipeline.ChanOutput) {
+	defer out.SendEndMark("end of memory buffer source")
+
+	s.buf.mutex.RLock()
+	lines := s.buf.lines
+	s.buf.mutex.RUnlock()
+
+	for _, l := range lines {
+		select {
+		case <-ctx.Done():
+			return
+		default:
+			out.Send(l)
+		}
+	}
+}
+
+// Reset is a no-op for MemoryBufferSource since the underlying buffer
+// is immutable (from a completed pipeline run).
+func (s *MemoryBufferSource) Reset() {}

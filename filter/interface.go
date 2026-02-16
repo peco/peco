@@ -74,4 +74,8 @@ type Filter interface {
 	BufSize() int
 	NewContext(context.Context, string) context.Context
 	String() string
+	// SupportsParallel returns true if this filter can safely be invoked
+	// concurrently on independent chunks of lines. Filters that require
+	// global state across all lines (e.g. sorted output) should return false.
+	SupportsParallel() bool
 }

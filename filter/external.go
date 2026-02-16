@@ -42,6 +42,10 @@ func (ecf *ExternalCmd) NewContext(ctx context.Context, query string) context.Co
 	return newContext(ctx, query)
 }
 
+func (ecf ExternalCmd) SupportsParallel() bool {
+	return true
+}
+
 func (ecf ExternalCmd) String() string {
 	return ecf.name
 }

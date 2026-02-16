@@ -37,6 +37,10 @@ func (ff *Fuzzy) NewContext(ctx context.Context, query string) context.Context {
 	return newContext(ctx, query)
 }
 
+func (ff Fuzzy) SupportsParallel() bool {
+	return !ff.sortLongest
+}
+
 func (ff Fuzzy) String() string {
 	return "Fuzzy"
 }
@@ -47,7 +51,14 @@ func (ff *Fuzzy) Apply(ctx context.Context, lines []line.Line, out pipeline.Chan
 	matched := []fuzzyMatchedItem{}
 
 LINE:
-	for _, l := range lines {
+	for i, l := range lines {
+		if i%1000 == 0 {
+			select {
+			case <-ctx.Done():
+				return ctx.Err()
+			default:
+			}
+		}
 		// Find the first valid rune of the query
 		firstRune := utf8.RuneError
 		for _, r := range originalQuery {

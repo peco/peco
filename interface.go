@@ -259,7 +259,11 @@ type Keymap struct {
 
 // Filter is responsible for the actual "grep" part of peco
 type Filter struct {
-	state *Peco
+	state          *Peco
+	prevQuery      string
+	prevResults    *MemoryBuffer
+	prevFilterName string
+	prevMu         sync.Mutex
 }
 
 // Action describes an action that can be executed upon receiving user

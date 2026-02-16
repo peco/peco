@@ -142,7 +142,14 @@ func (rf *Regexp) Apply(ctx context.Context, lines []line.Line, out pipeline.Cha
 		return errors.Wrap(err, "failed to compile queries as regular expression")
 	}
 
-	for _, l := range lines {
+	for i, l := range lines {
+		if i%1000 == 0 {
+			select {
+			case <-ctx.Done():
+				return ctx.Err()
+			default:
+			}
+		}
 		v := l.DisplayString()
 		allMatched := true
 		matches := [][]int{}
@@ -191,6 +198,10 @@ func (rf *Regexp) Apply(ctx context.Context, lines []line.Line, out pipeline.Cha
 		out.Send(line.NewMatched(l, deduped))
 	}
 	return nil
+}
+
+func (rf *Regexp) SupportsParallel() bool {
+	return true
 }
 
 func (rf *Regexp) String() string {
