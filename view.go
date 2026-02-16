@@ -25,13 +25,7 @@ func (jlr JumpToLineRequest) Line() int {
 }
 
 func NewView(state *Peco) *View {
-	var layout Layout
-	switch state.LayoutType() {
-	case LayoutTypeBottomUp:
-		layout = NewBottomUpLayout(state)
-	default:
-		layout = NewDefaultLayout(state)
-	}
+	layout := NewLayout(LayoutType(state.LayoutType()), state)
 	return &View{
 		state:  state,
 		layout: layout,
