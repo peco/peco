@@ -869,14 +869,12 @@ func TestQueryExecTimerStoppedOnCancel(t *testing.T) {
 	// Type a character to trigger ExecQuery which will create the timer
 	p.screen.SendEvent(Event{Type: EventKey, Ch: 'f'})
 
-	// Give the input loop time to process the keystroke and create the timer
-	time.Sleep(100 * time.Millisecond)
-
-	// Verify the timer was created
-	p.queryExecMutex.Lock()
-	timerCreated := p.queryExecTimer != nil
-	p.queryExecMutex.Unlock()
-	require.True(t, timerCreated, "queryExecTimer should have been created")
+	// Wait for the input loop to process the keystroke and create the timer
+	require.Eventually(t, func() bool {
+		p.queryExecMutex.Lock()
+		defer p.queryExecMutex.Unlock()
+		return p.queryExecTimer != nil
+	}, 5*time.Second, 10*time.Millisecond, "queryExecTimer should have been created")
 
 	// Cancel the context (simulating program exit)
 	cancel()

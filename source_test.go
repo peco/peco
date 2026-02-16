@@ -9,6 +9,7 @@ import (
 
 	"context"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 // delay reading so we can see that
@@ -63,18 +64,10 @@ func TestSource(t *testing.T) {
 	}
 
 	// Even if s.Ready() returns, we may still be reading.
-	// Wait for another few seconds for the buffer to fill up to
-	// the expected number of lines
-	timeout = time.After(5 * time.Second)
-	for s.Size() != len(lines) {
-		select {
-		case <-timeout:
-			assert.Fail(t, "timed out waiting for the buffer to fill")
-			return
-		default:
-			time.Sleep(time.Second)
-		}
-	}
+	// Wait for the buffer to fill up to the expected number of lines.
+	require.Eventually(t, func() bool {
+		return s.Size() == len(lines)
+	}, 5*time.Second, 10*time.Millisecond, "buffer should fill up to %d lines", len(lines))
 
 	for i := 0; i < len(lines); i++ {
 		line, err := s.LineAt(i)

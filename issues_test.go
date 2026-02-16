@@ -115,8 +115,9 @@ func TestIssue345(t *testing.T) {
 		return
 	}
 
-	time.Sleep(time.Second)
-
+	// Brief pause to let async hub messages from the combined action
+	// be processed before context cancellation tears down goroutines.
+	time.Sleep(50 * time.Millisecond)
 }
 
 // TestIssue557_FilterBufSize verifies that configuring FilterBufSize allows
