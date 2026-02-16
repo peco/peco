@@ -133,7 +133,7 @@ func (ecf *ExternalCmd) Apply(ctx context.Context, buf []line.Line, out pipeline
 				if l == nil {
 					// No original line found (or enableSep is false):
 					// create a new Raw line as before
-					l = line.NewRaw(ecf.idgen.Next(), s, ecf.enableSep)
+					l = line.NewRaw(ecf.idgen.Next(), s, ecf.enableSep, false)
 				}
 
 				select {

@@ -42,7 +42,7 @@ func TestParallelFilterProducesSameResults(t *testing.T) {
 		if i%3 == 0 {
 			text = fmt.Sprintf("line-%04d matching-pattern test", i)
 		}
-		lines[i] = line.NewRaw(uint64(i), text, false)
+		lines[i] = line.NewRaw(uint64(i), text, false, false)
 	}
 
 	filters := []struct {
@@ -107,7 +107,7 @@ func TestParallelFilterContextCancellation(t *testing.T) {
 	const numLines = 100000
 	lines := make([]line.Line, numLines)
 	for i := 0; i < numLines; i++ {
-		lines[i] = line.NewRaw(uint64(i), fmt.Sprintf("line-%d matching-pattern", i), false)
+		lines[i] = line.NewRaw(uint64(i), fmt.Sprintf("line-%d matching-pattern", i), false, false)
 	}
 
 	f := NewIgnoreCase()

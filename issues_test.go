@@ -132,11 +132,11 @@ func TestIssue557_FilterBufSize(t *testing.T) {
 	// The exact match ("exact") is at index 1099, which with the default buf size of
 	// 1000 would land in the second chunk.
 	var lines []line.Line
-	lines = append(lines, line.NewRaw(0, "e_x_a_c_t filler text", false)) // fuzzy match
+	lines = append(lines, line.NewRaw(0, "e_x_a_c_t filler text", false, false)) // fuzzy match
 	for i := 1; i < totalLines-1; i++ {
-		lines = append(lines, line.NewRaw(uint64(i), fmt.Sprintf("no match line %d", i), false))
+		lines = append(lines, line.NewRaw(uint64(i), fmt.Sprintf("no match line %d", i), false, false))
 	}
-	lines = append(lines, line.NewRaw(uint64(totalLines-1), "exact", false)) // exact match, best result
+	lines = append(lines, line.NewRaw(uint64(totalLines-1), "exact", false, false)) // exact match, best result
 
 	f := filter.NewFuzzy(true)
 

@@ -9,11 +9,17 @@ import (
 
 	"github.com/lestrrat-go/pdebug"
 	"github.com/mattn/go-runewidth"
+	"github.com/peco/peco/internal/ansi"
 	"github.com/peco/peco/line"
 	"github.com/pkg/errors"
 )
 
 var extraOffset int = 0
+
+// ansiLiner is an optional interface for lines that carry ANSI color attributes.
+type ansiLiner interface {
+	ANSIAttrs() []ansi.AttrSpan
+}
 
 // LayoutFactory is a function that creates a BasicLayout for the given Peco state.
 type LayoutFactory func(*Peco) *BasicLayout
@@ -515,6 +521,17 @@ func (l *ListArea) Draw(state *Peco, parent Layout, perPage int, options *DrawOp
 		xOffset := loc.Column()
 		line := target.DisplayString()
 
+		// Extract ANSI attrs if available. Only use them for
+		// non-selected (basic) lines so selection/savedSelection
+		// styling takes precedence.
+		var lineANSIAttrs []ansi.AttrSpan
+		isBasicStyle := (fgAttr == l.styles.Basic.fg && bgAttr == l.styles.Basic.bg)
+		if isBasicStyle {
+			if al, ok := target.(ansiLiner); ok {
+				lineANSIAttrs = al.ANSIAttrs()
+			}
+		}
+
 		if len := len(prefix); len > 0 {
 			l.screen.Print(PrintArgs{
 				X:       x,
@@ -562,13 +579,14 @@ func (l *ListArea) Draw(state *Peco, parent Layout, perPage int, options *DrawOp
 		ix, ok := target.(MatchIndexer)
 		if !ok {
 			l.screen.Print(PrintArgs{
-				X:       x,
-				Y:       y,
-				XOffset: xOffset,
-				Fg:      fgAttr,
-				Bg:      bgAttr,
-				Msg:     line,
-				Fill:    true,
+				X:         x,
+				Y:         y,
+				XOffset:   xOffset,
+				Fg:        fgAttr,
+				Bg:        bgAttr,
+				Msg:       line,
+				Fill:      true,
+				ANSIAttrs: lineANSIAttrs,
 			})
 			continue
 		}
@@ -576,23 +594,33 @@ func (l *ListArea) Draw(state *Peco, parent Layout, perPage int, options *DrawOp
 		matches := ix.Indices()
 		prev := x
 		index := 0
+		runeOffset := 0 // tracks rune position for ANSI ExtractSegment
 
 		for _, m := range matches {
 			if m[0] > index {
 				c := line[index:m[0]]
+				runeLen := utf8.RuneCountInString(c)
+				var segAttrs []ansi.AttrSpan
+				if lineANSIAttrs != nil {
+					segAttrs = ansi.ExtractSegment(lineANSIAttrs, runeOffset, runeOffset+runeLen)
+				}
 				n := l.screen.Print(PrintArgs{
-					X:       prev,
-					Y:       y,
-					XOffset: xOffset,
-					Fg:      fgAttr,
-					Bg:      bgAttr,
-					Msg:     c,
+					X:         prev,
+					Y:         y,
+					XOffset:   xOffset,
+					Fg:        fgAttr,
+					Bg:        bgAttr,
+					Msg:       c,
+					ANSIAttrs: segAttrs,
 				})
 				prev += n
 				index += len(c)
+				runeOffset += runeLen
 			}
 			c := line[m[0]:m[1]]
+			runeLen := utf8.RuneCountInString(c)
 
+			// Match segments: no ANSI attrs, match style overrides
 			n := l.screen.Print(PrintArgs{
 				X:       prev,
 				Y:       y,
@@ -603,17 +631,25 @@ func (l *ListArea) Draw(state *Peco, parent Layout, perPage int, options *DrawOp
 			})
 			prev += n
 			index += len(c)
+			runeOffset += runeLen
 		}
 
 		if index < len(line) {
+			c := line[index:]
+			runeLen := utf8.RuneCountInString(c)
+			var segAttrs []ansi.AttrSpan
+			if lineANSIAttrs != nil {
+				segAttrs = ansi.ExtractSegment(lineANSIAttrs, runeOffset, runeOffset+runeLen)
+			}
 			l.screen.Print(PrintArgs{
-				X:       prev,
-				Y:       y,
-				XOffset: xOffset,
-				Fg:      fgAttr,
-				Bg:      bgAttr,
-				Msg:     line[index:],
-				Fill:    true,
+				X:         prev,
+				Y:         y,
+				XOffset:   xOffset,
+				Fg:        fgAttr,
+				Bg:        bgAttr,
+				Msg:       c,
+				Fill:      true,
+				ANSIAttrs: segAttrs,
 			})
 		} else {
 			l.screen.Print(PrintArgs{

@@ -4,14 +4,15 @@ import (
 	"strings"
 
 	"github.com/google/btree"
+	"github.com/peco/peco/internal/ansi"
 	"github.com/peco/peco/internal/util"
 )
 
 // NewRaw creates a new Raw. The `enableSep` flag tells
 // it if we should search for a null character to split the
 // string to display and the string to emit upon selection of
-// of said line
-func NewRaw(id uint64, v string, enableSep bool) *Raw {
+// of said line. The `enableANSI` flag enables ANSI SGR parsing.
+func NewRaw(id uint64, v string, enableSep bool, enableANSI bool) *Raw {
 	rl := &Raw{
 		id:            id,
 		buf:           v,
@@ -20,13 +21,23 @@ func NewRaw(id uint64, v string, enableSep bool) *Raw {
 		dirty:         false,
 	}
 
-	if !enableSep {
-		return rl
+	if enableSep {
+		if i := strings.IndexByte(rl.buf, '\000'); i != -1 {
+			rl.sepLoc = i
+		}
 	}
 
-	if i := strings.IndexByte(rl.buf, '\000'); i != -1 {
-		rl.sepLoc = i
+	if enableANSI {
+		// Determine which portion to parse for display
+		src := rl.buf
+		if rl.sepLoc > -1 {
+			src = rl.buf[:rl.sepLoc]
+		}
+		r := ansi.Parse(src)
+		rl.displayString = r.Stripped
+		rl.ansiAttrs = r.Attrs
 	}
+
 	return rl
 }
 
@@ -67,6 +78,12 @@ func (rl *Raw) DisplayString() string {
 		rl.displayString = util.StripANSISequence(rl.buf)
 	}
 	return rl.displayString
+}
+
+// ANSIAttrs returns the run-length encoded ANSI attributes for this line.
+// Returns nil if ANSI parsing was not enabled or the line had no ANSI codes.
+func (rl *Raw) ANSIAttrs() []ansi.AttrSpan {
+	return rl.ansiAttrs
 }
 
 // Output returns the string to be displayed *after peco is done

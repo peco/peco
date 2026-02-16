@@ -101,6 +101,30 @@ Each scroll moves by half the terminal width.
 
 If your input contains very long lines (e.g. minified files) and they do not appear at all, try increasing `MaxScanBufferSize` in your config. The default is 256 (KB), which limits the maximum length of a single input line.
 
+## ANSI Color Support
+
+When the `--ansi` flag is enabled, peco parses ANSI SGR (Select Graphic Rendition) escape sequences from the input and renders the original colors in the terminal. This lets you pipe colored output from tools like `git log --color`, `rg --color=always`, or `ls --color` through peco while preserving the visual formatting.
+
+```
+git log --color=always | peco --ansi
+rg --color=always pattern | peco --ansi
+ls --color=always | peco --ansi
+```
+
+Supported ANSI features:
+- Basic 8 foreground and background colors (30-37, 40-47)
+- 256-color palette (38;5;N, 48;5;N)
+- 24-bit truecolor (38;2;R;G;B, 48;2;R;G;B)
+- Bold, underline, and reverse attributes
+- Reset sequences
+
+When ANSI mode is enabled:
+- Filtering and matching operate against the **stripped** (plain text) version of each line, so escape codes do not interfere with your queries
+- ANSI colors are displayed as the **base layer**; peco's own selection and match highlighting take precedence over ANSI colors
+- Selected lines' output preserves the **original** ANSI codes, so downstream tools receive colored text
+
+ANSI mode can also be enabled permanently via the configuration file (see [ANSI](#ansi) under Global configuration).
+
 ## Selectable Layout
 
 As of v0.2.5, if you would rather not move your eyes off of the bottom of the screen, you can change the screen layout by either providing the `--layout=bottom-up` command line option, or set the `Layout` variable in your configuration file
@@ -303,6 +327,12 @@ Upon exiting from the external command, the control goes back to peco where you 
 
 To exit out of peco when running in this mode, you must execute the Cancel command, usually the escape key.
 
+### --ansi
+
+Enables ANSI color code support. When this flag is set, peco parses ANSI SGR escape sequences from the input and renders the colors in the terminal UI. Filtering is performed against the plain text with ANSI codes stripped, and selected output preserves the original ANSI codes.
+
+See [ANSI Color Support](#ansi-color-support) in the Features section for details.
+
 # Configuration File
 
 peco by default consults a few locations for the config files.
@@ -322,6 +352,7 @@ Below are configuration sections that you may specify in your config file:
 * [Prompt](#prompt)
 * [InitialMatcher](#initialmatcher)
 * [Use256Color](#use256color)
+* [ANSI](#ansi)
 
 ## Global
 
@@ -403,6 +434,20 @@ responsible for reading the input lines. If you believe that your input has
 very long lines that prohibit peco from reading them, try increasing this number.
 
 The same time, the default MaxScanBuferSize is 256kb.
+
+### ANSI
+
+```json
+{
+    "ANSI": true
+}
+```
+
+Enables ANSI color code support. When set to `true`, peco parses and renders ANSI SGR escape sequences from the input. This is equivalent to using the `--ansi` command line flag. The command line flag takes precedence if both are specified.
+
+Default value for ANSI is `false`.
+
+See [ANSI Color Support](#ansi-color-support) in the Features section for details.
 
 ## Keymaps
 
@@ -834,6 +879,7 @@ Much code stolen from https://github.com/mattn/gof
   - [Select Range Of Lines](#select-range-of-lines)
   - [Select Filters](#select-filters)
   - [Horizontal Scrolling](#horizontal-scrolling)
+  - [ANSI Color Support](#ansi-color-support)
   - [Selectable Layout](#selectable-layout)
   - [Works on Windows!](#works-on-windows)
 - [Installation](#installation)
@@ -861,6 +907,7 @@ Much code stolen from https://github.com/mattn/gof
     - [--on-cancel `success|error`](#--on-cancel-successerror)
     - [--selection-prefix `string`](#--selection-prefix-string)
     - [--exec `string`](#--exec-string)
+    - [--ansi](#--ansi)
 - [Configuration File](#configuration-file)
   - [Global](#global)
     - [Prompt](#prompt)
@@ -871,6 +918,7 @@ Much code stolen from https://github.com/mattn/gof
     - [SuppressStatusMsg](#suppressstatusmsg)
     - [OnCancel](#oncancel)
     - [MaxScanBufferSize](#maxscanbuffersize)
+    - [ANSI](#ansi)
   - [Keymaps](#keymaps)
     - [Key sequences](#key-sequences)
     - [Combined actions](#combined-actions)

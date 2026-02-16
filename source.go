@@ -15,7 +15,7 @@ import (
 
 // NewSource creates a new Source. Does not start processing the input until you
 // call Setup()
-func NewSource(name string, in io.Reader, isInfinite bool, idgen line.IDGenerator, capacity int, enableSep bool) *Source {
+func NewSource(name string, in io.Reader, isInfinite bool, idgen line.IDGenerator, capacity int, enableSep bool, enableANSI bool) *Source {
 	var lines []line.Line
 	if capacity > 0 {
 		lines = make([]line.Line, 0, capacity)
@@ -24,6 +24,7 @@ func NewSource(name string, in io.Reader, isInfinite bool, idgen line.IDGenerato
 		name:       name,
 		capacity:   capacity,
 		enableSep:  enableSep,
+		enableANSI: enableANSI,
 		idgen:      idgen,
 		in:         in, // Note that this may be closed, so do not rely on it
 		inClosed:   false,
@@ -150,7 +151,7 @@ func (s *Source) Setup(ctx context.Context, state *Peco) {
 				}
 
 				readCount++
-				s.Append(line.NewRaw(s.idgen.Next(), l, s.enableSep))
+				s.Append(line.NewRaw(s.idgen.Next(), l, s.enableSep, s.enableANSI))
 				notify.Do(notifycb)
 			}
 		}

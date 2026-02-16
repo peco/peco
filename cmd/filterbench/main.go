@@ -167,7 +167,7 @@ func loadFromFile(path string) []line.Line {
 	scanner.Buffer(make([]byte, 256*1024), 256*1024)
 	var id uint64
 	for scanner.Scan() {
-		lines = append(lines, line.NewRaw(id, scanner.Text(), false))
+		lines = append(lines, line.NewRaw(id, scanner.Text(), false, false))
 		id++
 	}
 	if err := scanner.Err(); err != nil {
@@ -228,7 +228,7 @@ func generateLines(cfg benchConfig) []line.Line {
 			}
 		}
 
-		lines[i] = line.NewRaw(uint64(i), sb.String(), false)
+		lines[i] = line.NewRaw(uint64(i), sb.String(), false, false)
 	}
 
 	return lines

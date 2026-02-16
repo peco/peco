@@ -1,6 +1,9 @@
 package line
 
-import "github.com/google/btree"
+import (
+	"github.com/google/btree"
+	"github.com/peco/peco/internal/ansi"
+)
 
 // IDGenerator defines an interface for things that generate
 // unique IDs for lines used within peco.
@@ -41,6 +44,7 @@ type Raw struct {
 	buf           string
 	sepLoc        int
 	displayString string
+	ansiAttrs     []ansi.AttrSpan
 	dirty         bool
 }
 

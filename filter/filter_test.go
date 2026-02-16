@@ -61,7 +61,7 @@ func testFuzzy(octx context.Context, t *testing.T, filter Filter) {
 			defer cancel()
 
 			ch := make(chan interface{}, 1)
-			l := line.NewRaw(uint64(i), v.input, false)
+			l := line.NewRaw(uint64(i), v.input, false, false)
 			err := filter.Apply(ctx, []line.Line{l}, pipeline.ChanOutput(ch))
 			if !assert.NoError(t, err, `filter.Apply should succeed`) {
 				return
@@ -189,7 +189,7 @@ func testFuzzyLongest(octx context.Context, t *testing.T, filter Filter) {
 
 			var lines []line.Line
 			for _, raw := range v.input {
-				lines = append(lines, line.NewRaw(uint64(i), raw, false))
+				lines = append(lines, line.NewRaw(uint64(i), raw, false, false))
 			}
 
 			var actual []string
@@ -318,7 +318,7 @@ func collectFilterResults(t *testing.T, f Filter, query string, inputLines []lin
 func makeLines(inputs ...string) []line.Line {
 	lines := make([]line.Line, len(inputs))
 	for i, s := range inputs {
-		lines[i] = line.NewRaw(uint64(i), s, false)
+		lines[i] = line.NewRaw(uint64(i), s, false, false)
 	}
 	return lines
 }
@@ -540,7 +540,7 @@ func testFuzzyMatch(octx context.Context, t *testing.T, filter Filter) {
 			lc := make(chan interface{})
 			ec := make(chan error)
 			go func() {
-				ec <- filter.Apply(ctx, []line.Line{line.NewRaw(uint64(i), v.input, false)}, lc)
+				ec <- filter.Apply(ctx, []line.Line{line.NewRaw(uint64(i), v.input, false, false)}, lc)
 			}()
 
 		OUTER:

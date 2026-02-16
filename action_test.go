@@ -446,11 +446,11 @@ func TestGHIssue574_PreviousSelectionLastLineNotUpdated(t *testing.T) {
 	// Create lines with known IDs.
 	// We use IDs 10, 20, 30, 40, 50 for five lines.
 	lines := []line.Line{
-		line.NewRaw(10, "line-10", false),
-		line.NewRaw(20, "line-20", false),
-		line.NewRaw(30, "line-30", false),
-		line.NewRaw(40, "line-40", false),
-		line.NewRaw(50, "line-50", false),
+		line.NewRaw(10, "line-10", false, false),
+		line.NewRaw(20, "line-20", false, false),
+		line.NewRaw(30, "line-30", false, false),
+		line.NewRaw(40, "line-40", false, false),
+		line.NewRaw(50, "line-50", false, false),
 	}
 
 	// Build a MemoryBuffer containing those lines.

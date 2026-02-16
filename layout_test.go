@@ -219,12 +219,12 @@ func TestGHIssue460_MatchedStyleDoesNotBleedToEndOfLine(t *testing.T) {
 		state.skipReadConfig = true
 
 		mb := NewMemoryBuffer(0)
-		raw := line.NewRaw(0, text, false)
+		raw := line.NewRaw(0, text, false, false)
 		matched := line.NewMatched(raw, matches)
 		mb.lines = append(mb.lines, matched)
 		// Add a second line so we can set the cursor on it,
 		// keeping line 0 in Basic (non-selected) style.
-		mb.lines = append(mb.lines, line.NewRaw(1, "other", false))
+		mb.lines = append(mb.lines, line.NewRaw(1, "other", false, false))
 		state.currentLineBuffer = mb
 
 		loc := state.Location()
@@ -301,7 +301,7 @@ func TestGHIssue455_DrawScreenForceSync(t *testing.T) {
 		state.Filters().Add(filter.NewIgnoreCase())
 
 		mb := NewMemoryBuffer(0)
-		mb.lines = append(mb.lines, line.NewRaw(0, "line one", false))
+		mb.lines = append(mb.lines, line.NewRaw(0, "line one", false, false))
 		state.currentLineBuffer = mb
 
 		loc := state.Location()
