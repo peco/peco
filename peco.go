@@ -437,7 +437,12 @@ func (p *Peco) Run(ctx context.Context) (err error) {
 		// out of Run()
 		p.screen.Init(&p.config)
 		go NewInput(p, p.Keymap(), p.screen.PollEvent(ctx, &p.config)).Loop(ctx, cancel)
-		go NewView(p).Loop(ctx, cancel)
+		v, err := NewView(p)
+		if err != nil {
+			p.Exit(fmt.Errorf("failed to create view: %w", err))
+			return
+		}
+		go v.Loop(ctx, cancel)
 		go NewFilter(p).Loop(ctx, cancel)
 	}()
 	defer p.screen.Close()

@@ -2,16 +2,20 @@ package peco
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/peco/peco/hub"
 )
 
-func NewView(state *Peco) *View {
-	layout := NewLayout(LayoutType(state.LayoutType()), state)
+func NewView(state *Peco) (*View, error) {
+	layout, err := NewLayout(LayoutType(state.LayoutType()), state)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create layout: %w", err)
+	}
 	return &View{
 		state:  state,
 		layout: layout,
-	}
+	}, nil
 }
 
 func (v *View) Loop(ctx context.Context, cancel func()) error {
