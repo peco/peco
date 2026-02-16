@@ -125,6 +125,8 @@ func (ss *StyleSet) Init() {
 	ss.Selected.bg = ColorMagenta
 	ss.Prompt.fg = ColorDefault
 	ss.Prompt.bg = ColorDefault
+	ss.Context.fg = ColorDefault | AttrBold
+	ss.Context.bg = ColorDefault
 }
 
 // UnmarshalJSON satisfies json.RawMessage.

@@ -155,6 +155,34 @@ Each scroll moves by half the terminal width.
 
 If your input contains very long lines (e.g. minified files) and they do not appear at all, try increasing `MaxScanBufferSize` in your config. The default is 256 (KB), which limits the maximum length of a single input line.
 
+## Context Lines (Zoom In/Out)
+
+When filtering results (e.g. searching for "error" in a log file), you often need to see the surrounding lines to understand the context. peco supports expanding filtered results to show context lines around each match, similar to `grep -C`.
+
+Two actions are available:
+
+- **`peco.ZoomIn`** — Expands the current filtered view by showing 3 lines of context (before and after) around every matched line. Overlapping context ranges are merged automatically. Context lines are displayed with the `Context` style (bold by default) to visually distinguish them from matched lines.
+
+- **`peco.ZoomOut`** — Collapses back to the original filtered view, restoring the cursor position.
+
+These actions are **not bound to any key by default**. Add keybindings in your config file:
+
+```json
+{
+    "Keymap": {
+        "C-o": "peco.ZoomIn",
+        "C-i": "peco.ZoomOut"
+    }
+}
+```
+
+Notes:
+- ZoomIn only works when there is an active filter query. If you are viewing the unfiltered source, it is a no-op.
+- You cannot zoom in twice — zooming in while already zoomed shows a status message.
+- The cursor position is preserved: after ZoomIn, the cursor stays on the same matched line; after ZoomOut, it returns to where it was before zooming.
+- Context lines cannot be selected — only the original matched lines participate in selection.
+- The `Context` style can be customized in the config file (see [Styles](#styles)).
+
 ## Selectable Layout
 
 As of v0.2.5, if you would rather not move your eyes off of the bottom of the screen, you can change the screen layout by either providing the `--layout=bottom-up` command line option, or set the `Layout` variable in your configuration file
@@ -669,6 +697,8 @@ Some keys just... don't map correctly / too easily for various reasons. Here, we
 | peco.RotateFilter       | Rotate between filters (by default, ignore-case/no-ignore-case)|
 | peco.FreezeResults      | Freeze current results and clear the query to start a new filter on top |
 | peco.UnfreezeResults    | Discard frozen results and revert to the original input |
+| peco.ZoomIn             | Expand filtered results with context lines around each match |
+| peco.ZoomOut            | Collapse back to the filtered view (undo ZoomIn) |
 | peco.Finish             | Exits from peco with success status |
 | peco.Cancel             | Exits from peco with failure status, or cancel select mode |
 
@@ -707,7 +737,7 @@ Note: If in case below keymap seems wrong, check the source code in [keymap.go](
 
 ## Styles
 
-For now, styles of following 6 items can be customized in `config.json`.
+For now, styles of following 7 items can be customized in `config.json`.
 
 ```json
 {
@@ -717,7 +747,8 @@ For now, styles of following 6 items can be customized in `config.json`.
         "Selected": ["underline", "on_cyan", "black"],
         "Query": ["yellow", "bold"],
         "Matched": ["red", "on_blue"],
-        "Prompt": ["green", "bold"]
+        "Prompt": ["green", "bold"],
+        "Context": ["bold"]
     }
 }
 ```
@@ -728,6 +759,7 @@ For now, styles of following 6 items can be customized in `config.json`.
 - `Query` for a query line
 - `Matched` for a query matched word
 - `Prompt` for the query prompt prefix (e.g., `QUERY>`)
+- `Context` for context lines shown by ZoomIn (default: bold)
 
 ### Foreground Colors
 
@@ -936,6 +968,7 @@ Much code stolen from https://github.com/mattn/gof
   - [Select Filters](#select-filters)
   - [Multi-Stage Filtering (Freeze Results)](#multi-stage-filtering-freeze-results)
   - [Horizontal Scrolling](#horizontal-scrolling)
+  - [Context Lines (Zoom In/Out)](#context-lines-zoom-inout)
   - [Selectable Layout](#selectable-layout)
   - [Inline Mode (--height)](#inline-mode---height)
   - [Works on Windows!](#works-on-windows)
