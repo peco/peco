@@ -43,9 +43,9 @@ func (a ActionFunc) registerKeySequence(k keyseq.KeyList) {
 	defaultKeyBinding[k.String()] = a
 }
 
-// Register fulfills the Action interface for AfterFunc. Registers `a`
-// into the global action registry by the name `name`, and maps to
-// default keys via `defaultKeys`
+// Register registers `a` into the global action registry by the name
+// `name`, and maps to default keys via `defaultKeys`. Called during
+// package init() to set up built-in actions.
 func (a ActionFunc) Register(name string, defaultKeys ...keyseq.KeyType) {
 	nameToActions["peco."+name] = a
 	for _, k := range defaultKeys {
@@ -53,8 +53,9 @@ func (a ActionFunc) Register(name string, defaultKeys ...keyseq.KeyType) {
 	}
 }
 
-// RegisterKeySequence satisfies the Action interface for AfterFunc.
-// Registers the action to be mapped against a key sequence
+// RegisterKeySequence registers the action to be mapped against a
+// multi-key sequence. Called during package init() for actions like
+// KonamiCommand.
 func (a ActionFunc) RegisterKeySequence(name string, k keyseq.KeyList) {
 	nameToActions["peco."+name] = a
 	a.registerKeySequence(k)
