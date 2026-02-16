@@ -145,7 +145,7 @@ func (u UserPrompt) Draw(state *Peco) {
 	fg := u.styles.Query.fg
 	bg := u.styles.Query.bg
 
-	// Used to notify termbox where our cursor is
+	// Used to notify the screen where our cursor is
 	var posX int
 
 	switch ql {

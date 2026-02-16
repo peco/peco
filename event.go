@@ -14,9 +14,7 @@ const (
 	EventError
 )
 
-// Event is peco's internal event type, replacing termbox.Event.
-// This decouples all code outside the screen adapter from the
-// terminal library.
+// Event is peco's internal event type, decoupled from any terminal library.
 type Event struct {
 	Type EventType
 	Key  keyseq.KeyType

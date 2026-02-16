@@ -6,10 +6,8 @@ import (
 	"unicode/utf8"
 )
 
-// KeyType represents a keyboard key. Values are defined to match termbox-go's
-// constants so that the adapter layer in screen.go can do simple type casts
-// during Phase 1 of the migration. In Phase 2, the adapter will map between
-// peco's KeyType and tcell's key constants.
+// KeyType represents a keyboard key. The adapter layer in screen.go maps
+// between peco's KeyType and tcell's key constants.
 type KeyType uint16
 
 // Function keys
@@ -39,8 +37,8 @@ const (
 )
 
 // Mouse keys.
-// In termbox-go there is one internal gap constant between KeyArrowRight
-// and MouseLeft, so MouseLeft = KeyArrowRight - 2 (not -1).
+// There is an intentional gap between KeyArrowRight and MouseLeft
+// (MouseLeft = KeyArrowRight - 2, not -1) for historical reasons.
 const (
 	MouseLeft   KeyType = 0xFFFF - iota - 23 // KeyArrowRight - 2
 	MouseMiddle                              // KeyArrowRight - 3
@@ -211,8 +209,7 @@ func ToKeyList(ksk string) (KeyList, error) {
 }
 
 // KeyEventToString returns a human-readable name for a key event described
-// by the given key type, character, and modifier. This replaces the old
-// EventToString that took a termbox.Event directly.
+// by the given key type, character, and modifier.
 func KeyEventToString(key KeyType, ch rune, mod ModifierKey) (string, error) {
 	s := ""
 	if key == 0 {
