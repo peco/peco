@@ -69,9 +69,18 @@ func (flb FilteredBuffer) Size() int {
 	return len(flb.selection)
 }
 
-func NewMemoryBuffer() *MemoryBuffer {
+const defaultMemoryBufferCap = 1024
+
+// NewMemoryBuffer creates a new MemoryBuffer. If cap > 0, the lines
+// slice is pre-allocated with that capacity; otherwise it defaults to
+// defaultMemoryBufferCap.
+func NewMemoryBuffer(cap int) *MemoryBuffer {
+	if cap <= 0 {
+		cap = defaultMemoryBufferCap
+	}
 	mb := &MemoryBuffer{}
-	mb.Reset()
+	mb.done = make(chan struct{})
+	mb.lines = make([]line.Line, 0, cap)
 	return mb
 }
 

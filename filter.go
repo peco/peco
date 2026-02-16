@@ -384,6 +384,7 @@ func (f *Filter) Work(ctx context.Context, q hub.Payload) {
 	filterName := selectedFilter.String()
 
 	var src pipeline.Source
+	var srcSize int
 	f.prevMu.Lock()
 	if f.prevResults != nil &&
 		f.prevFilterName == filterName &&
@@ -391,19 +392,23 @@ func (f *Filter) Work(ctx context.Context, q hub.Payload) {
 		if pdebug.Enabled {
 			pdebug.Printf("Using incremental source (prev=%q, new=%q, prevSize=%d)", f.prevQuery, query, f.prevResults.Size())
 		}
+		srcSize = f.prevResults.Size()
 		src = NewMemoryBufferSource(f.prevResults)
 	}
 	f.prevMu.Unlock()
 
 	if src == nil {
 		src = state.Source()
+		if sizer, ok := src.(interface{ Size() int }); ok {
+			srcSize = sizer.Size()
+		}
 	}
 	p.SetSource(src)
 
 	ctx = selectedFilter.NewContext(ctx, query)
 	p.Add(newFilterProcessor(selectedFilter, query, state.config.FilterBufSize))
 
-	buf := NewMemoryBuffer()
+	buf := NewMemoryBuffer(srcSize / 4)
 	p.SetDestination(buf)
 	state.SetCurrentLineBuffer(buf)
 

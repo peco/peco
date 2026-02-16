@@ -115,7 +115,7 @@ func New() *Peco {
 		Stderr:            os.Stderr,
 		Stdin:             os.Stdin,
 		Stdout:            os.Stdout,
-		currentLineBuffer: NewMemoryBuffer(), // XXX revisit this
+		currentLineBuffer: NewMemoryBuffer(0), // XXX revisit this
 		idgen:             newIDGen(),
 		queryExecDelay:    50 * time.Millisecond,
 		readyCh:           make(chan struct{}),

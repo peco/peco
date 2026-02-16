@@ -285,7 +285,7 @@ func benchPipeline(name string, f filter.Filter, lines []line.Line, query string
 	ctx := f.NewContext(context.Background(), query)
 
 	// Build a MemoryBuffer with all lines to use as source
-	srcBuf := peco.NewMemoryBuffer()
+	srcBuf := peco.NewMemoryBuffer(0)
 	for _, l := range lines {
 		func() {
 			srcBuf.AppendLine(l)
@@ -298,7 +298,7 @@ func benchPipeline(name string, f filter.Filter, lines []line.Line, query string
 	p.SetSource(src)
 	p.Add(&directFilterProcessor{filter: f, query: query})
 
-	dst := peco.NewMemoryBuffer()
+	dst := peco.NewMemoryBuffer(len(lines) / 4)
 	p.SetDestination(dst)
 
 	runtime.GC()
@@ -410,7 +410,7 @@ func collectMatchedLines(f filter.Filter, lines []line.Line, query string) []lin
 func benchPipelineOnLines(name string, f filter.Filter, lines []line.Line, query string) result {
 	ctx := f.NewContext(context.Background(), query)
 
-	srcBuf := peco.NewMemoryBuffer()
+	srcBuf := peco.NewMemoryBuffer(0)
 	for _, l := range lines {
 		srcBuf.AppendLine(l)
 	}
@@ -420,7 +420,7 @@ func benchPipelineOnLines(name string, f filter.Filter, lines []line.Line, query
 	p.SetSource(src)
 	p.Add(&directFilterProcessor{filter: f, query: query})
 
-	dst := peco.NewMemoryBuffer()
+	dst := peco.NewMemoryBuffer(len(lines) / 4)
 	p.SetDestination(dst)
 
 	runtime.GC()

@@ -152,7 +152,7 @@ func TestIssue557_FilterBufSize(t *testing.T) {
 	p.SetSource(src)
 	p.Add(fp)
 
-	dst := NewMemoryBuffer()
+	dst := NewMemoryBuffer(0)
 	p.SetDestination(dst)
 
 	ctx := f.NewContext(context.Background(), query)

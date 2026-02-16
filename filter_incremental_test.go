@@ -48,7 +48,7 @@ func TestIsQueryRefinement(t *testing.T) {
 
 func TestMemoryBufferSource(t *testing.T) {
 	// Create and populate a MemoryBuffer
-	mb := NewMemoryBuffer()
+	mb := NewMemoryBuffer(0)
 	expected := []string{"alpha", "bravo", "charlie", "delta", "echo"}
 
 	for i, s := range expected {
@@ -79,7 +79,7 @@ done:
 }
 
 func TestMemoryBufferSourceCancellation(t *testing.T) {
-	mb := NewMemoryBuffer()
+	mb := NewMemoryBuffer(0)
 	for i := 0; i < 10000; i++ {
 		mb.lines = append(mb.lines, line.NewRaw(uint64(i), fmt.Sprintf("line-%d", i), false))
 	}
