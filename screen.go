@@ -20,6 +20,8 @@ type Termbox struct {
 	screen    tcell.Screen
 	resumeCh  chan chan struct{}
 	suspendCh chan struct{}
+	doneCh    chan struct{} // closed on permanent Close() to signal goroutines to exit
+	closeOnce sync.Once    // ensures doneCh is closed exactly once
 }
 
 // tcellKeyToKeyseq maps tcell navigation/function key constants to peco keyseq constants.
@@ -175,13 +177,14 @@ func NewTermbox() *Termbox {
 	return &Termbox{
 		suspendCh: make(chan struct{}),
 		resumeCh:  make(chan chan struct{}),
+		doneCh:    make(chan struct{}),
 	}
 }
 
-func (t *Termbox) Close() error {
-	if pdebug.Enabled {
-		pdebug.Printf("Termbox: Close")
-	}
+// finiScreen finalizes the tcell screen without signaling a permanent
+// shutdown. Used by the suspend handler so the goroutine continues
+// to listen for further suspend/resume cycles.
+func (t *Termbox) finiScreen() {
 	t.mutex.Lock()
 	s := t.screen
 	t.screen = nil
@@ -190,6 +193,16 @@ func (t *Termbox) Close() error {
 	if s != nil {
 		s.Fini()
 	}
+}
+
+// Close permanently shuts down the screen and signals all goroutines
+// started by PollEvent to exit.
+func (t *Termbox) Close() error {
+	if pdebug.Enabled {
+		pdebug.Printf("Termbox: Close")
+	}
+	t.finiScreen()
+	t.closeOnce.Do(func() { close(t.doneCh) })
 	return nil
 }
 
@@ -244,11 +257,13 @@ func (t *Termbox) PollEvent(ctx context.Context, cfg *Config) chan Event {
 			select {
 			case <-ctx.Done():
 				return
+			case <-t.doneCh:
+				return
 			case <-t.suspendCh:
 				if pdebug.Enabled {
 					pdebug.Printf("poll event suspended!")
 				}
-				t.Close()
+				t.finiScreen()
 			}
 		}
 	}()
@@ -267,6 +282,8 @@ func (t *Termbox) PollEvent(ctx context.Context, cfg *Config) chan Event {
 				select {
 				case <-ctx.Done():
 					return
+				case <-t.doneCh:
+					return
 				case replyCh := <-t.resumeCh:
 					t.Init(cfg)
 					close(replyCh)
@@ -280,6 +297,8 @@ func (t *Termbox) PollEvent(ctx context.Context, cfg *Config) chan Event {
 				// Wait for resume or context cancellation.
 				select {
 				case <-ctx.Done():
+					return
+				case <-t.doneCh:
 					return
 				case replyCh := <-t.resumeCh:
 					t.Init(cfg)
