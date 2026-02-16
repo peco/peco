@@ -109,6 +109,55 @@ This shows all lines containing both \f[V]root\f[R] and \f[V]app\f[R]
 .PP
 When you find that line that you want, press enter, and the resulting
 line is printed to stdout, which allows you to pipe it to other tools
+.SS Negative Matching
+.PP
+You can exclude lines from the results by prefixing a term with
+\f[V]-\f[R].
+For example, the query \f[V]SSO -tests -javadoc\f[R] shows lines
+matching \[lq]SSO\[rq] that do NOT contain \[lq]tests\[rq] or
+\[lq]javadoc\[rq].
+.PP
+.TS
+tab(@);
+l l.
+T{
+Query
+T}@T{
+Meaning
+T}
+_
+T{
+\f[V]foo -bar\f[R]
+T}@T{
+Lines matching \[lq]foo\[rq] but not containing \[lq]bar\[rq]
+T}
+T{
+\f[V]-foo -bar\f[R]
+T}@T{
+All lines not containing \[lq]foo\[rq] or \[lq]bar\[rq]
+T}
+T{
+\f[V]\[rs]-foo\f[R]
+T}@T{
+Literal match for \[lq]-foo\[rq] (escaped with backslash)
+T}
+T{
+\f[V]-\f[R]
+T}@T{
+Literal match for a hyphen character
+T}
+.TE
+.PP
+Negative matching works with all built-in filters (IgnoreCase,
+CaseSensitive, SmartCase, Regexp, IRegexp, and Fuzzy).
+For the Fuzzy filter, negative terms use regexp-based exclusion rather
+than fuzzy matching.
+External custom filters receive the query as-is and are responsible for
+their own parsing.
+.PP
+Only positive terms produce match highlighting.
+Lines matched solely by negative exclusion (e.g.\ an all-negative query
+like \f[V]-foo\f[R]) are shown without highlighting.
 .SS Select Multiple Lines
 .PP
 You can select multiple lines!
@@ -163,6 +212,33 @@ matches the Chrome.app under IgnoreCase filter type.
 When you change it to Regexp filter, this is no longer the case.
 But you can type \f[V](?i)google\f[R] instead to toggle case-insensitive
 mode
+.SS Horizontal Scrolling
+.PP
+When input lines are longer than the terminal width, they are clipped at
+the edge of the screen.
+You can scroll horizontally to reveal the rest of the line using the
+\f[V]peco.ScrollLeft\f[R] and \f[V]peco.ScrollRight\f[R] actions.
+These actions are \f[B]not bound to any key by default\f[R] \[en] you
+need to add keybindings in your config file:
+.IP
+.nf
+\f[C]
+{
+    \[dq]Keymap\[dq]: {
+        \[dq]ArrowLeft\[dq]: \[dq]peco.ScrollLeft\[dq],
+        \[dq]ArrowRight\[dq]: \[dq]peco.ScrollRight\[dq]
+    }
+}
+\f[R]
+.fi
+.PP
+Each scroll moves by half the terminal width.
+.PP
+If your input contains very long lines (e.g.\ minified files) and they
+do not appear at all, try increasing \f[V]MaxScanBufferSize\f[R] in your
+config.
+The default is 256 (KB), which limits the maximum length of a single
+input line.
 .SS Selectable Layout
 .PP
 As of v0.2.5, if you would rather not move your eyes off of the bottom
@@ -1517,11 +1593,15 @@ Features
 .IP \[bu] 2
 Incremental Search
 .IP \[bu] 2
+Negative Matching
+.IP \[bu] 2
 Select Multiple Lines
 .IP \[bu] 2
 Select Range Of Lines
 .IP \[bu] 2
 Select Filters
+.IP \[bu] 2
+Horizontal Scrolling
 .IP \[bu] 2
 Selectable Layout
 .IP \[bu] 2
