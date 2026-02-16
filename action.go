@@ -13,6 +13,7 @@ import (
 
 	"github.com/google/btree"
 	"github.com/lestrrat-go/pdebug"
+	"github.com/peco/peco/hub"
 	"github.com/peco/peco/internal/keyseq"
 	"github.com/peco/peco/internal/util"
 	"github.com/peco/peco/line"
@@ -261,7 +262,7 @@ func doCancelRangeMode(ctx context.Context, state *Peco, _ Event) {
 
 func doSelectNone(ctx context.Context, state *Peco, _ Event) {
 	state.Selection().Reset()
-	state.Hub().SendDraw(ctx, &DrawOptions{DisableCache: true})
+	state.Hub().SendDraw(ctx, &hub.DrawOptions{DisableCache: true})
 }
 
 func doSelectAll(ctx context.Context, state *Peco, _ Event) {
@@ -370,7 +371,7 @@ func doFinish(ctx context.Context, state *Peco, _ Event) {
 
 	err = cmd.Run()
 	state.screen.Resume(ctx)
-	state.Hub().SendDraw(ctx, &DrawOptions{DisableCache: true})
+	state.Hub().SendDraw(ctx, &hub.DrawOptions{DisableCache: true})
 	if err != nil {
 		// bail out, or otherwise the user cannot know what happened
 		state.Exit(fmt.Errorf("failed to execute command: %w", err))
@@ -403,7 +404,7 @@ func doSelectDown(ctx context.Context, state *Peco, e Event) {
 		g := pdebug.Marker("doSelectDown")
 		defer g.End()
 	}
-	state.Hub().SendPaging(ctx, ToLineBelow)
+	state.Hub().SendPaging(ctx, hub.ToLineBelow)
 }
 
 func doSelectUp(ctx context.Context, state *Peco, e Event) {
@@ -411,31 +412,31 @@ func doSelectUp(ctx context.Context, state *Peco, e Event) {
 		g := pdebug.Marker("doSelectUp")
 		defer g.End()
 	}
-	state.Hub().SendPaging(ctx, ToLineAbove)
+	state.Hub().SendPaging(ctx, hub.ToLineAbove)
 }
 
 func doScrollPageUp(ctx context.Context, state *Peco, e Event) {
-	state.Hub().SendPaging(ctx, ToScrollPageUp)
+	state.Hub().SendPaging(ctx, hub.ToScrollPageUp)
 }
 
 func doScrollPageDown(ctx context.Context, state *Peco, e Event) {
-	state.Hub().SendPaging(ctx, ToScrollPageDown)
+	state.Hub().SendPaging(ctx, hub.ToScrollPageDown)
 }
 
 func doScrollLeft(ctx context.Context, state *Peco, e Event) {
-	state.Hub().SendPaging(ctx, ToScrollLeft)
+	state.Hub().SendPaging(ctx, hub.ToScrollLeft)
 }
 
 func doScrollRight(ctx context.Context, state *Peco, e Event) {
-	state.Hub().SendPaging(ctx, ToScrollRight)
+	state.Hub().SendPaging(ctx, hub.ToScrollRight)
 }
 
 func doScrollFirstItem(ctx context.Context, state *Peco, e Event) {
-	state.Hub().SendPaging(ctx, ToScrollFirstItem)
+	state.Hub().SendPaging(ctx, hub.ToScrollFirstItem)
 }
 
 func doScrollLastItem(ctx context.Context, state *Peco, e Event) {
-	state.Hub().SendPaging(ctx, ToScrollLastItem)
+	state.Hub().SendPaging(ctx, hub.ToScrollLastItem)
 }
 
 func doToggleSelectionAndSelectNext(ctx context.Context, state *Peco, e Event) {
@@ -747,7 +748,7 @@ func doDeleteBackwardChar(ctx context.Context, state *Peco, e Event) {
 }
 
 func doRefreshScreen(ctx context.Context, state *Peco, _ Event) {
-	state.Hub().SendDraw(ctx, &DrawOptions{DisableCache: true, ForceSync: true})
+	state.Hub().SendDraw(ctx, &hub.DrawOptions{DisableCache: true, ForceSync: true})
 }
 
 func doToggleQuery(ctx context.Context, state *Peco, _ Event) {
@@ -796,7 +797,7 @@ func doToggleViewArround(ctx context.Context, state *Peco, e Event) {
 		currentLine := l.ID()
 
 		doDeleteAll(ctx, state, e)
-		state.Hub().SendPaging(ctx, JumpToLineRequest(currentLine))
+		state.Hub().SendPaging(ctx, hub.JumpToLineRequest(currentLine))
 	}
 }
 
@@ -872,12 +873,12 @@ func doGoToAdjacentSelection(ctx context.Context, state *Peco, forward bool) {
 
 	if found {
 		state.Hub().SendStatusMsg(ctx, label+" Selection")
-		state.Hub().SendPaging(ctx, ToScrollFirstItem)
-		state.Hub().SendPaging(ctx, JumpToLineRequest(target))
+		state.Hub().SendPaging(ctx, hub.ToScrollFirstItem)
+		state.Hub().SendPaging(ctx, hub.JumpToLineRequest(target))
 	} else {
 		state.Hub().SendStatusMsg(ctx, label+" Selection (first)")
-		state.Hub().SendPaging(ctx, ToScrollFirstItem)
-		state.Hub().SendPaging(ctx, JumpToLineRequest(wrapTarget))
+		state.Hub().SendPaging(ctx, hub.ToScrollFirstItem)
+		state.Hub().SendPaging(ctx, hub.JumpToLineRequest(wrapTarget))
 	}
 }
 
@@ -985,7 +986,7 @@ func doZoomIn(ctx context.Context, state *Peco, _ Event) {
 	state.mutex.Unlock()
 
 	loc.SetLineNumber(newLineNo)
-	state.Hub().SendDraw(ctx, &DrawOptions{DisableCache: true})
+	state.Hub().SendDraw(ctx, &hub.DrawOptions{DisableCache: true})
 }
 
 func doZoomOut(ctx context.Context, state *Peco, _ Event) {
@@ -1009,7 +1010,7 @@ func doZoomOut(ctx context.Context, state *Peco, _ Event) {
 
 	loc.SetLineNumber(savedLineNo)
 	state.ClearPreZoomState()
-	state.Hub().SendDraw(ctx, &DrawOptions{DisableCache: true})
+	state.Hub().SendDraw(ctx, &hub.DrawOptions{DisableCache: true})
 }
 
 func doSingleKeyJump(ctx context.Context, state *Peco, e Event) {
@@ -1026,7 +1027,7 @@ func doSingleKeyJump(ctx context.Context, state *Peco, e Event) {
 	toplevel, _ := ctx.Value(isTopLevelActionCall).(bool)
 	state.Hub().Batch(ctx, func(ctx context.Context) {
 		ctx = context.WithValue(ctx, isTopLevelActionCall, false)
-		state.Hub().SendPaging(ctx, JumpToLineRequest(index))
+		state.Hub().SendPaging(ctx, hub.JumpToLineRequest(index))
 		doFinish(ctx, state, e)
 	}, toplevel)
 }

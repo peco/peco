@@ -8,27 +8,28 @@ import (
 	pdebug "github.com/lestrrat-go/pdebug"
 )
 
-func NewPayload(data interface{}, batch bool) *payload {
-	p := &payload{
+// NewPayload creates a new Payload with the given data and batch flag.
+func NewPayload[T any](data T, batch bool) *Payload[T] {
+	return &Payload[T]{
 		data:  data,
 		batch: batch,
 	}
-	return p
 }
 
-func (p payload) Batch() bool {
+// Batch returns true if this payload is part of a batch operation.
+func (p *Payload[T]) Batch() bool {
 	return p.batch
 }
 
-// Data returns the underlying data
-func (p payload) Data() interface{} {
+// Data returns the underlying data.
+func (p *Payload[T]) Data() T {
 	return p.data
 }
 
 // Done marks the request as done. If Hub is operating in
 // asynchronous mode (default), it's a no op. Otherwise it
-// closes the reply channel to finish up the synchronous communication
-func (p payload) Done() {
+// closes the reply channel to finish up the synchronous communication.
+func (p *Payload[T]) Done() {
 	if p.done == nil {
 		return
 	}
@@ -39,10 +40,10 @@ func (p payload) Done() {
 func New(bufsiz int) *Hub {
 	return &Hub{
 		isSync:      false,
-		queryCh:     make(chan Payload, bufsiz),
-		drawCh:      make(chan Payload, bufsiz),
-		statusMsgCh: make(chan Payload, bufsiz),
-		pagingCh:    make(chan Payload, bufsiz),
+		queryCh:     make(chan *Payload[string], bufsiz),
+		drawCh:      make(chan *Payload[*DrawOptions], bufsiz),
+		statusMsgCh: make(chan *Payload[StatusMsg], bufsiz),
+		pagingCh:    make(chan *Payload[PagingRequest], bufsiz),
 	}
 }
 
@@ -75,7 +76,7 @@ var doneChPool = sync.Pool{
 	},
 }
 
-func (p *payload) waitDone() {
+func (p *Payload[T]) waitDone() {
 	// MAKE SURE p.done is valid. XXX needs locking?
 	<-p.done
 
@@ -94,11 +95,11 @@ func isBatchCtx(ctx context.Context) bool {
 	return isBatchMode
 }
 
-// low-level utility
-func send(ctx context.Context, ch chan Payload, r *payload) {
+// send is the low-level generic utility for sending typed payloads.
+func send[T any](ctx context.Context, ch chan *Payload[T], r *Payload[T]) {
 	isBatchMode := isBatchCtx(ctx)
 	if pdebug.Enabled {
-		g := pdebug.Marker("hub.send %#v (name=%s, isBatchMode=%t)", r, ctx.Value(operationNameKey{}), isBatchMode)
+		g := pdebug.Marker("hub.send (name=%s, isBatchMode=%t)", ctx.Value(operationNameKey{}), isBatchMode)
 		defer g.End()
 	}
 
@@ -114,7 +115,7 @@ func send(ctx context.Context, ch chan Payload, r *payload) {
 }
 
 // QueryCh returns the underlying channel for queries
-func (h *Hub) QueryCh() chan Payload {
+func (h *Hub) QueryCh() chan *Payload[string] {
 	return h.queryCh
 }
 
@@ -124,24 +125,29 @@ func (h *Hub) SendQuery(ctx context.Context, q string) {
 }
 
 // DrawCh returns the channel to redraw the terminal display
-func (h *Hub) DrawCh() chan Payload {
+func (h *Hub) DrawCh() chan *Payload[*DrawOptions] {
 	return h.drawCh
 }
 
 // SendDrawPrompt sends a request to redraw the prompt only
 func (h *Hub) SendDrawPrompt(ctx context.Context) {
-	send(ctx, h.DrawCh(), NewPayload("prompt", isBatchCtx(ctx)))
+	send(ctx, h.DrawCh(), NewPayload(&DrawOptions{Prompt: true}, isBatchCtx(ctx)))
 }
 
 // SendDraw sends a request to redraw the terminal display
-func (h *Hub) SendDraw(ctx context.Context, options interface{}) {
+func (h *Hub) SendDraw(ctx context.Context, options *DrawOptions) {
 	pdebug.Printf("START Hub.SendDraw %v", options)
 	defer pdebug.Printf("END Hub.SendDraw %v", options)
 	send(ctx, h.DrawCh(), NewPayload(options, isBatchCtx(ctx)))
 }
 
+// SendPurgeDisplayCache sends a request to purge the display cache
+func (h *Hub) SendPurgeDisplayCache(ctx context.Context) {
+	send(ctx, h.DrawCh(), NewPayload(&DrawOptions{PurgeCache: true}, isBatchCtx(ctx)))
+}
+
 // StatusMsgCh returns the channel to update the status message
-func (h *Hub) StatusMsgCh() chan Payload {
+func (h *Hub) StatusMsgCh() chan *Payload[StatusMsg] {
 	return h.statusMsgCh
 }
 
@@ -150,6 +156,7 @@ func (h *Hub) SendStatusMsg(ctx context.Context, q string) {
 	h.SendStatusMsgAndClear(ctx, q, 0)
 }
 
+// StatusMsg is an interface for status message requests.
 type StatusMsg interface {
 	Message() string
 	Delay() time.Duration
@@ -179,19 +186,15 @@ func newStatusMsgReq(s string, d time.Duration) *statusMsgReq {
 // as well as a delay until the message should be cleared
 func (h *Hub) SendStatusMsgAndClear(ctx context.Context, q string, clearDelay time.Duration) {
 	msg := newStatusMsgReq(q, clearDelay)
-	send(ctx, h.StatusMsgCh(), NewPayload(msg, isBatchCtx(ctx)))
-}
-
-func (h *Hub) SendPurgeDisplayCache(ctx context.Context) {
-	send(ctx, h.DrawCh(), NewPayload("purgeCache", isBatchCtx(ctx)))
+	send(ctx, h.StatusMsgCh(), NewPayload[StatusMsg](msg, isBatchCtx(ctx)))
 }
 
 // PagingCh returns the channel to page through the results
-func (h *Hub) PagingCh() chan Payload {
+func (h *Hub) PagingCh() chan *Payload[PagingRequest] {
 	return h.pagingCh
 }
 
 // SendPaging sends a request to move the cursor around
-func (h *Hub) SendPaging(ctx context.Context, x interface{}) {
+func (h *Hub) SendPaging(ctx context.Context, x PagingRequest) {
 	send(ctx, h.PagingCh(), NewPayload(x, isBatchCtx(ctx)))
 }

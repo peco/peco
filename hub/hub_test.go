@@ -17,33 +17,27 @@ func TestHub(t *testing.T) {
 
 	go func() {
 		hr := <-h.QueryCh()
+		if hr.Data() != "Hello World!" {
+			t.Errorf("Expected query data to be 'Hello World!', got '%s'", hr.Data())
+		}
 		time.Sleep(100 * time.Millisecond)
 		done["query"] = time.Now()
 		hr.Done()
 	}()
 	go func() {
 		hr := <-h.DrawCh()
-		switch v := hr.Data(); v.(type) {
-		case string, bool, nil:
-			// OK
-		default:
-			t.Errorf("Expected data to be nil, got %s", v)
-		}
+		// Data() returns *hub.DrawOptions directly — no type assertion needed
+		_ = hr.Data()
 		time.Sleep(100 * time.Millisecond)
 		done["draw"] = time.Now()
 		hr.Done()
 	}()
 	go func() {
 		hr := <-h.StatusMsgCh()
-		data := hr.Data()
-		r, ok := data.(hub.StatusMsg)
-		if !ok {
-			t.Errorf("expected data to be hub.StatusMsg. got '%T'", hr)
-			return
-		}
-
+		// Data() returns hub.StatusMsg directly — no type assertion needed
+		r := hr.Data()
 		if r.Message() != "Hello, World!" {
-			t.Errorf("Expected data to be 'Hello World!', got '%s'", r.Message())
+			t.Errorf("Expected data to be 'Hello, World!', got '%s'", r.Message())
 			return
 		}
 		time.Sleep(100 * time.Millisecond)
@@ -52,6 +46,11 @@ func TestHub(t *testing.T) {
 	}()
 	go func() {
 		hr := <-h.PagingCh()
+		// Data() returns hub.PagingRequest directly — no type assertion needed
+		r := hr.Data()
+		if r.Type() != hub.PagingRequestType(1) {
+			t.Errorf("Expected paging type 1, got %d", r.Type())
+		}
 		time.Sleep(100 * time.Millisecond)
 		done["paging"] = time.Now()
 		hr.Done()
@@ -59,9 +58,9 @@ func TestHub(t *testing.T) {
 
 	h.Batch(ctx, func(ctx context.Context) {
 		h.SendQuery(ctx, "Hello World!")
-		h.SendDraw(ctx, true)
+		h.SendDraw(ctx, &hub.DrawOptions{})
 		h.SendStatusMsg(ctx, "Hello, World!")
-		h.SendPaging(ctx, 1)
+		h.SendPaging(ctx, hub.PagingRequestType(1))
 	}, true)
 
 	phases := []string{

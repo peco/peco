@@ -10,6 +10,7 @@ import (
 
 	"github.com/lestrrat-go/pdebug"
 	"github.com/mattn/go-runewidth"
+	"github.com/peco/peco/hub"
 	"github.com/peco/peco/internal/ansi"
 	"github.com/peco/peco/line"
 )
@@ -355,14 +356,8 @@ func selectionContains(state *Peco, n int) bool {
 	return false
 }
 
-type DrawOptions struct {
-	RunningQuery bool
-	DisableCache bool
-	ForceSync    bool
-}
-
 // Draw displays the ListArea on the screen
-func (l *ListArea) Draw(state *Peco, parent Layout, perPage int, options *DrawOptions) {
+func (l *ListArea) Draw(state *Peco, parent Layout, perPage int, options *hub.DrawOptions) {
 	if pdebug.Enabled {
 		g := pdebug.Marker("ListArea.Draw pp = %d, options = %#v", perPage, options)
 		defer g.End()
@@ -784,7 +779,7 @@ func (l *BasicLayout) DrawPrompt(state *Peco) {
 }
 
 // DrawScreen draws the entire screen
-func (l *BasicLayout) DrawScreen(state *Peco, options *DrawOptions) {
+func (l *BasicLayout) DrawScreen(state *Peco, options *hub.DrawOptions) {
 	if pdebug.Enabled {
 		g := pdebug.Marker("BasicLayout.DrawScreen")
 		defer g.End()
@@ -836,9 +831,9 @@ func (l *BasicLayout) linesPerPage() int {
 }
 
 // MovePage scrolls the screen
-func (l *BasicLayout) MovePage(state *Peco, p PagingRequest) (moved bool) {
+func (l *BasicLayout) MovePage(state *Peco, p hub.PagingRequest) (moved bool) {
 	switch p.Type() {
-	case ToScrollLeft, ToScrollRight:
+	case hub.ToScrollLeft, hub.ToScrollRight:
 		moved = horizontalScroll(state, l, p)
 	default:
 		moved = verticalScroll(state, l, p)
@@ -847,7 +842,7 @@ func (l *BasicLayout) MovePage(state *Peco, p PagingRequest) (moved bool) {
 }
 
 // verticalScroll moves the cursor position vertically
-func verticalScroll(state *Peco, l *BasicLayout, p PagingRequest) bool {
+func verticalScroll(state *Peco, l *BasicLayout, p hub.PagingRequest) bool {
 	// Before we move, on which line were we located?
 	loc := state.Location()
 	lineBefore := loc.LineNumber()
@@ -873,36 +868,36 @@ func verticalScroll(state *Peco, l *BasicLayout, p PagingRequest) bool {
 	lpp := l.linesPerPage()
 	if l.list.sortTopDown {
 		switch p.Type() {
-		case ToLineAbove:
+		case hub.ToLineAbove:
 			lineno--
-		case ToLineBelow:
+		case hub.ToLineBelow:
 			lineno++
-		case ToScrollPageDown:
+		case hub.ToScrollPageDown:
 			lineno += lpp
 			if loc.Page() == loc.MaxPage()-1 && lcur < lineno && (lcur-lineBefore) < lpp {
 				lineno = lcur - 1
 			}
-		case ToScrollPageUp:
+		case hub.ToScrollPageUp:
 			lineno -= lpp
-		case ToLineInPage:
-			lineno = loc.PerPage()*(loc.Page()-1) + p.(JumpToLineRequest).Line()
-		case ToScrollFirstItem:
+		case hub.ToLineInPage:
+			lineno = loc.PerPage()*(loc.Page()-1) + p.(hub.JumpToLineRequest).Line()
+		case hub.ToScrollFirstItem:
 			lineno = 0
-		case ToScrollLastItem:
+		case hub.ToScrollLastItem:
 			lineno = lcur - 1
 		}
 	} else {
 		switch p.Type() {
-		case ToLineAbove:
+		case hub.ToLineAbove:
 			lineno++
-		case ToLineBelow:
+		case hub.ToLineBelow:
 			lineno--
-		case ToScrollPageDown:
+		case hub.ToScrollPageDown:
 			lineno -= lpp
-		case ToScrollPageUp:
+		case hub.ToScrollPageUp:
 			lineno += lpp
-		case ToLineInPage:
-			lineno = loc.PerPage()*(loc.Page()-1) - p.(JumpToLineRequest).Line()
+		case hub.ToLineInPage:
+			lineno = loc.PerPage()*(loc.Page()-1) - p.(hub.JumpToLineRequest).Line()
 		}
 	}
 
@@ -977,10 +972,10 @@ func verticalScroll(state *Peco, l *BasicLayout, p PagingRequest) bool {
 }
 
 // horizontalScroll scrolls screen horizontal
-func horizontalScroll(state *Peco, l *BasicLayout, p PagingRequest) bool {
+func horizontalScroll(state *Peco, l *BasicLayout, p hub.PagingRequest) bool {
 	width, _ := state.screen.Size()
 	loc := state.Location()
-	if p.Type() == ToScrollRight {
+	if p.Type() == hub.ToScrollRight {
 		loc.SetColumn(loc.Column() + width/2)
 	} else if loc.Column() > 0 {
 		loc.SetColumn(loc.Column() - width/2)
