@@ -129,6 +129,9 @@ func init() {
 
 	ActionFunc(doToggleViewArround).Register("ViewArround", keyseq.KeyCtrlV)
 
+	ActionFunc(doFreezeResults).Register("FreezeResults")
+	ActionFunc(doUnfreezeResults).Register("UnfreezeResults")
+
 	ActionFunc(doGoToNextSelection).Register("GoToNextSelection")
 	ActionFunc(doGoToPreviousSelection).Register("GoToPreviousSelection", keyseq.KeyCtrlJ)
 
@@ -892,6 +895,63 @@ func doGoToPreviousSelection(ctx context.Context, state *Peco, _ Event) {
 		state.Hub().SendPaging(ctx, ToScrollFirstItem)
 		state.Hub().SendPaging(ctx, JumpToLineRequest(lastLine))
 	}
+}
+
+func doFreezeResults(ctx context.Context, state *Peco, _ Event) {
+	if pdebug.Enabled {
+		g := pdebug.Marker("doFreezeResults")
+		defer g.End()
+	}
+
+	b := state.CurrentLineBuffer()
+	if b.Size() == 0 {
+		state.Hub().SendStatusMsg(ctx, "Nothing to freeze")
+		return
+	}
+
+	frozen := NewMemoryBuffer(b.Size())
+	for i := 0; i < b.Size(); i++ {
+		if l, err := b.LineAt(i); err == nil {
+			frozen.AppendLine(l)
+		}
+	}
+	close(frozen.done)
+
+	state.SetFrozenSource(frozen)
+	state.Query().Reset()
+	state.Caret().SetPos(0)
+
+	if !state.config.StickySelection {
+		state.Selection().Reset()
+	}
+
+	state.SetCurrentLineBuffer(frozen)
+	state.Hub().SendStatusMsg(ctx, "Results frozen")
+	state.Hub().SendDrawPrompt(ctx)
+}
+
+func doUnfreezeResults(ctx context.Context, state *Peco, _ Event) {
+	if pdebug.Enabled {
+		g := pdebug.Marker("doUnfreezeResults")
+		defer g.End()
+	}
+
+	if state.FrozenSource() == nil {
+		state.Hub().SendStatusMsg(ctx, "No frozen results")
+		return
+	}
+
+	state.ClearFrozenSource()
+	state.Query().Reset()
+	state.Caret().SetPos(0)
+
+	if !state.config.StickySelection {
+		state.Selection().Reset()
+	}
+
+	state.ResetCurrentLineBuffer()
+	state.Hub().SendStatusMsg(ctx, "Results unfrozen")
+	state.Hub().SendDrawPrompt(ctx)
 }
 
 func doSingleKeyJump(ctx context.Context, state *Peco, e Event) {

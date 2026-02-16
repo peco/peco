@@ -224,6 +224,24 @@ func (p *Peco) Source() pipeline.Source {
 	return p.source
 }
 
+func (p *Peco) FrozenSource() *MemoryBuffer {
+	p.mutex.Lock()
+	defer p.mutex.Unlock()
+	return p.frozenSource
+}
+
+func (p *Peco) SetFrozenSource(buf *MemoryBuffer) {
+	p.mutex.Lock()
+	defer p.mutex.Unlock()
+	p.frozenSource = buf
+}
+
+func (p *Peco) ClearFrozenSource() {
+	p.mutex.Lock()
+	defer p.mutex.Unlock()
+	p.frozenSource = nil
+}
+
 func (p *Peco) Filters() *filter.Set {
 	return &p.filters
 }
@@ -710,7 +728,11 @@ func (p *Peco) SetCurrentLineBuffer(b Buffer) {
 }
 
 func (p *Peco) ResetCurrentLineBuffer() {
-	p.SetCurrentLineBuffer(p.source)
+	if fs := p.FrozenSource(); fs != nil {
+		p.SetCurrentLineBuffer(fs)
+	} else {
+		p.SetCurrentLineBuffer(p.source)
+	}
 }
 
 func (p *Peco) sendQuery(ctx context.Context, q string, nextFunc func()) {

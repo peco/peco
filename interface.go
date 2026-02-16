@@ -113,6 +113,10 @@ type Peco struct {
 	// executed.
 	source *Source
 
+	// frozenSource holds a snapshot of filter results when the user
+	// "freezes" the current results to filter on top of them.
+	frozenSource *MemoryBuffer
+
 	// cancelFunc is called for Exit()
 	cancelFunc func()
 	// Errors are stored here
