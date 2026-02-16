@@ -91,6 +91,25 @@ func TestExternalCmd_CancelCleansUpGoroutine(t *testing.T) {
 	t.Errorf("goroutine leak: before=%d, after=%d", before, runtime.NumGoroutine())
 }
 
+func TestExternalCmd_ApplyPanicReturnsError(t *testing.T) {
+	idgen := &testIDGen{}
+
+	lines := []line.Line{
+		line.NewRaw(idgen.Next(), "hello", false, false),
+	}
+
+	ecf := NewExternalCmd("cat", "cat", nil, 0, idgen, false)
+	out := pipeline.ChanOutput(make(chan line.Line, 256))
+
+	// Call Apply with a context that does NOT have the query key set.
+	// This triggers a nil interface type assertion panic at the line:
+	//   query := ctx.Value(queryKey).(string)
+	// The bug: this panic was silently swallowed, returning nil error.
+	err := ecf.Apply(context.Background(), lines, out)
+	require.Error(t, err, "Apply should return an error when an internal panic occurs, not swallow it silently")
+	require.Contains(t, err.Error(), "panic")
+}
+
 func TestExternalCmdFilter_NullSep(t *testing.T) {
 	t.Run("preserves Output with enableSep", func(t *testing.T) {
 		idgen := &testIDGen{}

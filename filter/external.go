@@ -52,13 +52,16 @@ func (ecf ExternalCmd) String() string {
 }
 
 func (ecf *ExternalCmd) Apply(ctx context.Context, buf []line.Line, out pipeline.ChanOutput) (err error) {
+	var readerPanicErr error
+
 	defer func() {
-		if err := recover(); err != nil {
-			if pdebug.Enabled {
-				pdebug.Printf("err: %s", err)
-			}
+		if r := recover(); r != nil {
+			err = fmt.Errorf("panic in external filter %q: %v", ecf.name, r)
 		}
-	}() // ignore errors
+		if err == nil && readerPanicErr != nil {
+			err = readerPanicErr
+		}
+	}()
 	if pdebug.Enabled {
 		g := pdebug.Marker("ExternalCmd.Apply").BindError(&err)
 		defer g.End()
@@ -111,7 +114,11 @@ func (ecf *ExternalCmd) Apply(ctx context.Context, buf []line.Line, out pipeline
 	wg.Add(1)
 	go func(ctx context.Context, cmdCh chan line.Line, rdr *bufio.Reader) {
 		defer wg.Done()
-		defer func() { recover() }()
+		defer func() {
+			if r := recover(); r != nil {
+				readerPanicErr = fmt.Errorf("panic in external filter %q reader: %v", ecf.name, r)
+			}
+		}()
 		defer close(cmdCh)
 		defer cmd.Wait()
 		for {
