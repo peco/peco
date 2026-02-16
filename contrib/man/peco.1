@@ -212,6 +212,80 @@ matches the Chrome.app under IgnoreCase filter type.
 When you change it to Regexp filter, this is no longer the case.
 But you can type \f[V](?i)google\f[R] instead to toggle case-insensitive
 mode
+.SS Multi-Stage Filtering (Freeze Results)
+.PP
+You can \[lq]freeze\[rq] the current filter results, clear the query,
+and continue filtering on top of the frozen results.
+This enables multi-stage filtering workflows \[en] for example, first
+filter by file extension, freeze, then filter by filename.
+.PP
+Use \f[V]peco.FreezeResults\f[R] to snapshot the current results and
+clear the query.
+Use \f[V]peco.UnfreezeResults\f[R] to discard the frozen results and
+revert to the original input.
+These actions are \f[B]not bound to any key by default\f[R] \[en] you
+need to add keybindings in your config file:
+.IP
+.nf
+\f[C]
+{
+    \[dq]Keymap\[dq]: {
+        \[dq]M-f\[dq]: \[dq]peco.FreezeResults\[dq],
+        \[dq]M-u\[dq]: \[dq]peco.UnfreezeResults\[dq]
+    }
+}
+\f[R]
+.fi
+.PP
+You can freeze multiple times to progressively narrow down results.
+Unfreezing always reverts back to the original unfiltered input.
+.PP
+\f[B]Example:\f[R] Given this input via \f[V]ls | peco\f[R]:
+.IP
+.nf
+\f[C]
+QUERY>
+app.go
+app_test.go
+filter.go
+filter_test.go
+main.go
+readme.md
+\f[R]
+.fi
+.PP
+Type \f[V]_test\f[R] to filter:
+.IP
+.nf
+\f[C]
+QUERY> _test
+app_test.go
+filter_test.go
+\f[R]
+.fi
+.PP
+Press \f[V]M-f\f[R] to freeze.
+The two test files become the new base and the query clears:
+.IP
+.nf
+\f[C]
+QUERY>
+app_test.go
+filter_test.go
+\f[R]
+.fi
+.PP
+Now type \f[V]filter\f[R] to search within the frozen results:
+.IP
+.nf
+\f[C]
+QUERY> filter
+filter_test.go
+\f[R]
+.fi
+.PP
+Press \f[V]Enter\f[R] to select \f[V]filter_test.go\f[R], or press
+\f[V]M-u\f[R] to unfreeze and return to the original full list.
 .SS Horizontal Scrolling
 .PP
 When input lines are longer than the terminal width, they are clipped at
@@ -1120,6 +1194,16 @@ T}@T{
 Rotate between filters (by default, ignore-case/no-ignore-case)
 T}
 T{
+peco.FreezeResults
+T}@T{
+Freeze current results and clear the query to start a new filter on top
+T}
+T{
+peco.UnfreezeResults
+T}@T{
+Discard frozen results and revert to the original input
+T}
+T{
 peco.Finish
 T}@T{
 Exits from peco with success status
@@ -1600,6 +1684,8 @@ Select Multiple Lines
 Select Range Of Lines
 .IP \[bu] 2
 Select Filters
+.IP \[bu] 2
+Multi-Stage Filtering (Freeze Results)
 .IP \[bu] 2
 Horizontal Scrolling
 .IP \[bu] 2
