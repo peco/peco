@@ -512,6 +512,10 @@ func (p *Peco) Run(ctx context.Context) (err error) {
 	// bail out, the context should be canceled appropriately
 	<-ctx.Done()
 
+	// Stop any pending query exec timer to prevent the callback
+	// from firing after program state is torn down.
+	p.stopQueryExecTimer()
+
 	// ...and we return any errors that we might have been informed about.
 	return p.Err()
 }
@@ -892,6 +896,19 @@ func (p *Peco) ExecQuery(nextFunc func()) bool {
 		p.queryExecTimer = nil
 	})
 	return true
+}
+
+// stopQueryExecTimer stops and clears the pending query exec timer.
+// It must be called during shutdown to prevent the timer callback
+// from firing after program state is torn down.
+func (p *Peco) stopQueryExecTimer() {
+	p.queryExecMutex.Lock()
+	defer p.queryExecMutex.Unlock()
+
+	if p.queryExecTimer != nil {
+		p.queryExecTimer.Stop()
+		p.queryExecTimer = nil
+	}
 }
 
 func (p *Peco) PrintResults() {

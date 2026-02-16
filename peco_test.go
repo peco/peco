@@ -747,7 +747,7 @@ func TestPrintQuery(t *testing.T) {
 			return
 		}
 	})
-	t.Run("No match and print query", func(t *testing.T) {
+	t.Run("No match and print query", func(t *testing.T) { //nolint:dupl
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
 
@@ -842,4 +842,51 @@ func TestMemoryBufferMarkComplete(t *testing.T) {
 			t.Fatal("Done channel should be closed after second MarkComplete")
 		}
 	})
+}
+
+// TestQueryExecTimerStoppedOnCancel verifies that the queryExecTimer
+// is stopped when the context is cancelled, preventing the timer
+// callback from firing after program teardown (issue 1.4 / 7.2).
+func TestQueryExecTimerStoppedOnCancel(t *testing.T) {
+	p := newPeco()
+	// Set a long query exec delay so the timer is still pending
+	// when we cancel.
+	p.queryExecDelay = 5 * time.Second
+	p.Stdin = bytes.NewBufferString("foo\nbar\nbaz\n")
+	var out bytes.Buffer
+	p.Stdout = &out
+
+	ctx, cancel := context.WithCancel(context.Background())
+
+	waitCh := make(chan error, 1)
+	go func() {
+		waitCh <- p.Run(ctx)
+	}()
+
+	// Wait for peco to be ready
+	<-p.Ready()
+
+	// Type a character to trigger ExecQuery which will create the timer
+	p.screen.SendEvent(Event{Type: EventKey, Ch: 'f'})
+
+	// Give the input loop time to process the keystroke and create the timer
+	time.Sleep(100 * time.Millisecond)
+
+	// Verify the timer was created
+	p.queryExecMutex.Lock()
+	timerCreated := p.queryExecTimer != nil
+	p.queryExecMutex.Unlock()
+	require.True(t, timerCreated, "queryExecTimer should have been created")
+
+	// Cancel the context (simulating program exit)
+	cancel()
+
+	// Wait for Run to return
+	<-waitCh
+
+	// After Run returns, the timer should have been stopped.
+	p.queryExecMutex.Lock()
+	timerAfterCancel := p.queryExecTimer
+	p.queryExecMutex.Unlock()
+	require.Nil(t, timerAfterCancel, "queryExecTimer should be nil after cancellation")
 }
