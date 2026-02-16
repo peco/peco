@@ -421,8 +421,8 @@ func (l *ListArea) Draw(state *Peco, parent Layout, perPage int, options *hub.Dr
 	// loc variable thinks we should be scrolling to, and make sure that this
 	// falls in range with what we got
 	width, _ := state.screen.Size()
-	if max := maxOf(buf.MaxColumn()-width, 0); loc.Column() > max {
-		loc.SetColumn(max)
+	if maxCol := max(buf.MaxColumn()-width, 0); loc.Column() > maxCol {
+		loc.SetColumn(maxCol)
 	}
 
 	// previously drawn lines are cached. first, truncate the cache
@@ -680,13 +680,6 @@ func (l *ListArea) Draw(state *Peco, parent Layout, perPage int, options *hub.Dr
 	if pdebug.Enabled {
 		pdebug.Printf("ListArea.Draw: Written total of %d lines (%d cached)", written+cached, cached)
 	}
-}
-
-func maxOf(a, b int) int {
-	if a > b {
-		return a
-	}
-	return b
 }
 
 // newStatusBar returns a StatusBar appropriate for the configuration.
