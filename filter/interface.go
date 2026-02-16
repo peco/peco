@@ -47,11 +47,20 @@ type regexpQuery struct {
 	lastUsed time.Time
 }
 
+// baseFilter provides shared implementations of Apply, ApplyCollect,
+// NewContext, and BufSize for filters that follow the applyInternal pattern.
+// Filters embed this type and set applyFn to their type-specific matching logic.
+type baseFilter struct {
+	applyFn func(ctx context.Context, lines []line.Line, emit func(line.Line)) error
+}
+
 type Fuzzy struct {
+	baseFilter
 	sortLongest bool
 }
 
 type Regexp struct {
+	baseFilter
 	factory   *regexpQueryFactory
 	flags     regexpFlags
 	quotemeta bool

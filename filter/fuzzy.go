@@ -12,7 +12,6 @@ import (
 
 	"github.com/peco/peco/internal/util"
 	"github.com/peco/peco/line"
-	"github.com/peco/peco/pipeline"
 )
 
 // NewFuzzy builds a fuzzy-finder type of filter.
@@ -25,17 +24,11 @@ import (
 //  2. Earlier match
 //  3. Shorter line length
 func NewFuzzy(sortLongest bool) *Fuzzy {
-	return &Fuzzy{
+	ff := &Fuzzy{
 		sortLongest: sortLongest,
 	}
-}
-
-func (ff Fuzzy) BufSize() int {
-	return 0
-}
-
-func (ff *Fuzzy) NewContext(ctx context.Context, query string) context.Context {
-	return newContext(ctx, query)
+	ff.applyFn = ff.applyInternal
+	return ff
 }
 
 func (ff Fuzzy) SupportsParallel() bool {
@@ -192,20 +185,6 @@ LINE:
 	}
 
 	return nil
-}
-
-func (ff *Fuzzy) Apply(ctx context.Context, lines []line.Line, out pipeline.ChanOutput) error {
-	return ff.applyInternal(ctx, lines, func(l line.Line) {
-		out.Send(ctx, l)
-	})
-}
-
-func (ff *Fuzzy) ApplyCollect(ctx context.Context, lines []line.Line) ([]line.Line, error) {
-	result := make([]line.Line, 0, len(lines)/2)
-	err := ff.applyInternal(ctx, lines, func(l line.Line) {
-		result = append(result, l)
-	})
-	return result, err
 }
 
 func popRune(s string) (string, rune, int) {
