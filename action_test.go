@@ -110,6 +110,8 @@ func TestActionNames(t *testing.T) {
 		"peco.RotateMatcher",
 		"peco.Finish",
 		"peco.Cancel",
+		"peco.FreezeResults",
+		"peco.UnfreezeResults",
 	}
 	for _, name := range names {
 		if _, ok := nameToActions[name]; !ok {
@@ -609,4 +611,130 @@ func TestGHIssue455_RefreshScreenSendsForceSync(t *testing.T) {
 	require.True(t, ok, "SendDraw argument should be *DrawOptions")
 	require.True(t, opts.DisableCache, "DisableCache should be true")
 	require.True(t, opts.ForceSync, "ForceSync should be true for screen refresh")
+}
+
+func TestDoFreezeResults(t *testing.T) {
+	ctx := context.Background()
+
+	makeLines := func(values ...string) []line.Line {
+		lines := make([]line.Line, len(values))
+		for i, v := range values {
+			lines[i] = line.NewRaw(uint64(i), v, false)
+		}
+		return lines
+	}
+
+	t.Run("freeze captures current buffer", func(t *testing.T) {
+		rHub := &recordingHub{}
+		state := New()
+		state.hub = rHub
+		state.selection = NewSelection()
+
+		lines := makeLines("alpha", "beta", "gamma")
+		mb := NewMemoryBuffer(0)
+		mb.lines = lines
+		state.currentLineBuffer = mb
+
+		state.Query().Set("test")
+		state.Caret().SetPos(4)
+
+		doFreezeResults(ctx, state, Event{})
+
+		fs := state.FrozenSource()
+		require.NotNil(t, fs, "frozenSource should be set")
+		require.Equal(t, 3, fs.Size(), "frozen buffer should have 3 lines")
+
+		for i, expected := range []string{"alpha", "beta", "gamma"} {
+			l, err := fs.LineAt(i)
+			require.NoError(t, err)
+			require.Equal(t, expected, l.Buffer())
+		}
+
+		require.Equal(t, 0, state.Query().Len(), "query should be cleared")
+		require.Equal(t, 0, state.Caret().Pos(), "caret should be at 0")
+
+		statusMsgs := rHub.getStatusMsgs()
+		require.Contains(t, statusMsgs, "Results frozen")
+	})
+
+	t.Run("ResetCurrentLineBuffer uses frozen source", func(t *testing.T) {
+		rHub := &recordingHub{}
+		state := New()
+		state.hub = rHub
+		state.selection = NewSelection()
+		state.source = &Source{}
+
+		lines := makeLines("frozen1", "frozen2")
+		frozen := NewMemoryBuffer(0)
+		frozen.lines = lines
+		close(frozen.done)
+		state.SetFrozenSource(frozen)
+
+		state.ResetCurrentLineBuffer()
+
+		buf := state.CurrentLineBuffer()
+		require.Equal(t, 2, buf.Size(), "should use frozen source")
+		l, err := buf.LineAt(0)
+		require.NoError(t, err)
+		require.Equal(t, "frozen1", l.Buffer())
+	})
+
+	t.Run("unfreeze reverts to original source", func(t *testing.T) {
+		rHub := &recordingHub{}
+		state := New()
+		state.hub = rHub
+		state.selection = NewSelection()
+
+		origLines := makeLines("orig1", "orig2", "orig3")
+		origSource := &Source{}
+		origSource.lines = origLines
+		state.source = origSource
+
+		frozen := NewMemoryBuffer(0)
+		frozen.lines = makeLines("frozen1")
+		close(frozen.done)
+		state.SetFrozenSource(frozen)
+		state.currentLineBuffer = frozen
+
+		state.Query().Set("test")
+		state.Caret().SetPos(4)
+
+		doUnfreezeResults(ctx, state, Event{})
+
+		require.Nil(t, state.FrozenSource(), "frozenSource should be nil")
+		require.Equal(t, 0, state.Query().Len(), "query should be cleared")
+		require.Equal(t, 0, state.Caret().Pos(), "caret should be at 0")
+
+		statusMsgs := rHub.getStatusMsgs()
+		require.Contains(t, statusMsgs, "Results unfrozen")
+	})
+
+	t.Run("freeze with empty buffer does nothing", func(t *testing.T) {
+		rHub := &recordingHub{}
+		state := New()
+		state.hub = rHub
+		state.selection = NewSelection()
+		state.currentLineBuffer = NewMemoryBuffer(0)
+
+		doFreezeResults(ctx, state, Event{})
+
+		require.Nil(t, state.FrozenSource(), "frozenSource should not be set")
+
+		statusMsgs := rHub.getStatusMsgs()
+		require.Contains(t, statusMsgs, "Nothing to freeze")
+	})
+
+	t.Run("unfreeze when not frozen does nothing", func(t *testing.T) {
+		rHub := &recordingHub{}
+		state := New()
+		state.hub = rHub
+		state.selection = NewSelection()
+
+		doUnfreezeResults(ctx, state, Event{})
+
+		require.Nil(t, state.FrozenSource(), "frozenSource should remain nil")
+
+		statusMsgs := rHub.getStatusMsgs()
+		require.Contains(t, statusMsgs, "No frozen results")
+	})
 }

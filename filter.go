@@ -453,9 +453,14 @@ func (f *Filter) Work(ctx context.Context, q hub.Payload) {
 	f.prevMu.Unlock()
 
 	if src == nil {
-		src = state.Source()
-		if sizer, ok := src.(interface{ Size() int }); ok {
-			srcSize = sizer.Size()
+		if fs := state.FrozenSource(); fs != nil {
+			src = NewMemoryBufferSource(fs)
+			srcSize = fs.Size()
+		} else {
+			src = state.Source()
+			if sizer, ok := src.(interface{ Size() int }); ok {
+				srcSize = sizer.Size()
+			}
 		}
 	}
 	p.SetSource(src)

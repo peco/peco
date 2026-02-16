@@ -84,6 +84,60 @@ The Fuzzy filter allows you to find matches using partial patterns. For example,
 
 ![Executed `ps aux | peco`, then typed `google`, which matches the Chrome.app under IgnoreCase filter type. When you change it to Regexp filter, this is no longer the case. But you can type `(?i)google` instead to toggle case-insensitive mode](http://peco.github.io/images/peco-demo-matcher.gif)
 
+## Multi-Stage Filtering (Freeze Results)
+
+You can "freeze" the current filter results, clear the query, and continue filtering on top of the frozen results. This enables multi-stage filtering workflows -- for example, first filter by file extension, freeze, then filter by filename.
+
+Use `peco.FreezeResults` to snapshot the current results and clear the query. Use `peco.UnfreezeResults` to discard the frozen results and revert to the original input. These actions are **not bound to any key by default** -- you need to add keybindings in your config file:
+
+```json
+{
+    "Keymap": {
+        "M-f": "peco.FreezeResults",
+        "M-u": "peco.UnfreezeResults"
+    }
+}
+```
+
+You can freeze multiple times to progressively narrow down results. Unfreezing always reverts back to the original unfiltered input.
+
+**Example:** Given this input via `ls | peco`:
+
+```
+QUERY>
+app.go
+app_test.go
+filter.go
+filter_test.go
+main.go
+readme.md
+```
+
+Type `_test` to filter:
+
+```
+QUERY> _test
+app_test.go
+filter_test.go
+```
+
+Press `M-f` to freeze. The two test files become the new base and the query clears:
+
+```
+QUERY>
+app_test.go
+filter_test.go
+```
+
+Now type `filter` to search within the frozen results:
+
+```
+QUERY> filter
+filter_test.go
+```
+
+Press `Enter` to select `filter_test.go`, or press `M-u` to unfreeze and return to the original full list.
+
 ## Horizontal Scrolling
 
 When input lines are longer than the terminal width, they are clipped at the edge of the screen. You can scroll horizontally to reveal the rest of the line using the `peco.ScrollLeft` and `peco.ScrollRight` actions. These actions are **not bound to any key by default** -- you need to add keybindings in your config file:
@@ -568,6 +622,8 @@ Some keys just... don't map correctly / too easily for various reasons. Here, we
 | peco.CancelRangeMode   | Finish selecting by range and cancel range selection |
 | peco.RotateMatcher     | (DEPRECATED) Use peco.RotateFilter |
 | peco.RotateFilter       | Rotate between filters (by default, ignore-case/no-ignore-case)|
+| peco.FreezeResults      | Freeze current results and clear the query to start a new filter on top |
+| peco.UnfreezeResults    | Discard frozen results and revert to the original input |
 | peco.Finish             | Exits from peco with success status |
 | peco.Cancel             | Exits from peco with failure status, or cancel select mode |
 
@@ -833,6 +889,7 @@ Much code stolen from https://github.com/mattn/gof
   - [Select Multiple Lines](#select-multiple-lines)
   - [Select Range Of Lines](#select-range-of-lines)
   - [Select Filters](#select-filters)
+  - [Multi-Stage Filtering (Freeze Results)](#multi-stage-filtering-freeze-results)
   - [Horizontal Scrolling](#horizontal-scrolling)
   - [Selectable Layout](#selectable-layout)
   - [Works on Windows!](#works-on-windows)
