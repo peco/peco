@@ -41,15 +41,15 @@ func TestInlineScreenSetCell(t *testing.T) {
 	s.Flush()
 
 	// Read back from simulation screen at physical coordinates
-	mainc, _, _, _ := sim.GetContent(5, 14)
-	require.Equal(t, 'A', mainc)
+	str, _, _ := sim.Get(5, 14)
+	require.Equal(t, "A", str)
 
 	// SetCell at virtual y=9 (last line) should map to physical y=23
 	s.SetCell(10, 9, 'Z', ColorDefault, ColorDefault)
 	s.Flush()
 
-	mainc, _, _, _ = sim.GetContent(10, 23)
-	require.Equal(t, 'Z', mainc)
+	str, _, _ = sim.Get(10, 23)
+	require.Equal(t, "Z", str)
 }
 
 func TestInlineScreenSetCursor(t *testing.T) {

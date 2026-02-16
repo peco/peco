@@ -66,7 +66,7 @@ func (s *InlineScreen) Init(cfg *Config) error {
 		}
 		tty.Write(buf)
 		// Move cursor up to the start of our inline region
-		tty.Write([]byte(fmt.Sprintf("\033[%dA", s.height)))
+		fmt.Fprintf(tty, "\033[%dA", s.height)
 	}
 
 	// Lock the region above our area so tcell won't overwrite it
@@ -96,8 +96,8 @@ func (s *InlineScreen) Close() error {
 		// Clear our region and position cursor at the start of it
 		if tty, ok := scr.Tty(); ok {
 			// Move cursor to the start of our inline region and clear from there down
-			tty.Write([]byte(fmt.Sprintf("\033[%d;1H", s.yOffset+1))) // 1-based row
-			tty.Write([]byte("\033[J"))                                // clear from cursor to end of screen
+			fmt.Fprintf(tty, "\033[%d;1H", s.yOffset+1) // 1-based row
+			tty.Write([]byte("\033[J"))                 // clear from cursor to end of screen
 		}
 		scr.Fini()
 	}
