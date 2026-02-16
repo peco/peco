@@ -805,49 +805,7 @@ func doGoToNextSelection(ctx context.Context, state *Peco, _ Event) {
 		g := pdebug.Marker("doGoToNextSelection")
 		defer g.End()
 	}
-
-	selection := state.Selection()
-
-	if selection.Len() == 0 {
-		state.Hub().SendStatusMsg(ctx, "No Selection")
-		return
-	}
-
-	b := state.CurrentLineBuffer()
-	l, err := b.LineAt(state.Location().LineNumber())
-	if err != nil {
-		return
-	}
-	currentLine := l.ID()
-	nextLine := uint64(math.MaxUint64)
-	firstLine := uint64(math.MaxUint64)
-	found := false
-
-	selection.Ascend(func(it btree.Item) bool {
-		selectedLine := it.(line.Line)
-		if selectedLine.ID() > currentLine {
-			if selectedLine.ID() < nextLine {
-				nextLine = selectedLine.ID()
-				found = true
-			}
-		}
-
-		if selectedLine.ID() <= firstLine {
-			firstLine = selectedLine.ID()
-		}
-
-		return true
-	})
-
-	if found {
-		state.Hub().SendStatusMsg(ctx, "Next Selection")
-		state.Hub().SendPaging(ctx, ToScrollFirstItem)
-		state.Hub().SendPaging(ctx, JumpToLineRequest(nextLine))
-	} else {
-		state.Hub().SendStatusMsg(ctx, "Next Selection (first)")
-		state.Hub().SendPaging(ctx, ToScrollFirstItem)
-		state.Hub().SendPaging(ctx, JumpToLineRequest(firstLine))
-	}
+	doGoToAdjacentSelection(ctx, state, true)
 }
 
 func doGoToPreviousSelection(ctx context.Context, state *Peco, _ Event) {
@@ -855,7 +813,12 @@ func doGoToPreviousSelection(ctx context.Context, state *Peco, _ Event) {
 		g := pdebug.Marker("doGoToPreviousSelection")
 		defer g.End()
 	}
+	doGoToAdjacentSelection(ctx, state, false)
+}
 
+// doGoToAdjacentSelection navigates to the next (forward=true) or previous
+// (forward=false) selected line, wrapping around if necessary.
+func doGoToAdjacentSelection(ctx context.Context, state *Peco, forward bool) {
 	selection := state.Selection()
 
 	if selection.Len() == 0 {
@@ -869,34 +832,52 @@ func doGoToPreviousSelection(ctx context.Context, state *Peco, _ Event) {
 		return
 	}
 	currentLine := l.ID()
-	previousLine := uint64(0)
-	lastLine := uint64(0)
+
+	// target: the nearest selected line in the desired direction.
+	// wrapTarget: the line to jump to when wrapping around
+	//   (smallest ID for forward, largest ID for backward).
+	var target, wrapTarget uint64
+	if forward {
+		target = math.MaxUint64
+		wrapTarget = math.MaxUint64
+	}
 	found := false
 
 	selection.Ascend(func(it btree.Item) bool {
-		selectedLine := it.(line.Line)
-		if selectedLine.ID() < currentLine {
-			if selectedLine.ID() > previousLine {
-				previousLine = selectedLine.ID()
+		id := it.(line.Line).ID()
+		if forward {
+			if id > currentLine && id < target {
+				target = id
 				found = true
 			}
+			if id <= wrapTarget {
+				wrapTarget = id
+			}
+		} else {
+			if id < currentLine && id > target {
+				target = id
+				found = true
+			}
+			if id > wrapTarget {
+				wrapTarget = id
+			}
 		}
-
-		if selectedLine.ID() > lastLine {
-			lastLine = selectedLine.ID()
-		}
-
 		return true
 	})
 
+	label := "Next"
+	if !forward {
+		label = "Previous"
+	}
+
 	if found {
-		state.Hub().SendStatusMsg(ctx, "Previous Selection")
+		state.Hub().SendStatusMsg(ctx, label+" Selection")
 		state.Hub().SendPaging(ctx, ToScrollFirstItem)
-		state.Hub().SendPaging(ctx, JumpToLineRequest(previousLine))
+		state.Hub().SendPaging(ctx, JumpToLineRequest(target))
 	} else {
-		state.Hub().SendStatusMsg(ctx, "Previous Selection (first)")
+		state.Hub().SendStatusMsg(ctx, label+" Selection (first)")
 		state.Hub().SendPaging(ctx, ToScrollFirstItem)
-		state.Hub().SendPaging(ctx, JumpToLineRequest(lastLine))
+		state.Hub().SendPaging(ctx, JumpToLineRequest(wrapTarget))
 	}
 }
 
