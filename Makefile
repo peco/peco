@@ -21,7 +21,7 @@ RELEASE_TARGETS=\
 	release-darwin-arm64 \
 	release-windows-amd64
 
-.PHONY: default deps install clean build all test cover $(RELEASE_TARGETS) $(BUILD_TARGETS) $(RELEASE_DIR)/peco_$(GOOS)_$(GOARCH)/peco$(SUFFIX)
+.PHONY: default deps install clean build all test generate cover $(RELEASE_TARGETS) $(BUILD_TARGETS) $(RELEASE_DIR)/peco_$(GOOS)_$(GOARCH)/peco$(SUFFIX)
 
 # the first target in the file is the entrypoint, this is run when you call `make` with no arguments
 default: deps build
@@ -124,8 +124,10 @@ release-upload: release release-github-token
 
 test: deps
 	@echo "Running tests..."
-	@go generate ./...
 	@go test -v -race ./...
+
+generate:
+	@go generate ./...
 
 cover: deps
 	@echo "Running tests with coverage..."
