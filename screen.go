@@ -169,7 +169,7 @@ func (t *TcellScreen) Init(cfg *Config) error {
 	}
 
 	t.screen = screen
-	return t.PostInit(cfg)
+	return nil
 }
 
 func NewTcellScreen() *TcellScreen {
