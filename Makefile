@@ -21,7 +21,7 @@ RELEASE_TARGETS=\
 	release-darwin-arm64 \
 	release-windows-amd64
 
-.PHONY: default deps install clean build all $(RELEASE_TARGETS) $(BUILD_TARGETS) $(RELEASE_DIR)/peco_$(GOOS)_$(GOARCH)/peco$(SUFFIX)
+.PHONY: default deps install clean build all test generate cover $(RELEASE_TARGETS) $(BUILD_TARGETS) $(RELEASE_DIR)/peco_$(GOOS)_$(GOARCH)/peco$(SUFFIX)
 
 # the first target in the file is the entrypoint, this is run when you call `make` with no arguments
 default: deps build
@@ -33,7 +33,7 @@ install:
 
 deps:
 	@echo "Downloading dependencies..."
-	@GO111MODULE=on go mod download
+	@go mod download
 
 build-windows-amd64:
 	@$(MAKE) build GOOS=windows GOARCH=amd64 SUFFIX=.exe
@@ -61,7 +61,7 @@ build-darwin-arm64:
 
 $(RELEASE_DIR)/peco_$(GOOS)_$(GOARCH)/peco$(SUFFIX):
 	@echo "Building $(RELEASE_DIR)/peco_$(GOOS)_$(GOARCH)/peco$(SUFFIX)"
-	@GO111MODULE=on go build -o $(RELEASE_DIR)/peco_$(GOOS)_$(GOARCH)/peco$(SUFFIX) cmd/peco/peco.go
+	@go build -o $(RELEASE_DIR)/peco_$(GOOS)_$(GOARCH)/peco$(SUFFIX) cmd/peco/peco.go
 
 all: deps $(BUILD_TARGETS)
 
@@ -124,7 +124,15 @@ release-upload: release release-github-token
 
 test: deps
 	@echo "Running tests..."
-	@GO111MODULE=on go test -v ./...
+	@go test -v -race ./...
+
+generate:
+	@go generate ./...
+
+cover: deps
+	@echo "Running tests with coverage..."
+	@go test -race -coverprofile=coverage.out ./...
+	@go tool cover -func=coverage.out
 
 clean:
 	@echo "Cleaning.."
