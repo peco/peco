@@ -277,8 +277,8 @@ func (t *TcellScreen) PollEvent(ctx context.Context, cfg *Config) chan Event {
 			if r := recover(); r != nil {
 				fmt.Fprintf(t.errWriter, "peco: panic in PollEvent goroutine: %v\n%s", r, debug.Stack())
 			}
+			close(evCh)
 		}()
-		defer func() { close(evCh) }()
 
 		for {
 			t.mutex.Lock()
