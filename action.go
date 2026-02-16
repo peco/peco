@@ -25,6 +25,15 @@ var nameToActions map[string]Action
 // This is the default keybinding used by NewKeymap()
 var defaultKeyBinding map[string]Action
 
+// execQueryAndDraw runs ExecQuery and, if the query was non-empty
+// (ExecQuery returns false), sends a draw-prompt message.
+func execQueryAndDraw(ctx context.Context, state *Peco) {
+	if state.ExecQuery(nil) {
+		return
+	}
+	state.Hub().SendDrawPrompt(ctx)
+}
+
 // Execute fulfills the Action interface for AfterFunc
 func (a ActionFunc) Execute(ctx context.Context, state *Peco, e Event) {
 	a(ctx, state, e)
@@ -210,10 +219,7 @@ func doRotateFilter(ctx context.Context, state *Peco, e Event) {
 	filters := state.Filters()
 	filters.Rotate()
 
-	if state.ExecQuery(nil) {
-		return
-	}
-	state.Hub().SendDrawPrompt(ctx)
+	execQueryAndDraw(ctx, state)
 }
 
 func doBackToInitialFilter(ctx context.Context, state *Peco, e Event) {
@@ -225,10 +231,7 @@ func doBackToInitialFilter(ctx context.Context, state *Peco, e Event) {
 	filters := state.Filters()
 	filters.Reset()
 
-	if state.ExecQuery(nil) {
-		return
-	}
-	state.Hub().SendDrawPrompt(ctx)
+	execQueryAndDraw(ctx, state)
 }
 
 func doToggleSelection(ctx context.Context, state *Peco, _ Event) {
@@ -494,10 +497,7 @@ func doDeleteBackwardWord(ctx context.Context, state *Peco, _ Event) {
 		q.DeleteRange(0, start)
 		c.SetPos(0)
 	}
-	if state.ExecQuery(nil) {
-		return
-	}
-	state.Hub().SendDrawPrompt(ctx)
+	execQueryAndDraw(ctx, state)
 }
 
 func doForwardWord(ctx context.Context, state *Peco, _ Event) {
@@ -619,10 +619,7 @@ func doDeleteForwardWord(ctx context.Context, state *Peco, _ Event) {
 		}
 	}
 
-	if state.ExecQuery(nil) {
-		return
-	}
-	state.Hub().SendDrawPrompt(ctx)
+	execQueryAndDraw(ctx, state)
 }
 
 func doBeginningOfLine(ctx context.Context, state *Peco, _ Event) {
@@ -647,10 +644,7 @@ func doKillBeginningOfLine(ctx context.Context, state *Peco, _ Event) {
 	q := state.Query()
 	q.DeleteRange(0, state.Caret().Pos())
 	state.Caret().SetPos(0)
-	if state.ExecQuery(nil) {
-		return
-	}
-	state.Hub().SendDrawPrompt(ctx)
+	execQueryAndDraw(ctx, state)
 }
 
 func doKillEndOfLine(ctx context.Context, state *Peco, _ Event) {
@@ -660,10 +654,7 @@ func doKillEndOfLine(ctx context.Context, state *Peco, _ Event) {
 
 	q := state.Query()
 	q.DeleteRange(state.Caret().Pos(), q.Len())
-	if state.ExecQuery(nil) {
-		return
-	}
-	state.Hub().SendDrawPrompt(ctx)
+	execQueryAndDraw(ctx, state)
 }
 
 func doDeleteAll(ctx context.Context, state *Peco, _ Event) {
@@ -681,10 +672,7 @@ func doDeleteForwardChar(ctx context.Context, state *Peco, _ Event) {
 	pos := c.Pos()
 	q.DeleteRange(pos, pos+1)
 
-	if state.ExecQuery(nil) {
-		return
-	}
-	state.Hub().SendDrawPrompt(ctx)
+	execQueryAndDraw(ctx, state)
 }
 
 func doDeleteBackwardChar(ctx context.Context, state *Peco, e Event) {
@@ -720,11 +708,7 @@ func doDeleteBackwardChar(ctx context.Context, state *Peco, e Event) {
 	}
 	c.SetPos(pos - 1)
 
-	if state.ExecQuery(nil) {
-		return
-	}
-
-	state.Hub().SendDrawPrompt(ctx)
+	execQueryAndDraw(ctx, state)
 }
 
 func doRefreshScreen(ctx context.Context, state *Peco, _ Event) {
@@ -744,10 +728,7 @@ func doToggleQuery(ctx context.Context, state *Peco, _ Event) {
 		q.SaveQuery()
 	}
 
-	if state.ExecQuery(nil) {
-		return
-	}
-	state.Hub().SendDrawPrompt(ctx)
+	execQueryAndDraw(ctx, state)
 }
 
 func doKonamiCommand(ctx context.Context, state *Peco, e Event) {
