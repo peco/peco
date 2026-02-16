@@ -26,11 +26,6 @@ to the state of \f[V]peco\f[R] in whatever current branch you are
 viewing, \f[I]not\f[R] necessarily the state of a currently released
 version.
 Please make sure to checkout the Changes file for features and changes.
-.PP
-This README is long and comprehensive.
-Use the Table of Contents to navigate to the section that interests you.
-It has been placed at the bottom of the README file because of its
-length.
 .RS
 .PP
 If you use peco, please consider sponsoring the authors of this project
@@ -313,6 +308,39 @@ do not appear at all, try increasing \f[V]MaxScanBufferSize\f[R] in your
 config.
 The default is 256 (KB), which limits the maximum length of a single
 input line.
+.SS ANSI Color Support
+.PP
+When the \f[V]--ansi\f[R] flag is enabled, peco parses ANSI SGR (Select
+Graphic Rendition) escape sequences from the input and renders the
+original colors in the terminal.
+This lets you pipe colored output from tools like
+\f[V]git log --color\f[R], \f[V]rg --color=always\f[R], or
+\f[V]ls --color\f[R] through peco while preserving the visual
+formatting.
+.IP
+.nf
+\f[C]
+git log --color=always | peco --ansi
+rg --color=always pattern | peco --ansi
+ls --color=always | peco --ansi
+\f[R]
+.fi
+.PP
+Supported ANSI features: - Basic 8 foreground and background colors
+(30-37, 40-47) - 256-color palette (38;5;N, 48;5;N) - 24-bit truecolor
+(38;2;R;G;B, 48;2;R;G;B) - Bold, underline, and reverse attributes -
+Reset sequences
+.PP
+When ANSI mode is enabled: - Filtering and matching operate against the
+\f[B]stripped\f[R] (plain text) version of each line, so escape codes do
+not interfere with your queries - ANSI colors are displayed as the
+\f[B]base layer\f[R]; peco\[cq]s own selection and match highlighting
+take precedence over ANSI colors - Selected lines\[cq] output preserves
+the \f[B]original\f[R] ANSI codes, so downstream tools receive colored
+text
+.PP
+ANSI mode can also be enabled permanently via the configuration file
+(see ANSI under Global configuration).
 .SS Context Lines (Zoom In/Out)
 .PP
 When filtering results (e.g.\ searching for \[lq]error\[rq] in a log
@@ -652,6 +680,15 @@ your external command repeatedly afterwards.
 .PP
 To exit out of peco when running in this mode, you must execute the
 Cancel command, usually the escape key.
+.SS \[en]ansi
+.PP
+Enables ANSI color code support.
+When this flag is set, peco parses ANSI SGR escape sequences from the
+input and renders the colors in the terminal UI.
+Filtering is performed against the plain text with ANSI codes stripped,
+and selected output preserves the original ANSI codes.
+.PP
+See ANSI Color Support in the Features section for details.
 .SS \[en]height \f[V]num|percentage\f[R]
 .PP
 When specified, peco renders inline at the bottom of the terminal using
@@ -717,6 +754,8 @@ Prompt
 InitialMatcher
 .IP \[bu] 2
 Use256Color
+.IP \[bu] 2
+ANSI
 .SS Global
 .PP
 Global configurations that change the global behavior.
@@ -810,6 +849,25 @@ If you believe that your input has very long lines that prohibit peco
 from reading them, try increasing this number.
 .PP
 The same time, the default MaxScanBuferSize is 256kb.
+.SS ANSI
+.IP
+.nf
+\f[C]
+{
+    \[dq]ANSI\[dq]: true
+}
+\f[R]
+.fi
+.PP
+Enables ANSI color code support.
+When set to \f[V]true\f[R], peco parses and renders ANSI SGR escape
+sequences from the input.
+This is equivalent to using the \f[V]--ansi\f[R] command line flag.
+The command line flag takes precedence if both are specified.
+.PP
+Default value for ANSI is \f[V]false\f[R].
+.PP
+See ANSI Color Support in the Features section for details.
 .SS Height
 .IP
 .nf
@@ -1793,184 +1851,3 @@ Naruki Tanabe (narugit)
 .PP
 Obviously, kudos to the original percol: https://github.com/mooz/percol
 Much code stolen from https://github.com/mattn/gof
-.SH Table of Contents
-.IP \[bu] 2
-peco
-.IP \[bu] 2
-Description
-.RS 2
-.IP \[bu] 2
-Demo
-.RE
-.IP \[bu] 2
-Features
-.RS 2
-.IP \[bu] 2
-Incremental Search
-.IP \[bu] 2
-Negative Matching
-.IP \[bu] 2
-Select Multiple Lines
-.IP \[bu] 2
-Select Range Of Lines
-.IP \[bu] 2
-Select Filters
-.IP \[bu] 2
-Multi-Stage Filtering (Freeze Results)
-.IP \[bu] 2
-Horizontal Scrolling
-.IP \[bu] 2
-Context Lines (Zoom In/Out)
-.IP \[bu] 2
-Selectable Layout
-.IP \[bu] 2
-Inline Mode (\[en]height)
-.IP \[bu] 2
-Works on Windows!
-.RE
-.IP \[bu] 2
-Installation
-.RS 2
-.IP \[bu] 2
-Just want the binary?
-.IP \[bu] 2
-macOS (Homebrew, Scarf)
-.IP \[bu] 2
-Debian and Ubuntu based distributions (APT, Scarf)
-.IP \[bu] 2
-Void Linux (XBPS)
-.IP \[bu] 2
-Arch Linux
-.IP \[bu] 2
-Windows (Chocolatey NuGet Users)
-.IP \[bu] 2
-Building peco yourself
-.IP \[bu] 2
-go get IS NOT RECOMMENDED
-.RE
-.IP \[bu] 2
-Command Line Options
-.RS 2
-.IP \[bu] 2
--h, \[en]help
-.IP \[bu] 2
-\[en]version
-.IP \[bu] 2
-\[en]query
-.IP \[bu] 2
-\[en]print-query
-.IP \[bu] 2
-\[en]rcfile
-.IP \[bu] 2
--b, \[en]buffer-size
-.IP \[bu] 2
-\[en]null
-.IP \[bu] 2
-\[en]initial-index
-.IP \[bu] 2
-\[en]initial-filter
-\f[V]IgnoreCase|CaseSensitive|SmartCase|IRegexp|Regexp|Fuzzy\f[R]
-.IP \[bu] 2
-\[en]prompt
-.IP \[bu] 2
-\[en]layout \f[V]top-down|bottom-up\f[R]
-.IP \[bu] 2
-\[en]select-1
-.IP \[bu] 2
-\[en]on-cancel \f[V]success|error\f[R]
-.IP \[bu] 2
-\[en]selection-prefix \f[V]string\f[R]
-.IP \[bu] 2
-\[en]exec \f[V]string\f[R]
-.IP \[bu] 2
-\[en]height \f[V]num|percentage\f[R]
-.RE
-.IP \[bu] 2
-Configuration File
-.RS 2
-.IP \[bu] 2
-Global
-.RS 2
-.IP \[bu] 2
-Prompt
-.IP \[bu] 2
-InitialMatcher
-.IP \[bu] 2
-InitialFilter
-.IP \[bu] 2
-FuzzyLongestSort
-.IP \[bu] 2
-StickySelection
-.IP \[bu] 2
-SuppressStatusMsg
-.IP \[bu] 2
-OnCancel
-.IP \[bu] 2
-MaxScanBufferSize
-.IP \[bu] 2
-Height
-.RE
-.IP \[bu] 2
-Keymaps
-.RS 2
-.IP \[bu] 2
-Key sequences
-.IP \[bu] 2
-Combined actions
-.IP \[bu] 2
-Available keys
-.IP \[bu] 2
-Key workarounds
-.IP \[bu] 2
-Available actions
-.IP \[bu] 2
-Default Keymap
-.RE
-.IP \[bu] 2
-Styles
-.RS 2
-.IP \[bu] 2
-Foreground Colors
-.IP \[bu] 2
-Background Colors
-.IP \[bu] 2
-Attributes
-.RE
-.IP \[bu] 2
-CustomFilter
-.RS 2
-.IP \[bu] 2
-Examples
-.RE
-.IP \[bu] 2
-Layout
-.IP \[bu] 2
-SingleKeyJump
-.IP \[bu] 2
-SelectionPrefix
-.IP \[bu] 2
-Use256Color
-.RE
-.IP \[bu] 2
-FAQ
-.RS 2
-.IP \[bu] 2
-Does peco work on (msys2|cygwin)?
-.IP \[bu] 2
-Non-latin fonts (e.g.\ Japanese) look weird on my Windows machine\&...?
-.IP \[bu] 2
-Seeing escape sequences \f[V][200\[ti]\f[R] and \f[V][201\[ti]\f[R] when
-pasting text?
-.RE
-.IP \[bu] 2
-Hacking
-.IP \[bu] 2
-TODO
-.IP \[bu] 2
-AUTHORS
-.IP \[bu] 2
-CONTRIBUTORS
-.IP \[bu] 2
-Notes
-.IP \[bu] 2
-Table of Contents
