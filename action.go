@@ -58,6 +58,13 @@ func wrapDeprecated(fn func(context.Context, *Peco, Event), oldName, newName str
 	})
 }
 
+// makePagingAction creates an ActionFunc that sends the given PagingRequest.
+func makePagingAction(req hub.PagingRequest) ActionFunc {
+	return ActionFunc(func(ctx context.Context, state *Peco, _ Event) {
+		state.Hub().SendPaging(ctx, req)
+	})
+}
+
 func init() {
 	// Build the global maps
 	nameToActions = map[string]Action{}
@@ -91,23 +98,28 @@ func init() {
 	wrapDeprecated(doRotateFilter, "RotateMatcher", "RotateFilter").Register("RotateMatcher")
 	ActionFunc(doBackToInitialFilter).Register("BackToInitialFilter")
 
-	ActionFunc(doSelectUp).Register("SelectUp", keyseq.KeyArrowUp, keyseq.KeyCtrlP)
-	wrapDeprecated(doSelectDown, "SelectNext", "SelectUp/SelectDown").Register("SelectNext")
+	selectUp := makePagingAction(hub.ToLineAbove)
+	selectDown := makePagingAction(hub.ToLineBelow)
+	scrollPageUp := makePagingAction(hub.ToScrollPageUp)
+	scrollPageDown := makePagingAction(hub.ToScrollPageDown)
 
-	ActionFunc(doScrollPageDown).Register("ScrollPageDown", keyseq.KeyArrowRight, keyseq.KeyPgdn)
-	wrapDeprecated(doScrollPageDown, "SelectNextPage", "ScrollPageDown/ScrollPageUp").Register("SelectNextPage")
+	selectUp.Register("SelectUp", keyseq.KeyArrowUp, keyseq.KeyCtrlP)
+	wrapDeprecated(selectDown, "SelectNext", "SelectUp/SelectDown").Register("SelectNext")
 
-	ActionFunc(doSelectDown).Register("SelectDown", keyseq.KeyArrowDown, keyseq.KeyCtrlN)
-	wrapDeprecated(doSelectUp, "SelectPrevious", "SelectUp/SelectDown").Register("SelectPrevious")
+	scrollPageDown.Register("ScrollPageDown", keyseq.KeyArrowRight, keyseq.KeyPgdn)
+	wrapDeprecated(scrollPageDown, "SelectNextPage", "ScrollPageDown/ScrollPageUp").Register("SelectNextPage")
 
-	ActionFunc(doScrollPageUp).Register("ScrollPageUp", keyseq.KeyArrowLeft, keyseq.KeyPgup)
-	wrapDeprecated(doScrollPageUp, "SelectPreviousPage", "ScrollPageDown/ScrollPageUp").Register("SelectPreviousPage")
+	selectDown.Register("SelectDown", keyseq.KeyArrowDown, keyseq.KeyCtrlN)
+	wrapDeprecated(selectUp, "SelectPrevious", "SelectUp/SelectDown").Register("SelectPrevious")
 
-	ActionFunc(doScrollLeft).Register("ScrollLeft")
-	ActionFunc(doScrollRight).Register("ScrollRight")
+	scrollPageUp.Register("ScrollPageUp", keyseq.KeyArrowLeft, keyseq.KeyPgup)
+	wrapDeprecated(scrollPageUp, "SelectPreviousPage", "ScrollPageDown/ScrollPageUp").Register("SelectPreviousPage")
 
-	ActionFunc(doScrollFirstItem).Register("ScrollFirstItem", keyseq.KeyHome)
-	ActionFunc(doScrollLastItem).Register("ScrollLastItem", keyseq.KeyEnd)
+	makePagingAction(hub.ToScrollLeft).Register("ScrollLeft")
+	makePagingAction(hub.ToScrollRight).Register("ScrollRight")
+
+	makePagingAction(hub.ToScrollFirstItem).Register("ScrollFirstItem", keyseq.KeyHome)
+	makePagingAction(hub.ToScrollLastItem).Register("ScrollLastItem", keyseq.KeyEnd)
 
 	ActionFunc(doToggleSelection).Register("ToggleSelection")
 	ActionFunc(doToggleSelectionAndSelectNext).Register(
@@ -399,46 +411,6 @@ func doCancel(ctx context.Context, state *Peco, e Event) {
 	state.Exit(err)
 }
 
-func doSelectDown(ctx context.Context, state *Peco, e Event) {
-	if pdebug.Enabled {
-		g := pdebug.Marker("doSelectDown")
-		defer g.End()
-	}
-	state.Hub().SendPaging(ctx, hub.ToLineBelow)
-}
-
-func doSelectUp(ctx context.Context, state *Peco, e Event) {
-	if pdebug.Enabled {
-		g := pdebug.Marker("doSelectUp")
-		defer g.End()
-	}
-	state.Hub().SendPaging(ctx, hub.ToLineAbove)
-}
-
-func doScrollPageUp(ctx context.Context, state *Peco, e Event) {
-	state.Hub().SendPaging(ctx, hub.ToScrollPageUp)
-}
-
-func doScrollPageDown(ctx context.Context, state *Peco, e Event) {
-	state.Hub().SendPaging(ctx, hub.ToScrollPageDown)
-}
-
-func doScrollLeft(ctx context.Context, state *Peco, e Event) {
-	state.Hub().SendPaging(ctx, hub.ToScrollLeft)
-}
-
-func doScrollRight(ctx context.Context, state *Peco, e Event) {
-	state.Hub().SendPaging(ctx, hub.ToScrollRight)
-}
-
-func doScrollFirstItem(ctx context.Context, state *Peco, e Event) {
-	state.Hub().SendPaging(ctx, hub.ToScrollFirstItem)
-}
-
-func doScrollLastItem(ctx context.Context, state *Peco, e Event) {
-	state.Hub().SendPaging(ctx, hub.ToScrollLastItem)
-}
-
 // batchAction extracts the top-level action call flag from the context,
 // runs fn inside a Hub.Batch, and marks nested calls as non-top-level.
 func batchAction(ctx context.Context, state *Peco, fn func(context.Context)) {
@@ -453,9 +425,9 @@ func doToggleSelectionAndSelectNext(ctx context.Context, state *Peco, e Event) {
 	batchAction(ctx, state, func(ctx context.Context) {
 		doToggleSelection(ctx, state, e)
 		if state.LayoutType() != LayoutTypeBottomUp {
-			doSelectDown(ctx, state, e)
+			state.Hub().SendPaging(ctx, hub.ToLineBelow)
 		} else {
-			doSelectUp(ctx, state, e)
+			state.Hub().SendPaging(ctx, hub.ToLineAbove)
 		}
 	})
 }
