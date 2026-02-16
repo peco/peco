@@ -24,7 +24,7 @@ func NewRegexpFilter(rx *regexp.Regexp) *RegexpFilter {
 
 func (rf *RegexpFilter) Accept(ctx context.Context, in chan interface{}, out ChanOutput) {
 	defer fmt.Println("END RegexpFilter.Accept")
-	defer out.SendEndMark("end of RegexpFilter")
+	defer out.SendEndMark(ctx, "end of RegexpFilter")
 	for {
 		select {
 		case <-ctx.Done():
@@ -38,7 +38,7 @@ func (rf *RegexpFilter) Accept(ctx context.Context, in chan interface{}, out Cha
 
 			if s, ok := v.(string); ok {
 				if rf.rx.MatchString(s) {
-					out.Send(s)
+					out.Send(ctx, s)
 				}
 			}
 		}
@@ -66,9 +66,9 @@ func (f *LineFeeder) Reset() {
 func (f *LineFeeder) Start(ctx context.Context, out ChanOutput) {
 	fmt.Println("START LineFeeder.Start")
 	defer fmt.Println("END LineFeeder.Start")
-	defer out.SendEndMark("end of LineFeeder")
+	defer out.SendEndMark(ctx, "end of LineFeeder")
 	for _, s := range f.lines {
-		out.Send(s)
+		out.Send(ctx, s)
 	}
 }
 

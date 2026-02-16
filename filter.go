@@ -50,7 +50,7 @@ func flusher(ctx context.Context, f filter.Filter, incoming chan []line.Line, do
 	}
 
 	defer close(done)
-	defer out.SendEndMark("end of filter")
+	defer out.SendEndMark(ctx, "end of filter")
 
 	for {
 		select {
@@ -76,7 +76,7 @@ func parallelFlusher(ctx context.Context, f filter.Filter, incoming chan ordered
 	}
 
 	defer close(done)
-	defer out.SendEndMark("end of filter")
+	defer out.SendEndMark(ctx, "end of filter")
 
 	numWorkers := runtime.GOMAXPROCS(0)
 	if numWorkers < 1 {
@@ -162,11 +162,8 @@ func parallelFlusher(ctx context.Context, f filter.Filter, incoming chan ordered
 				nextSeq++
 
 				for _, l := range r.matched {
-					select {
-					case <-ctx.Done():
+					if err := out.Send(ctx, l); err != nil {
 						return
-					default:
-						out.Send(l)
 					}
 				}
 			}
@@ -179,7 +176,7 @@ func parallelFlusher(ctx context.Context, f filter.Filter, incoming chan ordered
 				break
 			}
 			for _, l := range r.matched {
-				out.Send(l)
+				out.Send(ctx, l)
 			}
 		}
 	}()

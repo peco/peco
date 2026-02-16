@@ -162,7 +162,7 @@ func (ecf *ExternalCmd) Apply(ctx context.Context, buf []line.Line, out pipeline
 			if l == nil || !ok {
 				return nil
 			}
-			out.Send(l)
+			out.Send(ctx, l)
 		}
 	}
 }

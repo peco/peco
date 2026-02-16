@@ -182,10 +182,10 @@ func (s *sliceSource) Start(ctx context.Context, out pipeline.ChanOutput) {
 		case <-ctx.Done():
 			return
 		default:
-			out.Send(l)
+			out.Send(ctx, l)
 		}
 	}
-	out.SendEndMark("end of sliceSource")
+	out.SendEndMark(ctx, "end of sliceSource")
 }
 
 func (s *sliceSource) Reset() {}

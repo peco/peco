@@ -202,7 +202,7 @@ func (rf *Regexp) applyInternal(ctx context.Context, lines []line.Line, emit fun
 
 func (rf *Regexp) Apply(ctx context.Context, lines []line.Line, out pipeline.ChanOutput) error {
 	return rf.applyInternal(ctx, lines, func(l line.Line) {
-		out.Send(l)
+		out.Send(ctx, l)
 	})
 }
 

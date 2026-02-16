@@ -159,7 +159,7 @@ LINE:
 
 func (ff *Fuzzy) Apply(ctx context.Context, lines []line.Line, out pipeline.ChanOutput) error {
 	return ff.applyInternal(ctx, lines, func(l line.Line) {
-		out.Send(l)
+		out.Send(ctx, l)
 	})
 }
 

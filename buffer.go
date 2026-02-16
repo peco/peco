@@ -183,7 +183,7 @@ func NewMemoryBufferSource(buf *MemoryBuffer) *MemoryBufferSource {
 // Start iterates through the MemoryBuffer's lines and sends them to the
 // output channel, implementing pipeline.Source.
 func (s *MemoryBufferSource) Start(ctx context.Context, out pipeline.ChanOutput) {
-	defer out.SendEndMark("end of memory buffer source")
+	defer out.SendEndMark(ctx, "end of memory buffer source")
 
 	s.buf.mutex.RLock()
 	lines := s.buf.lines
@@ -194,7 +194,7 @@ func (s *MemoryBufferSource) Start(ctx context.Context, out pipeline.ChanOutput)
 		case <-ctx.Done():
 			return
 		default:
-			out.Send(l)
+			out.Send(ctx, l)
 		}
 	}
 }
