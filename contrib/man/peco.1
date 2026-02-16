@@ -324,6 +324,27 @@ inverted layout
 mode (http://peco.github.io/images/peco-demo-layout-bottom-up.gif)]
 Executed \f[V]ps -ef | peco --layout=bottom-up\f[R] to toggle inverted
 layout mode
+.SS Inline Mode (\[en]height)
+.PP
+By default peco takes over the entire terminal screen using the
+alternate screen buffer.
+With \f[V]--height\f[R], peco renders inline at the bottom of the
+terminal, preserving your scroll history above.
+This is similar to fzf\[cq]s \f[V]--height\f[R] option.
+.IP
+.nf
+\f[C]
+# Render with 5 result lines at the bottom of the terminal
+ls | peco --height 5
+
+# Use 40% of the terminal height
+ls | peco --height 40%
+\f[R]
+.fi
+.PP
+All layout modes (\f[V]top-down\f[R], \f[V]bottom-up\f[R],
+\f[V]top-down-query-bottom\f[R]) work with \f[V]--height\f[R].
+See \[en]height for details.
 .SS Works on Windows!
 .PP
 I have been told that peco even works on windows :) Look ma!
@@ -586,6 +607,40 @@ your external command repeatedly afterwards.
 .PP
 To exit out of peco when running in this mode, you must execute the
 Cancel command, usually the escape key.
+.SS \[en]height \f[V]num|percentage\f[R]
+.PP
+When specified, peco renders inline at the bottom of the terminal using
+only the requested number of lines, instead of taking over the full
+screen.
+This preserves your terminal scroll history above the peco interface.
+.PP
+The value can be:
+.IP \[bu] 2
+An absolute number of \f[B]result lines\f[R]
+(e.g.\ \f[V]--height 5\f[R]).
+The prompt and status bar are added automatically, so
+\f[V]--height 5\f[R] uses 7 terminal rows total (5 result lines + prompt
++ status bar).
+.IP \[bu] 2
+A percentage of the terminal height (e.g.\ \f[V]--height 50%\f[R]).
+This refers to the total height including prompt and status bar.
+.PP
+The minimum effective height is 3 rows (1 result line + prompt + status
+bar).
+Values that exceed the terminal height are clamped.
+.IP
+.nf
+\f[C]
+# Show 5 result lines inline
+ls | peco --height 5
+
+# Use 40% of the terminal
+ls | peco --height 40%
+\f[R]
+.fi
+.PP
+Without \f[V]--height\f[R], peco uses the full terminal screen (default
+behavior, unchanged).
 .SH Configuration File
 .PP
 peco by default consults a few locations for the config files.
@@ -710,6 +765,24 @@ If you believe that your input has very long lines that prohibit peco
 from reading them, try increasing this number.
 .PP
 The same time, the default MaxScanBuferSize is 256kb.
+.SS Height
+.IP
+.nf
+\f[C]
+{
+    \[dq]Height\[dq]: \[dq]10\[dq]
+}
+\f[R]
+.fi
+.PP
+\f[V]Height\f[R] is equivalent to using \f[V]--height\f[R] on the
+command line.
+When set, peco renders inline at the bottom of the terminal instead of
+using the full screen.
+The value is the number of result lines (e.g.\ \f[V]\[dq]10\[dq]\f[R])
+or a percentage of terminal height (e.g.\ \f[V]\[dq]50%\[dq]\f[R]).
+The command line \f[V]--height\f[R] option takes precedence over this
+config value.
 .SS Keymaps
 .PP
 Example:
@@ -1691,6 +1764,8 @@ Horizontal Scrolling
 .IP \[bu] 2
 Selectable Layout
 .IP \[bu] 2
+Inline Mode (\[en]height)
+.IP \[bu] 2
 Works on Windows!
 .RE
 .IP \[bu] 2
@@ -1747,6 +1822,8 @@ Command Line Options
 \[en]selection-prefix \f[V]string\f[R]
 .IP \[bu] 2
 \[en]exec \f[V]string\f[R]
+.IP \[bu] 2
+\[en]height \f[V]num|percentage\f[R]
 .RE
 .IP \[bu] 2
 Configuration File
@@ -1770,6 +1847,8 @@ SuppressStatusMsg
 OnCancel
 .IP \[bu] 2
 MaxScanBufferSize
+.IP \[bu] 2
+Height
 .RE
 .IP \[bu] 2
 Keymaps
