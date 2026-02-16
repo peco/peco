@@ -1,12 +1,59 @@
 package peco
 
 import (
+	"bytes"
 	"context"
 	"testing"
 	"time"
 
+	"github.com/gdamore/tcell/v2"
 	"github.com/stretchr/testify/require"
 )
+
+// panickingScreen wraps a tcell.Screen and panics on PollEvent.
+// Used to test that TcellScreen's PollEvent goroutine logs panics
+// instead of silently swallowing them.
+type panickingScreen struct {
+	tcell.Screen
+}
+
+func (s *panickingScreen) PollEvent() tcell.Event {
+	panic("test: deliberate panic in PollEvent")
+}
+
+// TestTcellScreenPollEventLogsPanic verifies that when a panic occurs
+// in the PollEvent goroutine, it is logged to errWriter rather than
+// being silently swallowed (the bug described in CODE_REVIEW.md §3.2).
+func TestTcellScreenPollEventLogsPanic(t *testing.T) {
+	var buf bytes.Buffer
+	ts := NewTcellScreen()
+	ts.errWriter = &buf
+
+	// Set the screen to a wrapper that panics on PollEvent.
+	sim := tcell.NewSimulationScreen("")
+	sim.Init()
+	ts.screen = &panickingScreen{Screen: sim}
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	evCh := ts.PollEvent(ctx, nil)
+
+	// The goroutine should panic, log it, and close the channel.
+	select {
+	case _, ok := <-evCh:
+		require.False(t, ok, "expected channel to be closed after panic")
+	case <-time.After(2 * time.Second):
+		t.Fatal("PollEvent channel was not closed after panic")
+	}
+
+	// Verify that the panic was logged (not silently swallowed).
+	output := buf.String()
+	require.Contains(t, output, "peco: panic in PollEvent goroutine")
+	require.Contains(t, output, "test: deliberate panic in PollEvent")
+
+	ts.Close()
+}
 
 // TestTcellScreenSuspendHandlerExitsOnClose verifies that the suspend handler
 // goroutine (started by PollEvent) exits when Close() is called, even if

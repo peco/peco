@@ -3,6 +3,9 @@ package peco
 import (
 	"context"
 	"fmt"
+	"io"
+	"os"
+	"runtime/debug"
 	"sync"
 	"unicode/utf8"
 
@@ -21,6 +24,7 @@ type TcellScreen struct {
 	suspendCh chan struct{}
 	doneCh    chan struct{} // closed on permanent Close() to signal goroutines to exit
 	closeOnce sync.Once    // ensures doneCh is closed exactly once
+	errWriter io.Writer    // destination for error output (defaults to os.Stderr)
 }
 
 // tcellKeyToKeyseq maps tcell navigation/function key constants to peco keyseq constants.
@@ -177,6 +181,7 @@ func NewTcellScreen() *TcellScreen {
 		suspendCh: make(chan struct{}),
 		resumeCh:  make(chan chan struct{}),
 		doneCh:    make(chan struct{}),
+		errWriter: os.Stderr,
 	}
 }
 
@@ -268,7 +273,11 @@ func (t *TcellScreen) PollEvent(ctx context.Context, cfg *Config) chan Event {
 	}()
 
 	go func() {
-		defer func() { recover() }()
+		defer func() {
+			if r := recover(); r != nil {
+				fmt.Fprintf(t.errWriter, "peco: panic in PollEvent goroutine: %v\n%s", r, debug.Stack())
+			}
+		}()
 		defer func() { close(evCh) }()
 
 		for {
