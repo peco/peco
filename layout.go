@@ -517,6 +517,14 @@ func (l *ListArea) Draw(state *Peco, parent Layout, perPage int, options *DrawOp
 		written++
 		l.displayCache[n] = target
 
+		// Apply Context style for non-matched surrounding lines
+		if _, isCtx := target.(*ContextLine); isCtx {
+			if fgAttr == l.styles.Basic.fg && bgAttr == l.styles.Basic.bg {
+				fgAttr = l.styles.Context.fg
+				bgAttr = l.styles.Context.bg
+			}
+		}
+
 		x := -1 * loc.Column()
 		xOffset := loc.Column()
 		line := target.DisplayString()

@@ -224,6 +224,54 @@ func (p *Peco) Source() pipeline.Source {
 	return p.source
 }
 
+func (p *Peco) FrozenSource() *MemoryBuffer {
+	p.mutex.Lock()
+	defer p.mutex.Unlock()
+	return p.frozenSource
+}
+
+func (p *Peco) SetFrozenSource(buf *MemoryBuffer) {
+	p.mutex.Lock()
+	defer p.mutex.Unlock()
+	p.frozenSource = buf
+}
+
+func (p *Peco) ClearFrozenSource() {
+	p.mutex.Lock()
+	defer p.mutex.Unlock()
+	p.frozenSource = nil
+}
+
+// PreZoomBuffer returns the saved buffer from before ZoomIn, or nil if not zoomed.
+func (p *Peco) PreZoomBuffer() Buffer {
+	p.mutex.Lock()
+	defer p.mutex.Unlock()
+	return p.preZoomBuffer
+}
+
+// SetPreZoomState saves the current buffer and cursor position before zooming in.
+func (p *Peco) SetPreZoomState(buf Buffer, lineNo int) {
+	p.mutex.Lock()
+	defer p.mutex.Unlock()
+	p.preZoomBuffer = buf
+	p.preZoomLineNo = lineNo
+}
+
+// ClearPreZoomState clears the saved zoom state.
+func (p *Peco) ClearPreZoomState() {
+	p.mutex.Lock()
+	defer p.mutex.Unlock()
+	p.preZoomBuffer = nil
+	p.preZoomLineNo = 0
+}
+
+// PreZoomLineNo returns the saved cursor position from before ZoomIn.
+func (p *Peco) PreZoomLineNo() int {
+	p.mutex.Lock()
+	defer p.mutex.Unlock()
+	return p.preZoomLineNo
+}
+
 func (p *Peco) Filters() *filter.Set {
 	return &p.filters
 }
@@ -377,6 +425,11 @@ func (p *Peco) Run(ctx context.Context) (err error) {
 		return errors.Wrap(err, "failed to setup input source")
 	}
 	p.source = src
+
+	// If --height is specified, use InlineScreen instead of the default Termbox screen
+	if p.heightSpec != nil {
+		p.screen = NewInlineScreen(*p.heightSpec)
+	}
 
 	go func() {
 		<-p.source.Ready()
@@ -611,6 +664,21 @@ func (p *Peco) ApplyConfig(opts CLIOptions) error {
 	}
 	p.fuzzyLongestSort = p.config.FuzzyLongestSort
 
+	// Height: CLI option overrides config
+	var heightStr string
+	if v := opts.OptHeight; v != "" {
+		heightStr = v
+	} else if v := p.config.Height; v != "" {
+		heightStr = v
+	}
+	if heightStr != "" {
+		spec, err := ParseHeightSpec(heightStr)
+		if err != nil {
+			return errors.Wrap(err, "failed to parse height specification")
+		}
+		p.heightSpec = &spec
+	}
+
 	if err := p.populateFilters(); err != nil {
 		return errors.Wrap(err, "failed to populate filters")
 	}
@@ -711,7 +779,11 @@ func (p *Peco) SetCurrentLineBuffer(b Buffer) {
 }
 
 func (p *Peco) ResetCurrentLineBuffer() {
-	p.SetCurrentLineBuffer(p.source)
+	if fs := p.FrozenSource(); fs != nil {
+		p.SetCurrentLineBuffer(fs)
+	} else {
+		p.SetCurrentLineBuffer(p.source)
+	}
 }
 
 func (p *Peco) sendQuery(ctx context.Context, q string, nextFunc func()) {

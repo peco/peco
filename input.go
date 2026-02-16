@@ -24,7 +24,10 @@ func (i *Input) Loop(ctx context.Context, cancel func()) error {
 		select {
 		case <-ctx.Done():
 			return nil
-		case ev := <-i.evsrc:
+		case ev, ok := <-i.evsrc:
+			if !ok {
+				return nil
+			}
 			if err := i.handleInputEvent(ctx, ev); err != nil {
 				return nil
 			}

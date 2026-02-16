@@ -104,6 +104,7 @@ type Peco struct {
 	singleKeyJumpPrefixes   []rune
 	singleKeyJumpPrefixMap  map[rune]uint
 	singleKeyJumpShowPrefix bool
+	heightSpec              *HeightSpec
 	skipReadConfig          bool
 	styles                  StyleSet
 	enableANSI              bool // Enable ANSI color code support
@@ -114,10 +115,27 @@ type Peco struct {
 	// executed.
 	source *Source
 
+	// frozenSource holds a snapshot of filter results when the user
+	// "freezes" the current results to filter on top of them.
+	frozenSource *MemoryBuffer
+
+	// preZoomBuffer holds the filtered buffer before ZoomIn was applied,
+	// so ZoomOut can restore it. nil means not zoomed.
+	preZoomBuffer Buffer
+	// preZoomLineNo holds the cursor position before ZoomIn was applied.
+	preZoomLineNo int
+
 	// cancelFunc is called for Exit()
 	cancelFunc func()
 	// Errors are stored here
 	err error
+}
+
+// ContextLine wraps a line.Line to mark it as a context line (non-matched
+// surrounding line shown during ZoomIn). Detected via type assertion in
+// ListArea.Draw() to apply the Context style.
+type ContextLine struct {
+	line.Line
 }
 
 type MatchIndexer interface {
@@ -323,6 +341,10 @@ type Config struct {
 
 	// Use this prefix to denote currently selected line
 	SelectionPrefix string `json:"SelectionPrefix" yaml:"SelectionPrefix"`
+
+	// Height specifies the display height in lines or percentage (e.g. "10", "50%").
+	// When set, peco renders inline without using the alternate screen buffer.
+	Height string `json:"Height" yaml:"Height"`
 }
 
 type SingleKeyJumpConfig struct {
@@ -356,6 +378,7 @@ type StyleSet struct {
 	Query          Style `json:"Query" yaml:"Query"`
 	Matched        Style `json:"Matched" yaml:"Matched"`
 	Prompt         Style `json:"Prompt" yaml:"Prompt"`
+	Context        Style `json:"Context" yaml:"Context"`
 }
 
 // Attribute represents terminal display attributes such as colors
@@ -471,6 +494,7 @@ type CLIOptions struct {
 	OptExec            string `long:"exec" description:"execute command instead of finishing/terminating peco.\nPlease note that this command will receive selected line(s) from stdin,\nand will be executed via '/bin/sh -c' or 'cmd /c'"`
 	OptPrintQuery      bool   `long:"print-query" description:"print out the current query as first line of output"`
 	OptANSI            bool   `long:"ansi" description:"enable ANSI color code support"`
+	OptHeight          string `long:"height" description:"display height in lines or percentage (e.g. '10', '50%')"`
 }
 
 type CLI struct {

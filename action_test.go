@@ -1,6 +1,7 @@
 package peco
 
 import (
+	"fmt"
 	"sync"
 	"testing"
 	"time"
@@ -110,6 +111,10 @@ func TestActionNames(t *testing.T) {
 		"peco.RotateMatcher",
 		"peco.Finish",
 		"peco.Cancel",
+		"peco.FreezeResults",
+		"peco.UnfreezeResults",
+		"peco.ZoomIn",
+		"peco.ZoomOut",
 	}
 	for _, name := range names {
 		if _, ok := nameToActions[name]; !ok {
@@ -609,4 +614,386 @@ func TestGHIssue455_RefreshScreenSendsForceSync(t *testing.T) {
 	require.True(t, ok, "SendDraw argument should be *DrawOptions")
 	require.True(t, opts.DisableCache, "DisableCache should be true")
 	require.True(t, opts.ForceSync, "ForceSync should be true for screen refresh")
+}
+
+func TestDoFreezeResults(t *testing.T) {
+	ctx := context.Background()
+
+	makeLines := func(values ...string) []line.Line {
+		lines := make([]line.Line, len(values))
+		for i, v := range values {
+			lines[i] = line.NewRaw(uint64(i), v, false, false)
+		}
+		return lines
+	}
+
+	t.Run("freeze captures current buffer", func(t *testing.T) {
+		rHub := &recordingHub{}
+		state := New()
+		state.hub = rHub
+		state.selection = NewSelection()
+
+		lines := makeLines("alpha", "beta", "gamma")
+		mb := NewMemoryBuffer(0)
+		mb.lines = lines
+		state.currentLineBuffer = mb
+
+		state.Query().Set("test")
+		state.Caret().SetPos(4)
+
+		doFreezeResults(ctx, state, Event{})
+
+		fs := state.FrozenSource()
+		require.NotNil(t, fs, "frozenSource should be set")
+		require.Equal(t, 3, fs.Size(), "frozen buffer should have 3 lines")
+
+		for i, expected := range []string{"alpha", "beta", "gamma"} {
+			l, err := fs.LineAt(i)
+			require.NoError(t, err)
+			require.Equal(t, expected, l.Buffer())
+		}
+
+		require.Equal(t, 0, state.Query().Len(), "query should be cleared")
+		require.Equal(t, 0, state.Caret().Pos(), "caret should be at 0")
+
+		statusMsgs := rHub.getStatusMsgs()
+		require.Contains(t, statusMsgs, "Results frozen")
+	})
+
+	t.Run("ResetCurrentLineBuffer uses frozen source", func(t *testing.T) {
+		rHub := &recordingHub{}
+		state := New()
+		state.hub = rHub
+		state.selection = NewSelection()
+		state.source = &Source{}
+
+		lines := makeLines("frozen1", "frozen2")
+		frozen := NewMemoryBuffer(0)
+		frozen.lines = lines
+		close(frozen.done)
+		state.SetFrozenSource(frozen)
+
+		state.ResetCurrentLineBuffer()
+
+		buf := state.CurrentLineBuffer()
+		require.Equal(t, 2, buf.Size(), "should use frozen source")
+		l, err := buf.LineAt(0)
+		require.NoError(t, err)
+		require.Equal(t, "frozen1", l.Buffer())
+	})
+
+	t.Run("unfreeze reverts to original source", func(t *testing.T) {
+		rHub := &recordingHub{}
+		state := New()
+		state.hub = rHub
+		state.selection = NewSelection()
+
+		origLines := makeLines("orig1", "orig2", "orig3")
+		origSource := &Source{}
+		origSource.lines = origLines
+		state.source = origSource
+
+		frozen := NewMemoryBuffer(0)
+		frozen.lines = makeLines("frozen1")
+		close(frozen.done)
+		state.SetFrozenSource(frozen)
+		state.currentLineBuffer = frozen
+
+		state.Query().Set("test")
+		state.Caret().SetPos(4)
+
+		doUnfreezeResults(ctx, state, Event{})
+
+		require.Nil(t, state.FrozenSource(), "frozenSource should be nil")
+		require.Equal(t, 0, state.Query().Len(), "query should be cleared")
+		require.Equal(t, 0, state.Caret().Pos(), "caret should be at 0")
+
+		statusMsgs := rHub.getStatusMsgs()
+		require.Contains(t, statusMsgs, "Results unfrozen")
+	})
+
+	t.Run("freeze with empty buffer does nothing", func(t *testing.T) {
+		rHub := &recordingHub{}
+		state := New()
+		state.hub = rHub
+		state.selection = NewSelection()
+		state.currentLineBuffer = NewMemoryBuffer(0)
+
+		doFreezeResults(ctx, state, Event{})
+
+		require.Nil(t, state.FrozenSource(), "frozenSource should not be set")
+
+		statusMsgs := rHub.getStatusMsgs()
+		require.Contains(t, statusMsgs, "Nothing to freeze")
+	})
+
+	t.Run("unfreeze when not frozen does nothing", func(t *testing.T) {
+		rHub := &recordingHub{}
+		state := New()
+		state.hub = rHub
+		state.selection = NewSelection()
+
+		doUnfreezeResults(ctx, state, Event{})
+
+		require.Nil(t, state.FrozenSource(), "frozenSource should remain nil")
+
+		statusMsgs := rHub.getStatusMsgs()
+		require.Contains(t, statusMsgs, "No frozen results")
+	})
+}
+
+func TestContextBuffer(t *testing.T) {
+	// Helper: create source lines with sequential IDs (0-based, matching line.ID())
+	makeSource := func(n int) *MemoryBuffer {
+		mb := NewMemoryBuffer(n)
+		for i := 0; i < n; i++ {
+			mb.lines = append(mb.lines, line.NewRaw(uint64(i), fmt.Sprintf("line-%d", i), false, false))
+		}
+		return mb
+	}
+
+	// Helper: create a filtered buffer with specific source indices as matches
+	makeFiltered := func(source *MemoryBuffer, indices []int) *MemoryBuffer {
+		mb := NewMemoryBuffer(len(indices))
+		for _, idx := range indices {
+			l, _ := source.LineAt(idx)
+			mb.lines = append(mb.lines, l)
+		}
+		return mb
+	}
+
+	t.Run("single match in middle", func(t *testing.T) {
+		source := makeSource(10)
+		filtered := makeFiltered(source, []int{5})
+
+		cb := NewContextBuffer(filtered, source, 2)
+
+		// Should have lines 3,4,5,6,7 (5 entries: 2 context before, match, 2 context after)
+		require.Equal(t, 5, cb.Size())
+
+		// Lines 3,4 should be ContextLine
+		l0, _ := cb.LineAt(0)
+		_, isCtx0 := l0.(*ContextLine)
+		require.True(t, isCtx0, "line 0 should be ContextLine")
+		require.Equal(t, uint64(3), l0.ID())
+
+		l1, _ := cb.LineAt(1)
+		_, isCtx1 := l1.(*ContextLine)
+		require.True(t, isCtx1, "line 1 should be ContextLine")
+		require.Equal(t, uint64(4), l1.ID())
+
+		// Line 5 should be the matched line (not ContextLine)
+		l2, _ := cb.LineAt(2)
+		_, isCtx2 := l2.(*ContextLine)
+		require.False(t, isCtx2, "line 2 should be the matched line, not ContextLine")
+		require.Equal(t, uint64(5), l2.ID())
+
+		// Lines 6,7 should be ContextLine
+		l3, _ := cb.LineAt(3)
+		_, isCtx3 := l3.(*ContextLine)
+		require.True(t, isCtx3, "line 3 should be ContextLine")
+
+		l4, _ := cb.LineAt(4)
+		_, isCtx4 := l4.(*ContextLine)
+		require.True(t, isCtx4, "line 4 should be ContextLine")
+
+		// matchEntryIndices: filtered index 0 -> entry index 2
+		require.Equal(t, 2, cb.MatchEntryIndices()[0])
+	})
+
+	t.Run("overlapping context merges", func(t *testing.T) {
+		source := makeSource(10)
+		// Two matches close together: indices 3 and 5 with context=2
+		// Ranges: [1,5] and [3,7] -> merged: [1,7]
+		filtered := makeFiltered(source, []int{3, 5})
+
+		cb := NewContextBuffer(filtered, source, 2)
+
+		// Should have lines 1,2,3,4,5,6,7 (7 entries)
+		require.Equal(t, 7, cb.Size())
+
+		// Check matched lines are not ContextLine
+		l2, _ := cb.LineAt(2) // source index 3
+		_, isCtx := l2.(*ContextLine)
+		require.False(t, isCtx, "matched line at source index 3 should not be ContextLine")
+		require.Equal(t, uint64(3), l2.ID())
+
+		l4, _ := cb.LineAt(4) // source index 5
+		_, isCtx2 := l4.(*ContextLine)
+		require.False(t, isCtx2, "matched line at source index 5 should not be ContextLine")
+		require.Equal(t, uint64(5), l4.ID())
+
+		// matchEntryIndices: filtered 0 -> entry 2, filtered 1 -> entry 4
+		require.Equal(t, 2, cb.MatchEntryIndices()[0])
+		require.Equal(t, 4, cb.MatchEntryIndices()[1])
+	})
+
+	t.Run("match at boundary", func(t *testing.T) {
+		source := makeSource(5)
+		// Match at index 0 with context=3 -> range [0, 3] (clamped start)
+		filtered := makeFiltered(source, []int{0})
+
+		cb := NewContextBuffer(filtered, source, 3)
+
+		// Should have lines 0,1,2,3 (4 entries)
+		require.Equal(t, 4, cb.Size())
+
+		// First line should be the match (not context)
+		l0, _ := cb.LineAt(0)
+		_, isCtx := l0.(*ContextLine)
+		require.False(t, isCtx, "line 0 should be matched, not context")
+		require.Equal(t, uint64(0), l0.ID())
+
+		// Lines 1-3 should be context
+		for i := 1; i < 4; i++ {
+			l, _ := cb.LineAt(i)
+			_, isCtx := l.(*ContextLine)
+			require.True(t, isCtx, "line %d should be ContextLine", i)
+		}
+	})
+
+	t.Run("match at end boundary", func(t *testing.T) {
+		source := makeSource(5)
+		// Match at index 4 (last) with context=3 -> range [1, 4] (clamped end)
+		filtered := makeFiltered(source, []int{4})
+
+		cb := NewContextBuffer(filtered, source, 3)
+
+		// Should have lines 1,2,3,4 (4 entries)
+		require.Equal(t, 4, cb.Size())
+
+		// Last line should be the match
+		l3, _ := cb.LineAt(3)
+		_, isCtx := l3.(*ContextLine)
+		require.False(t, isCtx, "last line should be matched, not context")
+		require.Equal(t, uint64(4), l3.ID())
+	})
+
+	t.Run("empty filtered buffer", func(t *testing.T) {
+		source := makeSource(10)
+		filtered := NewMemoryBuffer(0)
+
+		cb := NewContextBuffer(filtered, source, 3)
+
+		require.Equal(t, 0, cb.Size())
+	})
+}
+
+func TestDoZoomInOut(t *testing.T) {
+	ctx := context.Background()
+
+	// Build a source with 10 lines (IDs 0-9)
+	makeState := func() (*Peco, *recordingHub, *MemoryBuffer, *MemoryBuffer) {
+		source := NewMemoryBuffer(10)
+		for i := 0; i < 10; i++ {
+			source.lines = append(source.lines, line.NewRaw(uint64(i), fmt.Sprintf("line-%d", i), false, false))
+		}
+
+		// Filtered buffer: matches at indices 3 and 7
+		filtered := NewMemoryBuffer(2)
+		l3, _ := source.LineAt(3)
+		l7, _ := source.LineAt(7)
+		filtered.lines = append(filtered.lines, l3, l7)
+
+		rHub := &recordingHub{}
+		state := New()
+		state.hub = rHub
+		state.selection = NewSelection()
+		state.source = &Source{}
+		state.source.lines = source.lines
+		state.currentLineBuffer = filtered
+
+		return state, rHub, source, filtered
+	}
+
+	t.Run("ZoomIn with filtered results", func(t *testing.T) {
+		state, rHub, _, filtered := makeState()
+		state.Location().SetLineNumber(0) // cursor on first match
+
+		doZoomIn(ctx, state, Event{})
+
+		// Should have set a context buffer
+		buf := state.CurrentLineBuffer()
+		_, isCtx := buf.(*ContextBuffer)
+		require.True(t, isCtx, "current buffer should be ContextBuffer after ZoomIn")
+
+		// Pre-zoom state should be saved
+		require.Equal(t, filtered, state.PreZoomBuffer(), "preZoomBuffer should be the filtered buffer")
+		require.Equal(t, 0, state.PreZoomLineNo(), "preZoomLineNo should be 0")
+
+		// Should have sent a draw
+		drawArgs := rHub.getDrawArgs()
+		require.NotEmpty(t, drawArgs, "should have sent a draw")
+
+		// Context buffer should have entries around matches 3 and 7
+		ctxBuf := buf.(*ContextBuffer)
+		require.True(t, ctxBuf.Size() > 2, "context buffer should have more entries than just matches")
+	})
+
+	t.Run("ZoomOut restores state", func(t *testing.T) {
+		state, rHub, _, filtered := makeState()
+		state.Location().SetLineNumber(0)
+
+		// ZoomIn first
+		doZoomIn(ctx, state, Event{})
+		rHub.reset()
+
+		// ZoomOut
+		doZoomOut(ctx, state, Event{})
+
+		// Buffer should be restored
+		require.Equal(t, filtered, state.CurrentLineBuffer(), "buffer should be restored to filtered")
+
+		// Cursor should be restored
+		require.Equal(t, 0, state.Location().LineNumber(), "cursor should be restored")
+
+		// Pre-zoom state should be cleared
+		require.Nil(t, state.PreZoomBuffer(), "preZoomBuffer should be nil after ZoomOut")
+
+		// Should have sent a draw
+		drawArgs := rHub.getDrawArgs()
+		require.NotEmpty(t, drawArgs, "should have sent a draw")
+	})
+
+	t.Run("ZoomIn when not filtered (source buffer)", func(t *testing.T) {
+		state, rHub, _, _ := makeState()
+		// Set current buffer to source
+		state.currentLineBuffer = state.source
+
+		doZoomIn(ctx, state, Event{})
+
+		// Should be a no-op with status message
+		statusMsgs := rHub.getStatusMsgs()
+		require.NotEmpty(t, statusMsgs)
+		require.Equal(t, "Nothing to zoom into", statusMsgs[0])
+
+		// PreZoom should not be set
+		require.Nil(t, state.PreZoomBuffer())
+	})
+
+	t.Run("ZoomOut when not zoomed", func(t *testing.T) {
+		state, rHub, _, _ := makeState()
+
+		doZoomOut(ctx, state, Event{})
+
+		statusMsgs := rHub.getStatusMsgs()
+		require.NotEmpty(t, statusMsgs)
+		require.Equal(t, "Not zoomed in", statusMsgs[0])
+	})
+
+	t.Run("ZoomIn when already zoomed", func(t *testing.T) {
+		state, rHub, _, _ := makeState()
+		state.Location().SetLineNumber(0)
+
+		// ZoomIn first
+		doZoomIn(ctx, state, Event{})
+		rHub.reset()
+
+		// ZoomIn again
+		doZoomIn(ctx, state, Event{})
+
+		statusMsgs := rHub.getStatusMsgs()
+		require.NotEmpty(t, statusMsgs)
+		require.Equal(t, "Already zoomed in", statusMsgs[0])
+	})
 }

@@ -129,6 +129,12 @@ func init() {
 
 	ActionFunc(doToggleViewArround).Register("ViewArround", keyseq.KeyCtrlV)
 
+	ActionFunc(doFreezeResults).Register("FreezeResults")
+	ActionFunc(doUnfreezeResults).Register("UnfreezeResults")
+
+	ActionFunc(doZoomIn).Register("ZoomIn")
+	ActionFunc(doZoomOut).Register("ZoomOut")
+
 	ActionFunc(doGoToNextSelection).Register("GoToNextSelection")
 	ActionFunc(doGoToPreviousSelection).Register("GoToPreviousSelection", keyseq.KeyCtrlJ)
 
@@ -892,6 +898,137 @@ func doGoToPreviousSelection(ctx context.Context, state *Peco, _ Event) {
 		state.Hub().SendPaging(ctx, ToScrollFirstItem)
 		state.Hub().SendPaging(ctx, JumpToLineRequest(lastLine))
 	}
+}
+
+func doFreezeResults(ctx context.Context, state *Peco, _ Event) {
+	if pdebug.Enabled {
+		g := pdebug.Marker("doFreezeResults")
+		defer g.End()
+	}
+
+	b := state.CurrentLineBuffer()
+	if b.Size() == 0 {
+		state.Hub().SendStatusMsg(ctx, "Nothing to freeze")
+		return
+	}
+
+	frozen := NewMemoryBuffer(b.Size())
+	for i := 0; i < b.Size(); i++ {
+		if l, err := b.LineAt(i); err == nil {
+			frozen.AppendLine(l)
+		}
+	}
+	close(frozen.done)
+
+	state.SetFrozenSource(frozen)
+	state.Query().Reset()
+	state.Caret().SetPos(0)
+
+	if !state.config.StickySelection {
+		state.Selection().Reset()
+	}
+
+	state.SetCurrentLineBuffer(frozen)
+	state.Hub().SendStatusMsg(ctx, "Results frozen")
+	state.Hub().SendDrawPrompt(ctx)
+}
+
+func doUnfreezeResults(ctx context.Context, state *Peco, _ Event) {
+	if pdebug.Enabled {
+		g := pdebug.Marker("doUnfreezeResults")
+		defer g.End()
+	}
+
+	if state.FrozenSource() == nil {
+		state.Hub().SendStatusMsg(ctx, "No frozen results")
+		return
+	}
+
+	state.ClearFrozenSource()
+	state.Query().Reset()
+	state.Caret().SetPos(0)
+
+	if !state.config.StickySelection {
+		state.Selection().Reset()
+	}
+
+	state.ResetCurrentLineBuffer()
+	state.Hub().SendStatusMsg(ctx, "Results unfrozen")
+	state.Hub().SendDrawPrompt(ctx)
+}
+
+func doZoomIn(ctx context.Context, state *Peco, _ Event) {
+	if pdebug.Enabled {
+		g := pdebug.Marker("doZoomIn")
+		defer g.End()
+	}
+
+	// Already zoomed in?
+	if state.PreZoomBuffer() != nil {
+		state.Hub().SendStatusMsg(ctx, "Already zoomed in")
+		return
+	}
+
+	// Get the current line buffer
+	currentBuf := state.CurrentLineBuffer()
+
+	// If the current buffer is the source (no active filter), nothing to zoom into
+	if currentBuf == state.source {
+		state.Hub().SendStatusMsg(ctx, "Nothing to zoom into")
+		return
+	}
+
+	source := state.source
+	contextSize := 3
+
+	contextBuf := NewContextBuffer(currentBuf, source, contextSize)
+	if contextBuf.Size() == 0 {
+		state.Hub().SendStatusMsg(ctx, "Nothing to zoom into")
+		return
+	}
+
+	// Save current state for ZoomOut
+	loc := state.Location()
+	curLineNo := loc.LineNumber()
+	state.SetPreZoomState(currentBuf, curLineNo)
+
+	// Map cursor to the new context buffer position
+	newLineNo := 0
+	indices := contextBuf.MatchEntryIndices()
+	if curLineNo >= 0 && curLineNo < len(indices) && indices[curLineNo] >= 0 {
+		newLineNo = indices[curLineNo]
+	}
+
+	state.mutex.Lock()
+	state.currentLineBuffer = contextBuf
+	state.mutex.Unlock()
+
+	loc.SetLineNumber(newLineNo)
+	state.Hub().SendDraw(ctx, &DrawOptions{DisableCache: true})
+}
+
+func doZoomOut(ctx context.Context, state *Peco, _ Event) {
+	if pdebug.Enabled {
+		g := pdebug.Marker("doZoomOut")
+		defer g.End()
+	}
+
+	preZoom := state.PreZoomBuffer()
+	if preZoom == nil {
+		state.Hub().SendStatusMsg(ctx, "Not zoomed in")
+		return
+	}
+
+	loc := state.Location()
+	savedLineNo := state.PreZoomLineNo()
+
+	state.mutex.Lock()
+	state.currentLineBuffer = preZoom
+	state.mutex.Unlock()
+
+	loc.SetLineNumber(savedLineNo)
+	state.ClearPreZoomState()
+	state.Hub().SendDraw(ctx, &DrawOptions{DisableCache: true})
 }
 
 func doSingleKeyJump(ctx context.Context, state *Peco, e Event) {

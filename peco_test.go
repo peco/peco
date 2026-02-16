@@ -613,6 +613,26 @@ func TestExitZero(t *testing.T) {
 	})
 }
 
+// runPecoSelectAll is a helper that runs peco in a goroutine and waits for
+// it to complete. It uses a simple buffered channel to avoid goroutine
+// scheduling races between the result send and the context cancellation.
+func runPecoSelectAll(t *testing.T, p *Peco, ctx context.Context) {
+	t.Helper()
+
+	resultCh := make(chan error, 1)
+	go func() {
+		resultCh <- p.Run(ctx)
+	}()
+
+	select {
+	case <-ctx.Done():
+		t.Fatal("timeout reached")
+	case err := <-resultCh:
+		require.True(t, util.IsCollectResultsError(err), "isCollectResultsError")
+		p.PrintResults()
+	}
+}
+
 func TestSelectAll(t *testing.T) {
 	t.Run("Multiple lines outputs all lines", func(t *testing.T) {
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
@@ -624,25 +644,7 @@ func TestSelectAll(t *testing.T) {
 		var out bytes.Buffer
 		p.Stdout = &out
 
-		resultCh := make(chan error)
-		go func() {
-			defer close(resultCh)
-			select {
-			case <-ctx.Done():
-				return
-			case resultCh <- p.Run(ctx):
-				return
-			}
-		}()
-
-		select {
-		case <-ctx.Done():
-			t.Errorf("timeout reached")
-			return
-		case err := <-resultCh:
-			require.True(t, util.IsCollectResultsError(err), "isCollectResultsError")
-			p.PrintResults()
-		}
+		runPecoSelectAll(t, p, ctx)
 
 		require.Equal(t, "foo\nbar\nbaz\n", out.String(), "output should match")
 	})
@@ -657,25 +659,7 @@ func TestSelectAll(t *testing.T) {
 		var out bytes.Buffer
 		p.Stdout = &out
 
-		resultCh := make(chan error)
-		go func() {
-			defer close(resultCh)
-			select {
-			case <-ctx.Done():
-				return
-			case resultCh <- p.Run(ctx):
-				return
-			}
-		}()
-
-		select {
-		case <-ctx.Done():
-			t.Errorf("timeout reached")
-			return
-		case err := <-resultCh:
-			require.True(t, util.IsCollectResultsError(err), "isCollectResultsError")
-			p.PrintResults()
-		}
+		runPecoSelectAll(t, p, ctx)
 
 		require.Equal(t, "only\n", out.String(), "output should match")
 	})
@@ -690,25 +674,7 @@ func TestSelectAll(t *testing.T) {
 		var out bytes.Buffer
 		p.Stdout = &out
 
-		resultCh := make(chan error)
-		go func() {
-			defer close(resultCh)
-			select {
-			case <-ctx.Done():
-				return
-			case resultCh <- p.Run(ctx):
-				return
-			}
-		}()
-
-		select {
-		case <-ctx.Done():
-			t.Errorf("timeout reached")
-			return
-		case err := <-resultCh:
-			require.True(t, util.IsCollectResultsError(err), "isCollectResultsError")
-			p.PrintResults()
-		}
+		runPecoSelectAll(t, p, ctx)
 
 		require.Empty(t, out.String(), "output should be empty")
 	})
@@ -723,25 +689,7 @@ func TestSelectAll(t *testing.T) {
 		var out bytes.Buffer
 		p.Stdout = &out
 
-		resultCh := make(chan error)
-		go func() {
-			defer close(resultCh)
-			select {
-			case <-ctx.Done():
-				return
-			case resultCh <- p.Run(ctx):
-				return
-			}
-		}()
-
-		select {
-		case <-ctx.Done():
-			t.Errorf("timeout reached")
-			return
-		case err := <-resultCh:
-			require.True(t, util.IsCollectResultsError(err), "isCollectResultsError")
-			p.PrintResults()
-		}
+		runPecoSelectAll(t, p, ctx)
 
 		require.Equal(t, "test\n", out.String(), "output should have query and no matching lines")
 	})
@@ -756,25 +704,7 @@ func TestSelectAll(t *testing.T) {
 		var out bytes.Buffer
 		p.Stdout = &out
 
-		resultCh := make(chan error)
-		go func() {
-			defer close(resultCh)
-			select {
-			case <-ctx.Done():
-				return
-			case resultCh <- p.Run(ctx):
-				return
-			}
-		}()
-
-		select {
-		case <-ctx.Done():
-			t.Errorf("timeout reached")
-			return
-		case err := <-resultCh:
-			require.True(t, util.IsCollectResultsError(err), "isCollectResultsError")
-			p.PrintResults()
-		}
+		runPecoSelectAll(t, p, ctx)
 
 		require.Equal(t, "foo\nfoobar\n", out.String(), "output should contain only matching lines")
 	})

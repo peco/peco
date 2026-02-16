@@ -84,6 +84,60 @@ The Fuzzy filter allows you to find matches using partial patterns. For example,
 
 ![Executed `ps aux | peco`, then typed `google`, which matches the Chrome.app under IgnoreCase filter type. When you change it to Regexp filter, this is no longer the case. But you can type `(?i)google` instead to toggle case-insensitive mode](http://peco.github.io/images/peco-demo-matcher.gif)
 
+## Multi-Stage Filtering (Freeze Results)
+
+You can "freeze" the current filter results, clear the query, and continue filtering on top of the frozen results. This enables multi-stage filtering workflows -- for example, first filter by file extension, freeze, then filter by filename.
+
+Use `peco.FreezeResults` to snapshot the current results and clear the query. Use `peco.UnfreezeResults` to discard the frozen results and revert to the original input. These actions are **not bound to any key by default** -- you need to add keybindings in your config file:
+
+```json
+{
+    "Keymap": {
+        "M-f": "peco.FreezeResults",
+        "M-u": "peco.UnfreezeResults"
+    }
+}
+```
+
+You can freeze multiple times to progressively narrow down results. Unfreezing always reverts back to the original unfiltered input.
+
+**Example:** Given this input via `ls | peco`:
+
+```
+QUERY>
+app.go
+app_test.go
+filter.go
+filter_test.go
+main.go
+readme.md
+```
+
+Type `_test` to filter:
+
+```
+QUERY> _test
+app_test.go
+filter_test.go
+```
+
+Press `M-f` to freeze. The two test files become the new base and the query clears:
+
+```
+QUERY>
+app_test.go
+filter_test.go
+```
+
+Now type `filter` to search within the frozen results:
+
+```
+QUERY> filter
+filter_test.go
+```
+
+Press `Enter` to select `filter_test.go`, or press `M-u` to unfreeze and return to the original full list.
+
 ## Horizontal Scrolling
 
 When input lines are longer than the terminal width, they are clipped at the edge of the screen. You can scroll horizontally to reveal the rest of the line using the `peco.ScrollLeft` and `peco.ScrollRight` actions. These actions are **not bound to any key by default** -- you need to add keybindings in your config file:
@@ -125,11 +179,53 @@ When ANSI mode is enabled:
 
 ANSI mode can also be enabled permanently via the configuration file (see [ANSI](#ansi) under Global configuration).
 
+## Context Lines (Zoom In/Out)
+
+When filtering results (e.g. searching for "error" in a log file), you often need to see the surrounding lines to understand the context. peco supports expanding filtered results to show context lines around each match, similar to `grep -C`.
+
+Two actions are available:
+
+- **`peco.ZoomIn`** — Expands the current filtered view by showing 3 lines of context (before and after) around every matched line. Overlapping context ranges are merged automatically. Context lines are displayed with the `Context` style (bold by default) to visually distinguish them from matched lines.
+
+- **`peco.ZoomOut`** — Collapses back to the original filtered view, restoring the cursor position.
+
+These actions are **not bound to any key by default**. Add keybindings in your config file:
+
+```json
+{
+    "Keymap": {
+        "C-o": "peco.ZoomIn",
+        "C-i": "peco.ZoomOut"
+    }
+}
+```
+
+Notes:
+- ZoomIn only works when there is an active filter query. If you are viewing the unfiltered source, it is a no-op.
+- You cannot zoom in twice — zooming in while already zoomed shows a status message.
+- The cursor position is preserved: after ZoomIn, the cursor stays on the same matched line; after ZoomOut, it returns to where it was before zooming.
+- Context lines cannot be selected — only the original matched lines participate in selection.
+- The `Context` style can be customized in the config file (see [Styles](#styles)).
+
 ## Selectable Layout
 
 As of v0.2.5, if you would rather not move your eyes off of the bottom of the screen, you can change the screen layout by either providing the `--layout=bottom-up` command line option, or set the `Layout` variable in your configuration file
 
 ![Executed `ps -ef | peco --layout=bottom-up` to toggle inverted layout mode](http://peco.github.io/images/peco-demo-layout-bottom-up.gif)
+
+## Inline Mode (--height)
+
+By default peco takes over the entire terminal screen using the alternate screen buffer. With `--height`, peco renders inline at the bottom of the terminal, preserving your scroll history above. This is similar to fzf's `--height` option.
+
+```
+# Render with 5 result lines at the bottom of the terminal
+ls | peco --height 5
+
+# Use 40% of the terminal height
+ls | peco --height 40%
+```
+
+All layout modes (`top-down`, `bottom-up`, `top-down-query-bottom`) work with `--height`. See [--height](#--height-numpercentage) for details.
 
 ## Works on Windows!
 
@@ -333,6 +429,27 @@ Enables ANSI color code support. When this flag is set, peco parses ANSI SGR esc
 
 See [ANSI Color Support](#ansi-color-support) in the Features section for details.
 
+### --height `num|percentage`
+
+When specified, peco renders inline at the bottom of the terminal using only the requested number of lines, instead of taking over the full screen. This preserves your terminal scroll history above the peco interface.
+
+The value can be:
+
+- An absolute number of **result lines** (e.g. `--height 5`). The prompt and status bar are added automatically, so `--height 5` uses 7 terminal rows total (5 result lines + prompt + status bar).
+- A percentage of the terminal height (e.g. `--height 50%`). This refers to the total height including prompt and status bar.
+
+The minimum effective height is 3 rows (1 result line + prompt + status bar). Values that exceed the terminal height are clamped.
+
+```
+# Show 5 result lines inline
+ls | peco --height 5
+
+# Use 40% of the terminal
+ls | peco --height 40%
+```
+
+Without `--height`, peco uses the full terminal screen (default behavior, unchanged).
+
 # Configuration File
 
 peco by default consults a few locations for the config files.
@@ -448,6 +565,16 @@ Enables ANSI color code support. When set to `true`, peco parses and renders ANS
 Default value for ANSI is `false`.
 
 See [ANSI Color Support](#ansi-color-support) in the Features section for details.
+
+### Height
+
+```json
+{
+    "Height": "10"
+}
+```
+
+`Height` is equivalent to using `--height` on the command line. When set, peco renders inline at the bottom of the terminal instead of using the full screen. The value is the number of result lines (e.g. `"10"`) or a percentage of terminal height (e.g. `"50%"`). The command line `--height` option takes precedence over this config value.
 
 ## Keymaps
 
@@ -613,6 +740,10 @@ Some keys just... don't map correctly / too easily for various reasons. Here, we
 | peco.CancelRangeMode   | Finish selecting by range and cancel range selection |
 | peco.RotateMatcher     | (DEPRECATED) Use peco.RotateFilter |
 | peco.RotateFilter       | Rotate between filters (by default, ignore-case/no-ignore-case)|
+| peco.FreezeResults      | Freeze current results and clear the query to start a new filter on top |
+| peco.UnfreezeResults    | Discard frozen results and revert to the original input |
+| peco.ZoomIn             | Expand filtered results with context lines around each match |
+| peco.ZoomOut            | Collapse back to the filtered view (undo ZoomIn) |
 | peco.Finish             | Exits from peco with success status |
 | peco.Cancel             | Exits from peco with failure status, or cancel select mode |
 
@@ -651,7 +782,7 @@ Note: If in case below keymap seems wrong, check the source code in [keymap.go](
 
 ## Styles
 
-For now, styles of following 6 items can be customized in `config.json`.
+For now, styles of following 7 items can be customized in `config.json`.
 
 ```json
 {
@@ -661,7 +792,8 @@ For now, styles of following 6 items can be customized in `config.json`.
         "Selected": ["underline", "on_cyan", "black"],
         "Query": ["yellow", "bold"],
         "Matched": ["red", "on_blue"],
-        "Prompt": ["green", "bold"]
+        "Prompt": ["green", "bold"],
+        "Context": ["bold"]
     }
 }
 ```
@@ -672,6 +804,7 @@ For now, styles of following 6 items can be customized in `config.json`.
 - `Query` for a query line
 - `Matched` for a query matched word
 - `Prompt` for the query prompt prefix (e.g., `QUERY>`)
+- `Context` for context lines shown by ZoomIn (default: bold)
 
 ### Foreground Colors
 
@@ -878,9 +1011,12 @@ Much code stolen from https://github.com/mattn/gof
   - [Select Multiple Lines](#select-multiple-lines)
   - [Select Range Of Lines](#select-range-of-lines)
   - [Select Filters](#select-filters)
+  - [Multi-Stage Filtering (Freeze Results)](#multi-stage-filtering-freeze-results)
   - [Horizontal Scrolling](#horizontal-scrolling)
   - [ANSI Color Support](#ansi-color-support)
+  - [Context Lines (Zoom In/Out)](#context-lines-zoom-inout)
   - [Selectable Layout](#selectable-layout)
+  - [Inline Mode (--height)](#inline-mode---height)
   - [Works on Windows!](#works-on-windows)
 - [Installation](#installation)
     - [Just want the binary?](#just-want-the-binary)
@@ -908,6 +1044,7 @@ Much code stolen from https://github.com/mattn/gof
     - [--selection-prefix `string`](#--selection-prefix-string)
     - [--exec `string`](#--exec-string)
     - [--ansi](#--ansi)
+    - [--height `num|percentage`](#--height-numpercentage)
 - [Configuration File](#configuration-file)
   - [Global](#global)
     - [Prompt](#prompt)
@@ -919,6 +1056,7 @@ Much code stolen from https://github.com/mattn/gof
     - [OnCancel](#oncancel)
     - [MaxScanBufferSize](#maxscanbuffersize)
     - [ANSI](#ansi)
+    - [Height](#height)
   - [Keymaps](#keymaps)
     - [Key sequences](#key-sequences)
     - [Combined actions](#combined-actions)
