@@ -240,7 +240,7 @@ func benchDirect(name string, f filter.Filter, lines []line.Line, query string) 
 
 	// Count matches using a channel consumer
 	matchCount := 0
-	ch := make(chan interface{}, 4096)
+	ch := make(chan line.Line, 4096)
 	done := make(chan struct{})
 
 	go func() {
@@ -387,16 +387,14 @@ func benchIncremental(name string, f filter.Filter, allLines []line.Line, querie
 // collectMatchedLines runs the filter and returns matched lines as a slice.
 func collectMatchedLines(f filter.Filter, lines []line.Line, query string) []line.Line {
 	ctx := f.NewContext(context.Background(), query)
-	ch := make(chan interface{}, 4096)
+	ch := make(chan line.Line, 4096)
 	done := make(chan struct{})
 
 	var matched []line.Line
 	go func() {
 		defer close(done)
-		for v := range ch {
-			if l, ok := v.(line.Line); ok {
-				matched = append(matched, l)
-			}
+		for l := range ch {
+			matched = append(matched, l)
 		}
 	}()
 
@@ -452,7 +450,7 @@ type directFilterProcessor struct {
 	query  string
 }
 
-func (p *directFilterProcessor) Accept(ctx context.Context, in chan interface{}, out pipeline.ChanOutput) {
+func (p *directFilterProcessor) Accept(ctx context.Context, in <-chan line.Line, out pipeline.ChanOutput) {
 	peco.AcceptAndFilter(ctx, p.filter, 0, in, out)
 }
 

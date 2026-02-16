@@ -32,7 +32,7 @@ func NewSource(name string, in io.Reader, isInfinite bool, idgen line.IDGenerato
 		lines:      lines,
 		ready:      make(chan struct{}),
 		setupDone:  make(chan struct{}),
-		ChanOutput: pipeline.ChanOutput(make(chan interface{})),
+		ChanOutput: pipeline.ChanOutput(make(chan line.Line)),
 	}
 	s.Reset()
 	return s
@@ -171,7 +171,7 @@ func (s *Source) Start(ctx context.Context, out pipeline.ChanOutput) {
 		defer g.End()
 		defer func() { pdebug.Printf("Source sent %d lines", sent) }()
 	}
-	defer out.SendEndMark(ctx, "end of input")
+	defer close(out)
 
 	var resume bool
 	select {
@@ -181,9 +181,8 @@ func (s *Source) Start(ctx context.Context, out pipeline.ChanOutput) {
 	}
 
 	if !resume {
-		// no fancy resume handling needed. Send lines in batches
-		// to reduce channel operations.
-		for i := 0; i < len(s.lines); i += sourceBatchSize {
+		// no fancy resume handling needed. Send individual lines.
+		for _, l := range s.lines {
 			select {
 			case <-ctx.Done():
 				if pdebug.Enabled {
@@ -192,12 +191,8 @@ func (s *Source) Start(ctx context.Context, out pipeline.ChanOutput) {
 				return
 			default:
 			}
-			end := i + sourceBatchSize
-			if end > len(s.lines) {
-				end = len(s.lines)
-			}
-			out.Send(ctx, s.lines[i:end])
-			sent += end - i
+			out.Send(ctx, l)
+			sent++
 		}
 		return
 	}
@@ -217,8 +212,8 @@ func (s *Source) Start(ctx context.Context, out pipeline.ChanOutput) {
 			return
 		}
 
-		// Send available lines in batches
-		for i := prev; i < upto; i += sourceBatchSize {
+		// Send available lines individually
+		for i := prev; i < upto; i++ {
 			select {
 			case <-ctx.Done():
 				if pdebug.Enabled {
@@ -227,13 +222,12 @@ func (s *Source) Start(ctx context.Context, out pipeline.ChanOutput) {
 				return
 			default:
 			}
-			end := i + sourceBatchSize
-			if end > upto {
-				end = upto
+			l, err := s.LineAt(i)
+			if err != nil {
+				continue
 			}
-			batch := s.linesInRange(i, end)
-			out.Send(ctx, batch)
-			sent += len(batch)
+			out.Send(ctx, l)
+			sent++
 		}
 		// Remember how far we have processed
 		prev = upto
@@ -259,7 +253,7 @@ func (s *Source) Reset() {
 		g := pdebug.Marker("Source.Reset")
 		defer g.End()
 	}
-	s.ChanOutput = pipeline.ChanOutput(make(chan interface{}))
+	s.ChanOutput = pipeline.ChanOutput(make(chan line.Line))
 }
 
 // Ready returns the "input ready" channel. It will be closed as soon as

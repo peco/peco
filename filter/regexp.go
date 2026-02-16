@@ -89,7 +89,7 @@ func NewRegexp() *Regexp {
 		flags:     regexpFlagList(defaultFlags),
 		quotemeta: false,
 		name:      "Regexp",
-		outCh:     pipeline.ChanOutput(make(chan interface{})),
+		outCh:     pipeline.ChanOutput(make(chan line.Line)),
 	}
 	rf.applyFn = rf.applyInternal
 	return rf
@@ -103,7 +103,7 @@ func NewIRegexp() *Regexp {
 	return rf
 }
 
-func (rf *Regexp) OutCh() <-chan interface{} {
+func (rf *Regexp) OutCh() <-chan line.Line {
 	rf.mutex.Lock()
 	defer rf.mutex.Unlock()
 	return rf.outCh

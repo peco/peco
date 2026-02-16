@@ -30,7 +30,7 @@ func NewExternalCmd(name string, cmd string, args []string, threshold int, idgen
 		enableSep:       enableSep,
 		idgen:           idgen,
 		name:            name,
-		outCh:           pipeline.ChanOutput(make(chan interface{})),
+		outCh:           pipeline.ChanOutput(make(chan line.Line)),
 		thresholdBufsiz: threshold,
 	}
 }

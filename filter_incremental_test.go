@@ -91,25 +91,13 @@ func TestMemoryBufferSource(t *testing.T) {
 
 	// Collect lines from source
 	ctx := context.Background()
-	out := make(chan interface{}, len(expected)+1) // +1 for end mark
+	out := make(chan line.Line, len(expected))
 	go src.Start(ctx, pipeline.ChanOutput(out))
 
 	var got []string
-	for v := range out {
-		switch v := v.(type) {
-		case error:
-			if pipeline.IsEndMark(v) {
-				goto done
-			}
-		case []line.Line:
-			for _, l := range v {
-				got = append(got, l.DisplayString())
-			}
-		case line.Line:
-			got = append(got, v.DisplayString())
-		}
+	for l := range out {
+		got = append(got, l.DisplayString())
 	}
-done:
 	require.Equal(t, expected, got, "MemoryBufferSource should iterate all lines in order")
 }
 
@@ -122,7 +110,7 @@ func TestMemoryBufferSourceCancellation(t *testing.T) {
 	src := NewMemoryBufferSource(mb)
 	ctx, cancel := context.WithCancel(context.Background())
 
-	out := make(chan interface{}, 100)
+	out := make(chan line.Line, 100)
 	done := make(chan struct{})
 	go func() {
 		src.Start(ctx, pipeline.ChanOutput(out))
@@ -133,8 +121,7 @@ func TestMemoryBufferSourceCancellation(t *testing.T) {
 	cancel()
 	<-done
 
-	// Should have stopped early (not all 10000 lines)
-	close(out)
+	// Source closed the channel; drain to count lines sent
 	count := 0
 	for range out {
 		count++
@@ -162,16 +149,14 @@ func TestIncrementalFiltering(t *testing.T) {
 
 	// First query: "foo"
 	ctx1 := f.NewContext(context.Background(), "foo")
-	ch1 := make(chan interface{}, len(allLines))
+	ch1 := make(chan line.Line, len(allLines))
 	err := f.Apply(ctx1, allLines, pipeline.ChanOutput(ch1))
 	require.NoError(t, err)
 	close(ch1)
 
 	var firstResults []line.Line
-	for v := range ch1 {
-		if l, ok := v.(line.Line); ok {
-			firstResults = append(firstResults, l)
-		}
+	for l := range ch1 {
+		firstResults = append(firstResults, l)
 	}
 
 	// Should match: foobar, football, barfoo, foobaz, foobird
@@ -179,16 +164,14 @@ func TestIncrementalFiltering(t *testing.T) {
 
 	// Second query: "foob" on first results only
 	ctx2 := f.NewContext(context.Background(), "foob")
-	ch2 := make(chan interface{}, len(firstResults))
+	ch2 := make(chan line.Line, len(firstResults))
 	err = f.Apply(ctx2, firstResults, pipeline.ChanOutput(ch2))
 	require.NoError(t, err)
 	close(ch2)
 
 	var secondResults []line.Line
-	for v := range ch2 {
-		if l, ok := v.(line.Line); ok {
-			secondResults = append(secondResults, l)
-		}
+	for l := range ch2 {
+		secondResults = append(secondResults, l)
 	}
 
 	// Should match: foobar, foobaz, foobird (not football, not barfoo)

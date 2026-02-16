@@ -25,7 +25,7 @@ func newFilterProcessor(f filter.Filter, q string, bufSize int) *filterProcessor
 	}
 }
 
-func (fp *filterProcessor) Accept(ctx context.Context, in chan interface{}, out pipeline.ChanOutput) {
+func (fp *filterProcessor) Accept(ctx context.Context, in <-chan line.Line, out pipeline.ChanOutput) {
 	acceptAndFilter(ctx, fp.filter, fp.bufSize, in, out)
 }
 
@@ -51,7 +51,7 @@ func flusher(ctx context.Context, f filter.Filter, incoming chan []line.Line, do
 	}
 
 	defer close(done)
-	defer out.SendEndMark(ctx, "end of filter")
+	defer close(out)
 
 	for {
 		select {
@@ -77,7 +77,7 @@ func parallelFlusher(ctx context.Context, f filter.Filter, incoming chan ordered
 	}
 
 	defer close(done)
-	defer out.SendEndMark(ctx, "end of filter")
+	defer close(out)
 
 	numWorkers := runtime.GOMAXPROCS(0)
 	if numWorkers < 1 {
@@ -114,16 +114,14 @@ func parallelFlusher(ctx context.Context, f filter.Filter, incoming chan ordered
 				} else {
 					// Fallback: use channel-based Apply for filters that
 					// don't implement Collector (e.g. ExternalCmd)
-					collectCh := make(chan interface{}, len(chunk.lines))
+					collectCh := make(chan line.Line, len(chunk.lines))
 					go func(chunk orderedChunk) {
 						f.Apply(ctx, chunk.lines, pipeline.ChanOutput(collectCh))
 						close(collectCh)
 					}(chunk)
 					matched = make([]line.Line, 0, len(chunk.lines)/2)
-					for v := range collectCh {
-						if l, ok := v.(line.Line); ok {
-							matched = append(matched, l)
-						}
+					for l := range collectCh {
+						matched = append(matched, l)
 					}
 				}
 
@@ -199,11 +197,11 @@ func parallelFlusher(ctx context.Context, f filter.Filter, incoming chan ordered
 // AcceptAndFilter is the exported entry point for the filter pipeline stage.
 // It batches incoming lines and dispatches them to the filter, using parallel
 // workers when the filter supports it.
-func AcceptAndFilter(ctx context.Context, f filter.Filter, configBufSize int, in chan interface{}, out pipeline.ChanOutput) {
+func AcceptAndFilter(ctx context.Context, f filter.Filter, configBufSize int, in <-chan line.Line, out pipeline.ChanOutput) {
 	acceptAndFilter(ctx, f, configBufSize, in, out)
 }
 
-func acceptAndFilter(ctx context.Context, f filter.Filter, configBufSize int, in chan interface{}, out pipeline.ChanOutput) {
+func acceptAndFilter(ctx context.Context, f filter.Filter, configBufSize int, in <-chan line.Line, out pipeline.ChanOutput) {
 	useParallel := f.SupportsParallel() && runtime.GOMAXPROCS(0) > 1
 
 	buf := buffer.GetLineListBuf()
@@ -223,7 +221,7 @@ func acceptAndFilter(ctx context.Context, f filter.Filter, configBufSize int, in
 	}
 }
 
-func acceptAndFilterSerial(ctx context.Context, f filter.Filter, bufsiz int, buf []line.Line, in chan interface{}, out pipeline.ChanOutput) {
+func acceptAndFilterSerial(ctx context.Context, f filter.Filter, bufsiz int, buf []line.Line, in <-chan line.Line, out pipeline.ChanOutput) {
 	flush := make(chan []line.Line)
 	flushDone := make(chan struct{})
 	go flusher(ctx, f, flush, flushDone, out)
@@ -248,43 +246,30 @@ func acceptAndFilterSerial(ctx context.Context, f filter.Filter, bufsiz int, buf
 				flush <- buf
 				buf = buffer.GetLineListBuf()
 			}
-		case v := <-in:
-			switch v := v.(type) {
-			case error:
-				if pipeline.IsEndMark(v) {
-					if pdebug.Enabled {
-						pdebug.Printf("filter received end mark (read %d lines, %s since starting accept loop)", lines+len(buf), time.Since(start).String())
-					}
-					if len(buf) > 0 {
-						flush <- buf
-					}
+		case v, ok := <-in:
+			if !ok {
+				if pdebug.Enabled {
+					pdebug.Printf("filter input closed (read %d lines, %s since starting accept loop)", lines+len(buf), time.Since(start).String())
+				}
+				if len(buf) > 0 {
+					flush <- buf
 				}
 				return
-			case line.Line:
-				if pdebug.Enabled {
-					pdebug.Printf("incoming line")
-					lines++
-				}
-				buf = append(buf, v)
-				if len(buf) >= bufsiz {
-					flush <- buf
-					buf = buffer.GetLineListBuf()
-				}
-			case []line.Line:
-				if pdebug.Enabled {
-					lines += len(v)
-				}
-				buf = append(buf, v...)
-				if len(buf) >= bufsiz {
-					flush <- buf
-					buf = buffer.GetLineListBuf()
-				}
+			}
+			if pdebug.Enabled {
+				pdebug.Printf("incoming line")
+				lines++
+			}
+			buf = append(buf, v)
+			if len(buf) >= bufsiz {
+				flush <- buf
+				buf = buffer.GetLineListBuf()
 			}
 		}
 	}
 }
 
-func acceptAndFilterParallel(ctx context.Context, f filter.Filter, bufsiz int, buf []line.Line, in chan interface{}, out pipeline.ChanOutput) {
+func acceptAndFilterParallel(ctx context.Context, f filter.Filter, bufsiz int, buf []line.Line, in <-chan line.Line, out pipeline.ChanOutput) {
 	flush := make(chan orderedChunk)
 	flushDone := make(chan struct{})
 	go parallelFlusher(ctx, f, flush, flushDone, out)
@@ -311,39 +296,25 @@ func acceptAndFilterParallel(ctx context.Context, f filter.Filter, bufsiz int, b
 				seq++
 				buf = buffer.GetLineListBuf()
 			}
-		case v := <-in:
-			switch v := v.(type) {
-			case error:
-				if pipeline.IsEndMark(v) {
-					if pdebug.Enabled {
-						pdebug.Printf("filter received end mark (read %d lines, %s since starting accept loop)", lines+len(buf), time.Since(start).String())
-					}
-					if len(buf) > 0 {
-						flush <- orderedChunk{seq: seq, lines: buf}
-					}
+		case v, ok := <-in:
+			if !ok {
+				if pdebug.Enabled {
+					pdebug.Printf("filter input closed (read %d lines, %s since starting accept loop)", lines+len(buf), time.Since(start).String())
+				}
+				if len(buf) > 0 {
+					flush <- orderedChunk{seq: seq, lines: buf}
 				}
 				return
-			case line.Line:
-				if pdebug.Enabled {
-					pdebug.Printf("incoming line")
-					lines++
-				}
-				buf = append(buf, v)
-				if len(buf) >= bufsiz {
-					flush <- orderedChunk{seq: seq, lines: buf}
-					seq++
-					buf = buffer.GetLineListBuf()
-				}
-			case []line.Line:
-				if pdebug.Enabled {
-					lines += len(v)
-				}
-				buf = append(buf, v...)
-				if len(buf) >= bufsiz {
-					flush <- orderedChunk{seq: seq, lines: buf}
-					seq++
-					buf = buffer.GetLineListBuf()
-				}
+			}
+			if pdebug.Enabled {
+				pdebug.Printf("incoming line")
+				lines++
+			}
+			buf = append(buf, v)
+			if len(buf) >= bufsiz {
+				flush <- orderedChunk{seq: seq, lines: buf}
+				seq++
+				buf = buffer.GetLineListBuf()
 			}
 		}
 	}

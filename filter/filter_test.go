@@ -60,7 +60,7 @@ func testFuzzy(octx context.Context, t *testing.T, filter Filter) {
 			ctx, cancel := context.WithTimeout(filter.NewContext(octx, v.query), 10*time.Second)
 			defer cancel()
 
-			ch := make(chan interface{}, 1)
+			ch := make(chan line.Line, 1)
 			l := line.NewRaw(uint64(i), v.input, false, false)
 			err := filter.Apply(ctx, []line.Line{l}, pipeline.ChanOutput(ch))
 			if !assert.NoError(t, err, `filter.Apply should succeed`) {
@@ -70,10 +70,6 @@ func testFuzzy(octx context.Context, t *testing.T, filter Filter) {
 			select {
 			case l, ok := <-ch:
 				if !assert.True(t, ok, `channel read should succeed`) {
-					return
-				}
-
-				if !assert.Implements(t, (*line.Line)(nil), l, "result is a line") {
 					return
 				}
 
@@ -193,20 +189,17 @@ func testFuzzyLongest(octx context.Context, t *testing.T, filter Filter) {
 			}
 
 			var actual []string
-			lc := make(chan interface{})
+			lc := make(chan line.Line)
 			ec := make(chan error)
 			go func() {
-				ec <- filter.Apply(ctx, lines, lc)
+				ec <- filter.Apply(ctx, lines, pipeline.ChanOutput(lc))
 			}()
 
 		OUTER:
 			for {
 				select {
 				case l := <-lc:
-					if !assert.Implements(t, (*line.Line)(nil), l, "result is a line") {
-						return
-					}
-					actual = append(actual, l.(line.Line).DisplayString())
+					actual = append(actual, l.DisplayString())
 				case err := <-ec:
 					if !assert.NoError(t, err, `filter.Apply should succeed`) {
 						return
@@ -301,15 +294,13 @@ func collectFilterResults(t *testing.T, f Filter, query string, inputLines []lin
 	ctx, cancel := context.WithTimeout(f.NewContext(context.Background(), query), 10*time.Second)
 	defer cancel()
 
-	ch := make(chan interface{}, len(inputLines)+1)
+	ch := make(chan line.Line, len(inputLines)+1)
 	err := f.Apply(ctx, inputLines, pipeline.ChanOutput(ch))
 	require.NoError(t, err, "filter.Apply should succeed")
 	close(ch)
 
 	var results []line.Line
-	for v := range ch {
-		l, ok := v.(line.Line)
-		require.True(t, ok, "result should be a line.Line")
+	for l := range ch {
 		results = append(results, l)
 	}
 	return results
@@ -537,10 +528,10 @@ func testFuzzyMatch(octx context.Context, t *testing.T, filter Filter) {
 			defer cancel()
 
 			filter := NewFuzzy(v.sort)
-			lc := make(chan interface{})
+			lc := make(chan line.Line)
 			ec := make(chan error)
 			go func() {
-				ec <- filter.Apply(ctx, []line.Line{line.NewRaw(uint64(i), v.input, false, false)}, lc)
+				ec <- filter.Apply(ctx, []line.Line{line.NewRaw(uint64(i), v.input, false, false)}, pipeline.ChanOutput(lc))
 			}()
 
 		OUTER:

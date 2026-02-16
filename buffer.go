@@ -126,7 +126,7 @@ func (mb *MemoryBuffer) Done() <-chan struct{} {
 	return mb.done
 }
 
-func (mb *MemoryBuffer) Accept(ctx context.Context, in chan interface{}, _ pipeline.ChanOutput) {
+func (mb *MemoryBuffer) Accept(ctx context.Context, in <-chan line.Line, _ pipeline.ChanOutput) {
 	if pdebug.Enabled {
 		g := pdebug.Marker("MemoryBuffer.Accept")
 		defer g.End()
@@ -145,62 +145,47 @@ func (mb *MemoryBuffer) Accept(ctx context.Context, in chan interface{}, _ pipel
 				pdebug.Printf("MemoryBuffer received context done")
 			}
 			return
-		case v := <-in:
-			switch v := v.(type) {
-			case error:
-				if pipeline.IsEndMark(v) {
-					if pdebug.Enabled {
-						pdebug.Printf("MemoryBuffer received end mark (read %d lines, %s since starting accept loop)", len(mb.lines), time.Since(start).String())
-					}
-					// Flush remaining batch
-					if len(batch) > 0 {
+		case v, ok := <-in:
+			if !ok {
+				if pdebug.Enabled {
+					pdebug.Printf("MemoryBuffer input channel closed (read %d lines, %s since starting accept loop)", len(mb.lines)+len(batch), time.Since(start).String())
+				}
+				// Flush remaining batch
+				if len(batch) > 0 {
+					mb.mutex.Lock()
+					mb.lines = append(mb.lines, batch...)
+					mb.mutex.Unlock()
+				}
+				return
+			}
+
+			batch = append(batch, v)
+
+			// Drain any additional ready values without blocking
+		drain:
+			for {
+				select {
+				case v2, ok2 := <-in:
+					if !ok2 {
+						if pdebug.Enabled {
+							pdebug.Printf("MemoryBuffer input channel closed (read %d lines, %s since starting accept loop)", len(mb.lines)+len(batch), time.Since(start).String())
+						}
 						mb.mutex.Lock()
 						mb.lines = append(mb.lines, batch...)
 						mb.mutex.Unlock()
+						return
 					}
-					return
+					batch = append(batch, v2)
+				default:
+					break drain
 				}
-			case []line.Line:
-				batch = append(batch, v...)
-				mb.mutex.Lock()
-				mb.lines = append(mb.lines, batch...)
-				mb.mutex.Unlock()
-				batch = batch[:0]
-			case line.Line:
-				batch = append(batch, v)
-
-				// Drain any additional ready values without blocking
-			drain:
-				for {
-					select {
-					case v2 := <-in:
-						switch v2 := v2.(type) {
-						case error:
-							if pipeline.IsEndMark(v2) {
-								if pdebug.Enabled {
-									pdebug.Printf("MemoryBuffer received end mark (read %d lines, %s since starting accept loop)", len(mb.lines)+len(batch), time.Since(start).String())
-								}
-								mb.mutex.Lock()
-								mb.lines = append(mb.lines, batch...)
-								mb.mutex.Unlock()
-								return
-							}
-						case []line.Line:
-							batch = append(batch, v2...)
-						case line.Line:
-							batch = append(batch, v2)
-						}
-					default:
-						break drain
-					}
-				}
-
-				// Flush the batch
-				mb.mutex.Lock()
-				mb.lines = append(mb.lines, batch...)
-				mb.mutex.Unlock()
-				batch = batch[:0]
 			}
+
+			// Flush the batch
+			mb.mutex.Lock()
+			mb.lines = append(mb.lines, batch...)
+			mb.mutex.Unlock()
+			batch = batch[:0]
 		}
 	}
 }
@@ -390,31 +375,23 @@ func NewMemoryBufferSource(buf *MemoryBuffer) *MemoryBufferSource {
 	return &MemoryBufferSource{buf: buf}
 }
 
-// sourceBatchSize is the number of lines sent per batch from source to
-// the filter stage. Larger batches reduce channel operations but increase
-// latency to first result. 1024 is a good balance.
-const sourceBatchSize = 1024
-
-// Start iterates through the MemoryBuffer's lines and sends them in
-// batches to the output channel, implementing pipeline.Source.
+// Start iterates through the MemoryBuffer's lines and sends them
+// individually to the output channel, implementing pipeline.Source.
+// The output channel is closed when all lines have been sent.
 func (s *MemoryBufferSource) Start(ctx context.Context, out pipeline.ChanOutput) {
-	defer out.SendEndMark(ctx, "end of memory buffer source")
+	defer close(out)
 
 	s.buf.mutex.RLock()
 	lines := s.buf.lines
 	s.buf.mutex.RUnlock()
 
-	for i := 0; i < len(lines); i += sourceBatchSize {
+	for _, l := range lines {
 		select {
 		case <-ctx.Done():
 			return
 		default:
 		}
-		end := i + sourceBatchSize
-		if end > len(lines) {
-			end = len(lines)
-		}
-		out.Send(ctx, lines[i:end])
+		out.Send(ctx, l)
 	}
 }
 
