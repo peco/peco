@@ -163,6 +163,16 @@ func TestActionNames(t *testing.T) {
 	}
 }
 
+func TestViewAroundActionName(t *testing.T) {
+	// The correct spelling "ViewAround" must be registered.
+	_, ok := nameToActions["peco.ViewAround"]
+	require.True(t, ok, "peco.ViewAround must be registered as an action name")
+
+	// The old misspelled name "ViewArround" must also work for backward compatibility.
+	_, ok = nameToActions["peco.ViewArround"]
+	require.True(t, ok, "peco.ViewArround must remain registered for backward compatibility")
+}
+
 func expectCaretPos(t *testing.T, c *Caret, expect int) bool {
 	return assert.Equal(t, expect, c.Pos(), "Expected caret position %d, got %d", expect, c.Pos())
 }

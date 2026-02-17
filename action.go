@@ -150,7 +150,8 @@ func init() {
 	ActionFunc(doRefreshScreen).Register("RefreshScreen", keyseq.KeyCtrlL)
 	ActionFunc(doToggleSingleKeyJump).Register("ToggleSingleKeyJump")
 
-	ActionFunc(doToggleViewArround).Register("ViewArround", keyseq.KeyCtrlV)
+	ActionFunc(doToggleViewAround).Register("ViewAround", keyseq.KeyCtrlV)
+	wrapDeprecated(doToggleViewAround, "ViewArround", "ViewAround").Register("ViewArround")
 
 	ActionFunc(doFreezeResults).Register("FreezeResults")
 	ActionFunc(doUnfreezeResults).Register("UnfreezeResults")
@@ -744,9 +745,9 @@ func doToggleSingleKeyJump(ctx context.Context, state *Peco, e Event) {
 	state.ToggleSingleKeyJumpMode(ctx)
 }
 
-func doToggleViewArround(ctx context.Context, state *Peco, e Event) {
+func doToggleViewAround(ctx context.Context, state *Peco, e Event) {
 	if pdebug.Enabled {
-		g := pdebug.Marker("doToggleViewArround")
+		g := pdebug.Marker("doToggleViewAround")
 		defer g.End()
 	}
 	q := state.Query()
