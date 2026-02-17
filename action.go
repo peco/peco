@@ -28,7 +28,7 @@ var defaultKeyBinding map[string]Action
 // execQueryAndDraw runs ExecQuery and, if the query was non-empty
 // (ExecQuery returns false), sends a draw-prompt message.
 func execQueryAndDraw(ctx context.Context, state *Peco) {
-	if state.ExecQuery(nil) {
+	if state.ExecQuery(ctx, nil) {
 		return
 	}
 	state.Hub().SendDrawPrompt(ctx)
@@ -208,7 +208,7 @@ func doAcceptChar(ctx context.Context, state *Peco, e Event) {
 	h := state.Hub()
 	h.SendDrawPrompt(ctx) // Update prompt before running query
 
-	state.ExecQuery(nil)
+	state.ExecQuery(ctx, nil)
 }
 
 func doRotateFilter(ctx context.Context, state *Peco, e Event) {
@@ -660,7 +660,7 @@ func doKillEndOfLine(ctx context.Context, state *Peco, _ Event) {
 
 func doDeleteAll(ctx context.Context, state *Peco, _ Event) {
 	state.Query().Reset()
-	state.ExecQuery(nil)
+	state.ExecQuery(ctx, nil)
 }
 
 func doDeleteForwardChar(ctx context.Context, state *Peco, _ Event) {
@@ -741,7 +741,7 @@ func doToggleSingleKeyJump(ctx context.Context, state *Peco, e Event) {
 		g := pdebug.Marker("doToggleSingleKeyJump")
 		defer g.End()
 	}
-	state.ToggleSingleKeyJumpMode()
+	state.ToggleSingleKeyJumpMode(ctx)
 }
 
 func doToggleViewArround(ctx context.Context, state *Peco, e Event) {
@@ -877,7 +877,7 @@ func doFreezeResults(ctx context.Context, state *Peco, _ Event) {
 
 	state.SetFrozenSource(frozen)
 	resetQueryState(state)
-	state.SetCurrentLineBuffer(frozen)
+	state.SetCurrentLineBuffer(ctx, frozen)
 	state.Hub().SendStatusMsg(ctx, "Results frozen", 0)
 	state.Hub().SendDrawPrompt(ctx)
 }
@@ -895,7 +895,7 @@ func doUnfreezeResults(ctx context.Context, state *Peco, _ Event) {
 
 	state.ClearFrozenSource()
 	resetQueryState(state)
-	state.ResetCurrentLineBuffer()
+	state.ResetCurrentLineBuffer(ctx)
 	state.Hub().SendStatusMsg(ctx, "Results unfrozen", 0)
 	state.Hub().SendDrawPrompt(ctx)
 }

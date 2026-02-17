@@ -392,7 +392,7 @@ func (f *Filter) Work(ctx context.Context, q *hub.Payload[string]) {
 		f.prevFilterName = ""
 		f.prevMu.Unlock()
 
-		state.ResetCurrentLineBuffer()
+		state.ResetCurrentLineBuffer(ctx)
 		if !state.config.StickySelection {
 			state.Selection().Reset()
 		}
@@ -438,7 +438,7 @@ func (f *Filter) Work(ctx context.Context, q *hub.Payload[string]) {
 
 	buf := NewMemoryBuffer(srcSize / 4)
 	p.SetDestination(buf)
-	state.SetCurrentLineBuffer(buf)
+	state.SetCurrentLineBuffer(ctx, buf)
 
 	go func(ctx context.Context) {
 		defer state.Hub().SendDraw(ctx, &hub.DrawOptions{RunningQuery: true})
