@@ -1,7 +1,10 @@
 package peco
 
 import (
+	"bytes"
+	"context"
 	"testing"
+	"time"
 
 	"github.com/gdamore/tcell/v2"
 	"github.com/stretchr/testify/require"
@@ -64,6 +67,41 @@ func TestInlineScreenSetCursor(t *testing.T) {
 	require.True(t, visible)
 	require.Equal(t, 3, cx)
 	require.Equal(t, 16, cy) // 2 + (24-10) = 16
+}
+
+// TestInlineScreenPollEventLogsPanic verifies that when a panic occurs
+// in the InlineScreen PollEvent goroutine, it is logged to errWriter
+// rather than being silently swallowed (CODE_REVIEW.md §3.5).
+func TestInlineScreenPollEventLogsPanic(t *testing.T) {
+	var buf bytes.Buffer
+
+	sim := tcell.NewSimulationScreen("")
+	sim.Init()
+
+	s := &InlineScreen{
+		screen:    &panickingScreen{Screen: sim},
+		errWriter: &buf,
+		height:    10,
+		yOffset:   14,
+	}
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	evCh := s.PollEvent(ctx, nil)
+
+	// The goroutine should panic, log it, and close the channel.
+	select {
+	case _, ok := <-evCh:
+		require.False(t, ok, "expected channel to be closed after panic")
+	case <-time.After(2 * time.Second):
+		t.Fatal("PollEvent channel was not closed after panic")
+	}
+
+	// Verify that the panic was logged (not silently swallowed).
+	output := buf.String()
+	require.Contains(t, output, "peco: panic in PollEvent goroutine")
+	require.Contains(t, output, "test: deliberate panic in PollEvent")
 }
 
 func TestInlineScreenNilSafety(t *testing.T) {

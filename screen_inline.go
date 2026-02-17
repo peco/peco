@@ -3,7 +3,9 @@ package peco
 import (
 	"context"
 	"fmt"
+	"io"
 	"os"
+	"runtime/debug"
 	"sync"
 
 	"github.com/gdamore/tcell/v2"
@@ -23,12 +25,15 @@ type InlineScreen struct {
 	// savedAltscreen holds the original TCELL_ALTSCREEN value so we can
 	// restore it on Close.
 	savedAltscreen string
+
+	errWriter io.Writer // destination for error output (defaults to os.Stderr)
 }
 
 // NewInlineScreen creates a new InlineScreen with the given height spec.
 func NewInlineScreen(spec HeightSpec) *InlineScreen {
 	return &InlineScreen{
 		heightSpec: spec,
+		errWriter:  os.Stderr,
 	}
 }
 
@@ -168,8 +173,12 @@ func (s *InlineScreen) PollEvent(ctx context.Context, cfg *Config) chan Event {
 	evCh := make(chan Event)
 
 	go func() {
-		defer func() { recover() }()
-		defer func() { close(evCh) }()
+		defer func() {
+			if r := recover(); r != nil {
+				fmt.Fprintf(s.errWriter, "peco: panic in PollEvent goroutine: %v\n%s", r, debug.Stack())
+			}
+			close(evCh)
+		}()
 
 		for {
 			s.mutex.Lock()
