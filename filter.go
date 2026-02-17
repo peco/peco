@@ -490,6 +490,12 @@ func (f *Filter) Work(ctx context.Context, q *hub.Payload[string]) {
 func (f *Filter) Loop(ctx context.Context, cancel func()) error {
 	defer cancel()
 
+	// wg tracks in-flight Work goroutines so Loop doesn't return
+	// while they are still running. This ensures clean shutdown
+	// without blocking new queries from starting immediately.
+	var wg sync.WaitGroup
+	defer wg.Wait()
+
 	// previous holds the function that can cancel the previous
 	// query. This is used when multiple queries come in succession
 	// and the previous query is discarded anyway
@@ -514,7 +520,11 @@ func (f *Filter) Loop(ctx context.Context, cancel func()) error {
 
 			f.state.Hub().SendStatusMsg(ctx, "Running query...", 0)
 
-			go f.Work(workctx, q)
+			wg.Add(1)
+			go func() {
+				defer wg.Done()
+				f.Work(workctx, q)
+			}()
 		}
 	}
 }
