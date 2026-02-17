@@ -15,7 +15,7 @@ func (options *CLIOptions) parse(s []string) ([]string, error) {
 	p := flags.NewParser(options, flags.PrintErrors)
 	args, err := p.ParseArgs(s)
 	if err != nil {
-		os.Stderr.Write(options.help())
+		_, _ = os.Stderr.Write(options.help())
 		return nil, fmt.Errorf("invalid command line options: %w", err)
 	}
 
