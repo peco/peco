@@ -310,7 +310,7 @@ func (s *screenStatusBar) PrintStatus(msg string, clearDelay time.Duration) {
 		s.screen.Print(PrintArgs{
 			X:   int(w - width),
 			Y:   location,
-			Fg:  fgAttr | AttrReverse | AttrBold | AttrReverse,
+			Fg:  fgAttr | AttrBold | AttrReverse,
 			Bg:  bgAttr | AttrReverse,
 			Msg: msg,
 		})
