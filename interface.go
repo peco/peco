@@ -120,11 +120,7 @@ type Peco struct {
 	// "freezes" the current results to filter on top of them.
 	frozenSource *MemoryBuffer
 
-	// preZoomBuffer holds the filtered buffer before ZoomIn was applied,
-	// so ZoomOut can restore it. nil means not zoomed.
-	preZoomBuffer Buffer
-	// preZoomLineNo holds the cursor position before ZoomIn was applied.
-	preZoomLineNo int
+	zoom ZoomState
 
 	// cancelFunc is called for Exit()
 	cancelFunc func()

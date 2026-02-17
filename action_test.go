@@ -1019,8 +1019,8 @@ func TestDoZoomInOut(t *testing.T) {
 		require.True(t, isCtx, "current buffer should be ContextBuffer after ZoomIn")
 
 		// Pre-zoom state should be saved
-		require.Equal(t, filtered, state.PreZoomBuffer(), "preZoomBuffer should be the filtered buffer")
-		require.Equal(t, 0, state.PreZoomLineNo(), "preZoomLineNo should be 0")
+		require.Equal(t, filtered, state.Zoom().Buffer(), "preZoomBuffer should be the filtered buffer")
+		require.Equal(t, 0, state.Zoom().LineNo(), "preZoomLineNo should be 0")
 
 		// Should have sent a draw
 		drawArgs := rHub.getDrawArgs()
@@ -1049,7 +1049,7 @@ func TestDoZoomInOut(t *testing.T) {
 		require.Equal(t, 0, state.Location().LineNumber(), "cursor should be restored")
 
 		// Pre-zoom state should be cleared
-		require.Nil(t, state.PreZoomBuffer(), "preZoomBuffer should be nil after ZoomOut")
+		require.Nil(t, state.Zoom().Buffer(), "preZoomBuffer should be nil after ZoomOut")
 
 		// Should have sent a draw
 		drawArgs := rHub.getDrawArgs()
@@ -1069,7 +1069,7 @@ func TestDoZoomInOut(t *testing.T) {
 		require.Equal(t, "Nothing to zoom into", statusMsgs[0])
 
 		// PreZoom should not be set
-		require.Nil(t, state.PreZoomBuffer())
+		require.Nil(t, state.Zoom().Buffer())
 	})
 
 	t.Run("ZoomOut when not zoomed", func(t *testing.T) {
