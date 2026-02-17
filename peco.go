@@ -116,7 +116,7 @@ func New() *Peco {
 		Stdout:            os.Stdout,
 		currentLineBuffer: NewMemoryBuffer(0), // XXX revisit this
 		idgen:             newIDGen(),
-		queryExecDelay:    50 * time.Millisecond,
+		queryExec:         QueryExecState{delay: 50 * time.Millisecond},
 		readyCh:           make(chan struct{}),
 		readConfigFn:      readConfig,
 		screen:            NewTcellScreen(),
@@ -232,8 +232,8 @@ func (p *Peco) Query() *Query {
 	return &p.query
 }
 
-func (p *Peco) QueryExecDelay() time.Duration {
-	return p.queryExecDelay
+func (p *Peco) QueryExec() *QueryExecState {
+	return &p.queryExec
 }
 
 func (p *Peco) Caret() *Caret {
@@ -469,7 +469,7 @@ func (p *Peco) Run(ctx context.Context) (err error) {
 
 	// Stop any pending query exec timer to prevent the callback
 	// from firing after program state is torn down.
-	p.stopQueryExecTimer()
+	p.queryExec.StopTimer()
 
 	// ...and we return any errors that we might have been informed about.
 	return p.Err()
@@ -814,7 +814,7 @@ func (p *Peco) ExecQuery(ctx context.Context, nextFunc func()) bool {
 		return true
 	}
 
-	delay := p.QueryExecDelay()
+	delay := p.queryExec.delay
 	if delay <= 0 {
 		if pdebug.Enabled {
 			pdebug.Printf("sending query (immediate)")
@@ -824,10 +824,10 @@ func (p *Peco) ExecQuery(ctx context.Context, nextFunc func()) bool {
 		return true
 	}
 
-	p.queryExecMutex.Lock()
-	defer p.queryExecMutex.Unlock()
+	p.queryExec.mutex.Lock()
+	defer p.queryExec.mutex.Unlock()
 
-	if p.queryExecTimer != nil {
+	if p.queryExec.timer != nil {
 		if pdebug.Enabled {
 			pdebug.Printf("timer is non-nil")
 		}
@@ -839,18 +839,18 @@ func (p *Peco) ExecQuery(ctx context.Context, nextFunc func()) bool {
 	if pdebug.Enabled {
 		pdebug.Printf("sending query (with delay)")
 	}
-	p.queryExecTimer = time.AfterFunc(delay, func() {
-		// Acquire the mutex first to synchronize with stopQueryExecTimer.
-		// If stopQueryExecTimer already ran (during shutdown), the timer
+	p.queryExec.timer = time.AfterFunc(delay, func() {
+		// Acquire the mutex first to synchronize with QueryExec.StopTimer.
+		// If StopTimer already ran (during shutdown), the timer
 		// field will be nil and we must not proceed — the receivers on
 		// hub channels may have already exited.
-		p.queryExecMutex.Lock()
-		if p.queryExecTimer == nil {
-			p.queryExecMutex.Unlock()
+		p.queryExec.mutex.Lock()
+		if p.queryExec.timer == nil {
+			p.queryExec.mutex.Unlock()
 			return
 		}
-		p.queryExecTimer = nil
-		p.queryExecMutex.Unlock()
+		p.queryExec.timer = nil
+		p.queryExec.mutex.Unlock()
 
 		if pdebug.Enabled {
 			pdebug.Printf("delayed query sent")
@@ -863,18 +863,6 @@ func (p *Peco) ExecQuery(ctx context.Context, nextFunc func()) bool {
 	return true
 }
 
-// stopQueryExecTimer stops and clears the pending query exec timer.
-// It must be called during shutdown to prevent the timer callback
-// from firing after program state is torn down.
-func (p *Peco) stopQueryExecTimer() {
-	p.queryExecMutex.Lock()
-	defer p.queryExecMutex.Unlock()
-
-	if p.queryExecTimer != nil {
-		p.queryExecTimer.Stop()
-		p.queryExecTimer = nil
-	}
-}
 
 func (p *Peco) PrintResults() {
 	if pdebug.Enabled {

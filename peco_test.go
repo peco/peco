@@ -866,7 +866,7 @@ func TestQueryExecTimerStoppedOnCancel(t *testing.T) {
 	p := newPeco()
 	// Set a long query exec delay so the timer is still pending
 	// when we cancel.
-	p.queryExecDelay = 5 * time.Second
+	p.queryExec.delay = 5 * time.Second
 	p.Stdin = bytes.NewBufferString("foo\nbar\nbaz\n")
 	var out bytes.Buffer
 	p.Stdout = &out
@@ -886,10 +886,10 @@ func TestQueryExecTimerStoppedOnCancel(t *testing.T) {
 
 	// Wait for the input loop to process the keystroke and create the timer
 	require.Eventually(t, func() bool {
-		p.queryExecMutex.Lock()
-		defer p.queryExecMutex.Unlock()
-		return p.queryExecTimer != nil
-	}, 5*time.Second, 10*time.Millisecond, "queryExecTimer should have been created")
+		p.queryExec.mutex.Lock()
+		defer p.queryExec.mutex.Unlock()
+		return p.queryExec.timer != nil
+	}, 5*time.Second, 10*time.Millisecond, "queryExec.timer should have been created")
 
 	// Cancel the context (simulating program exit)
 	cancel()
@@ -898,8 +898,8 @@ func TestQueryExecTimerStoppedOnCancel(t *testing.T) {
 	<-waitCh
 
 	// After Run returns, the timer should have been stopped.
-	p.queryExecMutex.Lock()
-	timerAfterCancel := p.queryExecTimer
-	p.queryExecMutex.Unlock()
-	require.Nil(t, timerAfterCancel, "queryExecTimer should be nil after cancellation")
+	p.queryExec.mutex.Lock()
+	timerAfterCancel := p.queryExec.timer
+	p.queryExec.mutex.Unlock()
+	require.Nil(t, timerAfterCancel, "queryExec.timer should be nil after cancellation")
 }

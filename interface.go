@@ -92,9 +92,7 @@ type Peco struct {
 	printQuery              bool
 	prompt                  string
 	query                   Query
-	queryExecDelay          time.Duration
-	queryExecMutex          sync.Mutex
-	queryExecTimer          *time.Timer
+	queryExec QueryExecState
 	readyCh                 chan struct{}
 	resultCh                chan line.Line
 	screen                  Screen
