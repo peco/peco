@@ -336,6 +336,86 @@ func (p *Peco) selectAllAndExitIfPossible() {
 	p.Exit(errCollectResults{})
 }
 
+// startComponents waits for the source to be ready, then initializes the
+// screen and starts the Input, View, and Filter goroutines.
+func (p *Peco) startComponents(ctx context.Context, cancel func()) {
+	<-p.source.Ready()
+	// screen.Init must be called within Run() because we
+	// want to make sure to call screen.Close() after getting
+	// out of Run()
+	p.screen.Init(&p.config)
+	go NewInput(p, p.Keymap(), p.screen.PollEvent(ctx, &p.config)).Loop(ctx, cancel)
+	v, err := NewView(p)
+	if err != nil {
+		p.Exit(fmt.Errorf("failed to create view: %w", err))
+		return
+	}
+	go v.Loop(ctx, cancel)
+	go NewFilter(p).Loop(ctx, cancel)
+}
+
+// startEarlyExitHandlers launches goroutines that handle --select-1,
+// --exit-0, and --select-all modes, each waiting for the source to
+// finish reading before checking conditions.
+func (p *Peco) startEarlyExitHandlers() {
+	// If this is enabled, we need to check if we have 1 line only
+	// in the buffer. If we do, we select that line and bail out
+	if p.selectOneAndExit {
+		go func() {
+			// Wait till source has read all lines. We should not wait
+			// source.Ready(), because Ready returns as soon as we get
+			// a line, where as SetupDone waits until we're completely
+			// done reading the input
+			<-p.source.SetupDone()
+			p.selectOneAndExitIfPossible()
+		}()
+	}
+
+	// If this is enabled, exit immediately with status 1 when input is empty
+	if p.exitZeroAndExit {
+		go func() {
+			<-p.source.SetupDone()
+			p.exitZeroIfPossible()
+		}()
+	}
+
+	// If --select-all is enabled and there is no query, select all lines
+	// from the source and exit immediately
+	if p.selectAllAndExit && p.initialQuery == "" {
+		go func() {
+			<-p.source.SetupDone()
+			p.selectAllAndExitIfPossible()
+		}()
+	}
+}
+
+// setupInitialQuery sets the query text and caret position from the
+// --query flag, then triggers query execution if there is a query.
+func (p *Peco) setupInitialQuery(ctx context.Context) {
+	// This has tobe AFTER close(p.readyCh), otherwise the query is
+	// ignored by us (queries are not run until peco thinks it's ready)
+	if q := p.initialQuery; q != "" {
+		p.Query().Set(q)
+		p.Caret().SetPos(utf8.RuneCountInString(q))
+	}
+
+	if p.Query().Len() > 0 {
+		go func() {
+			<-p.source.Ready()
+
+			// iff p.selectOneAndExit is true, we should check after exec query is run
+			// if we only have one item
+			if p.selectOneAndExit {
+				p.ExecQuery(ctx, p.selectOneAndExitIfPossible)
+			} else if p.selectAllAndExit {
+				p.ExecQuery(ctx, p.selectAllAndExitIfPossible)
+			} else {
+				p.ExecQuery(ctx, nil)
+			}
+		}()
+	}
+}
+
 func (p *Peco) Run(ctx context.Context) (err error) {
 	if pdebug.Enabled {
 		g := pdebug.Marker("Peco.Run").BindError(&err)
@@ -389,21 +469,7 @@ func (p *Peco) Run(ctx context.Context) (err error) {
 		p.screen = NewInlineScreen(*p.heightSpec)
 	}
 
-	go func() {
-		<-p.source.Ready()
-		// screen.Init must be called within Run() because we
-		// want to make sure to call screen.Close() after getting
-		// out of Run()
-		p.screen.Init(&p.config)
-		go NewInput(p, p.Keymap(), p.screen.PollEvent(ctx, &p.config)).Loop(ctx, cancel)
-		v, err := NewView(p)
-		if err != nil {
-			p.Exit(fmt.Errorf("failed to create view: %w", err))
-			return
-		}
-		go v.Loop(ctx, cancel)
-		go NewFilter(p).Loop(ctx, cancel)
-	}()
+	go p.startComponents(ctx, cancel)
 	defer p.screen.Close()
 
 	if p.Query().Len() <= 0 {
@@ -415,60 +481,11 @@ func (p *Peco) Run(ctx context.Context) (err error) {
 		pdebug.Printf("peco is now ready, go go go!")
 	}
 
-	// If this is enabled, we need to check if we have 1 line only
-	// in the buffer. If we do, we select that line and bail out
-	if p.selectOneAndExit {
-		go func() {
-			// Wait till source has read all lines. We should not wait
-			// source.Ready(), because Ready returns as soon as we get
-			// a line, where as SetupDone waits until we're completely
-			// done reading the input
-			<-p.source.SetupDone()
-			p.selectOneAndExitIfPossible()
-		}()
-	}
-
-	// If this is enabled, exit immediately with status 1 when input is empty
-	if p.exitZeroAndExit {
-		go func() {
-			<-p.source.SetupDone()
-			p.exitZeroIfPossible()
-		}()
-	}
-
-	// If --select-all is enabled and there is no query, select all lines
-	// from the source and exit immediately
-	if p.selectAllAndExit && p.initialQuery == "" {
-		go func() {
-			<-p.source.SetupDone()
-			p.selectAllAndExitIfPossible()
-		}()
-	}
+	p.startEarlyExitHandlers()
 
 	readyOnce.Do(func() { close(p.readyCh) })
 
-	// This has tobe AFTER close(p.readyCh), otherwise the query is
-	// ignored by us (queries are not run until peco thinks it's ready)
-	if q := p.initialQuery; q != "" {
-		p.Query().Set(q)
-		p.Caret().SetPos(utf8.RuneCountInString(q))
-	}
-
-	if p.Query().Len() > 0 {
-		go func() {
-			<-p.source.Ready()
-
-			// iff p.selectOneAndExit is true, we should check after exec query is run
-			// if we only have one item
-			if p.selectOneAndExit {
-				p.ExecQuery(ctx, p.selectOneAndExitIfPossible)
-			} else if p.selectAllAndExit {
-				p.ExecQuery(ctx, p.selectAllAndExitIfPossible)
-			} else {
-				p.ExecQuery(ctx, nil)
-			}
-		}()
-	}
+	p.setupInitialQuery(ctx)
 
 	// Alright, done everything we need to do automatically. We'll let
 	// the user play with peco, and when we receive notification to
