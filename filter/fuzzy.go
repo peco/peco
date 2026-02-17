@@ -40,7 +40,7 @@ func (ff Fuzzy) String() string {
 }
 
 func (ff *Fuzzy) applyInternal(ctx context.Context, lines []line.Line, emit func(line.Line)) error {
-	originalQuery := ctx.Value(queryKey).(string)
+	originalQuery := ctx.Value(queryKey{}).(string)
 
 	// Parse negative terms and compile them as case-insensitive regexps
 	posTerms, negTerms := SplitQueryTerms(originalQuery)
