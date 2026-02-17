@@ -409,8 +409,6 @@ type Query struct {
 	mutex      sync.Mutex
 }
 
-type FilterQuery Query
-
 // Source implements pipeline.Source, and is the buffer for the input
 type Source struct {
 	pipeline.ChanOutput
