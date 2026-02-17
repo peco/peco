@@ -89,11 +89,7 @@ func NewMemoryBuffer(cap int) *MemoryBuffer {
 func (mb *MemoryBuffer) Size() int {
 	mb.mutex.RLock()
 	defer mb.mutex.RUnlock()
-	return bufferSize(mb.lines)
-}
-
-func bufferSize(lines []line.Line) int {
-	return len(lines)
+	return len(mb.lines)
 }
 
 func (mb *MemoryBuffer) Reset() {
