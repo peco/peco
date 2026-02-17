@@ -1,11 +1,15 @@
 package filter
 
-import "context"
+import (
+	"context"
+
+	"github.com/peco/peco/pipeline"
+)
 
 // newContext initializes the context so that it is suitable
 // to be passed to `Run()`
 func newContext(ctx context.Context, query string) context.Context {
-	return context.WithValue(ctx, queryKey{}, query)
+	return pipeline.NewQueryContext(ctx, query)
 }
 
 // sort related stuff

@@ -66,7 +66,7 @@ func (ecf *ExternalCmd) Apply(ctx context.Context, buf []line.Line, out pipeline
 		defer g.End()
 	}
 
-	query := ctx.Value(queryKey{}).(string)
+	query := pipeline.QueryFromContext(ctx)
 	args := append([]string(nil), ecf.args...)
 	for i, v := range args {
 		if v == "$QUERY" {
