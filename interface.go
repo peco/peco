@@ -142,13 +142,6 @@ type ContextLine struct {
 	line.Line
 }
 
-type MatchIndexer interface {
-	// Indices return the matched portion(s) of a string after filtering.
-	// Note that while Indices may return nil, that just means that there are
-	// no substrings to be highlighted. It doesn't mean there were no matches
-	Indices() [][]int
-}
-
 type Keyseq interface {
 	Add(keyseq.KeyList, interface{})
 	AcceptKey(keyseq.Key) (interface{}, error)

@@ -11,7 +11,7 @@ import (
 	"github.com/mattn/go-runewidth"
 	"github.com/peco/peco/hub"
 	"github.com/peco/peco/internal/ansi"
-	"github.com/peco/peco/line"
+	linepkg "github.com/peco/peco/line"
 )
 
 var extraOffset int = 0
@@ -340,7 +340,7 @@ func NewListArea(screen Screen, anchor VerticalAnchor, anchorOffset int, sortTop
 
 	return &ListArea{
 		AnchorSettings: as,
-		displayCache:   []line.Line{},
+		displayCache:   []linepkg.Line{},
 		dirty:          false,
 		sortTopDown:    sortTopDown,
 		styles:         styles,
@@ -348,7 +348,7 @@ func NewListArea(screen Screen, anchor VerticalAnchor, anchorOffset int, sortTop
 }
 
 func (l *ListArea) purgeDisplayCache() {
-	l.displayCache = []line.Line{}
+	l.displayCache = []linepkg.Line{}
 }
 
 func (l *ListArea) IsDirty() bool {
@@ -428,7 +428,7 @@ func (l *ListArea) Draw(state *Peco, parent Layout, perPage int, options *hub.Dr
 	// previously drawn lines are cached. first, truncate the cache
 	// to current size of the drawable area
 	if ldc := int(len(l.displayCache)); ldc != perPage {
-		newCache := make([]line.Line, perPage)
+		newCache := make([]linepkg.Line, perPage)
 		copy(newCache, l.displayCache)
 		l.displayCache = newCache
 	} else if perPage > bufsiz {
@@ -589,7 +589,7 @@ func (l *ListArea) Draw(state *Peco, parent Layout, perPage int, options *hub.Dr
 			x += 2
 		}
 
-		ix, ok := target.(MatchIndexer)
+		ml, ok := target.(*linepkg.Matched)
 		if !ok {
 			l.screen.Print(PrintArgs{
 				X:         x,
@@ -604,7 +604,7 @@ func (l *ListArea) Draw(state *Peco, parent Layout, perPage int, options *hub.Dr
 			continue
 		}
 
-		matches := ix.Indices()
+		matches := ml.Indices()
 		prev := x
 		index := 0
 		runeOffset := 0 // tracks rune position for ANSI ExtractSegment
