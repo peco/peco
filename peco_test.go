@@ -330,9 +330,9 @@ func TestGHIssue331(t *testing.T) {
 	p := New()
 	p.hub = nullHub{}
 	require.False(t, p.SingleKeyJumpMode(), "SingleKeyJumpMode should start as false")
-	p.ToggleSingleKeyJumpMode()
+	p.ToggleSingleKeyJumpMode(context.Background())
 	require.True(t, p.SingleKeyJumpMode(), "SingleKeyJumpMode should be true after toggle")
-	p.ToggleSingleKeyJumpMode()
+	p.ToggleSingleKeyJumpMode(context.Background())
 	require.False(t, p.SingleKeyJumpMode(), "SingleKeyJumpMode should be false after second toggle")
 }
 
