@@ -1,13 +1,11 @@
 package peco
 
 import (
+	"context"
 	"runtime"
-	"sort"
 	"strings"
 	"sync"
 	"time"
-
-	"context"
 
 	"github.com/lestrrat-go/pdebug"
 	"github.com/peco/peco/filter"
@@ -351,8 +349,6 @@ func isQueryRefinement(prev, new string) bool {
 
 	// All previous negative terms must still be present in new negative terms
 	if len(prevNeg) > 0 {
-		sort.Strings(prevNeg)
-		sort.Strings(newNeg)
 		newNegSet := make(map[string]struct{}, len(newNeg))
 		for _, t := range newNeg {
 			newNegSet[t] = struct{}{}
