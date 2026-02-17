@@ -14,7 +14,10 @@ import (
 	"github.com/peco/peco/line"
 )
 
-var extraOffset int = 0
+// extraOffset is a platform-specific constant that adds extra vertical
+// space to layout anchors. On Windows, terminals need an additional line
+// reserved at the bottom. Set per-platform via layout_windows.go and
+// layout_notwindows.go.
 
 // ansiLiner is an optional interface for lines that carry ANSI color attributes.
 type ansiLiner interface {
