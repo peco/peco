@@ -76,13 +76,19 @@ var doneChPool = sync.Pool{
 }
 
 func (p *Payload[T]) waitDone() {
-	// MAKE SURE p.done is valid. XXX needs locking?
-	<-p.done
-
+	// Save the channel reference before blocking. This read is safe because
+	// p.done was set by send() on this same goroutine before the payload
+	// was sent on the hub channel.
 	ch := p.done
-	p.done = nil
 
-	defer doneChPool.Put(ch)
+	// Block until the receiver calls Done(), which sends on ch.
+	<-ch
+
+	// After the receive, the receiver is finished with p.done (it already
+	// sent on it), so this goroutine has exclusive access. Clear the field
+	// and return the channel to the pool.
+	p.done = nil
+	doneChPool.Put(ch)
 }
 
 func isBatchCtx(ctx context.Context) bool {
