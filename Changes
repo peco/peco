@@ -1,6 +1,13 @@
 Changes
 =======
 
+v0.6.0 - UNRELEASED
+  [Breaking Changes]
+  * Removed deprecated config fields `Matcher`, `InitialMatcher`, and
+    `CustomMatcher`. Use `InitialFilter` and `CustomFilter` instead.
+  * Removed deprecated CLI option `--initial-matcher`.
+    Use `--initial-filter` instead.
+
 v0.5.11 - 21 Mar 2023
   [Features]
   * Added new option for "FuzzyLongestSort" flag that can be specified in your config file

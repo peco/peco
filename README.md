@@ -465,7 +465,6 @@ Below are configuration sections that you may specify in your config file:
 * [Styles](#styles)
 * [CustomFilter](#customfilter)
 * [Prompt](#prompt)
-* [InitialMatcher](#initialmatcher)
 * [Use256Color](#use256color)
 * [ANSI](#ansi)
 
@@ -482,10 +481,6 @@ You can change the query line's prompt, which is `QUERY>` by default.
     "Prompt": "[peco]"
 }
 ```
-
-### InitialMatcher
-
-*InitialMatcher* has been deprecated. Please use `InitialFilter` instead.
 
 ### InitialFilter
 
@@ -736,7 +731,6 @@ Some keys just... don't map correctly / too easily for various reasons. Here, we
 | peco.ToggleQuery        | Toggle list between filtered by query and not filtered. |
 | peco.ToggleRangeMode   | Start selecting by range, or append selecting range to selections |
 | peco.CancelRangeMode   | Finish selecting by range and cancel range selection |
-| peco.RotateMatcher     | (DEPRECATED) Use peco.RotateFilter |
 | peco.RotateFilter       | Rotate between filters (by default, ignore-case/no-ignore-case)|
 | peco.FreezeResults      | Freeze current results and clear the query to start a new filter on top |
 | peco.UnfreezeResults    | Discard frozen results and revert to the original input |

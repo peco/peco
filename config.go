@@ -10,7 +10,6 @@ import (
 	"strings"
 
 	"github.com/goccy/go-yaml"
-	"github.com/peco/peco/filter"
 	"github.com/peco/peco/internal/util"
 )
 
@@ -19,7 +18,6 @@ var homedirFunc = util.Homedir
 // Init initializes the Config with default values
 func (c *Config) Init() error {
 	c.Keymap = make(map[string]string)
-	c.InitialMatcher = IgnoreCaseMatch
 	c.Style.Init()
 	c.Prompt = "QUERY>"
 	c.Layout = LayoutTypeTopDown
@@ -51,22 +49,6 @@ func (c *Config) ReadFilename(filename string) error {
 
 	if !IsValidLayoutType(LayoutType(c.Layout)) {
 		return fmt.Errorf("invalid layout type: %s", c.Layout)
-	}
-
-	if len(c.CustomMatcher) > 0 {
-		fmt.Fprintf(os.Stderr, "'CustomMatcher' is deprecated. Use CustomFilter instead\n")
-
-		for n, cfg := range c.CustomMatcher {
-			if _, ok := c.CustomFilter[n]; ok {
-				return fmt.Errorf("failed to create CustomFilter: '%s' already exists. Refusing to overwrite with deprecated CustomMatcher config", n)
-			}
-
-			c.CustomFilter[n] = CustomFilterConfig{
-				Cmd:             cfg[0],
-				Args:            cfg[1:],
-				BufferThreshold: filter.DefaultCustomFilterBufferThreshold,
-			}
-		}
 	}
 
 	return nil

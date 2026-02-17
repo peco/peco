@@ -31,10 +31,6 @@ func TestIssue212_SanityCheck(t *testing.T) {
 		return
 	}
 
-	if !assert.Equal(t, state.config.InitialMatcher, IgnoreCaseMatch, "Default matcher should be IgnoreCaseMatch, but got '%s'", state.config.InitialMatcher) {
-		return
-	}
-
 	defstyle := StyleSet{}
 	defstyle.Init()
 	if !assert.Equal(t, state.config.Style, defstyle, "should be default style") {
