@@ -1,7 +1,5 @@
 package peco
 
-func init() {
-	// This is the value we pass to anchor offset when we're running
-	// on windows platform
-	extraOffset = 1
-}
+// extraOffset reserves one additional line at the bottom on Windows
+// to account for platform-specific terminal rendering behavior.
+const extraOffset = 1
