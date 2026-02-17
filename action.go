@@ -194,7 +194,7 @@ func doAcceptChar(ctx context.Context, state *Peco, e Event) {
 		return
 	}
 
-	if state.SingleKeyJumpMode() {
+	if state.SingleKeyJump().Mode() {
 		doSingleKeyJump(ctx, state, e)
 		return
 	}
@@ -979,7 +979,7 @@ func doSingleKeyJump(ctx context.Context, state *Peco, e Event) {
 		g := pdebug.Marker("doSingleKeyJump %c", e.Ch)
 		defer g.End()
 	}
-	index, ok := state.SingleKeyJumpIndex(e.Ch)
+	index, ok := state.SingleKeyJump().Index(e.Ch)
 	if !ok {
 		// Couldn't find it? Do nothing
 		return

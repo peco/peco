@@ -322,18 +322,18 @@ func TestPecoHelp(t *testing.T) {
 func TestGHIssue331(t *testing.T) {
 	// Verify fields are populated when Run() initializes config.
 	state, _ := setupPecoTest(t)
-	require.NotEmpty(t, state.singleKeyJumpPrefixes, "singleKeyJumpPrefixes should be populated")
-	require.NotEmpty(t, state.singleKeyJumpPrefixMap, "singleKeyJumpPrefixMap should be populated")
+	require.NotEmpty(t, state.singleKeyJump.prefixes, "singleKeyJump.prefixes should be populated")
+	require.NotEmpty(t, state.singleKeyJump.prefixMap, "singleKeyJump.prefixMap should be populated")
 
 	// Verify ToggleSingleKeyJumpMode on a separate non-running instance
 	// to avoid racing with the View loop's DrawScreen reads.
 	p := New()
 	p.hub = nullHub{}
-	require.False(t, p.SingleKeyJumpMode(), "SingleKeyJumpMode should start as false")
+	require.False(t, p.SingleKeyJump().Mode(), "SingleKeyJump().Mode() should start as false")
 	p.ToggleSingleKeyJumpMode(context.Background())
-	require.True(t, p.SingleKeyJumpMode(), "SingleKeyJumpMode should be true after toggle")
+	require.True(t, p.SingleKeyJump().Mode(), "SingleKeyJump().Mode() should be true after toggle")
 	p.ToggleSingleKeyJumpMode(context.Background())
-	require.False(t, p.SingleKeyJumpMode(), "SingleKeyJumpMode should be false after second toggle")
+	require.False(t, p.SingleKeyJump().Mode(), "SingleKeyJump().Mode() should be false after second toggle")
 }
 
 func TestConfigFuzzyFilter(t *testing.T) {

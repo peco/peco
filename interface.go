@@ -104,10 +104,7 @@ type Peco struct {
 	exitZeroAndExit         bool // True if --exit-0 is enabled
 	selectOneAndExit        bool // True if --select-1 is enabled
 	selectAllAndExit        bool // True if --select-all is enabled
-	singleKeyJumpMode       bool
-	singleKeyJumpPrefixes   []rune
-	singleKeyJumpPrefixMap  map[rune]uint
-	singleKeyJumpShowPrefix bool
+	singleKeyJump SingleKeyJumpState
 	heightSpec              *HeightSpec
 	readConfigFn            func(*Config, string) error
 	styles                  StyleSet

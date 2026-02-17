@@ -559,8 +559,8 @@ func (l *ListArea) Draw(state *Peco, parent Layout, perPage int, options *hub.Dr
 			})
 			x += len
 		}
-		if state.SingleKeyJumpMode() || state.SingleKeyJumpShowPrefix() {
-			prefixes := state.SingleKeyJumpPrefixes()
+		if state.SingleKeyJump().Mode() || state.SingleKeyJump().ShowPrefix() {
+			prefixes := state.SingleKeyJump().Prefixes()
 			if n < int(len(prefixes)) {
 				l.screen.Print(PrintArgs{
 					X:       x,

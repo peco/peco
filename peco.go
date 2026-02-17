@@ -194,30 +194,13 @@ func (p *Peco) SelectionRangeStart() *RangeStart {
 	return &p.selectionRangeStart
 }
 
-func (p *Peco) SingleKeyJumpShowPrefix() bool {
-	return p.singleKeyJumpShowPrefix
-}
-
-func (p *Peco) SingleKeyJumpPrefixes() []rune {
-	return p.singleKeyJumpPrefixes
-}
-
-func (p *Peco) SingleKeyJumpMode() bool {
-	return p.singleKeyJumpMode
-}
-
-func (p *Peco) SetSingleKeyJumpMode(b bool) {
-	p.singleKeyJumpMode = b
+func (p *Peco) SingleKeyJump() *SingleKeyJumpState {
+	return &p.singleKeyJump
 }
 
 func (p *Peco) ToggleSingleKeyJumpMode(ctx context.Context) {
-	p.singleKeyJumpMode = !p.singleKeyJumpMode
+	p.singleKeyJump.mode = !p.singleKeyJump.mode
 	go p.Hub().SendDraw(ctx, &hub.DrawOptions{DisableCache: true})
-}
-
-func (p *Peco) SingleKeyJumpIndex(ch rune) (uint, bool) {
-	n, ok := p.singleKeyJumpPrefixMap[ch]
-	return n, ok
 }
 
 func (p *Peco) Source() pipeline.Source {
@@ -723,18 +706,18 @@ func (p *Peco) populateInitialFilter() error {
 }
 
 func (p *Peco) populateSingleKeyJump() error {
-	p.singleKeyJumpShowPrefix = p.config.SingleKeyJump.ShowPrefix
+	p.singleKeyJump.showPrefix = p.config.SingleKeyJump.ShowPrefix
 
 	jumpMap := make(map[rune]uint)
 	chrs := "asdfghjklzxcvbnmqwertyuiop"
 	for i := 0; i < len(chrs); i++ {
 		jumpMap[rune(chrs[i])] = uint(i)
 	}
-	p.singleKeyJumpPrefixMap = jumpMap
+	p.singleKeyJump.prefixMap = jumpMap
 
-	p.singleKeyJumpPrefixes = make([]rune, len(jumpMap))
-	for k, v := range p.singleKeyJumpPrefixMap {
-		p.singleKeyJumpPrefixes[v] = k
+	p.singleKeyJump.prefixes = make([]rune, len(jumpMap))
+	for k, v := range p.singleKeyJump.prefixMap {
+		p.singleKeyJump.prefixes[v] = k
 	}
 	return nil
 }
