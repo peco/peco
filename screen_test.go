@@ -10,6 +10,136 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// setCellCall records a single SetCell invocation.
+type setCellCall struct {
+	x, y int
+	ch   rune
+}
+
+// recordingScreen is a minimal Screen implementation that records SetCell calls.
+// Used by screenPrint tests to verify exactly which cells are written.
+type recordingScreen struct {
+	cells []setCellCall
+	w, h  int
+}
+
+func (s *recordingScreen) Init(*Config) error                       { return nil }
+func (s *recordingScreen) Close() error                             { return nil }
+func (s *recordingScreen) Flush() error                             { return nil }
+func (s *recordingScreen) PollEvent(context.Context, *Config) chan Event { return nil }
+func (s *recordingScreen) Print(args PrintArgs) int                 { return screenPrint(s, args) }
+func (s *recordingScreen) Resume(context.Context)                   {}
+func (s *recordingScreen) SetCursor(int, int)                       {}
+func (s *recordingScreen) SendEvent(Event)                          {}
+func (s *recordingScreen) Suspend()                                 {}
+func (s *recordingScreen) Sync()                                    {}
+func (s *recordingScreen) Size() (int, int)                         { return s.w, s.h }
+func (s *recordingScreen) SetCell(x, y int, ch rune, fg, bg Attribute) {
+	s.cells = append(s.cells, setCellCall{x: x, y: y, ch: ch})
+}
+
+func TestScreenPrintTabWidth(t *testing.T) {
+	tests := []struct {
+		name      string
+		msg       string
+		x         int
+		xOffset   int
+		wantCells int // number of SetCell calls for tab expansion
+		wantX     []int // x coordinates of SetCell calls
+	}{
+		{
+			name:      "tab at column 0 expands to 4 spaces",
+			msg:       "\t",
+			x:         0,
+			xOffset:   0,
+			wantCells: 4,
+			wantX:     []int{0, 1, 2, 3},
+		},
+		{
+			name:      "tab at column 1 expands to 3 spaces (next tab stop at 4)",
+			msg:       "\t",
+			x:         1,
+			xOffset:   0,
+			wantCells: 3,
+			wantX:     []int{1, 2, 3},
+		},
+		{
+			name:      "tab at column 2 expands to 2 spaces",
+			msg:       "\t",
+			x:         2,
+			xOffset:   0,
+			wantCells: 2,
+			wantX:     []int{2, 3},
+		},
+		{
+			name:      "tab at column 3 expands to 1 space",
+			msg:       "\t",
+			x:         3,
+			xOffset:   0,
+			wantCells: 1,
+			wantX:     []int{3},
+		},
+		{
+			name:      "tab at column 4 expands to 4 spaces (next tab stop at 8)",
+			msg:       "\t",
+			x:         4,
+			xOffset:   0,
+			wantCells: 4,
+			wantX:     []int{4, 5, 6, 7},
+		},
+		{
+			name:      "xOffset affects tab stop calculation",
+			msg:       "\t",
+			x:         0,
+			xOffset:   1,
+			wantCells: 3, // 4 - (0+1)%4 = 3
+			wantX:     []int{0, 1, 2},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			scr := &recordingScreen{w: 80, h: 24}
+			written := screenPrint(scr, PrintArgs{
+				X:       tt.x,
+				XOffset: tt.xOffset,
+				Y:       0,
+				Msg:     tt.msg,
+			})
+
+			require.Equal(t, tt.wantCells, len(scr.cells), "number of SetCell calls")
+			require.Equal(t, tt.wantCells, written, "written count should match cells drawn")
+
+			gotX := make([]int, len(scr.cells))
+			for i, c := range scr.cells {
+				gotX[i] = c.x
+				require.Equal(t, ' ', c.ch, "tab should expand to spaces")
+			}
+			require.Equal(t, tt.wantX, gotX, "x coordinates of drawn cells")
+		})
+	}
+}
+
+func TestScreenPrintTabThenChar(t *testing.T) {
+	// Verifies that after a tab, the next character is placed at the correct position.
+	// With tab at column 0 expanding to 4 spaces, the next char should be at column 4.
+	scr := &recordingScreen{w: 80, h: 24}
+	written := screenPrint(scr, PrintArgs{
+		X:   0,
+		Y:   0,
+		Msg: "\tA",
+	})
+
+	// Tab (4 spaces) + 'A' (1 cell) = 5 cells drawn, 5 written
+	require.Equal(t, 5, len(scr.cells))
+	require.Equal(t, 5, written)
+
+	// The 'A' should be at x=4 (right after the 4-space tab)
+	lastCell := scr.cells[len(scr.cells)-1]
+	require.Equal(t, 'A', lastCell.ch)
+	require.Equal(t, 4, lastCell.x, "character after tab should be at x=4")
+}
+
 // panickingScreen wraps a tcell.Screen and panics on PollEvent.
 // Used to test that TcellScreen's PollEvent goroutine logs panics
 // instead of silently swallowing them.

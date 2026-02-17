@@ -427,9 +427,9 @@ func screenPrint(t Screen, args PrintArgs) int {
 		}
 
 		if c == '\t' {
-			// In case we found a tab, we draw it as 4 spaces
+			// In case we found a tab, we draw it as spaces up to the next tab stop
 			n := 4 - (x+xOffset)%4
-			for i := int(0); i <= n; i++ {
+			for i := int(0); i < n; i++ {
 				t.SetCell(int(x+i), int(y), ' ', efg, ebg)
 			}
 			written += n
