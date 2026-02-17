@@ -1,4 +1,4 @@
-//go:generate stringer -type PagingRequestType
+//go:generate stringer -type PagingRequestType -output paging_request_type_gen.go
 
 package hub
 

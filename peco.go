@@ -1,4 +1,4 @@
-//go:generate stringer -type VerticalAnchor -output stringer_vertical_anchor.go .
+//go:generate stringer -type VerticalAnchor -output vertical_anchor_gen.go .
 
 package peco
 
