@@ -91,7 +91,7 @@ func (r *Receiver) Done() <-chan struct{} {
 	return r.done
 }
 
-func (r *Receiver) Accept(ctx context.Context, in <-chan line.Line, out ChanOutput) {
+func (r *Receiver) Accept(ctx context.Context, in <-chan line.Line, _ ChanOutput) {
 	defer fmt.Println("END Receiver.Accept")
 	defer close(r.done)
 
@@ -145,7 +145,7 @@ barfoo
 	defer cancel()
 	p.Run(ctx)
 
-	var got []string
+	got := make([]string, 0, len(dst.lines))
 	for _, l := range dst.lines {
 		got = append(got, l.DisplayString())
 	}

@@ -8,7 +8,7 @@ type Trie interface {
 	Root() Node
 	GetList(KeyList) Node
 	Get(Key) Node
-	Put(KeyList, interface{}) Node
+	Put(KeyList, any) Node
 	Size() int
 }
 
@@ -30,7 +30,7 @@ func Get(t Trie, k KeyList) Node {
 	return n
 }
 
-func Put(t Trie, k KeyList, v interface{}) Node {
+func Put(t Trie, k KeyList, v any) Node {
 	if t == nil {
 		return nil
 	}
@@ -64,7 +64,10 @@ func EachWidth(t Trie, proc func(Node) bool) {
 	for q.Len() != 0 {
 		f := q.Front()
 		q.Remove(f)
-		t := f.Value.(Node)
+		t, ok := f.Value.(Node)
+		if !ok {
+			break
+		}
 		if !proc(t) {
 			break
 		}
@@ -85,8 +88,8 @@ type Node interface {
 	RemoveAll()
 
 	Label() Key
-	Value() interface{}
-	SetValue(v interface{})
+	Value() any
+	SetValue(v any)
 }
 
 func Children(n Node) []Node {

@@ -24,16 +24,16 @@ import (
 
 type nullHub struct{}
 
-func (h nullHub) Batch(_ context.Context, _ func(context.Context), _ bool)           {}
-func (h nullHub) DrawCh() chan *hub.Payload[*hub.DrawOptions]                        { return nil }
-func (h nullHub) PagingCh() chan *hub.Payload[hub.PagingRequest]                     { return nil }
-func (h nullHub) QueryCh() chan *hub.Payload[string]                                 { return nil }
-func (h nullHub) SendDraw(_ context.Context, _ *hub.DrawOptions)                     {}
-func (h nullHub) SendDrawPrompt(context.Context)                                     {}
-func (h nullHub) SendPaging(_ context.Context, _ hub.PagingRequest)                  {}
-func (h nullHub) SendQuery(_ context.Context, _ string)                              {}
+func (h nullHub) Batch(_ context.Context, _ func(context.Context), _ bool)   {}
+func (h nullHub) DrawCh() chan *hub.Payload[*hub.DrawOptions]                { return nil }
+func (h nullHub) PagingCh() chan *hub.Payload[hub.PagingRequest]             { return nil }
+func (h nullHub) QueryCh() chan *hub.Payload[string]                         { return nil }
+func (h nullHub) SendDraw(_ context.Context, _ *hub.DrawOptions)             {}
+func (h nullHub) SendDrawPrompt(context.Context)                             {}
+func (h nullHub) SendPaging(_ context.Context, _ hub.PagingRequest)          {}
+func (h nullHub) SendQuery(_ context.Context, _ string)                      {}
 func (h nullHub) SendStatusMsg(_ context.Context, _ string, _ time.Duration) {}
-func (h nullHub) StatusMsgCh() chan *hub.Payload[hub.StatusMsg]                      { return nil }
+func (h nullHub) StatusMsgCh() chan *hub.Payload[hub.StatusMsg]              { return nil }
 
 // Compile-time interface compliance checks.
 var (
@@ -43,7 +43,7 @@ var (
 	_ MessageHub  = nullHub{}
 )
 
-type interceptorArgs []interface{}
+type interceptorArgs []any
 type interceptor struct {
 	m      sync.Mutex
 	events map[string][]interceptorArgs
@@ -62,7 +62,7 @@ func (i *interceptor) reset() {
 	i.events = make(map[string][]interceptorArgs)
 }
 
-func (i *interceptor) record(name string, args []interface{}) {
+func (i *interceptor) record(name string, args []any) {
 	i.m.Lock()
 	defer i.m.Unlock()
 
@@ -152,7 +152,7 @@ func NewDummyScreen() *SimScreen {
 	}
 }
 
-func (s *SimScreen) Init(cfg *Config) error {
+func (s *SimScreen) Init(_ *Config) error {
 	return nil
 }
 
@@ -230,7 +230,7 @@ func (s *SimScreen) Flush() error {
 	return nil
 }
 
-func (s *SimScreen) PollEvent(ctx context.Context, cfg *Config) chan Event {
+func (s *SimScreen) PollEvent(ctx context.Context, _ *Config) chan Event {
 	evCh := make(chan Event)
 	go func() {
 		defer func() { recover() }()
@@ -262,7 +262,7 @@ func (s *SimScreen) Size() (int, int) {
 }
 
 func (s *SimScreen) Resume(_ context.Context) {}
-func (s *SimScreen) Suspend() {}
+func (s *SimScreen) Suspend()                 {}
 
 // Sync records a "Sync" event via the interceptor. This satisfies the
 // optional syncer interface used by BasicLayout.DrawScreen when
@@ -279,12 +279,11 @@ func (s *SimScreen) Sync() {
 
 func TestIDGen(t *testing.T) {
 	idgen := newIDGen()
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx := t.Context()
 	go idgen.Run(ctx)
 
-	lines := []*line.Raw{}
-	for i := 0; i < 1000000; i++ {
+	lines := make([]*line.Raw, 0, 1000000)
+	for i := range 1000000 {
 		lines = append(lines, line.NewRaw(idgen.Next(), fmt.Sprintf("%d", i), false, false))
 	}
 
@@ -531,7 +530,7 @@ func TestGHIssue367(t *testing.T) {
 		return
 	}
 
-	for i := 0; i < curbuf.Size(); i++ {
+	for i := range curbuf.Size() {
 		_, err := curbuf.LineAt(i)
 		if !assert.NoError(t, err, "LineAt(%d) should succeed", i) {
 			return
@@ -631,7 +630,7 @@ func TestExitZero(t *testing.T) {
 // runPecoSelectAll is a helper that runs peco in a goroutine and waits for
 // it to complete. It uses a simple buffered channel to avoid goroutine
 // scheduling races between the result send and the context cancellation.
-func runPecoSelectAll(t *testing.T, p *Peco, ctx context.Context) {
+func runPecoSelectAll(t *testing.T, p *Peco, ctx context.Context) { //nolint:revive
 	t.Helper()
 
 	resultCh := make(chan error, 1)

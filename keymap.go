@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"maps"
 	"sort"
 	"strings"
 	"time"
@@ -58,7 +59,11 @@ func (km Keymap) LookupAction(ev Event) Action {
 		if pdebug.Enabled {
 			pdebug.Printf("Keymap.Handler: Fetched action")
 		}
-		return wrapClearSequence(action.(Action))
+		a, ok := action.(Action)
+		if !ok {
+			return ActionFunc(doNothing)
+		}
+		return wrapClearSequence(a)
 	case keyseq.ErrInSequence:
 		if pdebug.Enabled {
 			pdebug.Printf("Keymap.Handler: Waiting for more commands...")
@@ -139,9 +144,7 @@ func (km *Keymap) ApplyKeybinding() error {
 
 	// Copy the map
 	kb := map[string]Action{}
-	for s, a := range defaultKeyBinding {
-		kb[s] = a
-	}
+	maps.Copy(kb, defaultKeyBinding)
 
 	// munge the map using config
 	for s, as := range km.Config {

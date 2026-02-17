@@ -141,7 +141,6 @@ func TestMergeAttribute(t *testing.T) {
 	if m := mergeAttribute(AttrBold|colors["red"], AttrUnderline|colors["cyan"]); m != AttrBold|AttrUnderline|colors["white"] {
 		t.Errorf("expected %d, got %d", AttrBold|AttrUnderline|colors["white"], m)
 	}
-
 }
 
 // TestGHIssue294_PromptStyleUsedForPromptPrefix verifies that UserPrompt.Draw
@@ -174,7 +173,7 @@ func TestGHIssue294_PromptStyleUsedForPromptPrefix(t *testing.T) {
 		"expected at least %d SetCell events, got %d", promptLen, len(events))
 
 	// The first promptLen cells should use the Prompt style colors.
-	for i := 0; i < promptLen; i++ {
+	for i := range promptLen {
 		ev := events[i]
 		x := ev[0].(int)
 		ch := ev[2].(rune)

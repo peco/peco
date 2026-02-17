@@ -17,7 +17,7 @@ func (b *baseFilter) BufSize() int {
 
 func (b *baseFilter) Apply(ctx context.Context, lines []line.Line, out pipeline.ChanOutput) error {
 	return b.applyFn(ctx, lines, func(l line.Line) {
-		out.Send(ctx, l)
+		_ = out.Send(ctx, l)
 	})
 }
 

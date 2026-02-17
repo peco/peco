@@ -23,8 +23,8 @@ type TcellScreen struct {
 	resumeCh  chan chan struct{}
 	suspendCh chan struct{}
 	doneCh    chan struct{} // closed on permanent Close() to signal goroutines to exit
-	closeOnce sync.Once    // ensures doneCh is closed exactly once
-	errWriter io.Writer    // destination for error output (defaults to os.Stderr)
+	closeOnce sync.Once     // ensures doneCh is closed exactly once
+	errWriter io.Writer     // destination for error output (defaults to os.Stderr)
 }
 
 // tcellKeyToKeyseq maps tcell navigation/function key constants to peco keyseq constants.
@@ -162,7 +162,7 @@ func attributeToTcellStyle(fg, bg Attribute) tcell.Style {
 	return style
 }
 
-func (t *TcellScreen) Init(cfg *Config) error {
+func (t *TcellScreen) Init(_ *Config) error {
 	screen, err := tcell.NewScreen()
 	if err != nil {
 		return fmt.Errorf("failed to create tcell screen: %w", err)
@@ -293,7 +293,7 @@ func (t *TcellScreen) PollEvent(ctx context.Context, cfg *Config) chan Event {
 				case <-t.doneCh:
 					return
 				case replyCh := <-t.resumeCh:
-					t.Init(cfg)
+					_ = t.Init(cfg)
 					close(replyCh)
 					continue
 				}
@@ -309,7 +309,7 @@ func (t *TcellScreen) PollEvent(ctx context.Context, cfg *Config) chan Event {
 				case <-t.doneCh:
 					return
 				case replyCh := <-t.resumeCh:
-					t.Init(cfg)
+					_ = t.Init(cfg)
 					close(replyCh)
 				}
 				continue
@@ -429,14 +429,14 @@ func screenPrint(t Screen, args PrintArgs) int {
 		if c == '\t' {
 			// In case we found a tab, we draw it as spaces up to the next tab stop
 			n := 4 - (x+xOffset)%4
-			for i := int(0); i < n; i++ {
-				t.SetCell(int(x+i), int(y), ' ', efg, ebg)
+			for i := range n {
+				t.SetCell(x+i, y, ' ', efg, ebg)
 			}
 			written += n
 			x += n
 		} else {
-			t.SetCell(int(x), int(y), c, efg, ebg)
-			n := int(runewidth.RuneWidth(c))
+			t.SetCell(x, y, c, efg, ebg)
+			n := runewidth.RuneWidth(c)
 			x += n
 			written += n
 		}
@@ -447,9 +447,9 @@ func screenPrint(t Screen, args PrintArgs) int {
 	}
 
 	width, _ := t.Size()
-	for ; x < int(width); x++ {
-		t.SetCell(int(x), int(y), ' ', fg, bg)
+	for ; x < width; x++ {
+		t.SetCell(x, y, ' ', fg, bg)
 	}
-	written += int(width) - x
+	written += width - x
 	return written
 }

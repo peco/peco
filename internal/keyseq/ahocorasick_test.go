@@ -35,7 +35,7 @@ func invalidData(failure Node) nodeData {
 	}
 }
 
-func validData(pattern KeyList, value interface{}, failure Node) nodeData {
+func validData(pattern KeyList, value any, failure Node) nodeData {
 	return nodeData{
 		pattern: &pattern,
 		value:   value,

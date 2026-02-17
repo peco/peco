@@ -20,7 +20,7 @@ func (t *TernaryTrie) Get(k Key) Node {
 	return Get(t, KeyList{k})
 }
 
-func (t *TernaryTrie) Put(k KeyList, v interface{}) Node {
+func (t *TernaryTrie) Put(k KeyList, v any) Node {
 	return Put(t, k, v)
 }
 
@@ -35,7 +35,8 @@ func (t *TernaryTrie) Size() int {
 
 func (t *TernaryTrie) Balance() {
 	EachDepth(t, func(n Node) bool {
-		n.(*TernaryNode).Balance()
+		tn, _ := n.(*TernaryNode)
+		tn.Balance()
 		return true
 	})
 	t.root.Balance()
@@ -45,7 +46,7 @@ type TernaryNode struct {
 	label      Key
 	firstChild *TernaryNode
 	low, high  *TernaryNode
-	value      interface{}
+	value      any
 }
 
 func NewTernaryNode(l Key) *TernaryNode {
@@ -138,11 +139,11 @@ func (n *TernaryNode) Label() Key {
 	return n.label
 }
 
-func (n *TernaryNode) Value() interface{} {
+func (n *TernaryNode) Value() any {
 	return n.value
 }
 
-func (n *TernaryNode) SetValue(v interface{}) {
+func (n *TernaryNode) SetValue(v any) {
 	n.value = v
 }
 
@@ -153,7 +154,8 @@ func (n *TernaryNode) children() []*TernaryNode {
 	}
 	idx := 0
 	n.Each(func(child Node) bool {
-		children[idx] = child.(*TernaryNode)
+		tn, _ := child.(*TernaryNode)
+		children[idx] = tn
 		idx++
 		return true
 	})
@@ -181,11 +183,10 @@ func balance(nodes []*TernaryNode, s, e int) *TernaryNode {
 	} else if count == 2 {
 		nodes[s].high = nodes[s+1]
 		return nodes[s]
-	} else {
-		mid := (s + e) / 2
-		n := nodes[mid]
-		n.low = balance(nodes, s, mid)
-		n.high = balance(nodes, mid+1, e)
-		return n
 	}
+	mid := (s + e) / 2
+	n := nodes[mid]
+	n.low = balance(nodes, s, mid)
+	n.high = balance(nodes, mid+1, e)
+	return n
 }

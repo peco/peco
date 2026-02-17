@@ -74,7 +74,7 @@ func (ecf *ExternalCmd) Apply(ctx context.Context, buf []line.Line, out pipeline
 		}
 	}
 
-	cmd := exec.Command(ecf.cmd, args...)
+	cmd := exec.CommandContext(ctx, ecf.cmd, args...)
 	if pdebug.Enabled {
 		pdebug.Printf("Executing command %s %v", cmd.Path, cmd.Args)
 	}
@@ -119,7 +119,7 @@ func (ecf *ExternalCmd) Apply(ctx context.Context, buf []line.Line, out pipeline
 			}
 		}()
 		defer close(cmdCh)
-		defer cmd.Wait()
+		defer func() { _ = cmd.Wait() }()
 		for {
 			select {
 			case <-ctx.Done():
@@ -160,7 +160,7 @@ func (ecf *ExternalCmd) Apply(ctx context.Context, buf []line.Line, out pipeline
 
 	defer func() {
 		if p := cmd.Process; p != nil {
-			p.Kill()
+			_ = p.Kill()
 		}
 		wg.Wait()
 	}()
@@ -173,7 +173,9 @@ func (ecf *ExternalCmd) Apply(ctx context.Context, buf []line.Line, out pipeline
 			if l == nil || !ok {
 				return nil
 			}
-			out.Send(ctx, l)
+			if err := out.Send(ctx, l); err != nil {
+				return nil
+			}
 		}
 	}
 }

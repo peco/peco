@@ -7,16 +7,16 @@ type Matcher struct {
 type Match struct {
 	Index   int
 	Pattern KeyList
-	Value   interface{}
+	Value   any
 }
 
 type nodeData struct {
 	pattern *KeyList
-	value   interface{}
+	value   any
 	failure *TernaryNode
 }
 
-func (n *nodeData) Value() interface{} {
+func (n *nodeData) Value() any {
 	return n.value
 }
 
@@ -30,7 +30,7 @@ func (m *Matcher) Clear() {
 	m.Root().RemoveAll()
 }
 
-func (m *Matcher) Add(pattern KeyList, v interface{}) {
+func (m *Matcher) Add(pattern KeyList, v any) {
 	m.Put(pattern, &nodeData{
 		pattern: &pattern,
 		value:   v,
@@ -39,13 +39,14 @@ func (m *Matcher) Add(pattern KeyList, v interface{}) {
 
 func (m *Matcher) Compile() error {
 	m.Balance()
-	root := m.Root().(*TernaryNode)
+	root, _ := m.Root().(*TernaryNode)
 	root.SetValue(&nodeData{failure: root})
 	// fill data.failure of each node.
 	EachWidth(m, func(n Node) bool {
-		parent := n.(*TernaryNode)
+		parent, _ := n.(*TernaryNode)
 		parent.Each(func(m Node) bool {
-			fillFailure(m.(*TernaryNode), root, parent)
+			child, _ := m.(*TernaryNode)
+			fillFailure(child, root, parent)
 			return true
 		})
 		return true
@@ -76,7 +77,7 @@ func (m *Matcher) Match(text KeyList) <-chan Match {
 
 func (m *Matcher) startMatch(text KeyList, ch chan<- Match) {
 	defer close(ch)
-	root := m.Root().(*TernaryNode)
+	root, _ := m.Root().(*TernaryNode)
 	curr := root
 	for i, r := range text {
 		curr = getNextNode(curr, root, r)

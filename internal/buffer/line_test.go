@@ -52,7 +52,7 @@ func TestReleaseLineListBufResetsLength(t *testing.T) {
 
 func TestMultipleGetReleaseCycles(t *testing.T) {
 	t.Parallel()
-	for i := 0; i < 10; i++ {
+	for range 10 {
 		buf := GetLineListBuf()
 		require.NotNil(t, buf)
 		require.Equal(t, 0, len(buf))

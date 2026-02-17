@@ -104,7 +104,7 @@ type mockExitStatusError struct {
 	msg    string
 }
 
-func (e *mockExitStatusError) Error() string    { return e.msg }
+func (e *mockExitStatusError) Error() string   { return e.msg }
 func (e *mockExitStatusError) ExitStatus() int { return e.status }
 
 func TestIsIgnorableError(t *testing.T) {

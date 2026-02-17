@@ -1,5 +1,4 @@
 //go:build darwin || freebsd || openbsd || netbsd || dragonfly
-// +build darwin freebsd openbsd netbsd dragonfly
 
 package util
 

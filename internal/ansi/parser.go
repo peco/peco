@@ -118,7 +118,7 @@ func Parse(input string) ParseResult {
 
 	return ParseResult{
 		Stripped: out.String(),
-		Attrs:   spans,
+		Attrs:    spans,
 	}
 }
 
@@ -248,14 +248,8 @@ func ExtractSegment(attrs []AttrSpan, start, end int) []AttrSpan {
 			break
 		}
 
-		overlapStart := pos
-		if start > pos {
-			overlapStart = start
-		}
-		overlapEnd := spanEnd
-		if end < spanEnd {
-			overlapEnd = end
-		}
+		overlapStart := max(start, pos)
+		overlapEnd := min(end, spanEnd)
 		overlapLen := overlapEnd - overlapStart
 
 		if overlapLen > 0 {

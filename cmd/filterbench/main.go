@@ -114,7 +114,9 @@ func main() {
 	if cfg.jsonOutput {
 		enc := json.NewEncoder(os.Stdout)
 		enc.SetIndent("", "  ")
-		enc.Encode(results)
+		if err := enc.Encode(results); err != nil {
+			fmt.Fprintf(os.Stderr, "failed to encode results: %v\n", err)
+		}
 	}
 }
 
@@ -325,18 +327,18 @@ func benchPipeline(name string, f filter.Filter, lines []line.Line, query string
 }
 
 // isQueryRefinement checks whether new is a refinement of prev.
-func isQueryRefinement(prev, new string) bool {
+func isQueryRefinement(prev, cur string) bool {
 	prev = strings.TrimSpace(prev)
-	new = strings.TrimSpace(new)
-	if prev == "" || new == "" {
+	cur = strings.TrimSpace(cur)
+	if prev == "" || cur == "" {
 		return false
 	}
-	return strings.HasPrefix(new, prev)
+	return strings.HasPrefix(cur, prev)
 }
 
 // benchIncremental runs a sequence of queries, using previous results as source when the query is a refinement.
 func benchIncremental(name string, f filter.Filter, allLines []line.Line, queries []string, cfg benchConfig) []result {
-	var results []result
+	results := make([]result, 0, len(queries))
 	var cumulative time.Duration
 
 	var prevQuery string

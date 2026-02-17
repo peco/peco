@@ -29,10 +29,7 @@ func NewFilteredBuffer(src Buffer, page, perPage int) *FilteredBuffer {
 	}
 
 	// Copy over the selections that are applicable to this filtered buffer.
-	end := start + perPage
-	if end >= src.Size() {
-		end = src.Size()
-	}
+	end := min(start+perPage, src.Size())
 	selection := make([]int, 0, end-start)
 
 	lines := src.linesInRange(start, end)
@@ -76,13 +73,13 @@ const defaultMemoryBufferCap = 1024
 // NewMemoryBuffer creates a new MemoryBuffer. If cap > 0, the lines
 // slice is pre-allocated with that capacity; otherwise it defaults to
 // defaultMemoryBufferCap.
-func NewMemoryBuffer(cap int) *MemoryBuffer {
-	if cap <= 0 {
-		cap = defaultMemoryBufferCap
+func NewMemoryBuffer(capacity int) *MemoryBuffer {
+	if capacity <= 0 {
+		capacity = defaultMemoryBufferCap
 	}
 	mb := &MemoryBuffer{}
 	mb.done = make(chan struct{})
-	mb.lines = make([]line.Line, 0, cap)
+	mb.lines = make([]line.Line, 0, capacity)
 	return mb
 }
 
@@ -244,7 +241,7 @@ func NewContextBuffer(filtered Buffer, source Buffer, contextSize int) *ContextB
 		line        line.Line
 	}
 	matches := make([]matchInfo, 0, filteredSize)
-	for i := 0; i < filteredSize; i++ {
+	for i := range filteredSize {
 		l, err := filtered.LineAt(i)
 		if err != nil {
 			continue
@@ -264,10 +261,7 @@ func NewContextBuffer(filtered Buffer, source Buffer, contextSize int) *ContextB
 	}
 	ranges := make([]contextRange, 0, len(matches))
 	for _, m := range matches {
-		start := m.srcIdx - contextSize
-		if start < 0 {
-			start = 0
-		}
+		start := max(m.srcIdx-contextSize, 0)
 		end := m.srcIdx + contextSize
 		if end >= sourceSize {
 			end = sourceSize - 1
@@ -387,7 +381,9 @@ func (s *MemoryBufferSource) Start(ctx context.Context, out pipeline.ChanOutput)
 			return
 		default:
 		}
-		out.Send(ctx, l)
+		if err := out.Send(ctx, l); err != nil {
+			return
+		}
 	}
 }
 

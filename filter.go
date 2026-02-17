@@ -62,7 +62,7 @@ func flusher(ctx context.Context, f filter.Filter, incoming chan []line.Line, do
 			if pdebug.Enabled {
 				pdebug.Printf("flusher: %#v", buf)
 			}
-			f.Apply(ctx, buf, out)
+			_ = f.Apply(ctx, buf, out)
 			buffer.ReleaseLineListBuf(buf)
 		}
 	}
@@ -79,10 +79,7 @@ func parallelFlusher(ctx context.Context, f filter.Filter, incoming chan ordered
 	defer close(done)
 	defer close(out)
 
-	numWorkers := runtime.GOMAXPROCS(0)
-	if numWorkers < 1 {
-		numWorkers = 1
-	}
+	numWorkers := max(runtime.GOMAXPROCS(0), 1)
 
 	// workCh distributes chunks to workers
 	workCh := make(chan orderedChunk, numWorkers*2)
@@ -96,7 +93,7 @@ func parallelFlusher(ctx context.Context, f filter.Filter, incoming chan ordered
 	// Start workers
 	var workerWg sync.WaitGroup
 	workerWg.Add(numWorkers)
-	for i := 0; i < numWorkers; i++ {
+	for range numWorkers {
 		go func() {
 			defer workerWg.Done()
 			for chunk := range workCh {
@@ -116,7 +113,7 @@ func parallelFlusher(ctx context.Context, f filter.Filter, incoming chan ordered
 					// don't implement Collector (e.g. ExternalCmd)
 					collectCh := make(chan line.Line, len(chunk.lines))
 					go func(chunk orderedChunk) {
-						f.Apply(ctx, chunk.lines, pipeline.ChanOutput(collectCh))
+						_ = f.Apply(ctx, chunk.lines, pipeline.ChanOutput(collectCh))
 						close(collectCh)
 					}(chunk)
 					matched = make([]line.Line, 0, len(chunk.lines)/2)
@@ -175,7 +172,9 @@ func parallelFlusher(ctx context.Context, f filter.Filter, incoming chan ordered
 				break
 			}
 			for _, l := range r.matched {
-				out.Send(ctx, l)
+				if err := out.Send(ctx, l); err != nil {
+					return
+				}
 			}
 		}
 	}()
@@ -302,15 +301,15 @@ func NewFilter(state *Peco) *Filter {
 // 1. Positive portion of prev is a prefix of positive portion of new
 // 2. All previous negative terms are still present in new
 // 3. New query may have additional positive or negative terms
-func isQueryRefinement(prev, new string) bool {
+func isQueryRefinement(prev, cur string) bool {
 	prev = strings.TrimSpace(prev)
-	new = strings.TrimSpace(new)
-	if prev == "" || new == "" {
+	cur = strings.TrimSpace(cur)
+	if prev == "" || cur == "" {
 		return false
 	}
 
 	prevPos, prevNeg := filter.SplitQueryTerms(prev)
-	newPos, newNeg := filter.SplitQueryTerms(new)
+	newPos, newNeg := filter.SplitQueryTerms(cur)
 
 	// Positive portion: the joined prev positive terms must be a prefix of the joined new positive terms
 	prevPosStr := strings.Join(prevPos, " ")

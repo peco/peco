@@ -15,11 +15,14 @@ import (
 
 var homedirFunc = util.Homedir
 
+// DefaultPrompt is the default prompt string shown in the query line.
+const DefaultPrompt = "QUERY>"
+
 // Init initializes the Config with default values
 func (c *Config) Init() error {
 	c.Keymap = make(map[string]string)
 	c.Style.Init()
-	c.Prompt = "QUERY>"
+	c.Prompt = DefaultPrompt
 	c.Layout = LayoutTypeTopDown
 	c.Use256Color = false
 	return nil
@@ -121,7 +124,7 @@ func (s *Style) UnmarshalJSON(buf []byte) error {
 }
 
 // UnmarshalYAML decodes a YAML array of strings into a Style.
-func (s *Style) UnmarshalYAML(unmarshal func(interface{}) error) error {
+func (s *Style) UnmarshalYAML(unmarshal func(any) error) error {
 	var raw []string
 	if err := unmarshal(&raw); err != nil {
 		return fmt.Errorf("failed to unmarshal Style from YAML: %w", err)
@@ -219,7 +222,7 @@ func LocateRcfile(locater configLocateFunc) (string, error) {
 	// while the spec says use ":" as the separator, Go provides us
 	// with filepath.ListSeparator, so use it
 	if dirs := os.Getenv("XDG_CONFIG_DIRS"); dirs != "" {
-		for _, dir := range strings.Split(dirs, fmt.Sprintf("%c", filepath.ListSeparator)) {
+		for dir := range strings.SplitSeq(dirs, fmt.Sprintf("%c", filepath.ListSeparator)) {
 			if file, err := locater(filepath.Join(dir, "peco")); err == nil {
 				return file, nil
 			}

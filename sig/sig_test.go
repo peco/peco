@@ -14,7 +14,7 @@ import (
 // and that signal.Stop is called (the channel no longer receives signals).
 func TestLoopContextCancel(t *testing.T) {
 	var received os.Signal
-	h := New(SigReceivedHandlerFunc(func(sig os.Signal) {
+	h := New(ReceivedHandlerFunc(func(sig os.Signal) {
 		received = sig
 	}), syscall.SIGUSR1)
 
@@ -58,7 +58,7 @@ func TestLoopContextCancel(t *testing.T) {
 // when a signal is received, and that signal.Stop is called afterward.
 func TestLoopSignalReceived(t *testing.T) {
 	var received os.Signal
-	h := New(SigReceivedHandlerFunc(func(sig os.Signal) {
+	h := New(ReceivedHandlerFunc(func(sig os.Signal) {
 		received = sig
 	}), syscall.SIGUSR1)
 

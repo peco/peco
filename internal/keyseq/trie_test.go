@@ -23,7 +23,7 @@ func TestTrie(t *testing.T) {
 	}
 
 	nodes := Children(trie.Root())
-	for i := 0; i < 5; i++ {
+	for i := range 5 {
 		checkTrieNode(t, nodes[i], Key{0, 0, rune(i + 1)}, 111*(i+1))
 	}
 

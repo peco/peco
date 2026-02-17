@@ -90,7 +90,7 @@ func (as AnchorSettings) AnchorPosition() int {
 		return as.anchorOffset
 	case AnchorBottom:
 		_, h := as.screen.Size()
-		return int(h) - as.anchorOffset - 1 // -1 is required because y is 0 base, but h is 1 base
+		return h - as.anchorOffset - 1 // -1 is required because y is 0 base, but h is 1 base
 	default:
 		return 0
 	}
@@ -99,7 +99,7 @@ func (as AnchorSettings) AnchorPosition() int {
 // NewUserPrompt creates a new UserPrompt struct
 func NewUserPrompt(screen Screen, anchor VerticalAnchor, anchorOffset int, prompt string, styles *StyleSet) (*UserPrompt, error) {
 	if len(prompt) <= 0 { // default
-		prompt = "QUERY>"
+		prompt = DefaultPrompt
 	}
 	promptLen := runewidth.StringWidth(prompt)
 
@@ -111,7 +111,7 @@ func NewUserPrompt(screen Screen, anchor VerticalAnchor, anchorOffset int, promp
 	return &UserPrompt{
 		AnchorSettings: as,
 		prompt:         prompt,
-		promptLen:      int(promptLen),
+		promptLen:      promptLen,
 		styles:         styles,
 	}, nil
 }
@@ -186,7 +186,7 @@ func (u UserPrompt) Draw(state *Peco) {
 			Msg:  qs,
 			Fill: false,
 		})
-		posX = u.promptLen + 1 + int(runewidth.StringWidth(qs))
+		posX = u.promptLen + 1 + runewidth.StringWidth(qs)
 		u.screen.Print(PrintArgs{
 			X:    posX,
 			Y:    location,
@@ -206,8 +206,8 @@ func (u UserPrompt) Draw(state *Peco) {
 				fg |= AttrReverse
 				bg |= AttrReverse
 			}
-			u.screen.SetCell(int(u.promptLen+1+prev), int(location), r, fg, bg)
-			prev += int(runewidth.RuneWidth(r))
+			u.screen.SetCell(u.promptLen+1+prev, location, r, fg, bg)
+			prev += runewidth.RuneWidth(r)
 		}
 		fg := u.styles.Query.fg
 		bg := u.styles.Query.bg
@@ -227,7 +227,7 @@ func (u UserPrompt) Draw(state *Peco) {
 	loc := state.Location()
 	pmsg := fmt.Sprintf("%s [%d (%d/%d)]", state.Filters().Current().String(), loc.Total(), loc.Page(), loc.MaxPage())
 	u.screen.Print(PrintArgs{
-		X:   int(width - runewidth.StringWidth(pmsg)),
+		X:   width - runewidth.StringWidth(pmsg),
 		Y:   location,
 		Fg:  u.styles.Basic.fg,
 		Bg:  u.styles.Basic.bg,
@@ -289,7 +289,7 @@ func (s *screenStatusBar) PrintStatus(msg string, clearDelay time.Duration) {
 	var pad []byte
 	if w > width {
 		pad = make([]byte, w-width)
-		for i := 0; i < w-width; i++ {
+		for i := range w - width {
 			pad[i] = ' '
 		}
 	}
@@ -308,7 +308,7 @@ func (s *screenStatusBar) PrintStatus(msg string, clearDelay time.Duration) {
 
 	if width > 0 {
 		s.screen.Print(PrintArgs{
-			X:   int(w - width),
+			X:   w - width,
 			Y:   location,
 			Fg:  fgAttr | AttrBold | AttrReverse,
 			Bg:  bgAttr | AttrReverse,
@@ -430,7 +430,7 @@ func (l *ListArea) Draw(state *Peco, parent Layout, perPage int, options *hub.Dr
 
 	// previously drawn lines are cached. first, truncate the cache
 	// to current size of the drawable area
-	if ldc := int(len(l.displayCache)); ldc != perPage {
+	if ldc := len(l.displayCache); ldc != perPage {
 		newCache := make([]linepkg.Line, perPage)
 		copy(newCache, l.displayCache)
 		l.displayCache = newCache
@@ -470,13 +470,13 @@ func (l *ListArea) Draw(state *Peco, parent Layout, perPage int, options *hub.Dr
 	var prefixCurrentSelection string
 	var prefixSavedSelection string
 	var prefixDefault string
-	if len := len(selectionPrefix); len > 0 {
+	if plen := len(selectionPrefix); plen > 0 {
 		prefixCurrentSelection = selectionPrefix + " "
-		prefixSavedSelection = "*" + strings.Repeat(" ", len)
-		prefixDefault = strings.Repeat(" ", len+1)
+		prefixSavedSelection = "*" + strings.Repeat(" ", plen)
+		prefixDefault = strings.Repeat(" ", plen+1)
 	}
 
-	for n := 0; n < perPage; n++ {
+	for n := range perPage {
 		if len(selectionPrefix) > 0 {
 			switch {
 			case n+loc.Offset() == loc.LineNumber():
@@ -548,7 +548,7 @@ func (l *ListArea) Draw(state *Peco, parent Layout, perPage int, options *hub.Dr
 			}
 		}
 
-		if len := len(prefix); len > 0 {
+		if plen := len(prefix); plen > 0 {
 			l.screen.Print(PrintArgs{
 				X:       x,
 				Y:       y,
@@ -557,11 +557,11 @@ func (l *ListArea) Draw(state *Peco, parent Layout, perPage int, options *hub.Dr
 				Bg:      bgAttr,
 				Msg:     prefix,
 			})
-			x += len
+			x += plen
 		}
 		if state.SingleKeyJump().Mode() || state.SingleKeyJump().ShowPrefix() {
 			prefixes := state.SingleKeyJump().Prefixes()
-			if n < int(len(prefixes)) {
+			if n < len(prefixes) {
 				l.screen.Print(PrintArgs{
 					X:       x,
 					Y:       y,
@@ -913,7 +913,9 @@ func verticalScroll(state *Peco, l *BasicLayout, p hub.PagingRequest) bool {
 		case hub.ToScrollPageUp:
 			lineno -= lpp
 		case hub.ToLineInPage:
-			lineno = loc.PerPage()*(loc.Page()-1) + p.(hub.JumpToLineRequest).Line()
+			if jlr, ok := p.(hub.JumpToLineRequest); ok {
+				lineno = loc.PerPage()*(loc.Page()-1) + jlr.Line()
+			}
 		case hub.ToScrollFirstItem:
 			lineno = 0
 		case hub.ToScrollLastItem:
@@ -930,7 +932,9 @@ func verticalScroll(state *Peco, l *BasicLayout, p hub.PagingRequest) bool {
 		case hub.ToScrollPageUp:
 			lineno += lpp
 		case hub.ToLineInPage:
-			lineno = loc.PerPage()*(loc.Page()-1) - p.(hub.JumpToLineRequest).Line()
+			if jlr, ok := p.(hub.JumpToLineRequest); ok {
+				lineno = loc.PerPage()*(loc.Page()-1) - jlr.Line()
+			}
 		}
 	}
 

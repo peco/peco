@@ -106,11 +106,11 @@ LINE:
 		txt = l.DisplayString()
 		firstRuneOffsets := []int{}
 		accum := 0
-		r := rune(0)
-		n := 0
+		var r rune
+		var n int
 		for len(txt) > 0 {
 			txt, r, n = popRune(txt)
-			found := false
+			var found bool
 			if hasUpper {
 				found = r == firstRune
 			} else {
@@ -198,13 +198,13 @@ func less(s []fuzzyMatchedItem) func(i, j int) bool {
 		if s[i].longest != s[j].longest {
 			// Longer match is better
 			return s[i].longest > s[j].longest
-		} else if s[i].earliest != s[j].earliest {
+		}
+		if s[i].earliest != s[j].earliest {
 			// Earlier match is better
 			return s[i].earliest < s[j].earliest
-		} else {
-			// Shorter line is better
-			return s[i].Len() < s[j].Len()
 		}
+		// Shorter line is better
+		return s[i].Len() < s[j].Len()
 	}
 }
 

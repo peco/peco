@@ -26,7 +26,7 @@ func TestIsQueryRefinement(t *testing.T) {
 		{"foo", "foobar", true},
 
 		// Not refinements
-		{"foob", "foo", false},       // backspace
+		{"foob", "foo", false},        // backspace
 		{"foo bar", "foo baz", false}, // edit mid-word
 		{"foo", "bar", false},         // completely different
 		{"", "foo", false},            // empty prev
@@ -104,7 +104,7 @@ func TestMemoryBufferSource(t *testing.T) {
 
 func TestMemoryBufferSourceCancellation(t *testing.T) {
 	mb := NewMemoryBuffer(0)
-	for i := 0; i < 10000; i++ {
+	for i := range 10000 {
 		mb.lines = append(mb.lines, line.NewRaw(uint64(i), fmt.Sprintf("line-%d", i), false, false))
 	}
 
@@ -256,7 +256,7 @@ func TestIncrementalFiltering(t *testing.T) {
 	require.Len(t, secondResults, 3, "second query should match 3 lines")
 
 	// Verify the matched lines are correct
-	var displayStrings []string
+	displayStrings := make([]string, 0, len(secondResults))
 	for _, l := range secondResults {
 		displayStrings = append(displayStrings, l.DisplayString())
 	}

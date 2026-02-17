@@ -43,7 +43,6 @@ func _main() int {
 			fmt.Fprintf(os.Stderr, "Error: %s\n", err)
 			return 1
 		}
-
 	}
 
 	return 0

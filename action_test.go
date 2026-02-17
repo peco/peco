@@ -80,8 +80,8 @@ func (h *recordingHub) reset() {
 // This is used to test that doSelectAll and doInvertSelection don't panic when
 // LineAt fails (returning nil line).
 type failingBuffer struct {
-	lines    []line.Line
-	failAt   map[int]bool // indices where LineAt should return an error
+	lines  []line.Line
+	failAt map[int]bool // indices where LineAt should return an error
 }
 
 func (b *failingBuffer) linesInRange(start, end int) []line.Line {
@@ -467,7 +467,7 @@ func TestRotateFilter(t *testing.T) {
 	var prev filter.Filter
 	first := state.Filters().Current()
 	prev = first
-	for i := 0; i < size; i++ {
+	for i := range size {
 		prevFilter := prev
 		state.screen.SendEvent(Event{Type: EventKey, Key: keyseq.KeyCtrlR})
 
@@ -951,7 +951,7 @@ func TestContextBuffer(t *testing.T) {
 	// Helper: create source lines with sequential IDs (0-based, matching line.ID())
 	makeSource := func(n int) *MemoryBuffer {
 		mb := NewMemoryBuffer(n)
-		for i := 0; i < n; i++ {
+		for i := range n {
 			mb.lines = append(mb.lines, line.NewRaw(uint64(i), fmt.Sprintf("line-%d", i), false, false))
 		}
 		return mb
@@ -1088,9 +1088,9 @@ func TestDoZoomInOut(t *testing.T) {
 	ctx := context.Background()
 
 	// Build a source with 10 lines (IDs 0-9)
-	makeState := func() (*Peco, *recordingHub, *MemoryBuffer, *MemoryBuffer) {
+	makeState := func() (*Peco, *recordingHub, *MemoryBuffer) {
 		source := NewMemoryBuffer(10)
-		for i := 0; i < 10; i++ {
+		for i := range 10 {
 			source.lines = append(source.lines, line.NewRaw(uint64(i), fmt.Sprintf("line-%d", i), false, false))
 		}
 
@@ -1108,11 +1108,11 @@ func TestDoZoomInOut(t *testing.T) {
 		state.source.lines = source.lines
 		state.currentLineBuffer = filtered
 
-		return state, rHub, source, filtered
+		return state, rHub, filtered
 	}
 
 	t.Run("ZoomIn with filtered results", func(t *testing.T) {
-		state, rHub, _, filtered := makeState()
+		state, rHub, filtered := makeState()
 		state.Location().SetLineNumber(0) // cursor on first match
 
 		doZoomIn(ctx, state, Event{})
@@ -1136,7 +1136,7 @@ func TestDoZoomInOut(t *testing.T) {
 	})
 
 	t.Run("ZoomOut restores state", func(t *testing.T) {
-		state, rHub, _, filtered := makeState()
+		state, rHub, filtered := makeState()
 		state.Location().SetLineNumber(0)
 
 		// ZoomIn first
@@ -1161,7 +1161,7 @@ func TestDoZoomInOut(t *testing.T) {
 	})
 
 	t.Run("ZoomIn when not filtered (source buffer)", func(t *testing.T) {
-		state, rHub, _, _ := makeState()
+		state, rHub, _ := makeState()
 		// Set current buffer to source
 		state.currentLineBuffer = state.source
 
@@ -1177,7 +1177,7 @@ func TestDoZoomInOut(t *testing.T) {
 	})
 
 	t.Run("ZoomOut when not zoomed", func(t *testing.T) {
-		state, rHub, _, _ := makeState()
+		state, rHub, _ := makeState()
 
 		doZoomOut(ctx, state, Event{})
 
@@ -1187,7 +1187,7 @@ func TestDoZoomInOut(t *testing.T) {
 	})
 
 	t.Run("ZoomIn when already zoomed", func(t *testing.T) {
-		state, rHub, _, _ := makeState()
+		state, rHub, _ := makeState()
 		state.Location().SetLineNumber(0)
 
 		// ZoomIn first
