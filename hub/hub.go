@@ -2,6 +2,9 @@ package hub
 
 import (
 	"context"
+	"fmt"
+	"os"
+	"runtime/debug"
 	"sync"
 	"time"
 
@@ -63,8 +66,15 @@ func (h *Hub) Batch(ctx context.Context, f func(ctx context.Context), shouldLock
 		defer h.mutex.Unlock()
 	}
 
-	// ignore panics
-	defer func() { recover() }()
+	// Log and re-panic instead of silently swallowing. The mutex
+	// unlock defer (above) still runs during re-panic, so the hub
+	// won't deadlock.
+	defer func() {
+		if r := recover(); r != nil {
+			fmt.Fprintf(os.Stderr, "peco: panic in Hub.Batch: %v\n%s", r, debug.Stack())
+			panic(r)
+		}
+	}()
 
 	f(context.WithValue(ctx, batchPayloadKey{}, true))
 }

@@ -87,6 +87,54 @@ func TestHub(t *testing.T) {
 	}
 }
 
+func TestBatchPanicPropagates(t *testing.T) {
+	h := hub.New(5)
+	ctx := context.Background()
+
+	// A panic inside a Batch callback must propagate to the caller,
+	// not be silently swallowed.
+	require.Panics(t, func() {
+		h.Batch(ctx, func(_ context.Context) {
+			panic("bug in callback")
+		}, true)
+	}, "Batch must not silently swallow panics")
+}
+
+func TestBatchPanicReleasesLock(t *testing.T) {
+	h := hub.New(5)
+	ctx := context.Background()
+
+	// First call: panic inside a locked Batch.
+	func() {
+		defer func() { recover() }()
+		h.Batch(ctx, func(_ context.Context) {
+			panic("first call panics")
+		}, true)
+	}()
+
+	// Second call: if the mutex was not released by the first panic,
+	// this will deadlock. Use a timeout to detect that.
+	done := make(chan struct{})
+	go func() {
+		h.Batch(ctx, func(ctx context.Context) {
+			// Drain the message so the synchronous send completes.
+			go func() {
+				p := <-h.QueryCh()
+				p.Done()
+			}()
+			h.SendQuery(ctx, "after panic")
+		}, true)
+		close(done)
+	}()
+
+	select {
+	case <-done:
+		// success — mutex was properly released
+	case <-time.After(2 * time.Second):
+		t.Fatal("Batch deadlocked — mutex was not released after panic")
+	}
+}
+
 func TestSendStatusMsg(t *testing.T) {
 	t.Run("zero delay", func(t *testing.T) {
 		h := hub.New(5)
