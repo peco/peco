@@ -85,8 +85,22 @@ func TestInputModifierKeyRace(t *testing.T) {
 		state.config.Action = map[string][]string{}
 		require.NoError(t, state.populateKeymap())
 
-		ctx := context.Background()
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
 		input := NewInput(state, state.Keymap(), make(chan Event))
+
+		// Start a goroutine that drains pendingEsc and executes actions,
+		// simulating what Loop does.
+		go func() {
+			for {
+				select {
+				case <-ctx.Done():
+					return
+				case ev := <-input.pendingEsc:
+					input.state.Keymap().ExecuteAction(ctx, input.state, ev)
+				}
+			}
+		}()
 
 		// Send Esc event — starts the 50ms timer
 		escEv := Event{Type: EventKey, Key: keyseq.KeyEsc, Ch: 0}
