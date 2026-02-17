@@ -160,7 +160,7 @@ func TestGHIssue294_PromptStyleUsedForPromptPrefix(t *testing.T) {
 
 	state := New()
 	state.screen = screen
-	state.skipReadConfig = true
+
 	state.Filters().Add(filter.NewIgnoreCase())
 
 	prompt.Draw(state)
@@ -220,7 +220,6 @@ func TestGHIssue460_MatchedStyleDoesNotBleedToEndOfLine(t *testing.T) {
 
 		state := New()
 		state.screen = screen
-		state.skipReadConfig = true
 
 		mb := NewMemoryBuffer(0)
 		raw := line.NewRaw(0, text, false, false)
@@ -301,7 +300,6 @@ func TestGHIssue455_DrawScreenForceSync(t *testing.T) {
 		screen := NewDummyScreen()
 		state := New()
 		state.screen = screen
-		state.skipReadConfig = true
 		state.Filters().Add(filter.NewIgnoreCase())
 
 		mb := NewMemoryBuffer(0)
@@ -380,7 +378,6 @@ func TestNewLayout(t *testing.T) {
 	makeState := func() *Peco {
 		state := New()
 		state.screen = NewDummyScreen()
-		state.skipReadConfig = true
 		state.Filters().Add(filter.NewIgnoreCase())
 		return state
 	}
@@ -424,7 +421,7 @@ func TestNewLayout(t *testing.T) {
 func TestTopDownQueryBottomLayout(t *testing.T) {
 	state := New()
 	state.screen = NewDummyScreen()
-	state.skipReadConfig = true
+
 	state.Filters().Add(filter.NewIgnoreCase())
 
 	layout, err := NewTopDownQueryBottomLayout(state)
