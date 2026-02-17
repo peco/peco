@@ -127,7 +127,6 @@ func (km Keymap) resolveActionName(name string, depth int) (Action, error) {
 			actions = append(actions, child)
 		}
 		v = makeCombinedAction(actions...)
-		nameToActions[name] = v
 		return v, nil
 	}
 
