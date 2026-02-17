@@ -209,9 +209,9 @@ func (p *Peco) SetSingleKeyJumpMode(b bool) {
 	p.singleKeyJumpMode = b
 }
 
-func (p *Peco) ToggleSingleKeyJumpMode() {
+func (p *Peco) ToggleSingleKeyJumpMode(ctx context.Context) {
 	p.singleKeyJumpMode = !p.singleKeyJumpMode
-	go p.Hub().SendDraw(context.Background(), &hub.DrawOptions{DisableCache: true})
+	go p.Hub().SendDraw(ctx, &hub.DrawOptions{DisableCache: true})
 }
 
 func (p *Peco) SingleKeyJumpIndex(ch rune) (uint, bool) {
@@ -449,7 +449,7 @@ func (p *Peco) Run(ctx context.Context) (err error) {
 
 	if p.Query().Len() <= 0 {
 		// Re-set the source only if there are no queries
-		p.ResetCurrentLineBuffer()
+		p.ResetCurrentLineBuffer(ctx)
 	}
 
 	if pdebug.Enabled {
@@ -502,11 +502,11 @@ func (p *Peco) Run(ctx context.Context) (err error) {
 			// iff p.selectOneAndExit is true, we should check after exec query is run
 			// if we only have one item
 			if p.selectOneAndExit {
-				p.ExecQuery(p.selectOneAndExitIfPossible)
+				p.ExecQuery(ctx, p.selectOneAndExitIfPossible)
 			} else if p.selectAllAndExit {
-				p.ExecQuery(p.selectAllAndExitIfPossible)
+				p.ExecQuery(ctx, p.selectAllAndExitIfPossible)
 			} else {
-				p.ExecQuery(nil)
+				p.ExecQuery(ctx, nil)
 			}
 		}()
 	}
@@ -782,7 +782,7 @@ func (p *Peco) CurrentLineBuffer() Buffer {
 	return p.currentLineBuffer
 }
 
-func (p *Peco) SetCurrentLineBuffer(b Buffer) {
+func (p *Peco) SetCurrentLineBuffer(ctx context.Context, b Buffer) {
 	p.mutex.Lock()
 	defer p.mutex.Unlock()
 	if pdebug.Enabled {
@@ -790,14 +790,14 @@ func (p *Peco) SetCurrentLineBuffer(b Buffer) {
 		defer g.End()
 	}
 	p.currentLineBuffer = b
-	go p.Hub().SendDraw(context.Background(), nil)
+	go p.Hub().SendDraw(ctx, nil)
 }
 
-func (p *Peco) ResetCurrentLineBuffer() {
+func (p *Peco) ResetCurrentLineBuffer(ctx context.Context) {
 	if fs := p.FrozenSource(); fs != nil {
-		p.SetCurrentLineBuffer(fs)
+		p.SetCurrentLineBuffer(ctx, fs)
 	} else {
-		p.SetCurrentLineBuffer(p.source)
+		p.SetCurrentLineBuffer(ctx, p.source)
 	}
 }
 
@@ -817,7 +817,7 @@ func (p *Peco) sendQuery(ctx context.Context, q string, nextFunc func()) {
 		}
 	} else {
 		// No delay, execute immediately
-		p.Hub().Batch(context.Background(), func(ctx context.Context) {
+		p.Hub().Batch(ctx, func(ctx context.Context) {
 			p.Hub().SendQuery(ctx, q)
 			if nextFunc != nil {
 				nextFunc()
@@ -831,7 +831,7 @@ func (p *Peco) sendQuery(ctx context.Context, q string, nextFunc func()) {
 //
 // if nextFunc is non-nil, then nextFunc is executed after the query is
 // executed
-func (p *Peco) ExecQuery(nextFunc func()) bool {
+func (p *Peco) ExecQuery(ctx context.Context, nextFunc func()) bool {
 	if pdebug.Enabled {
 		g := pdebug.Marker("Peco.ExecQuery")
 		defer g.End()
@@ -855,9 +855,9 @@ func (p *Peco) ExecQuery(nextFunc func()) bool {
 		if pdebug.Enabled {
 			pdebug.Printf("empty query, reset buffer")
 		}
-		p.ResetCurrentLineBuffer()
+		p.ResetCurrentLineBuffer(ctx)
 
-		msgHub.Batch(context.Background(), func(ctx context.Context) {
+		msgHub.Batch(ctx, func(ctx context.Context) {
 			msgHub.SendDraw(ctx, &hub.DrawOptions{DisableCache: true})
 			if nextFunc != nil {
 				nextFunc()
@@ -872,7 +872,7 @@ func (p *Peco) ExecQuery(nextFunc func()) bool {
 			pdebug.Printf("sending query (immediate)")
 		}
 
-		p.sendQuery(context.Background(), q.String(), nextFunc)
+		p.sendQuery(ctx, q.String(), nextFunc)
 		return true
 	}
 
@@ -907,7 +907,7 @@ func (p *Peco) ExecQuery(nextFunc func()) bool {
 		if pdebug.Enabled {
 			pdebug.Printf("delayed query sent")
 		}
-		p.sendQuery(context.Background(), q.String(), nextFunc)
+		p.sendQuery(ctx, q.String(), nextFunc)
 		if pdebug.Enabled {
 			pdebug.Printf("delayed query executed")
 		}

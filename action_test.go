@@ -742,7 +742,7 @@ func TestDoFreezeResults(t *testing.T) {
 		frozen.MarkComplete()
 		state.SetFrozenSource(frozen)
 
-		state.ResetCurrentLineBuffer()
+		state.ResetCurrentLineBuffer(context.Background())
 
 		buf := state.CurrentLineBuffer()
 		require.Equal(t, 2, buf.Size(), "should use frozen source")
