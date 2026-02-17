@@ -207,22 +207,8 @@ func (p *Peco) Source() pipeline.Source {
 	return p.source
 }
 
-func (p *Peco) FrozenSource() *MemoryBuffer {
-	p.mutex.Lock()
-	defer p.mutex.Unlock()
-	return p.frozenSource
-}
-
-func (p *Peco) SetFrozenSource(buf *MemoryBuffer) {
-	p.mutex.Lock()
-	defer p.mutex.Unlock()
-	p.frozenSource = buf
-}
-
-func (p *Peco) ClearFrozenSource() {
-	p.mutex.Lock()
-	defer p.mutex.Unlock()
-	p.frozenSource = nil
+func (p *Peco) Frozen() *FrozenState {
+	return &p.frozen
 }
 
 func (p *Peco) Zoom() *ZoomState {
@@ -756,7 +742,7 @@ func (p *Peco) SetCurrentLineBuffer(ctx context.Context, b Buffer) {
 }
 
 func (p *Peco) ResetCurrentLineBuffer(ctx context.Context) {
-	if fs := p.FrozenSource(); fs != nil {
+	if fs := p.Frozen().Source(); fs != nil {
 		p.SetCurrentLineBuffer(ctx, fs)
 	} else {
 		p.SetCurrentLineBuffer(ctx, p.source)

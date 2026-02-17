@@ -875,7 +875,7 @@ func doFreezeResults(ctx context.Context, state *Peco, _ Event) {
 	}
 	frozen.MarkComplete()
 
-	state.SetFrozenSource(frozen)
+	state.Frozen().Set(frozen)
 	resetQueryState(state)
 	state.SetCurrentLineBuffer(ctx, frozen)
 	state.Hub().SendStatusMsg(ctx, "Results frozen", 0)
@@ -888,12 +888,12 @@ func doUnfreezeResults(ctx context.Context, state *Peco, _ Event) {
 		defer g.End()
 	}
 
-	if state.FrozenSource() == nil {
+	if state.Frozen().Source() == nil {
 		state.Hub().SendStatusMsg(ctx, "No frozen results", 0)
 		return
 	}
 
-	state.ClearFrozenSource()
+	state.Frozen().Clear()
 	resetQueryState(state)
 	state.ResetCurrentLineBuffer(ctx)
 	state.Hub().SendStatusMsg(ctx, "Results unfrozen", 0)

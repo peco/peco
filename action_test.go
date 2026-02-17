@@ -744,7 +744,7 @@ func TestDoFreezeResults(t *testing.T) {
 
 		doFreezeResults(ctx, state, Event{})
 
-		fs := state.FrozenSource()
+		fs := state.Frozen().Source()
 		require.NotNil(t, fs, "frozenSource should be set")
 		require.Equal(t, 3, fs.Size(), "frozen buffer should have 3 lines")
 
@@ -772,7 +772,7 @@ func TestDoFreezeResults(t *testing.T) {
 		frozen := NewMemoryBuffer(0)
 		frozen.lines = lines
 		frozen.MarkComplete()
-		state.SetFrozenSource(frozen)
+		state.Frozen().Set(frozen)
 
 		state.ResetCurrentLineBuffer(context.Background())
 
@@ -797,7 +797,7 @@ func TestDoFreezeResults(t *testing.T) {
 		frozen := NewMemoryBuffer(0)
 		frozen.lines = makeLines("frozen1")
 		frozen.MarkComplete()
-		state.SetFrozenSource(frozen)
+		state.Frozen().Set(frozen)
 		state.currentLineBuffer = frozen
 
 		state.Query().Set("test")
@@ -805,7 +805,7 @@ func TestDoFreezeResults(t *testing.T) {
 
 		doUnfreezeResults(ctx, state, Event{})
 
-		require.Nil(t, state.FrozenSource(), "frozenSource should be nil")
+		require.Nil(t, state.Frozen().Source(), "frozenSource should be nil")
 		require.Equal(t, 0, state.Query().Len(), "query should be cleared")
 		require.Equal(t, 0, state.Caret().Pos(), "caret should be at 0")
 
@@ -822,7 +822,7 @@ func TestDoFreezeResults(t *testing.T) {
 
 		doFreezeResults(ctx, state, Event{})
 
-		require.Nil(t, state.FrozenSource(), "frozenSource should not be set")
+		require.Nil(t, state.Frozen().Source(), "frozenSource should not be set")
 
 		statusMsgs := rHub.getStatusMsgs()
 		require.Contains(t, statusMsgs, "Nothing to freeze")
@@ -836,7 +836,7 @@ func TestDoFreezeResults(t *testing.T) {
 
 		doUnfreezeResults(ctx, state, Event{})
 
-		require.Nil(t, state.FrozenSource(), "frozenSource should remain nil")
+		require.Nil(t, state.Frozen().Source(), "frozenSource should remain nil")
 
 		statusMsgs := rHub.getStatusMsgs()
 		require.Contains(t, statusMsgs, "No frozen results")
