@@ -7,7 +7,6 @@ import (
 	"testing"
 	"time"
 
-	"context"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -37,8 +36,7 @@ func TestSource(t *testing.T) {
 		"bar",
 		"baz",
 	}
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx := t.Context()
 
 	ig := newIDGen()
 	go ig.Run(ctx)
@@ -69,7 +67,7 @@ func TestSource(t *testing.T) {
 		return s.Size() == len(lines)
 	}, 5*time.Second, 10*time.Millisecond, "buffer should fill up to %d lines", len(lines))
 
-	for i := 0; i < len(lines); i++ {
+	for i := range lines {
 		line, err := s.LineAt(i)
 		if !assert.NoError(t, err, "s.LineAt(%d) should succeed", i) {
 			return

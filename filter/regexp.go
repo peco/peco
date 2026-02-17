@@ -44,8 +44,8 @@ func regexpFor(q string, flags []string, quotemeta bool) (*regexp.Regexp, error)
 // Bare `-` or `--` are positive literals.
 // Empty tokens are skipped.
 func SplitQueryTerms(query string) (positive, negative []string) {
-	tokens := strings.Split(strings.TrimSpace(query), " ")
-	for _, tok := range tokens {
+	tokens := strings.SplitSeq(strings.TrimSpace(query), " ")
+	for tok := range tokens {
 		if tok == "" {
 			continue
 		}
@@ -86,7 +86,7 @@ func NewRegexp() *Regexp {
 			compiled:  make(map[string]regexpQuery),
 			threshold: time.Minute,
 		},
-		flags:     regexpFlagList(defaultFlags),
+		flags:     defaultFlags,
 		quotemeta: false,
 		name:      "Regexp",
 	}

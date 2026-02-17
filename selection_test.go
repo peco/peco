@@ -9,7 +9,7 @@ import (
 func TestSelection(t *testing.T) {
 	s := NewSelection()
 
-	var i uint64 = 0
+	var i uint64
 	alice := line.NewRaw(i, "Alice", false, false)
 	i++
 	s.Add(alice)

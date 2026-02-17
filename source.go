@@ -191,7 +191,9 @@ func (s *Source) Start(ctx context.Context, out pipeline.ChanOutput) {
 				return
 			default:
 			}
-			out.Send(ctx, l)
+			if err := out.Send(ctx, l); err != nil {
+				return
+			}
 			sent++
 		}
 		return
@@ -226,7 +228,9 @@ func (s *Source) Start(ctx context.Context, out pipeline.ChanOutput) {
 			if err != nil {
 				continue
 			}
-			out.Send(ctx, l)
+			if err := out.Send(ctx, l); err != nil {
+				return
+			}
 			sent++
 		}
 		// Remember how far we have processed
@@ -242,7 +246,6 @@ func (s *Source) Start(ctx context.Context, out pipeline.ChanOutput) {
 				time.Sleep(time.Millisecond)
 			}
 		}
-
 	}
 }
 

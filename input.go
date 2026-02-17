@@ -29,7 +29,7 @@ func (i *Input) Loop(ctx context.Context, cancel func()) error {
 			// Timer fired and determined this was a standalone Esc press.
 			// Execute the action here on the input loop goroutine, not
 			// on the timer goroutine, to avoid concurrent ExecuteAction calls.
-			i.state.Keymap().ExecuteAction(ctx, i.state, ev)
+			_ = i.state.Keymap().ExecuteAction(ctx, i.state, ev)
 		case ev, ok := <-i.evsrc:
 			if !ok {
 				return nil
@@ -103,7 +103,7 @@ func (i *Input) handleInputEvent(ctx context.Context, ev Event) error {
 		}
 		m.Unlock()
 
-		i.state.Keymap().ExecuteAction(ctx, i.state, ev)
+		_ = i.state.Keymap().ExecuteAction(ctx, i.state, ev)
 
 		return nil
 	}

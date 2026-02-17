@@ -23,18 +23,18 @@ type recordingScreen struct {
 	w, h  int
 }
 
-func (s *recordingScreen) Init(*Config) error                       { return nil }
-func (s *recordingScreen) Close() error                             { return nil }
-func (s *recordingScreen) Flush() error                             { return nil }
+func (s *recordingScreen) Init(*Config) error                            { return nil }
+func (s *recordingScreen) Close() error                                  { return nil }
+func (s *recordingScreen) Flush() error                                  { return nil }
 func (s *recordingScreen) PollEvent(context.Context, *Config) chan Event { return nil }
-func (s *recordingScreen) Print(args PrintArgs) int                 { return screenPrint(s, args) }
-func (s *recordingScreen) Resume(context.Context)                   {}
-func (s *recordingScreen) SetCursor(int, int)                       {}
-func (s *recordingScreen) SendEvent(Event)                          {}
-func (s *recordingScreen) Suspend()                                 {}
-func (s *recordingScreen) Sync()                                    {}
-func (s *recordingScreen) Size() (int, int)                         { return s.w, s.h }
-func (s *recordingScreen) SetCell(x, y int, ch rune, fg, bg Attribute) {
+func (s *recordingScreen) Print(args PrintArgs) int                      { return screenPrint(s, args) }
+func (s *recordingScreen) Resume(context.Context)                        {}
+func (s *recordingScreen) SetCursor(int, int)                            {}
+func (s *recordingScreen) SendEvent(Event)                               {}
+func (s *recordingScreen) Suspend()                                      {}
+func (s *recordingScreen) Sync()                                         {}
+func (s *recordingScreen) Size() (int, int)                              { return s.w, s.h }
+func (s *recordingScreen) SetCell(x, y int, ch rune, _, _ Attribute) {
 	s.cells = append(s.cells, setCellCall{x: x, y: y, ch: ch})
 }
 
@@ -44,7 +44,7 @@ func TestScreenPrintTabWidth(t *testing.T) {
 		msg       string
 		x         int
 		xOffset   int
-		wantCells int // number of SetCell calls for tab expansion
+		wantCells int   // number of SetCell calls for tab expansion
 		wantX     []int // x coordinates of SetCell calls
 	}{
 		{
@@ -164,8 +164,7 @@ func TestTcellScreenPollEventLogsPanic(t *testing.T) {
 	sim.Init()
 	ts.screen = &panickingScreen{Screen: sim}
 
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx := t.Context()
 
 	evCh := ts.PollEvent(ctx, nil)
 

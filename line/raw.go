@@ -11,7 +11,7 @@ import (
 // NewRaw creates a new Raw. The `enableSep` flag tells
 // it if we should search for a null character to split the
 // string to display and the string to emit upon selection of
-// of said line. The `enableANSI` flag enables ANSI SGR parsing.
+// said line. The `enableANSI` flag enables ANSI SGR parsing.
 func NewRaw(id uint64, v string, enableSep bool, enableANSI bool) *Raw {
 	rl := &Raw{
 		id:            id,
@@ -43,7 +43,11 @@ func NewRaw(id uint64, v string, enableSep bool, enableANSI bool) *Raw {
 
 // Less implements the btree.Item interface
 func (rl *Raw) Less(b btree.Item) bool {
-	return rl.id < b.(Line).ID()
+	l, ok := b.(Line)
+	if !ok {
+		return false
+	}
+	return rl.id < l.ID()
 }
 
 // ID returns the unique ID of this line

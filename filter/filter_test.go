@@ -23,8 +23,7 @@ type indexer interface {
 //	testFuzzyMatch: match position without sorting
 //	testFuzzyLongestMatch: match position with sorting
 func TestFuzzy(t *testing.T) {
-	octx, ocancel := context.WithCancel(context.Background())
-	defer ocancel()
+	octx := t.Context()
 
 	testFuzzy(octx, t, NewFuzzy(false))
 	testFuzzyLongest(octx, t, NewFuzzy(true))
@@ -362,7 +361,7 @@ func TestAllNegativeQuery(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			results := collectFilterResults(t, f, "-beta", lines)
 			require.Len(t, results, 2)
-			var names []string
+			names := make([]string, 0, len(results))
 			for _, r := range results {
 				names = append(names, r.DisplayString())
 			}
@@ -404,7 +403,7 @@ func TestNegativeMatchingFuzzy(t *testing.T) {
 	t.Run("fuzzy all-negative", func(t *testing.T) {
 		results := collectFilterResults(t, f, "-world", lines)
 		require.Len(t, results, 2)
-		var names []string
+		names := make([]string, 0, len(results))
 		for _, r := range results {
 			names = append(names, r.DisplayString())
 		}
@@ -436,7 +435,7 @@ func TestLiteralHyphenMatching(t *testing.T) {
 		// bare "-" should be a positive literal matching any line with a hyphen
 		results := collectFilterResults(t, f, "-", lines)
 		require.Len(t, results, 3)
-		var names []string
+		names := make([]string, 0, len(results))
 		for _, r := range results {
 			names = append(names, r.DisplayString())
 		}

@@ -2,7 +2,6 @@ package peco
 
 import (
 	"bytes"
-	"context"
 	"testing"
 	"time"
 
@@ -85,8 +84,7 @@ func TestInlineScreenPollEventLogsPanic(t *testing.T) {
 		yOffset:   14,
 	}
 
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx := t.Context()
 
 	evCh := s.PollEvent(ctx, nil)
 

@@ -55,12 +55,12 @@ func TestCaretMoveFromZero(t *testing.T) {
 func TestCaretMultipleMoves(t *testing.T) {
 	t.Parallel()
 	var c Caret
-	for i := 0; i < 10; i++ {
+	for range 10 {
 		c.Move(1)
 	}
 	require.Equal(t, 10, c.Pos())
 
-	for i := 0; i < 5; i++ {
+	for range 5 {
 		c.Move(-1)
 	}
 	require.Equal(t, 5, c.Pos())

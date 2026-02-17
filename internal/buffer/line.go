@@ -9,7 +9,7 @@ import (
 const DefaultFilterBufSize = 1000
 
 var lineListPool = sync.Pool{
-	New: func() interface{} {
+	New: func() any {
 		return make([]line.Line, 0, DefaultFilterBufSize)
 	},
 }
@@ -23,6 +23,6 @@ func ReleaseLineListBuf(l []line.Line) {
 }
 
 func GetLineListBuf() []line.Line {
-	l := lineListPool.Get().([]line.Line)
+	l, _ := lineListPool.Get().([]line.Line)
 	return l
 }

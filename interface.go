@@ -40,7 +40,7 @@ const (
 	DefaultLayoutType            = LayoutTypeTopDown       // LayoutTypeTopDown makes the layout so the items read from top to bottom
 	LayoutTypeTopDown            = "top-down"              // LayoutTypeTopDown displays prompt at top, list top-to-bottom
 	LayoutTypeBottomUp           = "bottom-up"             // LayoutTypeBottomUp displays prompt at bottom, list bottom-to-top
-	LayoutTypeTopDownQueryBottom = "top-down-query-bottom"  // LayoutTypeTopDownQueryBottom displays list top-to-bottom, prompt at bottom
+	LayoutTypeTopDownQueryBottom = "top-down-query-bottom" // LayoutTypeTopDownQueryBottom displays list top-to-bottom, prompt at bottom
 )
 
 const (
@@ -74,41 +74,41 @@ type Peco struct {
 	bufferSize int
 	caret      Caret
 	// Config contains the values read in from config file
-	config                  Config
-	currentLineBuffer       Buffer
-	enableSep               bool // Enable parsing on separators
-	execOnFinish            string
-	filters                 filter.Set
-	idgen                   *idgen
-	initialFilter           string
-	initialQuery            string   // populated if --query is specified
-	inputseq                Inputseq // current key sequence (just the names)
-	keymap                  Keymap
-	layoutType              string
-	location                Location
-	maxScanBufferSize       int
-	mutex                   sync.Mutex
-	onCancel                OnCancelBehavior
-	printQuery              bool
-	prompt                  string
-	query                   Query
-	queryExec QueryExecState
-	readyCh                 chan struct{}
-	resultCh                chan line.Line
-	screen                  Screen
-	selection               *Selection
-	selectionPrefix         string
-	selectionRangeStart     RangeStart
-	exitZeroAndExit         bool // True if --exit-0 is enabled
-	selectOneAndExit        bool // True if --select-1 is enabled
-	selectAllAndExit        bool // True if --select-all is enabled
-	singleKeyJump SingleKeyJumpState
-	heightSpec              *HeightSpec
-	readConfigFn            func(*Config, string) error
-	styles                  StyleSet
-	enableANSI              bool // Enable ANSI color code support
-	use256Color             bool
-	fuzzyLongestSort        bool
+	config              Config
+	currentLineBuffer   Buffer
+	enableSep           bool // Enable parsing on separators
+	execOnFinish        string
+	filters             filter.Set
+	idgen               *idgen
+	initialFilter       string
+	initialQuery        string   // populated if --query is specified
+	inputseq            Inputseq // current key sequence (just the names)
+	keymap              Keymap
+	layoutType          string
+	location            Location
+	maxScanBufferSize   int
+	mutex               sync.Mutex
+	onCancel            OnCancelBehavior
+	printQuery          bool
+	prompt              string
+	query               Query
+	queryExec           QueryExecState
+	readyCh             chan struct{}
+	resultCh            chan line.Line
+	screen              Screen
+	selection           *Selection
+	selectionPrefix     string
+	selectionRangeStart RangeStart
+	exitZeroAndExit     bool // True if --exit-0 is enabled
+	selectOneAndExit    bool // True if --select-1 is enabled
+	selectAllAndExit    bool // True if --select-all is enabled
+	singleKeyJump       SingleKeyJumpState
+	heightSpec          *HeightSpec
+	readConfigFn        func(*Config, string) error
+	styles              StyleSet
+	enableANSI          bool // Enable ANSI color code support
+	use256Color         bool
+	fuzzyLongestSort    bool
 
 	// Source is where we buffer input. It gets reused when a new query is
 	// executed.
@@ -132,8 +132,8 @@ type ContextLine struct {
 }
 
 type Keyseq interface {
-	Add(keyseq.KeyList, interface{})
-	AcceptKey(keyseq.Key) (interface{}, error)
+	Add(keyseq.KeyList, any)
+	AcceptKey(keyseq.Key) (any, error)
 	CancelChain()
 	Clear()
 	Compile() error
@@ -287,21 +287,21 @@ type Config struct {
 	// Keymap used to be directly responsible for dispatching
 	// events against user input, but since then this has changed
 	// into something that just records the user's config input
-	Keymap        map[string]string `json:"Keymap" yaml:"Keymap"`
-	InitialFilter string            `json:"InitialFilter" yaml:"InitialFilter"`
-	Style         StyleSet          `json:"Style" yaml:"Style"`
-	Prompt        string            `json:"Prompt" yaml:"Prompt"`
-	Layout        string            `json:"Layout" yaml:"Layout"`
-	Use256Color   bool              `json:"Use256Color" yaml:"Use256Color"`
-	OnCancel     OnCancelBehavior              `json:"OnCancel" yaml:"OnCancel"`
-	CustomFilter map[string]CustomFilterConfig `json:"CustomFilter" yaml:"CustomFilter"`
-	QueryExecutionDelay int                                `json:"QueryExecutionDelay" yaml:"QueryExecutionDelay"`
-	StickySelection     bool                               `json:"StickySelection" yaml:"StickySelection"`
-	MaxScanBufferSize   int                                `json:"MaxScanBufferSize" yaml:"MaxScanBufferSize"`
-	FilterBufSize       int                                `json:"FilterBufSize" yaml:"FilterBufSize"`
-	FuzzyLongestSort    bool                               `json:"FuzzyLongestSort" yaml:"FuzzyLongestSort"`
-	SuppressStatusMsg   bool                               `json:"SuppressStatusMsg" yaml:"SuppressStatusMsg"`
-	ANSI                bool                               `json:"ANSI" yaml:"ANSI"`
+	Keymap              map[string]string             `json:"Keymap" yaml:"Keymap"`
+	InitialFilter       string                        `json:"InitialFilter" yaml:"InitialFilter"`
+	Style               StyleSet                      `json:"Style" yaml:"Style"`
+	Prompt              string                        `json:"Prompt" yaml:"Prompt"`
+	Layout              string                        `json:"Layout" yaml:"Layout"`
+	Use256Color         bool                          `json:"Use256Color" yaml:"Use256Color"`
+	OnCancel            OnCancelBehavior              `json:"OnCancel" yaml:"OnCancel"`
+	CustomFilter        map[string]CustomFilterConfig `json:"CustomFilter" yaml:"CustomFilter"`
+	QueryExecutionDelay int                           `json:"QueryExecutionDelay" yaml:"QueryExecutionDelay"`
+	StickySelection     bool                          `json:"StickySelection" yaml:"StickySelection"`
+	MaxScanBufferSize   int                           `json:"MaxScanBufferSize" yaml:"MaxScanBufferSize"`
+	FilterBufSize       int                           `json:"FilterBufSize" yaml:"FilterBufSize"`
+	FuzzyLongestSort    bool                          `json:"FuzzyLongestSort" yaml:"FuzzyLongestSort"`
+	SuppressStatusMsg   bool                          `json:"SuppressStatusMsg" yaml:"SuppressStatusMsg"`
+	ANSI                bool                          `json:"ANSI" yaml:"ANSI"`
 
 	// If this is true, then the prefix for single key jump mode
 	// is displayed by default.

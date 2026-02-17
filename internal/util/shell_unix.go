@@ -1,19 +1,21 @@
 //go:build !windows
-// +build !windows
 
-package util
+package util //nolint:revive
 
-import "os/exec"
+import (
+	"context"
+	"os/exec"
+)
 
-func Shell(cmd ...string) *exec.Cmd {
+func Shell(ctx context.Context, cmd ...string) *exec.Cmd {
 	const shellpath = `/bin/sh`
 	const shellopt = `-c`
 
 	args := make([]string, len(cmd)+1)
 	args[0] = shellopt
-	for i := 0; i < len(cmd); i++ {
+	for i := range cmd {
 		args[i+1] = cmd[i]
 	}
 
-	return exec.Command(shellpath, args...)
+	return exec.CommandContext(ctx, shellpath, args...)
 }

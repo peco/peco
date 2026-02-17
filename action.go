@@ -212,7 +212,7 @@ func doAcceptChar(ctx context.Context, state *Peco, e Event) {
 	state.ExecQuery(ctx, nil)
 }
 
-func doRotateFilter(ctx context.Context, state *Peco, e Event) {
+func doRotateFilter(ctx context.Context, state *Peco, _ Event) {
 	if pdebug.Enabled {
 		g := pdebug.Marker("doRotateFilter")
 		defer g.End()
@@ -224,7 +224,7 @@ func doRotateFilter(ctx context.Context, state *Peco, e Event) {
 	execQueryAndDraw(ctx, state)
 }
 
-func doBackToInitialFilter(ctx context.Context, state *Peco, e Event) {
+func doBackToInitialFilter(ctx context.Context, state *Peco, _ Event) {
 	if pdebug.Enabled {
 		g := pdebug.Marker("doBackToInitialFilter")
 		defer g.End()
@@ -236,7 +236,7 @@ func doBackToInitialFilter(ctx context.Context, state *Peco, e Event) {
 	execQueryAndDraw(ctx, state)
 }
 
-func doToggleSelection(ctx context.Context, state *Peco, _ Event) {
+func doToggleSelection(_ context.Context, state *Peco, _ Event) {
 	if pdebug.Enabled {
 		g := pdebug.Marker("doToggleSelection")
 		defer g.End()
@@ -255,7 +255,7 @@ func doToggleSelection(ctx context.Context, state *Peco, _ Event) {
 	selection.Add(l)
 }
 
-func doToggleRangeMode(ctx context.Context, state *Peco, _ Event) {
+func doToggleRangeMode(_ context.Context, state *Peco, _ Event) {
 	if pdebug.Enabled {
 		g := pdebug.Marker("doToggleRangeMode")
 		defer g.End()
@@ -273,7 +273,7 @@ func doToggleRangeMode(ctx context.Context, state *Peco, _ Event) {
 	}
 }
 
-func doCancelRangeMode(ctx context.Context, state *Peco, _ Event) {
+func doCancelRangeMode(_ context.Context, state *Peco, _ Event) {
 	state.SelectionRangeStart().Reset()
 }
 
@@ -285,7 +285,7 @@ func doSelectNone(ctx context.Context, state *Peco, _ Event) {
 func doSelectAll(ctx context.Context, state *Peco, _ Event) {
 	selection := state.Selection()
 	b := state.CurrentLineBuffer()
-	for x := 0; x < b.Size(); x++ {
+	for x := range b.Size() {
 		l, err := b.LineAt(x)
 		if err != nil {
 			continue
@@ -307,7 +307,7 @@ func doSelectVisible(ctx context.Context, state *Peco, _ Event) {
 	loc := state.Location()
 	pc := loc.PageCrop()
 	lb := pc.Crop(b)
-	for x := 0; x < lb.Size(); x++ {
+	for x := range lb.Size() {
 		l, err := lb.LineAt(x)
 		if err != nil {
 			continue
@@ -318,12 +318,12 @@ func doSelectVisible(ctx context.Context, state *Peco, _ Event) {
 	state.Hub().SendDraw(ctx, nil)
 }
 
-type errCollectResults struct{}
+type collectResultsError struct{}
 
-func (err errCollectResults) Error() string {
+func (err collectResultsError) Error() string {
 	return "collect results"
 }
-func (err errCollectResults) CollectResults() bool {
+func (err collectResultsError) CollectResults() bool {
 	return true
 }
 func doFinish(ctx context.Context, state *Peco, _ Event) {
@@ -334,7 +334,7 @@ func doFinish(ctx context.Context, state *Peco, _ Event) {
 
 	ccarg := state.execOnFinish
 	if len(ccarg) == 0 {
-		state.Exit(errCollectResults{})
+		state.Exit(collectResultsError{})
 		return
 	}
 
@@ -348,7 +348,10 @@ func doFinish(ctx context.Context, state *Peco, _ Event) {
 
 	var stdin bytes.Buffer
 	sel.Ascend(func(it btree.Item) bool {
-		line := it.(line.Line)
+		line, ok := it.(line.Line)
+		if !ok {
+			return true
+		}
 		stdin.WriteString(line.Buffer())
 		stdin.WriteRune('\n')
 		return true
@@ -356,7 +359,7 @@ func doFinish(ctx context.Context, state *Peco, _ Event) {
 
 	var err error
 	state.Hub().SendStatusMsg(ctx, "Executing "+ccarg, 0)
-	cmd := util.Shell(ccarg)
+	cmd := util.Shell(ctx, ccarg)
 	cmd.Stdin = &stdin
 	cmd.Stdout = state.Stdout
 	cmd.Stderr = state.Stderr
@@ -446,7 +449,7 @@ func doInvertSelection(ctx context.Context, state *Peco, _ Event) {
 	selection := state.Selection()
 	b := state.CurrentLineBuffer()
 
-	for x := 0; x < b.Size(); x++ {
+	for x := range b.Size() {
 		l, err := b.LineAt(x)
 		if err != nil {
 			continue
@@ -564,7 +567,7 @@ SEARCH_PREV_WORD:
 	// Now look for a space
 	for pos := c.Pos(); pos > 0; pos-- {
 		if unicode.IsSpace(q.RuneAt(pos)) {
-			c.SetPos(int(pos + 1))
+			c.SetPos(pos + 1)
 			return
 		}
 	}
@@ -677,7 +680,7 @@ func doDeleteForwardChar(ctx context.Context, state *Peco, _ Event) {
 	execQueryAndDraw(ctx, state)
 }
 
-func doDeleteBackwardChar(ctx context.Context, state *Peco, e Event) {
+func doDeleteBackwardChar(ctx context.Context, state *Peco, _ Event) {
 	if pdebug.Enabled {
 		g := pdebug.Marker("doDeleteBackwardChar")
 		defer g.End()
@@ -733,11 +736,11 @@ func doToggleQuery(ctx context.Context, state *Peco, _ Event) {
 	execQueryAndDraw(ctx, state)
 }
 
-func doKonamiCommand(ctx context.Context, state *Peco, e Event) {
+func doKonamiCommand(ctx context.Context, state *Peco, _ Event) {
 	state.Hub().SendStatusMsg(ctx, "All your filters are belongs to us", 0)
 }
 
-func doToggleSingleKeyJump(ctx context.Context, state *Peco, e Event) {
+func doToggleSingleKeyJump(ctx context.Context, state *Peco, _ Event) {
 	if pdebug.Enabled {
 		g := pdebug.Marker("doToggleSingleKeyJump")
 		defer g.End()
@@ -808,7 +811,11 @@ func doGoToAdjacentSelection(ctx context.Context, state *Peco, forward bool) {
 	found := false
 
 	selection.Ascend(func(it btree.Item) bool {
-		id := it.(line.Line).ID()
+		l, ok := it.(line.Line)
+		if !ok {
+			return true
+		}
+		id := l.ID()
 		if forward {
 			if id > currentLine && id < target {
 				target = id
@@ -869,7 +876,7 @@ func doFreezeResults(ctx context.Context, state *Peco, _ Event) {
 	}
 
 	frozen := NewMemoryBuffer(b.Size())
-	for i := 0; i < b.Size(); i++ {
+	for i := range b.Size() {
 		if l, err := b.LineAt(i); err == nil {
 			frozen.AppendLine(l)
 		}

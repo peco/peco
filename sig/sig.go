@@ -8,22 +8,22 @@ import (
 	"context"
 )
 
-type SigReceivedHandler interface {
+type ReceivedHandler interface {
 	Handle(os.Signal)
 }
 
-type SigReceivedHandlerFunc func(os.Signal)
+type ReceivedHandlerFunc func(os.Signal)
 
-func (s SigReceivedHandlerFunc) Handle(sig os.Signal) {
+func (s ReceivedHandlerFunc) Handle(sig os.Signal) {
 	s(sig)
 }
 
 type Handler struct {
-	onSignalReceived SigReceivedHandler
+	onSignalReceived ReceivedHandler
 	sigCh            chan os.Signal
 }
 
-func New(h SigReceivedHandler, sigs ...os.Signal) *Handler {
+func New(h ReceivedHandler, sigs ...os.Signal) *Handler {
 	if len(sigs) == 0 {
 		sigs = append(sigs, syscall.SIGTERM, syscall.SIGINT, syscall.SIGHUP)
 	}

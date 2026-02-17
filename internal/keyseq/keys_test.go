@@ -152,7 +152,6 @@ func TestKeymapStrToKeyValueCh(t *testing.T) {
 			t.Errorf("key name %s cannot convert to rune", n)
 		}
 	}
-
 }
 
 func TestKeymapStrToKeyValueWithCtrl(t *testing.T) {

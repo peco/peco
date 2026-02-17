@@ -44,7 +44,7 @@ Usage: peco [options] [FILE]
 Options:
 `)
 
-	t := reflect.TypeOf(options)
+	t := reflect.TypeFor[CLIOptions]()
 	for i := 0; i < t.NumField(); i++ {
 		tag := t.Field(i).Tag
 

@@ -37,7 +37,7 @@ func NewInlineScreen(spec HeightSpec) *InlineScreen {
 	}
 }
 
-func (s *InlineScreen) Init(cfg *Config) error {
+func (s *InlineScreen) Init(_ *Config) error {
 	// Save and override TCELL_ALTSCREEN to prevent alternate screen buffer
 	s.savedAltscreen = os.Getenv("TCELL_ALTSCREEN")
 	os.Setenv("TCELL_ALTSCREEN", "disable")
@@ -68,7 +68,7 @@ func (s *InlineScreen) Init(cfg *Config) error {
 		for i := range buf {
 			buf[i] = '\n'
 		}
-		tty.Write(buf)
+		_, _ = tty.Write(buf)
 		// Move cursor up to the start of our inline region
 		fmt.Fprintf(tty, "\033[%dA", s.height)
 	}
@@ -77,8 +77,8 @@ func (s *InlineScreen) Init(cfg *Config) error {
 	screen.LockRegion(0, 0, termWidth, s.yOffset, true)
 
 	// Clear our region
-	for y := 0; y < s.height; y++ {
-		for x := 0; x < termWidth; x++ {
+	for y := range s.height {
+		for x := range termWidth {
 			screen.SetContent(x, s.yOffset+y, ' ', nil, tcell.StyleDefault)
 		}
 	}
@@ -101,7 +101,7 @@ func (s *InlineScreen) Close() error {
 		if tty, ok := scr.Tty(); ok {
 			// Move cursor to the start of our inline region and clear from there down
 			fmt.Fprintf(tty, "\033[%d;1H", s.yOffset+1) // 1-based row
-			tty.Write([]byte("\033[J"))                 // clear from cursor to end of screen
+			_, _ = tty.Write([]byte("\033[J"))          // clear from cursor to end of screen
 		}
 		scr.Fini()
 	}
@@ -169,7 +169,7 @@ func (s *InlineScreen) Size() (int, int) {
 	return w, s.height
 }
 
-func (s *InlineScreen) PollEvent(ctx context.Context, cfg *Config) chan Event {
+func (s *InlineScreen) PollEvent(ctx context.Context, _ *Config) chan Event {
 	evCh := make(chan Event)
 
 	go func() {

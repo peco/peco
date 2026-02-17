@@ -5,8 +5,8 @@ import "testing"
 func TestBalance(t *testing.T) {
 	trie := NewTernaryTrie()
 
-	list := []Key{}
-	for i := 0; i < 15; i++ {
+	list := make([]Key, 0, 15)
+	for i := range 15 {
 		list = append(list, Key{0, 0, rune(i)})
 	}
 

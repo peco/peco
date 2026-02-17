@@ -22,7 +22,11 @@ func (s *Selection) Add(l line.Line) {
 
 func (s *Selection) Copy(dst *Selection) {
 	s.Ascend(func(it btree.Item) bool {
-		dst.Add(it.(line.Line))
+		l, ok := it.(line.Line)
+		if !ok {
+			return true
+		}
+		dst.Add(l)
 		return true
 	})
 }

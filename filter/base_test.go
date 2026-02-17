@@ -70,7 +70,7 @@ func TestApplyAndApplyCollectConsistency(t *testing.T) {
 			collected, err := collector.ApplyCollect(ctx2, lines)
 			require.NoError(t, err, "ApplyCollect should succeed")
 
-			var collectResults []string
+			collectResults := make([]string, 0, len(collected))
 			for _, l := range collected {
 				collectResults = append(collectResults, l.DisplayString())
 			}

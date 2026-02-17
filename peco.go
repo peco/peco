@@ -29,38 +29,38 @@ import (
 
 const version = "v0.5.11"
 
-type errIgnorable struct {
+type ignorableError struct {
 	err error
 }
 
-func (e errIgnorable) Ignorable() bool { return true }
-func (e errIgnorable) Unwrap() error {
+func (e ignorableError) Ignorable() bool { return true }
+func (e ignorableError) Unwrap() error {
 	return e.err
 }
-func (e errIgnorable) Error() string {
+func (e ignorableError) Error() string {
 	return e.err.Error()
 }
 func makeIgnorable(err error) error {
-	return &errIgnorable{err: err}
+	return &ignorableError{err: err}
 }
 
-type errWithExitStatus struct {
+type exitStatusError struct {
 	err    error
 	status int
 }
 
-func (e errWithExitStatus) Error() string {
+func (e exitStatusError) Error() string {
 	return e.err.Error()
 }
-func (e errWithExitStatus) Unwrap() error {
+func (e exitStatusError) Unwrap() error {
 	return e.err
 }
-func (e errWithExitStatus) ExitStatus() int {
+func (e exitStatusError) ExitStatus() int {
 	return e.status
 }
 
 func setExitStatus(err error, status int) error {
-	return &errWithExitStatus{err: err, status: status}
+	return &exitStatusError{err: err, status: status}
 }
 
 // Inputseq is a list of keys that the user typed
@@ -312,7 +312,7 @@ func (p *Peco) selectOneAndExitIfPossible() {
 		if l, err := b.LineAt(0); err == nil {
 			ch := make(chan line.Line)
 			p.SetResultCh(ch)
-			p.Exit(errCollectResults{})
+			p.Exit(collectResultsError{})
 			ch <- l
 			close(ch)
 		}
@@ -328,12 +328,12 @@ func (p *Peco) exitZeroIfPossible() {
 func (p *Peco) selectAllAndExitIfPossible() {
 	b := p.CurrentLineBuffer()
 	selection := p.Selection()
-	for i := 0; i < b.Size(); i++ {
+	for i := range b.Size() {
 		if l, err := b.LineAt(i); err == nil {
 			selection.Add(l)
 		}
 	}
-	p.Exit(errCollectResults{})
+	p.Exit(collectResultsError{})
 }
 
 // startComponents waits for the source to be ready, then initializes the
@@ -343,15 +343,30 @@ func (p *Peco) startComponents(ctx context.Context, cancel func()) {
 	// screen.Init must be called within Run() because we
 	// want to make sure to call screen.Close() after getting
 	// out of Run()
-	p.screen.Init(&p.config)
-	go NewInput(p, p.Keymap(), p.screen.PollEvent(ctx, &p.config)).Loop(ctx, cancel)
+	if err := p.screen.Init(&p.config); err != nil {
+		p.Exit(fmt.Errorf("failed to initialize screen: %w", err))
+		return
+	}
+	go func() {
+		if err := NewInput(p, p.Keymap(), p.screen.PollEvent(ctx, &p.config)).Loop(ctx, cancel); err != nil {
+			p.Exit(fmt.Errorf("input loop failed: %w", err))
+		}
+	}()
 	v, err := NewView(p)
 	if err != nil {
 		p.Exit(fmt.Errorf("failed to create view: %w", err))
 		return
 	}
-	go v.Loop(ctx, cancel)
-	go NewFilter(p).Loop(ctx, cancel)
+	go func() {
+		if err := v.Loop(ctx, cancel); err != nil {
+			p.Exit(fmt.Errorf("view loop failed: %w", err))
+		}
+	}()
+	go func() {
+		if err := NewFilter(p).Loop(ctx, cancel); err != nil {
+			p.Exit(fmt.Errorf("filter loop failed: %w", err))
+		}
+	}()
 }
 
 // startEarlyExitHandlers launches goroutines that handle --select-1,
@@ -448,11 +463,15 @@ func (p *Peco) Run(ctx context.Context) (err error) {
 	// remember this cancel func so p.Exit works (XXX requires locking?)
 	p.cancelFunc = cancel
 
-	sigH := sig.New(sig.SigReceivedHandlerFunc(func(sig os.Signal) {
+	sigH := sig.New(sig.ReceivedHandlerFunc(func(sig os.Signal) {
 		p.Exit(errors.New("received signal: " + sig.String()))
 	}))
 
-	go sigH.Loop(ctx, cancel)
+	go func() {
+		if err := sigH.Loop(ctx, cancel); err != nil {
+			p.Exit(fmt.Errorf("signal handler failed: %w", err))
+		}
+	}()
 
 	// SetupSource is done AFTER other components are ready, otherwise
 	// we can't draw onto the screen while we are reading a really big
@@ -478,7 +497,7 @@ func (p *Peco) Run(ctx context.Context) (err error) {
 	}
 
 	if pdebug.Enabled {
-		pdebug.Printf("peco is now ready, go go go!")
+		pdebug.Printf("peco is now ready, go go!")
 	}
 
 	p.startEarlyExitHandlers()
@@ -699,12 +718,12 @@ func (p *Peco) populateInitialFilter() error {
 	return nil
 }
 
-func (p *Peco) populateSingleKeyJump() error {
+func (p *Peco) populateSingleKeyJump() error { //nolint:unparam
 	p.singleKeyJump.showPrefix = p.config.SingleKeyJump.ShowPrefix
 
 	jumpMap := make(map[rune]uint)
 	chrs := "asdfghjklzxcvbnmqwertyuiop"
-	for i := 0; i < len(chrs); i++ {
+	for i := range len(chrs) {
 		jumpMap[rune(chrs[i])] = uint(i)
 	}
 	p.singleKeyJump.prefixMap = jumpMap
@@ -716,17 +735,17 @@ func (p *Peco) populateSingleKeyJump() error {
 	return nil
 }
 
-func (p *Peco) populateFilters() error {
-	p.filters.Add(filter.NewIgnoreCase())
-	p.filters.Add(filter.NewCaseSensitive())
-	p.filters.Add(filter.NewSmartCase())
-	p.filters.Add(filter.NewIRegexp())
-	p.filters.Add(filter.NewRegexp())
-	p.filters.Add(filter.NewFuzzy(p.fuzzyLongestSort))
+func (p *Peco) populateFilters() error { //nolint:unparam
+	_ = p.filters.Add(filter.NewIgnoreCase())
+	_ = p.filters.Add(filter.NewCaseSensitive())
+	_ = p.filters.Add(filter.NewSmartCase())
+	_ = p.filters.Add(filter.NewIRegexp())
+	_ = p.filters.Add(filter.NewRegexp())
+	_ = p.filters.Add(filter.NewFuzzy(p.fuzzyLongestSort))
 
 	for name, c := range p.config.CustomFilter {
 		f := filter.NewExternalCmd(name, c.Cmd, c.Args, c.BufferThreshold, p.idgen, p.enableSep)
-		p.filters.Add(f)
+		_ = p.filters.Add(f)
 	}
 
 	return nil
@@ -744,7 +763,7 @@ func (p *Peco) populateKeymap() error {
 	return nil
 }
 
-func (p *Peco) populateStyles() error {
+func (p *Peco) populateStyles() error { //nolint:unparam
 	p.styles = p.config.Style
 	return nil
 }
@@ -888,7 +907,6 @@ func (p *Peco) ExecQuery(ctx context.Context, nextFunc func()) bool {
 	return true
 }
 
-
 func (p *Peco) PrintResults() {
 	if pdebug.Enabled {
 		g := pdebug.Marker("Peco.PrintResults")
@@ -904,7 +922,11 @@ func (p *Peco) PrintResults() {
 	go func() {
 		defer close(p.resultCh)
 		p.selection.Ascend(func(it btree.Item) bool {
-			p.ResultCh() <- it.(line.Line)
+			l, ok := it.(line.Line)
+			if !ok {
+				return true
+			}
+			p.ResultCh() <- l
 			return true
 		})
 	}()

@@ -28,7 +28,7 @@ type Key struct {
 
 func (kl KeyList) String() string {
 	list := make([]string, len(kl))
-	for i := 0; i < len(kl); i++ {
+	for i := range kl {
 		list[i] = kl[i].String()
 	}
 	return strings.Join(list, ",")
@@ -101,7 +101,7 @@ func (kl KeyList) Equals(x KeyList) bool {
 		return false
 	}
 
-	for i := 0; i < len(kl); i++ {
+	for i := range kl {
 		if kl[i].Compare(x[i]) != 0 {
 			return false
 		}
@@ -154,7 +154,7 @@ func (k *Keyseq) updateInputTime() {
 	k.prevInputTime = time.Now()
 }
 
-func (k *Keyseq) AcceptKey(key Key) (interface{}, error) {
+func (k *Keyseq) AcceptKey(key Key) (any, error) {
 	// XXX should we return Action instead of interface{}?
 	k.mutex.Lock()
 	defer k.mutex.Unlock()
@@ -189,5 +189,6 @@ func (k *Keyseq) AcceptKey(key Key) (interface{}, error) {
 	if data == nil {
 		return nil, ErrNoMatch
 	}
-	return data.(*nodeData).Value(), nil
+	nd, _ := data.(*nodeData)
+	return nd.Value(), nil
 }

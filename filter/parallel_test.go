@@ -37,7 +37,7 @@ func TestParallelFilterProducesSameResults(t *testing.T) {
 	// Generate test lines
 	const numLines = 5000
 	lines := make([]line.Line, numLines)
-	for i := 0; i < numLines; i++ {
+	for i := range numLines {
 		text := fmt.Sprintf("line-%04d foo bar baz", i)
 		if i%3 == 0 {
 			text = fmt.Sprintf("line-%04d matching-pattern test", i)
@@ -75,10 +75,7 @@ func TestParallelFilterProducesSameResults(t *testing.T) {
 			chunkSize := 500
 			var parResults []string
 			for start := 0; start < len(lines); start += chunkSize {
-				end := start + chunkSize
-				if end > len(lines) {
-					end = len(lines)
-				}
+				end := min(start+chunkSize, len(lines))
 				chunk := lines[start:end]
 
 				ch := make(chan line.Line, len(chunk))
@@ -102,7 +99,7 @@ func TestParallelFilterContextCancellation(t *testing.T) {
 	// Generate a large set of lines
 	const numLines = 100000
 	lines := make([]line.Line, numLines)
-	for i := 0; i < numLines; i++ {
+	for i := range numLines {
 		lines[i] = line.NewRaw(uint64(i), fmt.Sprintf("line-%d matching-pattern", i), false, false)
 	}
 

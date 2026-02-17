@@ -1,11 +1,96 @@
 version: "2"
 linters:
+  default: all
   disable:
-    - errcheck
+    - cyclop
+    - depguard
+    - dogsled
+    - dupl
+    - embeddedstructfieldcheck
+    - err113
+    - errorlint
+    - exhaustive
+    - exhaustruct
+    - forbidigo
+    - funcorder
+    - funlen
+    - gochecknoglobals
+    - gochecknoinits
+    - gocognit
+    - gocritic
+    - gocyclo
+    - godot
+    - godox
+    - gosec
+    - gosmopolitan
+    - govet
+    - inamedparam
+    - interfacebloat
+    - ireturn
+    - lll
+    - maintidx
+    - makezero
+    - mnd
+    - nakedret
+    - nestif
+    - nlreturn
+    - noinlineerr
+    - nonamedreturns
+    - paralleltest
+    - perfsprint
+    - recvcheck
+    - staticcheck
+    - tagalign
+    - tagliatelle
+    - testifylint
+    - testpackage
+    - thelper
+    - varnamelen
+    - wrapcheck
+    - wsl
+    - wsl_v5
   settings:
-    staticcheck:
-      checks:
-        - "all"
-        - "-QF1008"
-        - "-ST1000"
-        - "-ST1003"
+    govet:
+      disable:
+        - shadow
+        - fieldalignment
+      enable-all: true
+  exclusions:
+    generated: lax
+    presets:
+      - comments
+      - common-false-positives
+      - legacy
+      - std-error-handling
+    rules:
+      - linters:
+          - revive
+        path: /*.go
+        text: don't use an underscore in package name
+      - linters:
+          - revive
+        path: /*_test.go
+        text: 'var-naming: '
+      - linters:
+          - errcheck
+        path: /main.go
+      - linters:
+          - errcheck
+          - errchkjson
+          - forcetypeassert
+        path: /*_test.go
+    paths:
+      - third_party$
+      - builtin$
+issues:
+  max-issues-per-linter: 0
+  max-same-issues: 0
+formatters:
+  enable:
+    - gofmt
+    - goimports
+  exclusions:
+    generated: lax
+    paths:
+      - third_party$
+      - builtin$

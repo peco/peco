@@ -15,11 +15,11 @@ import (
 
 var expectedConfig = Config{
 	Keymap: map[string]string{
-		"C-j":      "peco.Finish",
+		"C-j":     "peco.Finish",
 		"C-x,C-c": "peco.Finish",
 	},
 	Layout: DefaultLayoutType,
-	Prompt:         "[peco]",
+	Prompt: "[peco]",
 	Style: StyleSet{
 		Matched: Style{
 			fg: ColorCyan | AttrBold,
@@ -109,39 +109,39 @@ type stringsToStyleTest struct {
 
 func TestStringsToStyle(t *testing.T) {
 	tests := []stringsToStyleTest{
-		stringsToStyleTest{
+		{
 			strings: []string{"on_default", "default"},
 			style:   &Style{fg: ColorDefault, bg: ColorDefault},
 		},
-		stringsToStyleTest{
+		{
 			strings: []string{"bold", "on_blue", "yellow"},
 			style:   &Style{fg: ColorYellow | AttrBold, bg: ColorBlue},
 		},
-		stringsToStyleTest{
+		{
 			strings: []string{"underline", "on_cyan", "black"},
 			style:   &Style{fg: ColorBlack | AttrUnderline, bg: ColorCyan},
 		},
-		stringsToStyleTest{
+		{
 			strings: []string{"reverse", "on_red", "white"},
 			style:   &Style{fg: ColorWhite | AttrReverse, bg: ColorRed},
 		},
-		stringsToStyleTest{
+		{
 			strings: []string{"on_bold", "on_magenta", "green"},
 			style:   &Style{fg: ColorGreen, bg: ColorMagenta | AttrBold},
 		},
-		stringsToStyleTest{
+		{
 			strings: []string{"underline", "on_240", "214"},
 			style:   &Style{fg: Attribute(214+1) | AttrUnderline, bg: Attribute(240 + 1)},
 		},
-		stringsToStyleTest{
+		{
 			strings: []string{"#ff8800", "on_#0088ff"},
 			style:   &Style{fg: Attribute(0xff8800) | AttrTrueColor, bg: Attribute(0x0088ff) | AttrTrueColor},
 		},
-		stringsToStyleTest{
+		{
 			strings: []string{"bold", "#00ff00", "on_#000000"},
 			style:   &Style{fg: Attribute(0x00ff00) | AttrTrueColor | AttrBold, bg: Attribute(0x000000) | AttrTrueColor},
 		},
-		stringsToStyleTest{
+		{
 			strings: []string{"#000000"},
 			style:   &Style{fg: Attribute(0x000000) | AttrTrueColor, bg: ColorDefault},
 		},
@@ -157,8 +157,7 @@ func TestStringsToStyle(t *testing.T) {
 }
 
 func TestLocateRcfile(t *testing.T) {
-	dir, err := os.MkdirTemp("", "peco-")
-	require.NoError(t, err, "Failed to create temporary directory")
+	dir := t.TempDir()
 
 	homedirFunc = func() (string, error) {
 		return dir, nil
@@ -181,8 +180,8 @@ func TestLocateRcfile(t *testing.T) {
 		return "", errors.New("error: Not found")
 	}
 
-	os.Setenv("XDG_CONFIG_HOME", dir)
-	os.Setenv("XDG_CONFIG_DIRS", strings.Join(
+	t.Setenv("XDG_CONFIG_HOME", dir)
+	t.Setenv("XDG_CONFIG_DIRS", strings.Join(
 		[]string{
 			filepath.Join(dir, "1"),
 			filepath.Join(dir, "2"),
@@ -193,7 +192,7 @@ func TestLocateRcfile(t *testing.T) {
 
 	LocateRcfile(locater)
 	expected[0] = filepath.Join(dir, ".config", "peco")
-	os.Setenv("XDG_CONFIG_HOME", "")
+	t.Setenv("XDG_CONFIG_HOME", "")
 	i = 0
 	LocateRcfile(locater)
 }
@@ -211,8 +210,8 @@ func TestLocateRcfileYAML(t *testing.T) {
 	}
 
 	// Clear XDG vars so it falls through to ~/.peco/
-	os.Setenv("XDG_CONFIG_HOME", "")
-	os.Setenv("XDG_CONFIG_DIRS", "")
+	t.Setenv("XDG_CONFIG_HOME", "")
+	t.Setenv("XDG_CONFIG_DIRS", "")
 
 	file, err := LocateRcfile(locateRcfileIn)
 	require.NoError(t, err)

@@ -79,7 +79,7 @@ func (h *Hub) Batch(ctx context.Context, f func(ctx context.Context), shouldLock
 }
 
 var doneChPool = sync.Pool{
-	New: func() interface{} {
+	New: func() any {
 		return make(chan struct{})
 	},
 }
@@ -121,7 +121,7 @@ func send[T any](ctx context.Context, ch chan *Payload[T], r *Payload[T]) {
 	}
 
 	if r.Batch() {
-		r.done = doneChPool.Get().(chan struct{})
+		r.done, _ = doneChPool.Get().(chan struct{})
 		if pdebug.Enabled {
 			defer pdebug.Printf("request is part of batch operation. waiting")
 		}

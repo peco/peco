@@ -195,7 +195,7 @@ func init() {
 
 func ToKeyList(ksk string) (KeyList, error) {
 	list := KeyList{}
-	for _, term := range strings.Split(ksk, ",") {
+	for term := range strings.SplitSeq(ksk, ",") {
 		term = strings.TrimSpace(term)
 
 		k, m, ch, err := ToKey(term)
@@ -211,7 +211,7 @@ func ToKeyList(ksk string) (KeyList, error) {
 // KeyEventToString returns a human-readable name for a key event described
 // by the given key type, character, and modifier.
 func KeyEventToString(key KeyType, ch rune, mod ModifierKey) (string, error) {
-	s := ""
+	var s string
 	if key == 0 {
 		s = string([]rune{ch})
 	} else {

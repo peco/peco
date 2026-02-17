@@ -71,9 +71,9 @@ func TestHub(t *testing.T) {
 		"paging",
 	}
 
-	max := len(phases) - 1
+	last := len(phases) - 1
 	for i := range phases {
-		if max == i {
+		if last == i {
 			break
 		}
 
