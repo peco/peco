@@ -47,7 +47,6 @@ func New(bufsiz int) *Hub {
 	}
 }
 
-type operationNameKey struct{}
 type batchPayloadKey struct{}
 
 // Batch allows you to synchronously send messages during the
@@ -96,14 +95,17 @@ func isBatchCtx(ctx context.Context) bool {
 }
 
 // send is the low-level generic utility for sending typed payloads.
+// Batch mode is determined from the payload's Batch() flag, which is
+// set by each Send* method via isBatchCtx before calling send.
+// The context is used for cancellation so sends don't block forever
+// during shutdown.
 func send[T any](ctx context.Context, ch chan *Payload[T], r *Payload[T]) {
-	isBatchMode := isBatchCtx(ctx)
 	if pdebug.Enabled {
-		g := pdebug.Marker("hub.send (name=%s, isBatchMode=%t)", ctx.Value(operationNameKey{}), isBatchMode)
+		g := pdebug.Marker("hub.send (isBatchMode=%t)", r.Batch())
 		defer g.End()
 	}
 
-	if isBatchMode {
+	if r.Batch() {
 		r.done = doneChPool.Get().(chan struct{})
 		if pdebug.Enabled {
 			defer pdebug.Printf("request is part of batch operation. waiting")
@@ -111,7 +113,10 @@ func send[T any](ctx context.Context, ch chan *Payload[T], r *Payload[T]) {
 		defer r.waitDone()
 	}
 
-	ch <- r
+	select {
+	case ch <- r:
+	case <-ctx.Done():
+	}
 }
 
 // QueryCh returns the underlying channel for queries
@@ -121,7 +126,7 @@ func (h *Hub) QueryCh() chan *Payload[string] {
 
 // SendQuery sends the query string to be processed by the Filter
 func (h *Hub) SendQuery(ctx context.Context, q string) {
-	send(context.WithValue(ctx, operationNameKey{}, "send query"), h.QueryCh(), NewPayload(q, isBatchCtx(ctx)))
+	send(ctx, h.QueryCh(), NewPayload(q, isBatchCtx(ctx)))
 }
 
 // DrawCh returns the channel to redraw the terminal display
