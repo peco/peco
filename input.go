@@ -11,9 +11,10 @@ import (
 
 func NewInput(state *Peco, am ActionMap, src chan Event) *Input {
 	return &Input{
-		actions: am,
-		evsrc:   src,
-		state:   state,
+		actions:    am,
+		evsrc:      src,
+		pendingEsc: make(chan Event, 1),
+		state:      state,
 	}
 }
 
@@ -24,6 +25,11 @@ func (i *Input) Loop(ctx context.Context, cancel func()) error {
 		select {
 		case <-ctx.Done():
 			return nil
+		case ev := <-i.pendingEsc:
+			// Timer fired and determined this was a standalone Esc press.
+			// Execute the action here on the input loop goroutine, not
+			// on the timer goroutine, to avoid concurrent ExecuteAction calls.
+			i.state.Keymap().ExecuteAction(ctx, i.state, ev)
 		case ev, ok := <-i.evsrc:
 			if !ok {
 				return nil
@@ -73,7 +79,13 @@ func (i *Input) handleInputEvent(ctx context.Context, ev Event) error {
 				}
 				i.mod = nil
 				m.Unlock()
-				i.state.Keymap().ExecuteAction(ctx, i.state, tmp)
+				// Send to the input loop instead of calling ExecuteAction
+				// directly, so all action execution is serialized on the
+				// input loop goroutine.
+				select {
+				case i.pendingEsc <- tmp:
+				case <-ctx.Done():
+				}
 			})
 			m.Unlock()
 			return nil
