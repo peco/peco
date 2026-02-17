@@ -15,7 +15,7 @@ var ErrFilterNotFound = errors.New("specified filter was not found")
 
 var ignoreCaseFlags = regexpFlagList([]string{"i"})
 var defaultFlags = regexpFlagList{}
-var queryKey = &struct{}{}
+type queryKey struct{}
 
 // DefaultCustomFilterBufferThreshold is the default value
 // for BufferThreshold setting on CustomFilters.

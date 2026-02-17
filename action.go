@@ -418,9 +418,9 @@ func doCancel(ctx context.Context, state *Peco, e Event) {
 // batchAction extracts the top-level action call flag from the context,
 // runs fn inside a Hub.Batch, and marks nested calls as non-top-level.
 func batchAction(ctx context.Context, state *Peco, fn func(context.Context)) {
-	toplevel, _ := ctx.Value(isTopLevelActionCall).(bool)
+	toplevel, _ := ctx.Value(isTopLevelActionCallKey{}).(bool)
 	state.Hub().Batch(ctx, func(ctx context.Context) {
-		ctx = context.WithValue(ctx, isTopLevelActionCall, false)
+		ctx = context.WithValue(ctx, isTopLevelActionCallKey{}, false)
 		fn(ctx)
 	}, toplevel)
 }
