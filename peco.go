@@ -347,26 +347,14 @@ func (p *Peco) startComponents(ctx context.Context, cancel func()) {
 		p.Exit(fmt.Errorf("failed to initialize screen: %w", err))
 		return
 	}
-	go func() {
-		if err := NewInput(p, p.Keymap(), p.screen.PollEvent(ctx, &p.config)).Loop(ctx, cancel); err != nil {
-			p.Exit(fmt.Errorf("input loop failed: %w", err))
-		}
-	}()
+	go func() { _ = NewInput(p, p.Keymap(), p.screen.PollEvent(ctx, &p.config)).Loop(ctx, cancel) }()
 	v, err := NewView(p)
 	if err != nil {
 		p.Exit(fmt.Errorf("failed to create view: %w", err))
 		return
 	}
-	go func() {
-		if err := v.Loop(ctx, cancel); err != nil {
-			p.Exit(fmt.Errorf("view loop failed: %w", err))
-		}
-	}()
-	go func() {
-		if err := NewFilter(p).Loop(ctx, cancel); err != nil {
-			p.Exit(fmt.Errorf("filter loop failed: %w", err))
-		}
-	}()
+	go func() { _ = v.Loop(ctx, cancel) }()
+	go func() { _ = NewFilter(p).Loop(ctx, cancel) }()
 }
 
 // startEarlyExitHandlers launches goroutines that handle --select-1,
@@ -467,11 +455,7 @@ func (p *Peco) Run(ctx context.Context) (err error) {
 		p.Exit(errors.New("received signal: " + sig.String()))
 	}))
 
-	go func() {
-		if err := sigH.Loop(ctx, cancel); err != nil {
-			p.Exit(fmt.Errorf("signal handler failed: %w", err))
-		}
-	}()
+	go func() { _ = sigH.Loop(ctx, cancel) }()
 
 	// SetupSource is done AFTER other components are ready, otherwise
 	// we can't draw onto the screen while we are reading a really big
