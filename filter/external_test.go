@@ -91,7 +91,7 @@ func TestExternalCmd_CancelCleansUpGoroutine(t *testing.T) {
 	t.Errorf("goroutine leak: before=%d, after=%d", before, runtime.NumGoroutine())
 }
 
-func TestExternalCmd_ApplyPanicReturnsError(t *testing.T) {
+func TestExternalCmd_ApplyWithoutQueryContext(t *testing.T) {
 	idgen := &testIDGen{}
 
 	lines := []line.Line{
@@ -102,12 +102,9 @@ func TestExternalCmd_ApplyPanicReturnsError(t *testing.T) {
 	out := pipeline.ChanOutput(make(chan line.Line, 256))
 
 	// Call Apply with a context that does NOT have the query key set.
-	// This triggers a nil interface type assertion panic at the line:
-	//   query := ctx.Value(queryKey).(string)
-	// The bug: this panic was silently swallowed, returning nil error.
+	// QueryFromContext returns "" safely (no panic).
 	err := ecf.Apply(context.Background(), lines, out)
-	require.Error(t, err, "Apply should return an error when an internal panic occurs, not swallow it silently")
-	require.Contains(t, err.Error(), "panic")
+	require.NoError(t, err, "Apply with missing query context should not panic or error")
 }
 
 func TestExternalCmdFilter_NullSep(t *testing.T) {

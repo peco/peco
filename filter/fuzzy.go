@@ -12,6 +12,7 @@ import (
 
 	"github.com/peco/peco/internal/util"
 	"github.com/peco/peco/line"
+	"github.com/peco/peco/pipeline"
 )
 
 // NewFuzzy builds a fuzzy-finder type of filter.
@@ -40,7 +41,7 @@ func (ff Fuzzy) String() string {
 }
 
 func (ff *Fuzzy) applyInternal(ctx context.Context, lines []line.Line, emit func(line.Line)) error {
-	originalQuery := ctx.Value(queryKey{}).(string)
+	originalQuery := pipeline.QueryFromContext(ctx)
 
 	// Parse negative terms and compile them as case-insensitive regexps
 	posTerms, negTerms := SplitQueryTerms(originalQuery)

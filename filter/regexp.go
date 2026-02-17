@@ -10,6 +10,7 @@ import (
 
 	"github.com/peco/peco/internal/util"
 	"github.com/peco/peco/line"
+	"github.com/peco/peco/pipeline"
 )
 
 func (r regexpFlagList) flags(_ string) []string {
@@ -153,7 +154,7 @@ func (f *regexpQueryFactory) Compile(s string, flags regexpFlags, quotemeta bool
 }
 
 func (rf *Regexp) applyInternal(ctx context.Context, lines []line.Line, emit func(line.Line)) error {
-	query := ctx.Value(queryKey{}).(string)
+	query := pipeline.QueryFromContext(ctx)
 	posRegexps, negRegexps, err := rf.factory.Compile(query, rf.flags, rf.quotemeta)
 	if err != nil {
 		return fmt.Errorf("failed to compile queries as regular expression: %w", err)

@@ -9,6 +9,19 @@ import (
 	"github.com/peco/peco/line"
 )
 
+type queryContextKey struct{}
+
+// NewQueryContext returns a context with the query string stored under a typed key.
+func NewQueryContext(ctx context.Context, query string) context.Context {
+	return context.WithValue(ctx, queryContextKey{}, query)
+}
+
+// QueryFromContext retrieves the query string from the context.
+func QueryFromContext(ctx context.Context) string {
+	v, _ := ctx.Value(queryContextKey{}).(string)
+	return v
+}
+
 func NilOutput(ctx context.Context) ChanOutput {
 	ch := make(chan line.Line)
 	go func() {
@@ -86,7 +99,7 @@ func (p *Pipeline) SetDestination(d Destination) {
 // called while `Run` is running.
 func (p *Pipeline) Run(ctx context.Context) (err error) {
 	if pdebug.Enabled {
-		g := pdebug.Marker("Pipeline.Run (%s)", ctx.Value("query")).BindError(&err)
+		g := pdebug.Marker("Pipeline.Run (%s)", QueryFromContext(ctx)).BindError(&err)
 		defer g.End()
 	}
 	p.mutex.Lock()
