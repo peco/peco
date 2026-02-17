@@ -6,18 +6,18 @@ func (c *Caret) Pos() int {
 	return c.pos
 }
 
-func (c *Caret) setPos_nolock(p int) {
+func (c *Caret) setPosNL(p int) {
 	c.pos = p
 }
 
 func (c *Caret) SetPos(p int) {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
-	c.setPos_nolock(p)
+	c.setPosNL(p)
 }
 
 func (c *Caret) Move(diff int) {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
-	c.setPos_nolock(c.pos + diff)
+	c.setPosNL(c.pos + diff)
 }
