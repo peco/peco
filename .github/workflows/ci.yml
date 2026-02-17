@@ -14,12 +14,17 @@ jobs:
       - name: Cache Go modules
         uses: actions/cache@cdf6c1fa76f9f475f3d7449005a359c84ca0f306 # v5.0.3
         with:
-          path: |
-            ~/go/pkg/mod
-            ~/.cache/go-build
-          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          path: ~/go/pkg/mod
+          key: ${{ runner.os }}-gomod-${{ hashFiles('**/go.sum') }}
           restore-keys: |
-            ${{ runner.os }}-go-
+            ${{ runner.os }}-gomod-
+      - name: Cache Go build
+        uses: actions/cache@cdf6c1fa76f9f475f3d7449005a359c84ca0f306 # v5.0.3
+        with:
+          path: ~/.cache/go-build
+          key: ${{ runner.os }}-gobuild-go${{ matrix.go }}-${{ github.ref }}-${{ hashFiles('**/*.go') }}
+          restore-keys: |
+            ${{ runner.os }}-gobuild-go${{ matrix.go }}-${{ github.ref }}-
       - name: Setup Go
         uses: actions/setup-go@7a3fe6cf4cb3a834922a1244abfce67bcef6a0c5 # v6.2.0
         with:
