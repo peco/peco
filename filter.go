@@ -61,7 +61,9 @@ func flusher(ctx context.Context, f filter.Filter, incoming chan []line.Line, do
 			if !ok {
 				return
 			}
-			pdebug.Printf("flusher: %#v", buf)
+			if pdebug.Enabled {
+				pdebug.Printf("flusher: %#v", buf)
+			}
 			f.Apply(ctx, buf, out)
 			buffer.ReleaseLineListBuf(buf)
 		}
