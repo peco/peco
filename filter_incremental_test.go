@@ -3,6 +3,7 @@ package peco
 import (
 	"context"
 	"fmt"
+	"runtime"
 	"testing"
 
 	"github.com/peco/peco/filter"
@@ -129,6 +130,83 @@ func TestMemoryBufferSourceCancellation(t *testing.T) {
 	// We can't guarantee exact count due to race, but it should be less than total
 	// (or equal if the cancellation happened after all sends)
 	require.LessOrEqual(t, count, 10000)
+}
+
+// TestAcceptAndFilterSerial exercises the serial (non-parallel) batching path
+// through AcceptAndFilter. It sends lines through a channel and verifies
+// that the filter is applied correctly and all matching lines appear in the output.
+func TestAcceptAndFilterSerial(t *testing.T) {
+	f := filter.NewFuzzy(true) // Fuzzy with sortLongest=true does NOT support parallel
+	require.False(t, f.SupportsParallel(), "Fuzzy with sortLongest should not support parallel")
+
+	inputLines := []line.Line{
+		line.NewRaw(0, "alpha bravo", false, false),
+		line.NewRaw(1, "charlie delta", false, false),
+		line.NewRaw(2, "alpha charlie", false, false),
+		line.NewRaw(3, "echo foxtrot", false, false),
+		line.NewRaw(4, "alpha delta", false, false),
+	}
+
+	ctx := f.NewContext(context.Background(), "alpha")
+	in := make(chan line.Line, len(inputLines))
+	for _, l := range inputLines {
+		in <- l
+	}
+	close(in)
+
+	out := make(chan line.Line, len(inputLines))
+	AcceptAndFilter(ctx, f, 0, in, pipeline.ChanOutput(out))
+
+	var got []string
+	for l := range out {
+		got = append(got, l.DisplayString())
+	}
+
+	// Fuzzy with sortLongest sorts by: longer match > earlier match > shorter line.
+	// All three match "alpha" at position 0 with length 5, so the tiebreaker is
+	// line length (shorter first). "alpha bravo" and "alpha delta" tie at 11 chars,
+	// so sort.SliceStable preserves their input order.
+	require.Equal(t, []string{"alpha bravo", "alpha delta", "alpha charlie"}, got)
+}
+
+// TestAcceptAndFilterParallel exercises the parallel batching path.
+// IgnoreCase (a Regexp filter) supports parallel execution.
+func TestAcceptAndFilterParallel(t *testing.T) {
+	if runtime.GOMAXPROCS(0) < 2 {
+		t.Skip("parallel path requires GOMAXPROCS >= 2")
+	}
+
+	f := filter.NewIgnoreCase()
+	require.True(t, f.SupportsParallel(), "IgnoreCase should support parallel")
+
+	inputLines := []line.Line{
+		line.NewRaw(0, "foobar test", false, false),
+		line.NewRaw(1, "football game", false, false),
+		line.NewRaw(2, "something else", false, false),
+		line.NewRaw(3, "foobaz entry", false, false),
+		line.NewRaw(4, "barfoo other", false, false),
+		line.NewRaw(5, "the foobird flies", false, false),
+		line.NewRaw(6, "no match here", false, false),
+	}
+
+	ctx := f.NewContext(context.Background(), "foo")
+	in := make(chan line.Line, len(inputLines))
+	for _, l := range inputLines {
+		in <- l
+	}
+	close(in)
+
+	out := make(chan line.Line, len(inputLines))
+	AcceptAndFilter(ctx, f, 0, in, pipeline.ChanOutput(out))
+
+	var got []string
+	for l := range out {
+		got = append(got, l.DisplayString())
+	}
+
+	// Parallel preserves input order via ordered chunks — verify exact order
+	expected := []string{"foobar test", "football game", "foobaz entry", "barfoo other", "the foobird flies"}
+	require.Equal(t, expected, got)
 }
 
 func TestIncrementalFiltering(t *testing.T) {

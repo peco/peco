@@ -225,62 +225,34 @@ func acceptAndFilterSerial(ctx context.Context, f filter.Filter, bufsiz int, buf
 	flush := make(chan []line.Line)
 	flushDone := make(chan struct{})
 	go flusher(ctx, f, flush, flushDone, out)
-
 	defer func() { <-flushDone }()
 	defer close(flush)
 
-	flushTicker := time.NewTicker(50 * time.Millisecond)
-	defer flushTicker.Stop()
-
-	start := time.Now()
-	lines := 0
-	for {
-		select {
-		case <-ctx.Done():
-			if pdebug.Enabled {
-				pdebug.Printf("filter received done")
-			}
-			return
-		case <-flushTicker.C:
-			if len(buf) > 0 {
-				flush <- buf
-				buf = buffer.GetLineListBuf()
-			}
-		case v, ok := <-in:
-			if !ok {
-				if pdebug.Enabled {
-					pdebug.Printf("filter input closed (read %d lines, %s since starting accept loop)", lines+len(buf), time.Since(start).String())
-				}
-				if len(buf) > 0 {
-					flush <- buf
-				}
-				return
-			}
-			if pdebug.Enabled {
-				pdebug.Printf("incoming line")
-				lines++
-			}
-			buf = append(buf, v)
-			if len(buf) >= bufsiz {
-				flush <- buf
-				buf = buffer.GetLineListBuf()
-			}
-		}
-	}
+	batchAndFlush(ctx, bufsiz, buf, in, flush, func(b []line.Line) []line.Line { return b })
 }
 
 func acceptAndFilterParallel(ctx context.Context, f filter.Filter, bufsiz int, buf []line.Line, in <-chan line.Line, out pipeline.ChanOutput) {
 	flush := make(chan orderedChunk)
 	flushDone := make(chan struct{})
 	go parallelFlusher(ctx, f, flush, flushDone, out)
-
 	defer func() { <-flushDone }()
 	defer close(flush)
 
+	seq := 0
+	batchAndFlush(ctx, bufsiz, buf, in, flush, func(b []line.Line) orderedChunk {
+		chunk := orderedChunk{seq: seq, lines: b}
+		seq++
+		return chunk
+	})
+}
+
+// batchAndFlush reads lines from in, batches them into slices of up to bufsiz,
+// and sends each batch to flushCh via the wrap function. Batches are flushed
+// when full or every 50ms, whichever comes first.
+func batchAndFlush[T any](ctx context.Context, bufsiz int, buf []line.Line, in <-chan line.Line, flushCh chan T, wrap func([]line.Line) T) {
 	flushTicker := time.NewTicker(50 * time.Millisecond)
 	defer flushTicker.Stop()
 
-	seq := 0
 	start := time.Now()
 	lines := 0
 	for {
@@ -292,8 +264,7 @@ func acceptAndFilterParallel(ctx context.Context, f filter.Filter, bufsiz int, b
 			return
 		case <-flushTicker.C:
 			if len(buf) > 0 {
-				flush <- orderedChunk{seq: seq, lines: buf}
-				seq++
+				flushCh <- wrap(buf)
 				buf = buffer.GetLineListBuf()
 			}
 		case v, ok := <-in:
@@ -302,7 +273,7 @@ func acceptAndFilterParallel(ctx context.Context, f filter.Filter, bufsiz int, b
 					pdebug.Printf("filter input closed (read %d lines, %s since starting accept loop)", lines+len(buf), time.Since(start).String())
 				}
 				if len(buf) > 0 {
-					flush <- orderedChunk{seq: seq, lines: buf}
+					flushCh <- wrap(buf)
 				}
 				return
 			}
@@ -312,8 +283,7 @@ func acceptAndFilterParallel(ctx context.Context, f filter.Filter, bufsiz int, b
 			}
 			buf = append(buf, v)
 			if len(buf) >= bufsiz {
-				flush <- orderedChunk{seq: seq, lines: buf}
-				seq++
+				flushCh <- wrap(buf)
 				buf = buffer.GetLineListBuf()
 			}
 		}
