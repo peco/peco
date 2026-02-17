@@ -423,7 +423,7 @@ func (l *ListArea) Draw(state *Peco, parent Layout, perPage int, options *hub.Dr
 	// The max column size is calculated by buf. we check against where the
 	// loc variable thinks we should be scrolling to, and make sure that this
 	// falls in range with what we got
-	width, _ := state.screen.Size()
+	width, _ := state.Screen().Size()
 	if maxCol := max(buf.MaxColumn()-width, 0); loc.Column() > maxCol {
 		loc.SetColumn(maxCol)
 	}
@@ -464,7 +464,7 @@ func (l *ListArea) Draw(state *Peco, parent Layout, perPage int, options *hub.Dr
 
 	var cached, written int
 	var fgAttr, bgAttr Attribute
-	var selectionPrefix = state.selectionPrefix
+	var selectionPrefix = state.SelectionPrefix()
 	var prefix = ""
 
 	var prefixCurrentSelection string
@@ -688,7 +688,7 @@ func (l *ListArea) Draw(state *Peco, parent Layout, perPage int, options *hub.Dr
 // newStatusBar returns a StatusBar appropriate for the configuration.
 // If SuppressStatusMsg is true, a nullStatusBar (no-op) is returned.
 func newStatusBar(state *Peco) (StatusBar, error) {
-	if state.config.SuppressStatusMsg {
+	if state.SuppressStatusMsg() {
 		return nullStatusBar{}, nil
 	}
 	return newScreenStatusBar(state.Screen(), AnchorBottom, 0+extraOffset, state.Styles())
@@ -1006,7 +1006,7 @@ func verticalScroll(state *Peco, l *BasicLayout, p hub.PagingRequest) bool {
 
 // horizontalScroll scrolls screen horizontal
 func horizontalScroll(state *Peco, l *BasicLayout, p hub.PagingRequest) bool {
-	width, _ := state.screen.Size()
+	width, _ := state.Screen().Size()
 	loc := state.Location()
 	if p.Type() == hub.ToScrollRight {
 		loc.SetColumn(loc.Column() + width/2)
