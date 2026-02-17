@@ -18,8 +18,7 @@ var expectedConfig = Config{
 		"C-j":      "peco.Finish",
 		"C-x,C-c": "peco.Finish",
 	},
-	InitialMatcher: IgnoreCaseMatch,
-	Layout:         DefaultLayoutType,
+	Layout: DefaultLayoutType,
 	Prompt:         "[peco]",
 	Style: StyleSet{
 		Matched: Style{

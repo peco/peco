@@ -305,17 +305,14 @@ type Config struct {
 	// Keymap used to be directly responsible for dispatching
 	// events against user input, but since then this has changed
 	// into something that just records the user's config input
-	Keymap              map[string]string `json:"Keymap" yaml:"Keymap"`
-	Matcher             string            `json:"Matcher" yaml:"Matcher"`               // Deprecated.
-	InitialMatcher      string            `json:"InitialMatcher" yaml:"InitialMatcher"` // Use this instead of Matcher
-	InitialFilter       string            `json:"InitialFilter" yaml:"InitialFilter"`
-	Style               StyleSet          `json:"Style" yaml:"Style"`
-	Prompt              string            `json:"Prompt" yaml:"Prompt"`
-	Layout              string            `json:"Layout" yaml:"Layout"`
-	Use256Color         bool              `json:"Use256Color" yaml:"Use256Color"`
-	OnCancel            OnCancelBehavior  `json:"OnCancel" yaml:"OnCancel"`
-	CustomMatcher       map[string][]string                `json:"CustomMatcher" yaml:"CustomMatcher"`
-	CustomFilter        map[string]CustomFilterConfig      `json:"CustomFilter" yaml:"CustomFilter"`
+	Keymap        map[string]string `json:"Keymap" yaml:"Keymap"`
+	InitialFilter string            `json:"InitialFilter" yaml:"InitialFilter"`
+	Style         StyleSet          `json:"Style" yaml:"Style"`
+	Prompt        string            `json:"Prompt" yaml:"Prompt"`
+	Layout        string            `json:"Layout" yaml:"Layout"`
+	Use256Color   bool              `json:"Use256Color" yaml:"Use256Color"`
+	OnCancel     OnCancelBehavior              `json:"OnCancel" yaml:"OnCancel"`
+	CustomFilter map[string]CustomFilterConfig `json:"CustomFilter" yaml:"CustomFilter"`
 	QueryExecutionDelay int                                `json:"QueryExecutionDelay" yaml:"QueryExecutionDelay"`
 	StickySelection     bool                               `json:"StickySelection" yaml:"StickySelection"`
 	MaxScanBufferSize   int                                `json:"MaxScanBufferSize" yaml:"MaxScanBufferSize"`
@@ -459,7 +456,6 @@ type CLIOptions struct {
 	OptBufferSize      int    `long:"buffer-size" short:"b" description:"number of lines to keep in search buffer"`
 	OptEnableNullSep   bool   `long:"null" description:"expect NUL (\\0) as separator for target/output"`
 	OptInitialIndex    int    `long:"initial-index" description:"position of the initial index of the selection (0 base)"`
-	OptInitialMatcher  string `long:"initial-matcher" description:"specify the default matcher (deprecated)"`
 	OptInitialFilter   string `long:"initial-filter" description:"specify the default filter"`
 	OptPrompt          string `long:"prompt" description:"specify the prompt string"`
 	OptLayout          string `long:"layout" description:"layout to be used. 'top-down', 'bottom-up', or 'top-down-query-bottom'. default is 'top-down'"`

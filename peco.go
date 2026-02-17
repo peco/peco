@@ -674,9 +674,6 @@ func (p *Peco) ApplyConfig(opts CLIOptions) error {
 	if len(p.initialFilter) <= 0 {
 		p.initialFilter = p.config.InitialFilter
 	}
-	if len(p.initialFilter) <= 0 {
-		p.initialFilter = opts.OptInitialMatcher
-	}
 	p.fuzzyLongestSort = p.config.FuzzyLongestSort
 
 	// Height: CLI option overrides config
