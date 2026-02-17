@@ -64,7 +64,6 @@ type Regexp struct {
 	factory   *regexpQueryFactory
 	flags     regexpFlags
 	quotemeta bool
-	mutex     sync.Mutex
 	name      string
 }
 
