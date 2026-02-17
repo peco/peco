@@ -10,7 +10,6 @@ import (
 
 	"github.com/peco/peco/internal/util"
 	"github.com/peco/peco/line"
-	"github.com/peco/peco/pipeline"
 )
 
 func (r regexpFlagList) flags(_ string) []string {
@@ -89,7 +88,6 @@ func NewRegexp() *Regexp {
 		flags:     regexpFlagList(defaultFlags),
 		quotemeta: false,
 		name:      "Regexp",
-		outCh:     pipeline.ChanOutput(make(chan line.Line)),
 	}
 	rf.applyFn = rf.applyInternal
 	return rf
@@ -101,12 +99,6 @@ func NewIRegexp() *Regexp {
 	rf.flags = regexpFlagList([]string{"i"})
 	rf.name = "IRegexp"
 	return rf
-}
-
-func (rf *Regexp) OutCh() <-chan line.Line {
-	rf.mutex.Lock()
-	defer rf.mutex.Unlock()
-	return rf.outCh
 }
 
 const maxRegexpCacheSize = 100
