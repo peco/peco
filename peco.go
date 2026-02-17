@@ -892,19 +892,25 @@ func (p *Peco) ExecQuery(nextFunc func()) bool {
 		pdebug.Printf("sending query (with delay)")
 	}
 	p.queryExecTimer = time.AfterFunc(delay, func() {
+		// Acquire the mutex first to synchronize with stopQueryExecTimer.
+		// If stopQueryExecTimer already ran (during shutdown), the timer
+		// field will be nil and we must not proceed — the receivers on
+		// hub channels may have already exited.
+		p.queryExecMutex.Lock()
+		if p.queryExecTimer == nil {
+			p.queryExecMutex.Unlock()
+			return
+		}
+		p.queryExecTimer = nil
+		p.queryExecMutex.Unlock()
+
 		if pdebug.Enabled {
 			pdebug.Printf("delayed query sent")
 		}
 		p.sendQuery(context.Background(), q.String(), nextFunc)
-
 		if pdebug.Enabled {
 			pdebug.Printf("delayed query executed")
 		}
-
-		p.queryExecMutex.Lock()
-		defer p.queryExecMutex.Unlock()
-
-		p.queryExecTimer = nil
 	})
 	return true
 }
