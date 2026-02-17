@@ -479,7 +479,10 @@ type RangeStart struct {
 }
 
 // Buffer interface is used for containers for lines to be
-// processed by peco.
+// processed by peco. The unexported linesInRange method seals this
+// interface to the peco package — external packages cannot implement it.
+// This is intentional: linesInRange is an internal optimization for
+// efficient pagination in NewFilteredBuffer, not part of the public contract.
 type Buffer interface {
 	linesInRange(int, int) []line.Line
 	LineAt(int) (line.Line, error)
