@@ -156,8 +156,10 @@ func (h *Hub) SendDrawPrompt(ctx context.Context) {
 
 // SendDraw sends a request to redraw the terminal display
 func (h *Hub) SendDraw(ctx context.Context, options *DrawOptions) {
-	pdebug.Printf("START Hub.SendDraw %v", options)
-	defer pdebug.Printf("END Hub.SendDraw %v", options)
+	if pdebug.Enabled {
+		pdebug.Printf("START Hub.SendDraw %v", options)
+		defer pdebug.Printf("END Hub.SendDraw %v", options)
+	}
 	send(ctx, h.DrawCh(), NewPayload(options, isBatchCtx(ctx)))
 }
 
