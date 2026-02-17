@@ -285,12 +285,12 @@ func doSelectAll(ctx context.Context, state *Peco, _ Event) {
 	selection := state.Selection()
 	b := state.CurrentLineBuffer()
 	for x := 0; x < b.Size(); x++ {
-		if l, err := b.LineAt(x); err == nil {
-			l.SetDirty(true)
-			selection.Add(l)
-		} else {
-			selection.Remove(l)
+		l, err := b.LineAt(x)
+		if err != nil {
+			continue
 		}
+		l.SetDirty(true)
+		selection.Add(l)
 	}
 	state.Hub().SendDraw(ctx, nil)
 }
@@ -446,15 +446,15 @@ func doInvertSelection(ctx context.Context, state *Peco, _ Event) {
 	b := state.CurrentLineBuffer()
 
 	for x := 0; x < b.Size(); x++ {
-		if l, err := b.LineAt(x); err == nil {
-			l.SetDirty(true)
-			if selection.Has(l) {
-				selection.Remove(l)
-			} else {
-				selection.Add(l)
-			}
-		} else {
+		l, err := b.LineAt(x)
+		if err != nil {
+			continue
+		}
+		l.SetDirty(true)
+		if selection.Has(l) {
 			selection.Remove(l)
+		} else {
+			selection.Add(l)
 		}
 	}
 

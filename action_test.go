@@ -76,6 +76,100 @@ func (h *recordingHub) reset() {
 	h.drawArgs = nil
 }
 
+// failingBuffer is a Buffer where LineAt returns an error for specific indices.
+// This is used to test that doSelectAll and doInvertSelection don't panic when
+// LineAt fails (returning nil line).
+type failingBuffer struct {
+	lines    []line.Line
+	failAt   map[int]bool // indices where LineAt should return an error
+}
+
+func (b *failingBuffer) linesInRange(start, end int) []line.Line {
+	return b.lines[start:end]
+}
+
+func (b *failingBuffer) LineAt(i int) (line.Line, error) {
+	if b.failAt[i] {
+		return nil, fmt.Errorf("simulated failure at index %d", i)
+	}
+	if i < 0 || i >= len(b.lines) {
+		return nil, fmt.Errorf("index out of range: %d", i)
+	}
+	return b.lines[i], nil
+}
+
+func (b *failingBuffer) Size() int {
+	return len(b.lines)
+}
+
+func TestDoSelectAllWithLineAtError(t *testing.T) {
+	state := New()
+	state.screen = NewDummyScreen()
+	state.readConfigFn = func(*Config, string) error { return nil }
+
+	rh := &recordingHub{}
+	state.hub = rh
+
+	// Create lines and a buffer where index 1 fails
+	l0 := line.NewRaw(1, "line0", false, false)
+	l1 := line.NewRaw(2, "line1", false, false)
+	l2 := line.NewRaw(3, "line2", false, false)
+
+	buf := &failingBuffer{
+		lines:  []line.Line{l0, l1, l2},
+		failAt: map[int]bool{1: true},
+	}
+	state.currentLineBuffer = buf
+
+	// This should NOT panic despite LineAt returning nil for index 1.
+	require.NotPanics(t, func() {
+		doSelectAll(context.Background(), state, Event{})
+	}, "doSelectAll must not panic when LineAt returns an error")
+
+	// Lines 0 and 2 should be selected; line 1 (failed) should be skipped.
+	sel := state.Selection()
+	require.True(t, sel.Has(l0), "line 0 should be selected")
+	require.False(t, sel.Has(l1), "line 1 should not be selected (LineAt failed)")
+	require.True(t, sel.Has(l2), "line 2 should be selected")
+}
+
+func TestDoInvertSelectionWithLineAtError(t *testing.T) {
+	state := New()
+	state.screen = NewDummyScreen()
+	state.readConfigFn = func(*Config, string) error { return nil }
+
+	rh := &recordingHub{}
+	state.hub = rh
+
+	// Create lines and a buffer where index 1 fails
+	l0 := line.NewRaw(1, "line0", false, false)
+	l1 := line.NewRaw(2, "line1", false, false)
+	l2 := line.NewRaw(3, "line2", false, false)
+
+	buf := &failingBuffer{
+		lines:  []line.Line{l0, l1, l2},
+		failAt: map[int]bool{1: true},
+	}
+	state.currentLineBuffer = buf
+
+	// Pre-select lines 0 and 2, so inversion should deselect them
+	state.Selection().Add(l0)
+	state.Selection().Add(l2)
+
+	// This should NOT panic despite LineAt returning nil for index 1.
+	require.NotPanics(t, func() {
+		doInvertSelection(context.Background(), state, Event{})
+	}, "doInvertSelection must not panic when LineAt returns an error")
+
+	// Line 0 was selected → should now be deselected.
+	// Line 1 failed → skip (remain unselected).
+	// Line 2 was selected → should now be deselected.
+	sel := state.Selection()
+	require.False(t, sel.Has(l0), "line 0 was selected, should be deselected after inversion")
+	require.False(t, sel.Has(l1), "line 1 should not be affected (LineAt failed)")
+	require.False(t, sel.Has(l2), "line 2 was selected, should be deselected after inversion")
+}
+
 func TestActionFunc(t *testing.T) {
 	called := 0
 	af := ActionFunc(func(_ context.Context, _ *Peco, _ Event) {
