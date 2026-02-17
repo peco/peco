@@ -421,7 +421,7 @@ func (f *Filter) Work(ctx context.Context, q *hub.Payload[string]) {
 	f.prevMu.Unlock()
 
 	if src == nil {
-		if fs := state.FrozenSource(); fs != nil {
+		if fs := state.Frozen().Source(); fs != nil {
 			src = NewMemoryBufferSource(fs)
 			srcSize = fs.Size()
 		} else {

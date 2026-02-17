@@ -92,9 +92,7 @@ type Peco struct {
 	printQuery              bool
 	prompt                  string
 	query                   Query
-	queryExecDelay          time.Duration
-	queryExecMutex          sync.Mutex
-	queryExecTimer          *time.Timer
+	queryExec QueryExecState
 	readyCh                 chan struct{}
 	resultCh                chan line.Line
 	screen                  Screen
@@ -104,10 +102,7 @@ type Peco struct {
 	exitZeroAndExit         bool // True if --exit-0 is enabled
 	selectOneAndExit        bool // True if --select-1 is enabled
 	selectAllAndExit        bool // True if --select-all is enabled
-	singleKeyJumpMode       bool
-	singleKeyJumpPrefixes   []rune
-	singleKeyJumpPrefixMap  map[rune]uint
-	singleKeyJumpShowPrefix bool
+	singleKeyJump SingleKeyJumpState
 	heightSpec              *HeightSpec
 	readConfigFn            func(*Config, string) error
 	styles                  StyleSet
@@ -119,15 +114,9 @@ type Peco struct {
 	// executed.
 	source *Source
 
-	// frozenSource holds a snapshot of filter results when the user
-	// "freezes" the current results to filter on top of them.
-	frozenSource *MemoryBuffer
+	frozen FrozenState
 
-	// preZoomBuffer holds the filtered buffer before ZoomIn was applied,
-	// so ZoomOut can restore it. nil means not zoomed.
-	preZoomBuffer Buffer
-	// preZoomLineNo holds the cursor position before ZoomIn was applied.
-	preZoomLineNo int
+	zoom ZoomState
 
 	// cancelFunc is called for Exit()
 	cancelFunc func()

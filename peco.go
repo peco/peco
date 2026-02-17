@@ -116,7 +116,7 @@ func New() *Peco {
 		Stdout:            os.Stdout,
 		currentLineBuffer: NewMemoryBuffer(0), // XXX revisit this
 		idgen:             newIDGen(),
-		queryExecDelay:    50 * time.Millisecond,
+		queryExec:         QueryExecState{delay: 50 * time.Millisecond},
 		readyCh:           make(chan struct{}),
 		readConfigFn:      readConfig,
 		screen:            NewTcellScreen(),
@@ -194,82 +194,34 @@ func (p *Peco) SelectionRangeStart() *RangeStart {
 	return &p.selectionRangeStart
 }
 
-func (p *Peco) SingleKeyJumpShowPrefix() bool {
-	return p.singleKeyJumpShowPrefix
-}
-
-func (p *Peco) SingleKeyJumpPrefixes() []rune {
-	return p.singleKeyJumpPrefixes
-}
-
-func (p *Peco) SingleKeyJumpMode() bool {
-	return p.singleKeyJumpMode
-}
-
-func (p *Peco) SetSingleKeyJumpMode(b bool) {
-	p.singleKeyJumpMode = b
+func (p *Peco) SingleKeyJump() *SingleKeyJumpState {
+	return &p.singleKeyJump
 }
 
 func (p *Peco) ToggleSingleKeyJumpMode(ctx context.Context) {
-	p.singleKeyJumpMode = !p.singleKeyJumpMode
+	p.singleKeyJump.mode = !p.singleKeyJump.mode
 	go p.Hub().SendDraw(ctx, &hub.DrawOptions{DisableCache: true})
-}
-
-func (p *Peco) SingleKeyJumpIndex(ch rune) (uint, bool) {
-	n, ok := p.singleKeyJumpPrefixMap[ch]
-	return n, ok
 }
 
 func (p *Peco) Source() pipeline.Source {
 	return p.source
 }
 
-func (p *Peco) FrozenSource() *MemoryBuffer {
-	p.mutex.Lock()
-	defer p.mutex.Unlock()
-	return p.frozenSource
+func (p *Peco) Frozen() *FrozenState {
+	return &p.frozen
 }
 
-func (p *Peco) SetFrozenSource(buf *MemoryBuffer) {
-	p.mutex.Lock()
-	defer p.mutex.Unlock()
-	p.frozenSource = buf
+func (p *Peco) Zoom() *ZoomState {
+	return &p.zoom
 }
 
-func (p *Peco) ClearFrozenSource() {
+// setCurrentLineBufferNoNotify sets the current line buffer under p.mutex
+// without sending a draw event. Used by ZoomIn/ZoomOut where the caller
+// manages draw notifications.
+func (p *Peco) setCurrentLineBufferNoNotify(b Buffer) {
 	p.mutex.Lock()
 	defer p.mutex.Unlock()
-	p.frozenSource = nil
-}
-
-// PreZoomBuffer returns the saved buffer from before ZoomIn, or nil if not zoomed.
-func (p *Peco) PreZoomBuffer() Buffer {
-	p.mutex.Lock()
-	defer p.mutex.Unlock()
-	return p.preZoomBuffer
-}
-
-// SetPreZoomState saves the current buffer and cursor position before zooming in.
-func (p *Peco) SetPreZoomState(buf Buffer, lineNo int) {
-	p.mutex.Lock()
-	defer p.mutex.Unlock()
-	p.preZoomBuffer = buf
-	p.preZoomLineNo = lineNo
-}
-
-// ClearPreZoomState clears the saved zoom state.
-func (p *Peco) ClearPreZoomState() {
-	p.mutex.Lock()
-	defer p.mutex.Unlock()
-	p.preZoomBuffer = nil
-	p.preZoomLineNo = 0
-}
-
-// PreZoomLineNo returns the saved cursor position from before ZoomIn.
-func (p *Peco) PreZoomLineNo() int {
-	p.mutex.Lock()
-	defer p.mutex.Unlock()
-	return p.preZoomLineNo
+	p.currentLineBuffer = b
 }
 
 func (p *Peco) Filters() *filter.Set {
@@ -280,8 +232,8 @@ func (p *Peco) Query() *Query {
 	return &p.query
 }
 
-func (p *Peco) QueryExecDelay() time.Duration {
-	return p.queryExecDelay
+func (p *Peco) QueryExec() *QueryExecState {
+	return &p.queryExec
 }
 
 func (p *Peco) Caret() *Caret {
@@ -517,7 +469,7 @@ func (p *Peco) Run(ctx context.Context) (err error) {
 
 	// Stop any pending query exec timer to prevent the callback
 	// from firing after program state is torn down.
-	p.stopQueryExecTimer()
+	p.queryExec.StopTimer()
 
 	// ...and we return any errors that we might have been informed about.
 	return p.Err()
@@ -723,18 +675,18 @@ func (p *Peco) populateInitialFilter() error {
 }
 
 func (p *Peco) populateSingleKeyJump() error {
-	p.singleKeyJumpShowPrefix = p.config.SingleKeyJump.ShowPrefix
+	p.singleKeyJump.showPrefix = p.config.SingleKeyJump.ShowPrefix
 
 	jumpMap := make(map[rune]uint)
 	chrs := "asdfghjklzxcvbnmqwertyuiop"
 	for i := 0; i < len(chrs); i++ {
 		jumpMap[rune(chrs[i])] = uint(i)
 	}
-	p.singleKeyJumpPrefixMap = jumpMap
+	p.singleKeyJump.prefixMap = jumpMap
 
-	p.singleKeyJumpPrefixes = make([]rune, len(jumpMap))
-	for k, v := range p.singleKeyJumpPrefixMap {
-		p.singleKeyJumpPrefixes[v] = k
+	p.singleKeyJump.prefixes = make([]rune, len(jumpMap))
+	for k, v := range p.singleKeyJump.prefixMap {
+		p.singleKeyJump.prefixes[v] = k
 	}
 	return nil
 }
@@ -790,7 +742,7 @@ func (p *Peco) SetCurrentLineBuffer(ctx context.Context, b Buffer) {
 }
 
 func (p *Peco) ResetCurrentLineBuffer(ctx context.Context) {
-	if fs := p.FrozenSource(); fs != nil {
+	if fs := p.Frozen().Source(); fs != nil {
 		p.SetCurrentLineBuffer(ctx, fs)
 	} else {
 		p.SetCurrentLineBuffer(ctx, p.source)
@@ -862,7 +814,7 @@ func (p *Peco) ExecQuery(ctx context.Context, nextFunc func()) bool {
 		return true
 	}
 
-	delay := p.QueryExecDelay()
+	delay := p.queryExec.delay
 	if delay <= 0 {
 		if pdebug.Enabled {
 			pdebug.Printf("sending query (immediate)")
@@ -872,10 +824,10 @@ func (p *Peco) ExecQuery(ctx context.Context, nextFunc func()) bool {
 		return true
 	}
 
-	p.queryExecMutex.Lock()
-	defer p.queryExecMutex.Unlock()
+	p.queryExec.mutex.Lock()
+	defer p.queryExec.mutex.Unlock()
 
-	if p.queryExecTimer != nil {
+	if p.queryExec.timer != nil {
 		if pdebug.Enabled {
 			pdebug.Printf("timer is non-nil")
 		}
@@ -887,18 +839,18 @@ func (p *Peco) ExecQuery(ctx context.Context, nextFunc func()) bool {
 	if pdebug.Enabled {
 		pdebug.Printf("sending query (with delay)")
 	}
-	p.queryExecTimer = time.AfterFunc(delay, func() {
-		// Acquire the mutex first to synchronize with stopQueryExecTimer.
-		// If stopQueryExecTimer already ran (during shutdown), the timer
+	p.queryExec.timer = time.AfterFunc(delay, func() {
+		// Acquire the mutex first to synchronize with QueryExec.StopTimer.
+		// If StopTimer already ran (during shutdown), the timer
 		// field will be nil and we must not proceed — the receivers on
 		// hub channels may have already exited.
-		p.queryExecMutex.Lock()
-		if p.queryExecTimer == nil {
-			p.queryExecMutex.Unlock()
+		p.queryExec.mutex.Lock()
+		if p.queryExec.timer == nil {
+			p.queryExec.mutex.Unlock()
 			return
 		}
-		p.queryExecTimer = nil
-		p.queryExecMutex.Unlock()
+		p.queryExec.timer = nil
+		p.queryExec.mutex.Unlock()
 
 		if pdebug.Enabled {
 			pdebug.Printf("delayed query sent")
@@ -911,18 +863,6 @@ func (p *Peco) ExecQuery(ctx context.Context, nextFunc func()) bool {
 	return true
 }
 
-// stopQueryExecTimer stops and clears the pending query exec timer.
-// It must be called during shutdown to prevent the timer callback
-// from firing after program state is torn down.
-func (p *Peco) stopQueryExecTimer() {
-	p.queryExecMutex.Lock()
-	defer p.queryExecMutex.Unlock()
-
-	if p.queryExecTimer != nil {
-		p.queryExecTimer.Stop()
-		p.queryExecTimer = nil
-	}
-}
 
 func (p *Peco) PrintResults() {
 	if pdebug.Enabled {

@@ -322,18 +322,18 @@ func TestPecoHelp(t *testing.T) {
 func TestGHIssue331(t *testing.T) {
 	// Verify fields are populated when Run() initializes config.
 	state, _ := setupPecoTest(t)
-	require.NotEmpty(t, state.singleKeyJumpPrefixes, "singleKeyJumpPrefixes should be populated")
-	require.NotEmpty(t, state.singleKeyJumpPrefixMap, "singleKeyJumpPrefixMap should be populated")
+	require.NotEmpty(t, state.singleKeyJump.prefixes, "singleKeyJump.prefixes should be populated")
+	require.NotEmpty(t, state.singleKeyJump.prefixMap, "singleKeyJump.prefixMap should be populated")
 
 	// Verify ToggleSingleKeyJumpMode on a separate non-running instance
 	// to avoid racing with the View loop's DrawScreen reads.
 	p := New()
 	p.hub = nullHub{}
-	require.False(t, p.SingleKeyJumpMode(), "SingleKeyJumpMode should start as false")
+	require.False(t, p.SingleKeyJump().Mode(), "SingleKeyJump().Mode() should start as false")
 	p.ToggleSingleKeyJumpMode(context.Background())
-	require.True(t, p.SingleKeyJumpMode(), "SingleKeyJumpMode should be true after toggle")
+	require.True(t, p.SingleKeyJump().Mode(), "SingleKeyJump().Mode() should be true after toggle")
 	p.ToggleSingleKeyJumpMode(context.Background())
-	require.False(t, p.SingleKeyJumpMode(), "SingleKeyJumpMode should be false after second toggle")
+	require.False(t, p.SingleKeyJump().Mode(), "SingleKeyJump().Mode() should be false after second toggle")
 }
 
 func TestConfigFuzzyFilter(t *testing.T) {
@@ -866,7 +866,7 @@ func TestQueryExecTimerStoppedOnCancel(t *testing.T) {
 	p := newPeco()
 	// Set a long query exec delay so the timer is still pending
 	// when we cancel.
-	p.queryExecDelay = 5 * time.Second
+	p.queryExec.delay = 5 * time.Second
 	p.Stdin = bytes.NewBufferString("foo\nbar\nbaz\n")
 	var out bytes.Buffer
 	p.Stdout = &out
@@ -886,10 +886,10 @@ func TestQueryExecTimerStoppedOnCancel(t *testing.T) {
 
 	// Wait for the input loop to process the keystroke and create the timer
 	require.Eventually(t, func() bool {
-		p.queryExecMutex.Lock()
-		defer p.queryExecMutex.Unlock()
-		return p.queryExecTimer != nil
-	}, 5*time.Second, 10*time.Millisecond, "queryExecTimer should have been created")
+		p.queryExec.mutex.Lock()
+		defer p.queryExec.mutex.Unlock()
+		return p.queryExec.timer != nil
+	}, 5*time.Second, 10*time.Millisecond, "queryExec.timer should have been created")
 
 	// Cancel the context (simulating program exit)
 	cancel()
@@ -898,8 +898,8 @@ func TestQueryExecTimerStoppedOnCancel(t *testing.T) {
 	<-waitCh
 
 	// After Run returns, the timer should have been stopped.
-	p.queryExecMutex.Lock()
-	timerAfterCancel := p.queryExecTimer
-	p.queryExecMutex.Unlock()
-	require.Nil(t, timerAfterCancel, "queryExecTimer should be nil after cancellation")
+	p.queryExec.mutex.Lock()
+	timerAfterCancel := p.queryExec.timer
+	p.queryExec.mutex.Unlock()
+	require.Nil(t, timerAfterCancel, "queryExec.timer should be nil after cancellation")
 }
