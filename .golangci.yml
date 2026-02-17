@@ -69,6 +69,10 @@ linters:
         text: don't use an underscore in package name
       - linters:
           - revive
+        path: internal/util/
+        text: 'var-naming: avoid meaningless package names'
+      - linters:
+          - revive
         path: /*_test.go
         text: 'var-naming: '
       - linters:

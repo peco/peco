@@ -1,6 +1,6 @@
 //go:build !windows
 
-package util //nolint:revive
+package util
 
 import (
 	"context"
