@@ -118,6 +118,7 @@ func New() *Peco {
 		idgen:             newIDGen(),
 		queryExecDelay:    50 * time.Millisecond,
 		readyCh:           make(chan struct{}),
+		readConfigFn:      readConfig,
 		screen:            NewTcellScreen(),
 		selection:         NewSelection(),
 		maxScanBufferSize: bufio.MaxScanTokenSize,
@@ -328,10 +329,8 @@ func (p *Peco) Setup() (err error) {
 	}
 
 	// Read config
-	if !p.skipReadConfig { // This can only be set via test
-		if err := readConfig(&p.config, opts.OptRcfile); err != nil {
-			return fmt.Errorf("failed to setup configuration: %w", err)
-		}
+	if err := p.readConfigFn(&p.config, opts.OptRcfile); err != nil {
+		return fmt.Errorf("failed to setup configuration: %w", err)
 	}
 
 	// Take Args, Config, Options, and apply the configuration to

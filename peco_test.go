@@ -91,7 +91,7 @@ func newPeco() *Peco {
 	state := New()
 	state.Argv = []string{"peco", file}
 	state.screen = NewDummyScreen()
-	state.skipReadConfig = true
+	state.readConfigFn = func(*Config, string) error { return nil }
 	return state
 }
 

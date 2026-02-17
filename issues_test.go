@@ -85,7 +85,7 @@ func TestIssue345(t *testing.T) {
 	defer os.Remove(cfg)
 
 	state := newPeco()
-	state.skipReadConfig = false
+	state.readConfigFn = readConfig
 	if !assert.NoError(t, state.config.Init(), "Config.Init should succeed") {
 		return
 	}

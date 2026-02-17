@@ -109,7 +109,7 @@ type Peco struct {
 	singleKeyJumpPrefixMap  map[rune]uint
 	singleKeyJumpShowPrefix bool
 	heightSpec              *HeightSpec
-	skipReadConfig          bool
+	readConfigFn            func(*Config, string) error
 	styles                  StyleSet
 	enableANSI              bool // Enable ANSI color code support
 	use256Color             bool
