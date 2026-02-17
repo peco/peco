@@ -30,6 +30,7 @@ jobs:
         with:
           go-version: ${{ matrix.go }}
           check-latest: true
+          cache: false
       - name: Test
         run: make test
       - name: Build all targets
