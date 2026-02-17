@@ -66,7 +66,6 @@ type Regexp struct {
 	quotemeta bool
 	mutex     sync.Mutex
 	name      string
-	outCh     pipeline.ChanOutput
 }
 
 type ExternalCmd struct {
@@ -74,7 +73,6 @@ type ExternalCmd struct {
 	cmd             string
 	enableSep       bool
 	idgen           line.IDGenerator
-	outCh           pipeline.ChanOutput
 	name            string
 	thresholdBufsiz int
 }
