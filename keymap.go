@@ -170,7 +170,7 @@ func (km *Keymap) ApplyKeybinding() error {
 		a := kb[s]
 		list, err := keyseq.ToKeyList(s)
 		if err != nil {
-			return fmt.Errorf("urnknown key %s: %w", s, err)
+			return fmt.Errorf("unknown key %s: %w", s, err)
 		}
 
 		k.Add(list, a)
