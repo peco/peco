@@ -29,9 +29,9 @@ func (p *Payload[T]) Data() T {
 	return p.data
 }
 
-// Done marks the request as done. If Hub is operating in
-// asynchronous mode (default), it's a no op. Otherwise it
-// closes the reply channel to finish up the synchronous communication.
+// Done marks the request as done. In non-batch mode it's a no-op.
+// In batch mode it signals the sender that the receiver has finished
+// processing this payload.
 func (p *Payload[T]) Done() {
 	if p.done == nil {
 		return
@@ -42,7 +42,6 @@ func (p *Payload[T]) Done() {
 // New creates a new Hub struct
 func New(bufsiz int) *Hub {
 	return &Hub{
-		isSync:      false,
 		queryCh:     make(chan *Payload[string], bufsiz),
 		drawCh:      make(chan *Payload[*DrawOptions], bufsiz),
 		statusMsgCh: make(chan *Payload[StatusMsg], bufsiz),

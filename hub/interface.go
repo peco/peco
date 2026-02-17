@@ -6,7 +6,6 @@ import "sync"
 // it controls how the communication that goes through channels
 // are handled.
 type Hub struct {
-	isSync      bool
 	mutex       sync.Mutex
 	queryCh     chan *Payload[string]
 	drawCh      chan *Payload[*DrawOptions]
