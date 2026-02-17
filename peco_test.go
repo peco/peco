@@ -320,22 +320,19 @@ func TestPecoHelp(t *testing.T) {
 }
 
 func TestGHIssue331(t *testing.T) {
-	// Note: we should check that the drawing process did not
-	// use cached display, but ATM this seemed hard to do,
-	// so we just check that the proper fields were populated
-	// when peco was instantiated
-	ctx, cancel := context.WithCancel(context.Background())
-	time.AfterFunc(time.Second, cancel)
+	state, _ := setupPecoTest(t)
 
-	p := newPeco()
-	p.Run(ctx)
+	require.NotEmpty(t, state.singleKeyJumpPrefixes, "singleKeyJumpPrefixes should be populated")
+	require.NotEmpty(t, state.singleKeyJumpPrefixMap, "singleKeyJumpPrefixMap should be populated")
 
-	if !assert.NotEmpty(t, p.singleKeyJumpPrefixes, "singleKeyJumpPrefixes is not empty") {
-		return
-	}
-	if !assert.NotEmpty(t, p.singleKeyJumpPrefixMap, "singleKeyJumpPrefixMap is not empty") {
-		return
-	}
+	// Verify ToggleSingleKeyJumpMode toggles the mode and triggers a draw.
+	// Note: verifying that the draw uses DisableCache=true would require
+	// hub interception; here we verify the toggle itself works correctly.
+	require.False(t, state.SingleKeyJumpMode(), "SingleKeyJumpMode should start as false")
+	state.ToggleSingleKeyJumpMode()
+	require.True(t, state.SingleKeyJumpMode(), "SingleKeyJumpMode should be true after toggle")
+	state.ToggleSingleKeyJumpMode()
+	require.False(t, state.SingleKeyJumpMode(), "SingleKeyJumpMode should be false after second toggle")
 }
 
 func TestConfigFuzzyFilter(t *testing.T) {
