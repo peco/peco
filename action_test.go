@@ -377,7 +377,39 @@ func TestRotateFilter(t *testing.T) {
 		t.Errorf("should have rotated back to first one, but didn't")
 	}
 
-	// TODO toggle ExecQuery()
+	// Verify ExecQuery is triggered after rotation: type a query, rotate,
+	// and verify the filtered buffer updates (proving re-execution).
+	sourceSize := state.Source().(Buffer).Size()
+
+	writeQueryToPrompt(t, state.screen, "func")
+	require.Eventually(t, func() bool {
+		return state.Query().String() == "func"
+	}, 5*time.Second, 10*time.Millisecond, "query should be set to 'func'")
+
+	// Wait for filter to produce results (buffer should be smaller than source)
+	require.Eventually(t, func() bool {
+		buf := state.CurrentLineBuffer()
+		return buf.Size() > 0 && buf.Size() < sourceSize
+	}, 5*time.Second, 10*time.Millisecond,
+		"buffer should be filtered to less than source size (%d)", sourceSize)
+
+	filteredSize := state.CurrentLineBuffer().Size()
+	prevFilter := state.Filters().Current()
+
+	// Rotate filter — this calls execQueryAndDraw → ExecQuery
+	state.screen.SendEvent(Event{Type: EventKey, Key: keyseq.KeyCtrlR})
+
+	require.Eventually(t, func() bool {
+		return state.Filters().Current() != prevFilter
+	}, 5*time.Second, 10*time.Millisecond, "filter should have rotated")
+
+	// After rotation with non-empty query, ExecQuery re-filters. Buffer
+	// should still be filtered (not reset to full source).
+	require.Eventually(t, func() bool {
+		buf := state.CurrentLineBuffer()
+		return buf.Size() > 0 && buf.Size() <= sourceSize
+	}, 5*time.Second, 10*time.Millisecond,
+		"after rotation, buffer should still be filtered (was %d)", filteredSize)
 }
 
 func TestBeginningOfLineAndEndOfLine(t *testing.T) {
