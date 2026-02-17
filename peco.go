@@ -145,6 +145,14 @@ func (p *Peco) Prompt() string {
 	return p.prompt
 }
 
+func (p *Peco) SelectionPrefix() string {
+	return p.selectionPrefix
+}
+
+func (p *Peco) SuppressStatusMsg() bool {
+	return p.config.SuppressStatusMsg
+}
+
 func (p *Peco) Inputseq() *Inputseq {
 	return &p.inputseq
 }
