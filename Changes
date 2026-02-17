@@ -7,6 +7,9 @@ v0.6.0 - UNRELEASED
     `CustomMatcher`. Use `InitialFilter` and `CustomFilter` instead.
   * Removed deprecated CLI option `--initial-matcher`.
     Use `--initial-filter` instead.
+  * The action `ViewArround` has been renamed to `ViewAround` (fix typo).
+    The old name still works but shows a deprecation notice. If you have
+    `"ViewArround"` in your config, please update it to `"ViewAround"`.
 
 v0.5.11 - 21 Mar 2023
   [Features]
