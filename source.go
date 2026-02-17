@@ -283,7 +283,7 @@ func (s *Source) LineAt(n int) (line.Line, error) {
 func (s *Source) Size() int {
 	s.mutex.RLock()
 	defer s.mutex.RUnlock()
-	return bufferSize(s.lines)
+	return len(s.lines)
 }
 
 func (s *Source) Append(l line.Line) {
