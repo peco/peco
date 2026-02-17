@@ -452,9 +452,6 @@ type CLIOptions struct {
 	OptHeight          string `long:"height" description:"display height in lines or percentage (e.g. '10', '50%')"`
 }
 
-type CLI struct {
-}
-
 type RangeStart struct {
 	val   int
 	valid bool
