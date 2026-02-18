@@ -58,7 +58,7 @@ func (ff *Fuzzy) applyInternal(ctx context.Context, lines []line.Line, emit func
 	fuzzyQuery := strings.Join(posTerms, "")
 
 	hasUpper := util.ContainsUpper(fuzzyQuery)
-	matched := []fuzzyMatchedItem{}
+	var matched []fuzzyMatchedItem
 
 LINE:
 	for i, l := range lines {
@@ -93,7 +93,7 @@ LINE:
 
 		// Find the index of the first valid rune in the input line
 		txt = l.DisplayString()
-		firstRuneOffsets := []int{}
+		var firstRuneOffsets []int
 		accum := 0
 		var r rune
 		var n int
@@ -120,14 +120,14 @@ LINE:
 		}
 
 		// Find all candidate matches
-		candidates := []fuzzyMatchedItem{}
+		var candidates []fuzzyMatchedItem
 
 	OUTER:
 		for _, offset := range firstRuneOffsets {
 			query := fuzzyQuery
 			txt = l.DisplayString()[offset:]
 			base := offset
-			matches := [][]int{}
+			var matches [][]int
 
 			for len(query) > 0 {
 				query, r, n = popRune(query)
