@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/gdamore/tcell/v2"
+	"github.com/peco/peco/internal/keyseq"
 	"github.com/stretchr/testify/require"
 )
 
@@ -433,4 +434,121 @@ func TestTcellScreenResumeInitError(t *testing.T) {
 	err := tb.Resume(ctx)
 	require.Error(t, err)
 	require.Equal(t, initErr, err)
+}
+
+// TestTcellEventToEventCtrlC verifies that Ctrl-C is correctly converted
+// to peco's Cancel key binding regardless of how the terminal reports it.
+//
+// tcell v2 has two families of ctrl key constants:
+//   - Raw ASCII control codes: KeyETX(3), KeyBS(8), etc.
+//   - High-level ctrl keys: KeyCtrlC(67), KeyCtrlH(72), etc.
+//
+// Traditional terminals produce raw bytes (0x03 for Ctrl-C) which tcell
+// normalizes to Key=3 with ModCtrl. Enhanced terminals (CSI u / fixterms)
+// produce KeyCtrlC(67) with ModCtrl. Peco's keyseq system encodes ctrl
+// in the key value (KeyCtrlC=0x03) with Modifier=0. Both paths must
+// produce the same peco Event. (issue #715)
+func TestTcellEventToEventCtrlC(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name    string
+		tcellEv *tcell.EventKey
+		wantKey keyseq.KeyType
+		wantCh  rune
+		wantMod keyseq.ModifierKey
+	}{
+		{
+			// Traditional terminal: raw byte 0x03 → tcell normalizes
+			// NewEventKey(KeyRune, rune(3), ModNone) to Key=3, Mod=ModCtrl
+			name:    "traditional terminal: raw Ctrl-C byte",
+			tcellEv: tcell.NewEventKey(tcell.KeyRune, rune(3), tcell.ModNone),
+			wantKey: keyseq.KeyCtrlC,
+			wantCh:  0,
+			wantMod: keyseq.ModNone,
+		},
+		{
+			// CSI u terminal: \x1b[99;5u → tcell normalizes
+			// NewEventKey(KeyRune, 'c', ModCtrl) to Key=67(KeyCtrlC), Mod=ModCtrl
+			name:    "CSI u terminal: Ctrl-C with modifier",
+			tcellEv: tcell.NewEventKey(tcell.KeyRune, 'c', tcell.ModCtrl),
+			wantKey: keyseq.KeyCtrlC,
+			wantCh:  0,
+			wantMod: keyseq.ModNone,
+		},
+		{
+			// Direct KeyETX without modifier (edge case)
+			name:    "direct KeyETX without ModCtrl",
+			tcellEv: tcell.NewEventKey(tcell.KeyETX, 0, tcell.ModNone),
+			wantKey: keyseq.KeyCtrlC,
+			wantCh:  0,
+			wantMod: keyseq.ModNone,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			got := tcellEventToEvent(tt.tcellEv)
+			require.Equal(t, EventKey, got.Type, "event type")
+			require.Equal(t, tt.wantKey, got.Key, "key")
+			require.Equal(t, tt.wantCh, got.Ch, "ch")
+			require.Equal(t, tt.wantMod, got.Mod, "modifier")
+		})
+	}
+}
+
+// TestTcellEventToEventCtrlKeysStripModCtrl verifies that all Ctrl+letter
+// keys have ModCtrl stripped, since the control nature is encoded in the
+// key value. Tests both the raw control code path (traditional terminals)
+// and the KeyCtrl* path (CSI u terminals). Regression test for issue #715.
+func TestTcellEventToEventCtrlKeysStripModCtrl(t *testing.T) {
+	t.Parallel()
+
+	for i := range 26 {
+		letter := rune('a' + i)
+		expectedKey := keyseq.KeyType(i + 1) // 0x01 (KeyCtrlA) through 0x1A (KeyCtrlZ)
+
+		// Raw control code path: tcell normalizes raw byte to Key=i+1, Mod=ModCtrl
+		// (except Backspace=0x08, Tab=0x09, Enter=0x0D, Escape=0x1B which go
+		// through the lookup table instead)
+		t.Run("raw/Ctrl-"+string(letter), func(t *testing.T) {
+			t.Parallel()
+			ev := tcell.NewEventKey(tcell.KeyRune, rune(i+1), tcell.ModNone)
+			got := tcellEventToEvent(ev)
+			require.Equal(t, EventKey, got.Type)
+			require.Equal(t, expectedKey, got.Key)
+			require.Equal(t, rune(0), got.Ch)
+			require.Equal(t, keyseq.ModNone, got.Mod,
+				"ModCtrl should be stripped for raw Ctrl+%c", letter)
+		})
+
+		// CSI u path: tcell normalizes KeyRune+'letter'+ModCtrl to KeyCtrl*(65+i)
+		t.Run("csi-u/Ctrl-"+string(letter), func(t *testing.T) {
+			t.Parallel()
+			ev := tcell.NewEventKey(tcell.KeyRune, letter, tcell.ModCtrl)
+			got := tcellEventToEvent(ev)
+			require.Equal(t, EventKey, got.Type)
+			require.Equal(t, expectedKey, got.Key)
+			require.Equal(t, rune(0), got.Ch)
+			require.Equal(t, keyseq.ModNone, got.Mod,
+				"ModCtrl should be stripped for CSI u Ctrl+%c", letter)
+		})
+	}
+}
+
+// TestTcellEventToEventCtrlWithAltPreservesAlt verifies that Ctrl+Alt
+// combinations strip ModCtrl but preserve ModAlt.
+func TestTcellEventToEventCtrlWithAltPreservesAlt(t *testing.T) {
+	t.Parallel()
+
+	// Ctrl+Alt+C via CSI u path (most common for enhanced terminals)
+	t.Run("Ctrl-Alt-C", func(t *testing.T) {
+		t.Parallel()
+		ev := tcell.NewEventKey(tcell.KeyRune, 'c', tcell.ModCtrl|tcell.ModAlt)
+		got := tcellEventToEvent(ev)
+		require.Equal(t, EventKey, got.Type)
+		require.Equal(t, keyseq.KeyCtrlC, got.Key)
+		require.Equal(t, keyseq.ModAlt, got.Mod, "ModAlt should be preserved, ModCtrl stripped")
+	})
 }
