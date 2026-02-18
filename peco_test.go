@@ -902,3 +902,54 @@ func TestQueryExecTimerStoppedOnCancel(t *testing.T) {
 	p.queryExec.mutex.Unlock()
 	require.Nil(t, timerAfterCancel, "queryExec.timer should be nil after cancellation")
 }
+
+// TestCancelFuncDataRace verifies that concurrent calls to Exit() and
+// reads of Err() do not race with Run()'s write to cancelFunc. Without
+// proper mutex protection on p.cancelFunc and p.err, the race detector
+// flags this as a data race.
+func TestCancelFuncDataRace(t *testing.T) {
+	p := newPeco()
+	p.Stdin = bytes.NewBufferString("foo\nbar\nbaz\n")
+	var out bytes.Buffer
+	p.Stdout = &out
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	waitCh := make(chan error, 1)
+	go func() {
+		waitCh <- p.Run(ctx)
+	}()
+
+	// Wait for peco to be ready (cancelFunc has been set by now)
+	<-p.Ready()
+
+	// Launch several goroutines that concurrently call Exit() and Err().
+	// Under the race detector, unprotected access to p.cancelFunc and
+	// p.err would be flagged.
+	var wg sync.WaitGroup
+	for i := 0; i < 10; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			_ = p.Err()
+		}()
+	}
+	for i := 0; i < 5; i++ {
+		wg.Add(1)
+		go func(i int) {
+			defer wg.Done()
+			p.Exit(fmt.Errorf("exit-%d", i))
+		}(i)
+	}
+	wg.Wait()
+
+	// One of the Exit calls should have cancelled the context.
+	select {
+	case err := <-waitCh:
+		// err could be any of the "exit-N" errors; just verify it's non-nil
+		require.Error(t, err, "Run should return an error after Exit")
+	case <-time.After(5 * time.Second):
+		t.Fatal("timeout waiting for Run to return")
+	}
+}

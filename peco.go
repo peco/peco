@@ -253,6 +253,8 @@ func (p *Peco) Hub() MessageHub {
 }
 
 func (p *Peco) Err() error {
+	p.mutex.Lock()
+	defer p.mutex.Unlock()
 	return p.err
 }
 
@@ -261,8 +263,11 @@ func (p *Peco) Exit(err error) {
 		g := pdebug.Marker("Peco.Exit (err = %s)", err)
 		defer g.End()
 	}
+	p.mutex.Lock()
 	p.err = err
-	if cf := p.cancelFunc; cf != nil {
+	cf := p.cancelFunc
+	p.mutex.Unlock()
+	if cf != nil {
 		cf()
 	}
 }
@@ -448,8 +453,10 @@ func (p *Peco) Run(ctx context.Context) (err error) {
 	// start the ID generator
 	go p.idgen.Run(ctx)
 
-	// remember this cancel func so p.Exit works (XXX requires locking?)
+	// remember this cancel func so p.Exit works
+	p.mutex.Lock()
 	p.cancelFunc = cancel
+	p.mutex.Unlock()
 
 	sigH := sig.New(sig.ReceivedHandlerFunc(func(sig os.Signal) {
 		p.Exit(errors.New("received signal: " + sig.String()))
