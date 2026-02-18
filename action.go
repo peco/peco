@@ -180,6 +180,12 @@ func init() {
 	)
 }
 
+// selectLine marks the line as dirty and adds it to the selection.
+func selectLine(l line.Line, s *Selection) {
+	l.SetDirty(true)
+	s.Add(l)
+}
+
 // This is a noop action
 func doNothing(_ context.Context, _ *Peco, _ Event) {}
 
@@ -290,8 +296,7 @@ func doSelectAll(ctx context.Context, state *Peco, _ Event) {
 		if err != nil {
 			continue
 		}
-		l.SetDirty(true)
-		selection.Add(l)
+		selectLine(l, selection)
 	}
 	state.Hub().SendDraw(ctx, nil)
 }
@@ -312,8 +317,7 @@ func doSelectVisible(ctx context.Context, state *Peco, _ Event) {
 		if err != nil {
 			continue
 		}
-		l.SetDirty(true)
-		selection.Add(l)
+		selectLine(l, selection)
 	}
 	state.Hub().SendDraw(ctx, nil)
 }
@@ -453,11 +457,11 @@ func doInvertSelection(ctx context.Context, state *Peco, _ Event) {
 		if err != nil {
 			continue
 		}
-		l.SetDirty(true)
 		if selection.Has(l) {
+			l.SetDirty(true)
 			selection.Remove(l)
 		} else {
-			selection.Add(l)
+			selectLine(l, selection)
 		}
 	}
 
