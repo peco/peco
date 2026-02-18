@@ -67,7 +67,7 @@ func TestSource(t *testing.T) {
 	for i := range lines {
 		line, err := s.LineAt(i)
 		require.NoError(t, err, "s.LineAt(%d) should succeed", i)
-		require.Equal(t, line.DisplayString(), lines[i], "expected lien found")
+		require.Equal(t, line.DisplayString(), lines[i], "expected line found")
 	}
 }
 
