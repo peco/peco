@@ -13,7 +13,6 @@ import (
 	"github.com/peco/peco/hub"
 	"github.com/peco/peco/internal/keyseq"
 	"github.com/peco/peco/line"
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -176,9 +175,7 @@ func TestActionFunc(t *testing.T) {
 		called++
 	})
 	af.Execute(context.TODO(), nil, Event{})
-	if !assert.Equal(t, called, 1, "Expected ActionFunc to be called once, but it got called %d times", called) {
-		return
-	}
+	require.Equal(t, called, 1, "Expected ActionFunc to be called once, but it got called %d times", called)
 }
 
 func TestPagingActions(t *testing.T) {
@@ -267,12 +264,14 @@ func TestViewAroundActionName(t *testing.T) {
 	require.True(t, ok, "peco.ViewArround must remain registered for backward compatibility")
 }
 
-func expectCaretPos(t *testing.T, c *Caret, expect int) bool {
-	return assert.Equal(t, expect, c.Pos(), "Expected caret position %d, got %d", expect, c.Pos())
+func expectCaretPos(t *testing.T, c *Caret, expect int) {
+	t.Helper()
+	require.Equal(t, expect, c.Pos(), "Expected caret position %d, got %d", expect, c.Pos())
 }
 
-func expectQueryString(t *testing.T, q *Query, expect string) bool {
-	return assert.Equal(t, expect, q.String(), "Expected '%s', got '%s'", expect, q.String())
+func expectQueryString(t *testing.T, q *Query, expect string) {
+	t.Helper()
+	require.Equal(t, expect, q.String(), "Expected '%s', got '%s'", expect, q.String())
 }
 
 func TestDoDeleteForwardChar(t *testing.T) {
@@ -285,12 +284,8 @@ func TestDoDeleteForwardChar(t *testing.T) {
 
 	doDeleteForwardChar(ctx, state, Event{})
 
-	if !expectQueryString(t, q, "Hello World!") {
-		return
-	}
-	if !expectCaretPos(t, c, 5) {
-		return
-	}
+	expectQueryString(t, q, "Hello World!")
+	expectCaretPos(t, c, 5)
 
 	c.SetPos(q.Len())
 	doDeleteForwardChar(ctx, state, Event{})
@@ -315,44 +310,28 @@ func TestDoDeleteForwardWord(t *testing.T) {
 
 	// delete the comma
 	doDeleteForwardWord(ctx, state, Event{})
-	if !expectQueryString(t, q, "Hello World!") {
-		return
-	}
-
-	if !expectCaretPos(t, c, 5) {
-		return
-	}
+	expectQueryString(t, q, "Hello World!")
+	expectCaretPos(t, c, 5)
 
 	// at the end of the query, should not delete anything
 	c.SetPos(q.Len())
 	doDeleteForwardWord(ctx, state, Event{})
 
-	if !expectQueryString(t, q, "Hello World!") {
-		return
-	}
-	if !expectCaretPos(t, c, q.Len()) {
-		return
-	}
+	expectQueryString(t, q, "Hello World!")
+	expectCaretPos(t, c, q.Len())
 
 	// back to the first column, should delete 'Hello'
 	c.SetPos(0)
 	doDeleteForwardWord(ctx, state, Event{})
 
-	if !expectQueryString(t, q, " World!") {
-		return
-	}
-
-	if !expectCaretPos(t, c, 0) {
-		return
-	}
+	expectQueryString(t, q, " World!")
+	expectCaretPos(t, c, 0)
 
 	// should delete "World"
 	c.SetPos(1)
 	doDeleteForwardWord(ctx, state, Event{})
 
-	if !expectQueryString(t, q, " ") {
-		return
-	}
+	expectQueryString(t, q, " ")
 }
 
 func TestDoDeleteBackwardChar(t *testing.T) {
@@ -398,33 +377,24 @@ func TestDoDeleteBackwardWord(t *testing.T) {
 	c.SetPos(4)
 	doDeleteBackwardWord(ctx, state, Event{})
 
-	if !expectQueryString(t, q, " ") {
-		return
-	}
-
-	if !expectCaretPos(t, c, 1) {
-		return
-	}
+	expectQueryString(t, q, " ")
+	expectCaretPos(t, c, 1)
 
 	// Case 2. "foo bar<caret>" -> "foo "
 	q.Set("foo bar")
 	c.SetPos(7)
 	doDeleteBackwardWord(ctx, state, Event{})
 
-	if !expectQueryString(t, q, "foo ") {
-		return
-	}
-
-	if !expectCaretPos(t, c, 4) {
-		return
-	}
+	expectQueryString(t, q, "foo ")
+	expectCaretPos(t, c, 4)
 }
 
 func writeQueryToPrompt(t *testing.T, screen Screen, message string) {
+	t.Helper()
 	for str := message; true; {
 		r, size := utf8.DecodeRuneInString(str)
 		if r == utf8.RuneError {
-			assert.Equal(t, 0, size, "when in error, we should have size == 0")
+			require.Equal(t, 0, size, "when in error, we should have size == 0")
 			return
 		}
 
@@ -538,13 +508,8 @@ func TestBackToInitialFilter(t *testing.T) {
 	state, _ := setupPecoTest(t)
 
 	state.config.Keymap["C-q"] = "peco.BackToInitialFilter"
-	if !assert.NoError(t, state.populateKeymap(), "populateKeymap expected to succeed") {
-		return
-	}
-
-	if !assert.Equal(t, state.Filters().Index(), 0, "Expected filter to be at position 0, got %d", state.Filters().Index()) {
-		return
-	}
+	require.NoError(t, state.populateKeymap(), "populateKeymap expected to succeed")
+	require.Equal(t, state.Filters().Index(), 0, "Expected filter to be at position 0, got %d", state.Filters().Index())
 
 	state.screen.SendEvent(Event{Type: EventKey, Key: keyseq.KeyCtrlR})
 	require.Eventually(t, func() bool {

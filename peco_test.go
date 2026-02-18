@@ -18,7 +18,6 @@ import (
 	"github.com/peco/peco/internal/keyseq"
 	"github.com/peco/peco/internal/util"
 	"github.com/peco/peco/line"
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -300,9 +299,7 @@ func TestPeco(t *testing.T) {
 	p := newPeco()
 	ctx, cancel := context.WithCancel(context.Background())
 	time.AfterFunc(time.Second, cancel)
-	if !assert.NoError(t, p.Run(ctx), "p.Run() succeeds") {
-		return
-	}
+	require.NoError(t, p.Run(ctx), "p.Run() succeeds")
 }
 
 func TestPecoHelp(t *testing.T) {
@@ -313,9 +310,7 @@ func TestPecoHelp(t *testing.T) {
 	time.AfterFunc(time.Second, cancel)
 
 	err := p.Run(ctx)
-	if !assert.True(t, util.IsIgnorableError(err), "p.Run() should return error with Ignorable() method, and it should return true") {
-		return
-	}
+	require.True(t, util.IsIgnorableError(err), "p.Run() should return error with Ignorable() method, and it should return true")
 }
 
 func TestGHIssue331(t *testing.T) {
@@ -341,9 +336,7 @@ func TestConfigFuzzyFilter(t *testing.T) {
 
 	// Ensure that it's possible to enable the Fuzzy filter
 	opts.OptInitialFilter = "Fuzzy"
-	if !assert.NoError(t, p.ApplyConfig(opts), "p.ApplyConfig should succeed") {
-		return
-	}
+	require.NoError(t, p.ApplyConfig(opts), "p.ApplyConfig should succeed")
 }
 
 func TestApplyConfig(t *testing.T) {
@@ -368,60 +361,20 @@ func TestApplyConfig(t *testing.T) {
 	opts.OptPrintQuery = true
 
 	p := newPeco()
-	if !assert.NoError(t, p.ApplyConfig(opts), "p.ApplyConfig should succeed") {
-		return
-	}
-
-	if !assert.Equal(t, opts.OptQuery, p.initialQuery, "p.initialQuery should be equal to opts.Query") {
-		return
-	}
-
-	if !assert.Equal(t, opts.OptBufferSize, p.bufferSize, "p.bufferSize should be equal to opts.BufferSize") {
-		return
-	}
-
-	if !assert.Equal(t, opts.OptEnableNullSep, p.enableSep, "p.enableSep should be equal to opts.OptEnableNullSep") {
-		return
-	}
-
-	if !assert.Equal(t, opts.OptInitialIndex, p.Location().LineNumber(), "p.Location().LineNumber() should be equal to opts.OptInitialIndex") {
-		return
-	}
-
-	if !assert.Equal(t, opts.OptInitialFilter, p.filters.Current().String(), "p.initialFilter should be equal to opts.OptInitialFilter") {
-		return
-	}
-
-	if !assert.Equal(t, opts.OptPrompt, p.prompt, "p.prompt should be equal to opts.OptPrompt") {
-		return
-	}
-
-	if !assert.Equal(t, opts.OptLayout, p.layoutType, "p.layoutType should be equal to opts.OptLayout") {
-		return
-	}
-
-	if !assert.Equal(t, opts.OptSelect1, p.selectOneAndExit, "p.selectOneAndExit should be equal to opts.OptSelect1") {
-		return
-	}
-
-	if !assert.Equal(t, opts.OptExitZero, p.exitZeroAndExit, "p.exitZeroAndExit should be equal to opts.OptExitZero") {
-		return
-	}
-
-	if !assert.Equal(t, opts.OptSelectAll, p.selectAllAndExit, "p.selectAllAndExit should be equal to opts.OptSelectAll") {
-		return
-	}
-
-	if !assert.Equal(t, OnCancelBehavior(opts.OptOnCancel), p.onCancel, "p.onCancel should be equal to opts.OptOnCancel") {
-		return
-	}
-
-	if !assert.Equal(t, opts.OptSelectionPrefix, p.selectionPrefix, "p.selectionPrefix should be equal to opts.OptSelectionPrefix") {
-		return
-	}
-	if !assert.Equal(t, opts.OptPrintQuery, p.printQuery, "p.printQuery should be equal to opts.OptPrintQuery") {
-		return
-	}
+	require.NoError(t, p.ApplyConfig(opts), "p.ApplyConfig should succeed")
+	require.Equal(t, opts.OptQuery, p.initialQuery, "p.initialQuery should be equal to opts.Query")
+	require.Equal(t, opts.OptBufferSize, p.bufferSize, "p.bufferSize should be equal to opts.BufferSize")
+	require.Equal(t, opts.OptEnableNullSep, p.enableSep, "p.enableSep should be equal to opts.OptEnableNullSep")
+	require.Equal(t, opts.OptInitialIndex, p.Location().LineNumber(), "p.Location().LineNumber() should be equal to opts.OptInitialIndex")
+	require.Equal(t, opts.OptInitialFilter, p.filters.Current().String(), "p.initialFilter should be equal to opts.OptInitialFilter")
+	require.Equal(t, opts.OptPrompt, p.prompt, "p.prompt should be equal to opts.OptPrompt")
+	require.Equal(t, opts.OptLayout, p.layoutType, "p.layoutType should be equal to opts.OptLayout")
+	require.Equal(t, opts.OptSelect1, p.selectOneAndExit, "p.selectOneAndExit should be equal to opts.OptSelect1")
+	require.Equal(t, opts.OptExitZero, p.exitZeroAndExit, "p.exitZeroAndExit should be equal to opts.OptExitZero")
+	require.Equal(t, opts.OptSelectAll, p.selectAllAndExit, "p.selectAllAndExit should be equal to opts.OptSelectAll")
+	require.Equal(t, OnCancelBehavior(opts.OptOnCancel), p.onCancel, "p.onCancel should be equal to opts.OptOnCancel")
+	require.Equal(t, opts.OptSelectionPrefix, p.selectionPrefix, "p.selectionPrefix should be equal to opts.OptSelectionPrefix")
+	require.Equal(t, opts.OptPrintQuery, p.printQuery, "p.printQuery should be equal to opts.OptPrintQuery")
 }
 
 // While this issue is labeled for Issue363, it tests against 376 as well.
@@ -453,15 +406,11 @@ func TestGHIssue363(t *testing.T) {
 		t.Errorf("timeout reached")
 		return
 	case err := <-resultCh:
-		if !assert.True(t, util.IsCollectResultsError(err), "isCollectResultsError") {
-			return
-		}
+		require.True(t, util.IsCollectResultsError(err), "isCollectResultsError")
 		p.PrintResults()
 	}
 
-	if !assert.Equal(t, "foo\n", out.String(), "output should match") {
-		return
-	}
+	require.Equal(t, "foo\n", out.String(), "output should match")
 }
 
 type readerFunc func([]byte) (int, error)
@@ -526,20 +475,14 @@ func TestGHIssue367(t *testing.T) {
 
 	curbuf := p.CurrentLineBuffer()
 
-	if !assert.Equal(t, curbuf.Size(), 1, "There should be one element in buffer") {
-		return
-	}
+	require.Equal(t, curbuf.Size(), 1, "There should be one element in buffer")
 
 	for i := range curbuf.Size() {
 		_, err := curbuf.LineAt(i)
-		if !assert.NoError(t, err, "LineAt(%d) should succeed", i) {
-			return
-		}
+		require.NoError(t, err, "LineAt(%d) should succeed", i)
 	}
 
-	if !assert.Equal(t, "bar\n", buf.String(), "output should match") {
-		return
-	}
+	require.Equal(t, "bar\n", buf.String(), "output should match")
 }
 
 func TestExitZero(t *testing.T) {
@@ -569,21 +512,13 @@ func TestExitZero(t *testing.T) {
 			t.Errorf("timeout reached")
 			return
 		case err := <-resultCh:
-			if !assert.True(t, util.IsIgnorableError(err), "error should be ignorable") {
-				return
-			}
+			require.True(t, util.IsIgnorableError(err), "error should be ignorable")
 			st, ok := util.GetExitStatus(err)
-			if !assert.True(t, ok, "error should have exit status") {
-				return
-			}
-			if !assert.Equal(t, 1, st, "exit status should be 1") {
-				return
-			}
+			require.True(t, ok, "error should have exit status")
+			require.Equal(t, 1, st, "exit status should be 1")
 		}
 
-		if !assert.Empty(t, out.String(), "output should be empty") {
-			return
-		}
+		require.Empty(t, out.String(), "output should be empty")
 	})
 
 	t.Run("Non-empty input does not auto-exit", func(t *testing.T) {
@@ -751,15 +686,11 @@ func TestPrintQuery(t *testing.T) {
 			t.Errorf("timeout reached")
 			return
 		case err := <-resultCh:
-			if !assert.True(t, util.IsCollectResultsError(err), "isCollectResultsError") {
-				return
-			}
+			require.True(t, util.IsCollectResultsError(err), "isCollectResultsError")
 			p.PrintResults()
 		}
 
-		if !assert.Equal(t, "oo\nfoo\n", out.String(), "output should match") {
-			return
-		}
+		require.Equal(t, "oo\nfoo\n", out.String(), "output should match")
 	})
 	t.Run("No match and print query", func(t *testing.T) { //nolint:dupl
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
@@ -793,15 +724,11 @@ func TestPrintQuery(t *testing.T) {
 			t.Errorf("timeout reached")
 			return
 		case err := <-resultCh:
-			if !assert.True(t, util.IsCollectResultsError(err), "isCollectResultsError") {
-				return
-			}
+			require.True(t, util.IsCollectResultsError(err), "isCollectResultsError")
 			p.PrintResults()
 		}
 
-		if !assert.Equal(t, "oo\n", out.String(), "output should match") {
-			return
-		}
+		require.Equal(t, "oo\n", out.String(), "output should match")
 	})
 }
 

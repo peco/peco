@@ -8,7 +8,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -53,12 +52,9 @@ func TestSource(t *testing.T) {
 	select {
 	case <-waitout:
 		_, ok := <-s.Ready()
-		if !assert.False(t, ok, "s.Ready should be false at this point") {
-			return
-		}
+		require.False(t, ok, "s.Ready should be false at this point")
 	case <-timeout:
-		assert.Fail(t, "timed out waiting for source")
-		return
+		t.Fatal("timed out waiting for source")
 	case <-s.Ready():
 	}
 
@@ -70,12 +66,8 @@ func TestSource(t *testing.T) {
 
 	for i := range lines {
 		line, err := s.LineAt(i)
-		if !assert.NoError(t, err, "s.LineAt(%d) should succeed", i) {
-			return
-		}
-		if !assert.Equal(t, line.DisplayString(), lines[i], "expected lien found") {
-			return
-		}
+		require.NoError(t, err, "s.LineAt(%d) should succeed", i)
+		require.Equal(t, line.DisplayString(), lines[i], "expected lien found")
 	}
 }
 
