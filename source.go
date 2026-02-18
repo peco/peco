@@ -3,6 +3,7 @@ package peco
 import (
 	"bufio"
 	"context"
+	"fmt"
 	"io"
 	"sync"
 	"time"
@@ -109,6 +110,12 @@ func (s *Source) Setup(ctx context.Context, state *Peco) {
 			}
 		}()
 
+		// scanErr captures any I/O error from the scanner goroutine.
+		// The goroutine writes to scanErr before closing the lines channel,
+		// and the outer loop reads it after lines is closed, so no mutex
+		// is needed.
+		var scanErr error
+
 		lines := make(chan string)
 		go func() {
 			var scanned int
@@ -129,6 +136,7 @@ func (s *Source) Setup(ctx context.Context, state *Peco) {
 				}
 				scanned++
 			}
+			scanErr = scanner.Err()
 		}()
 
 		state.Hub().SendStatusMsg(ctx, "Waiting for input...", 0)
@@ -154,6 +162,10 @@ func (s *Source) Setup(ctx context.Context, state *Peco) {
 				s.Append(line.NewRaw(s.idgen.Next(), l, s.enableSep, s.enableANSI))
 				notify.Do(notifycb)
 			}
+		}
+
+		if scanErr != nil {
+			state.Hub().SendStatusMsg(ctx, fmt.Sprintf("Error reading input: %s", scanErr), 0)
 		}
 
 		if pdebug.Enabled {
