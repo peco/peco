@@ -21,7 +21,7 @@ func getStdHandle(h int) (fd syscall.Handle) {
 
 func setStdHandle(stdhandle int32, handle syscall.Handle) error {
 	r1, _, err := procSetStdHandle.Call(uintptr(stdhandle), uintptr(handle))
-	if r1 == 0 && err != nil {
+	if r1 == 0 {
 		return fmt.Errorf("failed to call SetStdHandle: %w", err)
 	}
 	return nil
@@ -36,8 +36,8 @@ func IsTty(arg any) bool {
 	fd := fdsrc.Fd()
 
 	var st uint32
-	r1, _, err := procGetConsoleMode.Call(fd, uintptr(unsafe.Pointer(&st)))
-	return r1 != 0 && err != nil
+	r1, _, _ := procGetConsoleMode.Call(fd, uintptr(unsafe.Pointer(&st)))
+	return r1 != 0
 }
 
 var stdin = os.Stdin
