@@ -57,14 +57,13 @@ func TestInputModifierKeyRace(t *testing.T) {
 		require.Greater(t, input.modGen, gen, "generation should be incremented again")
 		input.mutex.Unlock()
 
-		// Wait well past the timer duration to let any leaked callbacks fire
-		time.Sleep(200 * time.Millisecond)
-
 		// The Esc action must NOT have fired because the timer was cancelled.
 		// Before the generation counter fix, a stale timer callback could
 		// still call ExecuteAction after Stop() returned false.
-		count := atomic.LoadInt64(&escCount)
-		require.Equal(t, int64(0), count,
+		// Use require.Never to verify the count stays 0 well past the timer duration.
+		require.Never(t, func() bool {
+			return atomic.LoadInt64(&escCount) != 0
+		}, 200*time.Millisecond, 10*time.Millisecond,
 			"Esc action should not fire when followed by an immediate key")
 	})
 
@@ -105,12 +104,11 @@ func TestInputModifierKeyRace(t *testing.T) {
 		escEv := Event{Type: EventKey, Key: keyseq.KeyEsc, Ch: 0}
 		input.handleInputEvent(ctx, escEv)
 
-		// Wait for the timer to fire (50ms timer + generous buffer)
-		time.Sleep(200 * time.Millisecond)
-
-		// The Esc action should have fired exactly once via the timer callback
-		count := atomic.LoadInt64(&escCount)
-		require.Equal(t, int64(1), count,
+		// Wait for the timer to fire (50ms timer) — use Eventually to poll
+		// instead of a fixed sleep.
+		require.Eventually(t, func() bool {
+			return atomic.LoadInt64(&escCount) == 1
+		}, 2*time.Second, 10*time.Millisecond,
 			"Esc action should fire once when no follow-up key arrives")
 	})
 }

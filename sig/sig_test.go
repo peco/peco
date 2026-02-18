@@ -42,16 +42,15 @@ func TestLoopContextCancel(t *testing.T) {
 	// Verify the channel is stopped: send a signal and confirm it doesn't
 	// arrive on the (now-stopped) channel.
 	syscall.Kill(syscall.Getpid(), syscall.SIGUSR1)
-	time.Sleep(50 * time.Millisecond)
-
-	select {
-	case _, ok := <-h.sigCh:
-		if ok {
-			t.Fatal("signal was delivered to channel after Loop returned — signal.Stop was not called")
+	require.Never(t, func() bool {
+		select {
+		case _, ok := <-h.sigCh:
+			return ok
+		default:
+			return false
 		}
-	default:
-		// Channel is empty — signal.Stop worked correctly
-	}
+	}, 100*time.Millisecond, 10*time.Millisecond,
+		"signal was delivered to channel after Loop returned — signal.Stop was not called")
 }
 
 // TestLoopSignalReceived verifies that Loop calls the handler and exits
@@ -87,14 +86,13 @@ func TestLoopSignalReceived(t *testing.T) {
 
 	// After Loop exits, send another signal — it should NOT be delivered
 	syscall.Kill(syscall.Getpid(), syscall.SIGUSR1)
-	time.Sleep(50 * time.Millisecond)
-
-	select {
-	case _, ok := <-h.sigCh:
-		if ok {
-			t.Fatal("signal was delivered to channel after Loop returned — signal.Stop was not called")
+	require.Never(t, func() bool {
+		select {
+		case _, ok := <-h.sigCh:
+			return ok
+		default:
+			return false
 		}
-	default:
-		// Channel is empty — signal.Stop worked correctly
-	}
+	}, 100*time.Millisecond, 10*time.Millisecond,
+		"signal was delivered to channel after Loop returned — signal.Stop was not called")
 }
