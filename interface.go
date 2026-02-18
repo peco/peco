@@ -525,4 +525,5 @@ type filterProcessor struct {
 	filter  filter.Filter
 	query   string
 	bufSize int
+	onError func(error)
 }

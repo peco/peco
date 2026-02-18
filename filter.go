@@ -15,16 +15,17 @@ import (
 	"github.com/peco/peco/pipeline"
 )
 
-func newFilterProcessor(f filter.Filter, q string, bufSize int) *filterProcessor {
+func newFilterProcessor(f filter.Filter, q string, bufSize int, onError func(error)) *filterProcessor {
 	return &filterProcessor{
 		filter:  f,
 		query:   q,
 		bufSize: bufSize,
+		onError: onError,
 	}
 }
 
 func (fp *filterProcessor) Accept(ctx context.Context, in <-chan line.Line, out pipeline.ChanOutput) {
-	acceptAndFilter(ctx, fp.filter, fp.bufSize, in, out)
+	acceptAndFilter(ctx, fp.filter, fp.bufSize, fp.onError, in, out)
 }
 
 // orderedChunk is a batch of lines tagged with a sequence number
@@ -40,9 +41,18 @@ type orderedResult struct {
 	matched []line.Line
 }
 
+// reportFilterError calls onError with a non-context-cancellation error.
+// If the context is already cancelled or onError is nil, it does nothing.
+func reportFilterError(ctx context.Context, err error, onError func(error)) {
+	if err == nil || ctx.Err() != nil || onError == nil {
+		return
+	}
+	onError(err)
+}
+
 // flusher is the single-threaded fallback used when the filter does not
 // support parallel execution (e.g. Fuzzy with sortLongest).
-func flusher(ctx context.Context, f filter.Filter, incoming chan []line.Line, done chan struct{}, out pipeline.ChanOutput) {
+func flusher(ctx context.Context, f filter.Filter, incoming chan []line.Line, done chan struct{}, out pipeline.ChanOutput, onError func(error)) {
 	if pdebug.Enabled {
 		g := pdebug.Marker("flusher goroutine")
 		defer g.End()
@@ -62,7 +72,9 @@ func flusher(ctx context.Context, f filter.Filter, incoming chan []line.Line, do
 			if pdebug.Enabled {
 				pdebug.Printf("flusher: %#v", buf)
 			}
-			_ = f.Apply(ctx, buf, out)
+			if err := f.Apply(ctx, buf, out); err != nil {
+				reportFilterError(ctx, err, onError)
+			}
 			buffer.ReleaseLineListBuf(buf)
 		}
 	}
@@ -70,7 +82,7 @@ func flusher(ctx context.Context, f filter.Filter, incoming chan []line.Line, do
 
 // parallelFlusher distributes filter work across multiple goroutines
 // and merges the results back in sequence order.
-func parallelFlusher(ctx context.Context, f filter.Filter, incoming chan orderedChunk, done chan struct{}, out pipeline.ChanOutput) {
+func parallelFlusher(ctx context.Context, f filter.Filter, incoming chan orderedChunk, done chan struct{}, out pipeline.ChanOutput, onError func(error)) {
 	if pdebug.Enabled {
 		g := pdebug.Marker("parallelFlusher goroutine")
 		defer g.End()
@@ -107,13 +119,19 @@ func parallelFlusher(ctx context.Context, f filter.Filter, incoming chan ordered
 				var matched []line.Line
 				if canCollect {
 					// Fast path: collect results directly into a slice
-					matched, _ = collector.ApplyCollect(ctx, chunk.lines)
+					var err error
+					matched, err = collector.ApplyCollect(ctx, chunk.lines)
+					if err != nil {
+						reportFilterError(ctx, err, onError)
+					}
 				} else {
 					// Fallback: use channel-based Apply for filters that
 					// don't implement Collector (e.g. ExternalCmd)
 					collectCh := make(chan line.Line, len(chunk.lines))
 					go func(chunk orderedChunk) {
-						_ = f.Apply(ctx, chunk.lines, pipeline.ChanOutput(collectCh))
+						if err := f.Apply(ctx, chunk.lines, pipeline.ChanOutput(collectCh)); err != nil {
+							reportFilterError(ctx, err, onError)
+						}
 						close(collectCh)
 					}(chunk)
 					matched = make([]line.Line, 0, len(chunk.lines)/2)
@@ -197,10 +215,10 @@ func parallelFlusher(ctx context.Context, f filter.Filter, incoming chan ordered
 // It batches incoming lines and dispatches them to the filter, using parallel
 // workers when the filter supports it.
 func AcceptAndFilter(ctx context.Context, f filter.Filter, configBufSize int, in <-chan line.Line, out pipeline.ChanOutput) {
-	acceptAndFilter(ctx, f, configBufSize, in, out)
+	acceptAndFilter(ctx, f, configBufSize, nil, in, out)
 }
 
-func acceptAndFilter(ctx context.Context, f filter.Filter, configBufSize int, in <-chan line.Line, out pipeline.ChanOutput) {
+func acceptAndFilter(ctx context.Context, f filter.Filter, configBufSize int, onError func(error), in <-chan line.Line, out pipeline.ChanOutput) {
 	useParallel := f.SupportsParallel() && runtime.GOMAXPROCS(0) > 1
 
 	buf := buffer.GetLineListBuf()
@@ -214,26 +232,26 @@ func acceptAndFilter(ctx context.Context, f filter.Filter, configBufSize int, in
 	}
 
 	if useParallel {
-		acceptAndFilterParallel(ctx, f, bufsiz, buf, in, out)
+		acceptAndFilterParallel(ctx, f, bufsiz, buf, onError, in, out)
 	} else {
-		acceptAndFilterSerial(ctx, f, bufsiz, buf, in, out)
+		acceptAndFilterSerial(ctx, f, bufsiz, buf, onError, in, out)
 	}
 }
 
-func acceptAndFilterSerial(ctx context.Context, f filter.Filter, bufsiz int, buf []line.Line, in <-chan line.Line, out pipeline.ChanOutput) {
+func acceptAndFilterSerial(ctx context.Context, f filter.Filter, bufsiz int, buf []line.Line, onError func(error), in <-chan line.Line, out pipeline.ChanOutput) {
 	flush := make(chan []line.Line)
 	flushDone := make(chan struct{})
-	go flusher(ctx, f, flush, flushDone, out)
+	go flusher(ctx, f, flush, flushDone, out, onError)
 	defer func() { <-flushDone }()
 	defer close(flush)
 
 	batchAndFlush(ctx, bufsiz, buf, in, flush, func(b []line.Line) []line.Line { return b })
 }
 
-func acceptAndFilterParallel(ctx context.Context, f filter.Filter, bufsiz int, buf []line.Line, in <-chan line.Line, out pipeline.ChanOutput) {
+func acceptAndFilterParallel(ctx context.Context, f filter.Filter, bufsiz int, buf []line.Line, onError func(error), in <-chan line.Line, out pipeline.ChanOutput) {
 	flush := make(chan orderedChunk)
 	flushDone := make(chan struct{})
-	go parallelFlusher(ctx, f, flush, flushDone, out)
+	go parallelFlusher(ctx, f, flush, flushDone, out, onError)
 	defer func() { <-flushDone }()
 	defer close(flush)
 
@@ -401,7 +419,12 @@ func (f *Filter) Work(ctx context.Context, q *hub.Payload[string]) {
 	p.SetSource(src)
 
 	ctx = selectedFilter.NewContext(ctx, query)
-	p.Add(newFilterProcessor(selectedFilter, query, state.config.FilterBufSize))
+	// Report non-cancellation filter errors (e.g. regex compilation failures)
+	// to the status bar so the user can see why results are missing.
+	onFilterError := func(err error) {
+		state.Hub().SendStatusMsg(ctx, err.Error(), 5*time.Second)
+	}
+	p.Add(newFilterProcessor(selectedFilter, query, state.config.FilterBufSize, onFilterError))
 
 	buf := NewMemoryBuffer(srcSize / 4)
 	p.SetDestination(buf)

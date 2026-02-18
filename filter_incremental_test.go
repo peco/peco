@@ -2,8 +2,10 @@ package peco
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"runtime"
+	"sync"
 	"testing"
 
 	"github.com/peco/peco/filter"
@@ -263,4 +265,53 @@ func TestIncrementalFiltering(t *testing.T) {
 	require.Contains(t, displayStrings, "foobar test")
 	require.Contains(t, displayStrings, "foobaz entry")
 	require.Contains(t, displayStrings, "the foobird flies")
+}
+
+// errorFilter is a mock filter that always returns an error from Apply.
+type errorFilter struct {
+	err error
+}
+
+func (f *errorFilter) Apply(_ context.Context, _ []line.Line, _ pipeline.ChanOutput) error {
+	return f.err
+}
+
+func (f *errorFilter) BufSize() int                                          { return 0 }
+func (f *errorFilter) NewContext(ctx context.Context, _ string) context.Context { return ctx }
+func (f *errorFilter) String() string                                        { return "error-filter" }
+func (f *errorFilter) SupportsParallel() bool                                { return false }
+
+// TestFilterApplyErrorReporting verifies that when a filter's Apply method
+// returns an error, the error is propagated to the onError callback (which in
+// production sends a status bar message to the user).
+func TestFilterApplyErrorReporting(t *testing.T) {
+	simulatedErr := errors.New("simulated filter error")
+	ef := &errorFilter{err: simulatedErr}
+
+	inputLines := []line.Line{
+		line.NewRaw(0, "alpha", false, false),
+		line.NewRaw(1, "bravo", false, false),
+	}
+
+	in := make(chan line.Line, len(inputLines))
+	for _, l := range inputLines {
+		in <- l
+	}
+	close(in)
+
+	var mu sync.Mutex
+	var reported []error
+	onError := func(err error) {
+		mu.Lock()
+		defer mu.Unlock()
+		reported = append(reported, err)
+	}
+
+	out := make(chan line.Line, len(inputLines))
+	acceptAndFilter(context.Background(), ef, 0, onError, in, pipeline.ChanOutput(out))
+
+	mu.Lock()
+	defer mu.Unlock()
+	require.Len(t, reported, 1, "onError should have been called once")
+	require.Equal(t, simulatedErr, reported[0])
 }
