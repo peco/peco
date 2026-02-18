@@ -143,7 +143,7 @@ func init() {
 		mapkey(sk, KeyType(int(KeyArrowRight)-(i+2)))
 	}
 
-	whacky := [][]string{
+	ctrlKeyNames := [][]string{
 		{"~", "2", "Space"},
 		{"a"},
 		{"b"},
@@ -177,7 +177,7 @@ func init() {
 		{"6"},
 		{"7", "/", "_"},
 	}
-	for i, list := range whacky {
+	for i, list := range ctrlKeyNames {
 		for _, n := range list {
 			sk := fmt.Sprintf("C-%s", n)
 			mapkey(sk, KeyType(int(KeyCtrlTilde)+i))

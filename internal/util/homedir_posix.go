@@ -10,7 +10,7 @@ import (
 func Homedir() (string, error) {
 	home := os.Getenv("HOME")
 	if home == "" {
-		return "", errors.New("error: Environment variable HOME not set")
+		return "", errors.New("environment variable HOME not set")
 	}
 
 	return home, nil

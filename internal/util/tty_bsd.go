@@ -8,7 +8,7 @@ import (
 )
 
 // IsTty checks if the given fd is a tty
-func IsTty(arg interface{}) bool {
+func IsTty(arg any) bool {
 	fdsrc, ok := arg.(fder)
 	if !ok {
 		return false
