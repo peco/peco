@@ -163,11 +163,6 @@ func (h *Hub) SendDraw(ctx context.Context, options *DrawOptions) {
 	send(ctx, h.DrawCh(), NewPayload(options, isBatchCtx(ctx)))
 }
 
-// SendPurgeDisplayCache sends a request to purge the display cache
-func (h *Hub) SendPurgeDisplayCache(ctx context.Context) {
-	send(ctx, h.DrawCh(), NewPayload(&DrawOptions{PurgeCache: true}, isBatchCtx(ctx)))
-}
-
 // StatusMsgCh returns the channel to update the status message
 func (h *Hub) StatusMsgCh() chan *Payload[StatusMsg] {
 	return h.statusMsgCh

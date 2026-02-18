@@ -468,11 +468,10 @@ type Buffer interface {
 
 // MemoryBuffer is an implementation of Buffer
 type MemoryBuffer struct {
-	done         chan struct{}
-	doneOnce     sync.Once
-	lines        []line.Line
-	mutex        sync.RWMutex
-	PeriodicFunc func()
+	done     chan struct{}
+	doneOnce sync.Once
+	lines    []line.Line
+	mutex    sync.RWMutex
 }
 
 type ActionMap interface {

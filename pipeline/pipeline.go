@@ -22,24 +22,6 @@ func QueryFromContext(ctx context.Context) string {
 	return v
 }
 
-func NilOutput(ctx context.Context) ChanOutput {
-	ch := make(chan line.Line)
-	go func() {
-		for {
-			select {
-			case <-ctx.Done():
-				return
-			case _, ok := <-ch:
-				if !ok {
-					return
-				}
-			}
-		}
-	}()
-
-	return ChanOutput(ch)
-}
-
 // OutCh returns the channel that acceptors can listen to
 func (oc ChanOutput) OutCh() <-chan line.Line {
 	return oc
