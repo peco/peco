@@ -225,4 +225,4 @@ func (s *InlineScreen) SendEvent(_ Event) {}
 func (s *InlineScreen) Suspend() {}
 
 // Resume is a no-op for inline mode.
-func (s *InlineScreen) Resume(_ context.Context) {}
+func (s *InlineScreen) Resume(_ context.Context) error { return nil }

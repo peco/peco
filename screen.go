@@ -20,7 +20,7 @@ import (
 type TcellScreen struct {
 	mutex     sync.Mutex
 	screen    tcell.Screen
-	resumeCh  chan chan struct{}
+	resumeCh  chan chan error
 	suspendCh chan struct{}
 	doneCh    chan struct{} // closed on permanent Close() to signal goroutines to exit
 	closeOnce sync.Once     // ensures doneCh is closed exactly once
@@ -179,7 +179,7 @@ func (t *TcellScreen) Init(_ *Config) error {
 func NewTcellScreen() *TcellScreen {
 	return &TcellScreen{
 		suspendCh: make(chan struct{}),
-		resumeCh:  make(chan chan struct{}),
+		resumeCh:  make(chan chan error),
 		doneCh:    make(chan struct{}),
 		errWriter: os.Stderr,
 	}
@@ -293,8 +293,12 @@ func (t *TcellScreen) PollEvent(ctx context.Context, cfg *Config) chan Event {
 				case <-t.doneCh:
 					return
 				case replyCh := <-t.resumeCh:
-					_ = t.Init(cfg)
-					close(replyCh)
+					if err := t.Init(cfg); err != nil {
+						fmt.Fprintf(t.errWriter, "peco: failed to re-initialize screen on resume: %v\n", err)
+						replyCh <- err
+					} else {
+						replyCh <- nil
+					}
 					continue
 				}
 			}
@@ -309,8 +313,12 @@ func (t *TcellScreen) PollEvent(ctx context.Context, cfg *Config) chan Event {
 				case <-t.doneCh:
 					return
 				case replyCh := <-t.resumeCh:
-					_ = t.Init(cfg)
-					close(replyCh)
+					if err := t.Init(cfg); err != nil {
+						fmt.Fprintf(t.errWriter, "peco: failed to re-initialize screen on resume: %v\n", err)
+						replyCh <- err
+					} else {
+						replyCh <- nil
+					}
 				}
 				continue
 			}
@@ -328,7 +336,7 @@ func (t *TcellScreen) Suspend() {
 	}
 }
 
-func (t *TcellScreen) Resume(ctx context.Context) {
+func (t *TcellScreen) Resume(ctx context.Context) error {
 	// Resume must be a block operation, because we can't safely proceed
 	// without actually knowing that the screen has been re-initialized.
 	// So we send a channel where we expect a reply back, and wait for that.
@@ -337,16 +345,18 @@ func (t *TcellScreen) Resume(ctx context.Context) {
 	// polling goroutine is not yet waiting on resumeCh, a non-blocking
 	// send would silently drop the message and the subsequent receive
 	// would block forever.
-	ch := make(chan struct{})
+	ch := make(chan error, 1)
 	select {
 	case t.resumeCh <- ch:
 	case <-ctx.Done():
-		return
+		return ctx.Err()
 	}
 
 	select {
-	case <-ch:
+	case err := <-ch:
+		return err
 	case <-ctx.Done():
+		return ctx.Err()
 	}
 }
 

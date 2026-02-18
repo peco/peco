@@ -3,6 +3,7 @@ package peco
 import (
 	"bytes"
 	"context"
+	"errors"
 	"testing"
 	"time"
 
@@ -27,14 +28,14 @@ func (s *recordingScreen) Init(*Config) error                            { retur
 func (s *recordingScreen) Close() error                                  { return nil }
 func (s *recordingScreen) Flush() error                                  { return nil }
 func (s *recordingScreen) PollEvent(context.Context, *Config) chan Event { return nil }
-func (s *recordingScreen) Print(args PrintArgs) int                      { return screenPrint(s, args) }
-func (s *recordingScreen) Resume(context.Context)                        {}
-func (s *recordingScreen) SetCursor(int, int)                            {}
-func (s *recordingScreen) SendEvent(Event)                               {}
-func (s *recordingScreen) Suspend()                                      {}
-func (s *recordingScreen) Sync()                                         {}
-func (s *recordingScreen) Size() (int, int)                              { return s.w, s.h }
-func (s *recordingScreen) SetCell(x, y int, ch rune, _, _ Attribute) {
+func (s *recordingScreen) Print(args PrintArgs) int                 { return screenPrint(s, args) }
+func (s *recordingScreen) Resume(context.Context) error             { return nil }
+func (s *recordingScreen) SetCursor(int, int)                       {}
+func (s *recordingScreen) SendEvent(Event)                          {}
+func (s *recordingScreen) Suspend()                                 {}
+func (s *recordingScreen) Sync()                                    {}
+func (s *recordingScreen) Size() (int, int)                         { return s.w, s.h }
+func (s *recordingScreen) SetCell(x, y int, ch rune, fg, bg Attribute) {
 	s.cells = append(s.cells, setCellCall{x: x, y: y, ch: ch})
 }
 
@@ -240,7 +241,7 @@ func TestTcellScreenPollingGoroutineExitsOnClose(t *testing.T) {
 		case <-tb.doneCh:
 			return
 		case replyCh := <-tb.resumeCh:
-			close(replyCh)
+			replyCh <- nil
 		}
 	}()
 
@@ -313,16 +314,16 @@ func TestTcellScreenResumeNoDeadlock(t *testing.T) {
 	defer cancel()
 
 	// Simulate the polling goroutine: receive from resumeCh after a short delay,
-	// then close the reply channel (as PollEvent does after re-init).
+	// then send nil error (as PollEvent does after successful re-init).
 	go func() {
 		time.Sleep(50 * time.Millisecond)
 		replyCh := <-tb.resumeCh
-		close(replyCh)
+		replyCh <- nil
 	}()
 
 	done := make(chan struct{})
 	go func() {
-		tb.Resume(ctx)
+		require.NoError(t, tb.Resume(ctx))
 		close(done)
 	}()
 
@@ -344,10 +345,10 @@ func TestTcellScreenResumeDoesNotDropSend(t *testing.T) {
 	go func() {
 		replyCh := <-tb.resumeCh
 		close(received)
-		close(replyCh)
+		replyCh <- nil
 	}()
 
-	tb.Resume(ctx)
+	require.NoError(t, tb.Resume(ctx))
 
 	select {
 	case <-received:
@@ -367,7 +368,8 @@ func TestTcellScreenResumeContextCancelled(t *testing.T) {
 
 	done := make(chan struct{})
 	go func() {
-		tb.Resume(ctx)
+		err := tb.Resume(ctx)
+		require.Error(t, err)
 		close(done)
 	}()
 
@@ -393,7 +395,8 @@ func TestTcellScreenResumeContextCancelledWhileWaitingForReply(t *testing.T) {
 
 	done := make(chan struct{})
 	go func() {
-		tb.Resume(ctx)
+		err := tb.Resume(ctx)
+		require.Error(t, err)
 		close(done)
 	}()
 
@@ -410,4 +413,24 @@ func TestTcellScreenResumeContextCancelledWhileWaitingForReply(t *testing.T) {
 
 	// Verify context was indeed cancelled.
 	require.Error(t, ctx.Err())
+}
+
+func TestTcellScreenResumeInitError(t *testing.T) {
+	tb := NewTcellScreen()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+
+	initErr := errors.New("simulated screen init failure")
+
+	// Simulate the polling goroutine: receive from resumeCh and send
+	// an error as if Init() failed.
+	go func() {
+		replyCh := <-tb.resumeCh
+		replyCh <- initErr
+	}()
+
+	err := tb.Resume(ctx)
+	require.Error(t, err)
+	require.Equal(t, initErr, err)
 }

@@ -390,7 +390,10 @@ func doFinish(ctx context.Context, state *Peco, _ Event) {
 	state.screen.Suspend()
 
 	err = cmd.Run()
-	state.screen.Resume(ctx)
+	if err := state.screen.Resume(ctx); err != nil {
+		state.Exit(fmt.Errorf("failed to resume screen: %w", err))
+		return
+	}
 	state.Hub().SendDraw(ctx, &hub.DrawOptions{DisableCache: true})
 	if err != nil {
 		// bail out, or otherwise the user cannot know what happened
