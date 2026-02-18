@@ -268,7 +268,7 @@ func doToggleRangeMode(_ context.Context, state *Peco, _ Event) {
 		cl := state.Location().LineNumber()
 		r.SetValue(cl)
 		if l, err := state.CurrentLineBuffer().LineAt(cl); err == nil {
-			state.selection.Add(l)
+			state.Selection().Add(l)
 		}
 	}
 }
@@ -550,21 +550,23 @@ func doBackwardWord(ctx context.Context, state *Peco, _ Event) {
 	// if we start from a whitespace-ish position, we should
 	// rewind to the end of the previous word, and then do the
 	// search all over again
-SEARCH_PREV_WORD:
-	if unicode.IsSpace(q.RuneAt(c.Pos())) {
-		for pos := c.Pos(); pos > 0; pos-- {
-			if !unicode.IsSpace(q.RuneAt(pos)) {
-				c.SetPos(pos)
-				break
+	for {
+		if unicode.IsSpace(q.RuneAt(c.Pos())) {
+			for pos := c.Pos(); pos > 0; pos-- {
+				if !unicode.IsSpace(q.RuneAt(pos)) {
+					c.SetPos(pos)
+					break
+				}
 			}
 		}
-	}
 
-	// if we start from the first character of a word, we
-	// should attempt to move back and search for the previous word
-	if c.Pos() > 0 && unicode.IsSpace(q.RuneAt(c.Pos()-1)) {
-		c.Move(-1)
-		goto SEARCH_PREV_WORD
+		// if we start from the first character of a word, we
+		// should attempt to move back and search for the previous word
+		if c.Pos() > 0 && unicode.IsSpace(q.RuneAt(c.Pos()-1)) {
+			c.Move(-1)
+			continue
+		}
+		break
 	}
 
 	// Now look for a space
