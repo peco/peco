@@ -72,6 +72,9 @@ func (q *Query) RuneSlice() []rune {
 func (q *Query) RuneAt(where int) rune {
 	q.mutex.Lock()
 	defer q.mutex.Unlock()
+	if where < 0 || where >= len(q.query) {
+		return 0
+	}
 	return q.query[where]
 }
 

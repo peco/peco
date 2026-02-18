@@ -152,6 +152,25 @@ func TestQueryRuneAtUnicode(t *testing.T) {
 	require.Equal(t, 'う', q.RuneAt(2))
 }
 
+func TestQueryRuneAtOutOfBounds(t *testing.T) {
+	t.Parallel()
+	var q Query
+	q.Set("hello")
+
+	// Out-of-bounds index returns zero rune without panicking
+	require.Equal(t, rune(0), q.RuneAt(5))
+	require.Equal(t, rune(0), q.RuneAt(100))
+
+	// Negative index returns zero rune without panicking
+	require.Equal(t, rune(0), q.RuneAt(-1))
+	require.Equal(t, rune(0), q.RuneAt(-100))
+
+	// Empty query: any index returns zero rune
+	var empty Query
+	require.Equal(t, rune(0), empty.RuneAt(0))
+	require.Equal(t, rune(0), empty.RuneAt(-1))
+}
+
 func TestQueryInsertAt(t *testing.T) {
 	t.Parallel()
 	tests := []struct {

@@ -106,7 +106,7 @@ func (s *Source) Setup(ctx context.Context, state *Peco) {
 			}
 			if closer, ok := s.in.(io.Closer); ok {
 				s.inClosed = true
-				closer.Close()
+				_ = closer.Close()
 			}
 		}()
 
