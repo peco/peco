@@ -677,9 +677,7 @@ func (p *Peco) ApplyConfig(opts CLIOptions) error {
 		p.heightSpec = &spec
 	}
 
-	if err := p.populateFilters(); err != nil {
-		return fmt.Errorf("failed to populate filters: %w", err)
-	}
+	p.populateFilters()
 
 	if err := p.populateKeymap(); err != nil {
 		return fmt.Errorf("failed to populate keymap: %w", err)
@@ -726,20 +724,18 @@ func (p *Peco) populateSingleKeyJump() error { //nolint:unparam
 	return nil
 }
 
-func (p *Peco) populateFilters() error { //nolint:unparam
-	_ = p.filters.Add(filter.NewIgnoreCase())
-	_ = p.filters.Add(filter.NewCaseSensitive())
-	_ = p.filters.Add(filter.NewSmartCase())
-	_ = p.filters.Add(filter.NewIRegexp())
-	_ = p.filters.Add(filter.NewRegexp())
-	_ = p.filters.Add(filter.NewFuzzy(p.fuzzyLongestSort))
+func (p *Peco) populateFilters() {
+	p.filters.Add(filter.NewIgnoreCase())
+	p.filters.Add(filter.NewCaseSensitive())
+	p.filters.Add(filter.NewSmartCase())
+	p.filters.Add(filter.NewIRegexp())
+	p.filters.Add(filter.NewRegexp())
+	p.filters.Add(filter.NewFuzzy(p.fuzzyLongestSort))
 
 	for name, c := range p.config.CustomFilter {
 		f := filter.NewExternalCmd(name, c.Cmd, c.Args, c.BufferThreshold, p.idgen, p.enableSep)
-		_ = p.filters.Add(f)
+		p.filters.Add(f)
 	}
-
-	return nil
 }
 
 func (p *Peco) populateKeymap() error {

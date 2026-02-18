@@ -13,11 +13,15 @@ import (
 	"github.com/peco/peco/pipeline"
 )
 
+// queryPlaceholder is the placeholder string in external command arguments
+// that gets replaced with the actual query at filter execution time.
+const queryPlaceholder = "$QUERY"
+
 // NewExternalCmd creates a new filter that uses an external
 // command to filter the input
 func NewExternalCmd(name string, cmd string, args []string, threshold int, idgen line.IDGenerator, enableSep bool) *ExternalCmd {
 	if len(args) == 0 {
-		args = []string{"$QUERY"}
+		args = []string{queryPlaceholder}
 	}
 
 	if threshold <= 0 {
@@ -69,7 +73,7 @@ func (ecf *ExternalCmd) Apply(ctx context.Context, buf []line.Line, out pipeline
 	query := pipeline.QueryFromContext(ctx)
 	args := append([]string(nil), ecf.args...)
 	for i, v := range args {
-		if v == "$QUERY" {
+		if v == queryPlaceholder {
 			args[i] = query
 		}
 	}
