@@ -1,8 +1,23 @@
 package filter
 
 import (
+	"errors"
+	"sync"
+
 	pdebug "github.com/lestrrat-go/pdebug"
 )
+
+// ErrFilterNotFound is returned when a filter name does not match any
+// registered filter in the Set.
+var ErrFilterNotFound = errors.New("specified filter was not found")
+
+// Set holds the collection of available filters and tracks which one
+// is currently active.
+type Set struct {
+	current int
+	filters []Filter
+	mutex   sync.Mutex
+}
 
 func (fs *Set) Reset() {
 	fs.mutex.Lock()

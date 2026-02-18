@@ -14,6 +14,41 @@ import (
 	"github.com/peco/peco/pipeline"
 )
 
+// Buffer interface is used for containers for lines to be
+// processed by peco. The unexported linesInRange method seals this
+// interface to the peco package — external packages cannot implement it.
+// This is intentional: linesInRange is an internal optimization for
+// efficient pagination in NewFilteredBuffer, not part of the public contract.
+type Buffer interface {
+	linesInRange(int, int) []line.Line
+	LineAt(int) (line.Line, error)
+	Size() int
+}
+
+// FilteredBuffer holds a "filtered" buffer. It holds a reference to
+// the source buffer (note: should be immutable) and a list of indices
+// into the source buffer
+type FilteredBuffer struct {
+	maxcols   int
+	src       Buffer
+	selection []int // maps from our index to src's index
+}
+
+// MemoryBuffer is an implementation of Buffer
+type MemoryBuffer struct {
+	done     chan struct{}
+	doneOnce sync.Once
+	lines    []line.Line
+	mutex    sync.RWMutex
+}
+
+// ContextLine wraps a line.Line to mark it as a context line (non-matched
+// surrounding line shown during ZoomIn). Detected via type assertion in
+// ListArea.Draw() to apply the Context style.
+type ContextLine struct {
+	line.Line
+}
+
 func NewFilteredBuffer(src Buffer, page, perPage int) *FilteredBuffer {
 	fb := FilteredBuffer{
 		src: src,

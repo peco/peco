@@ -1,9 +1,25 @@
 package peco
 
 import (
+	"sync"
+
 	"github.com/google/btree"
 	"github.com/peco/peco/line"
 )
+
+// Selection stores the line ids that were selected by the user.
+// The contents of the Selection is always sorted from smallest to
+// largest line ID
+type Selection struct {
+	mutex sync.RWMutex
+	tree  *btree.BTree
+}
+
+// RangeStart tracks the starting position of a range selection.
+type RangeStart struct {
+	val   int
+	valid bool
+}
 
 // NewSelection creates a new empty Selection
 func NewSelection() *Selection {

@@ -1,6 +1,7 @@
 package peco
 
 import (
+	"sync"
 	"time"
 
 	"context"
@@ -8,6 +9,19 @@ import (
 	"github.com/lestrrat-go/pdebug"
 	"github.com/peco/peco/internal/keyseq"
 )
+
+// Input handles dispatching key events to actions.
+type Input struct {
+	actions    ActionMap
+	evsrc      chan Event
+	pendingEsc chan Event // receives Esc events from the timer callback
+	mod        *time.Timer
+	modGen     uint64 // generation counter to invalidate stale timer callbacks.
+	// uint64 holds up to ~1.8×10¹⁹. At most 2 increments per Esc key event
+	// and a generous 100 keystrokes/second, overflow would take ~2.9 trillion years.
+	mutex sync.Mutex
+	state *Peco
+}
 
 // escKeyTimeout is the delay before a bare Esc key press is treated as
 // a standalone Escape rather than the start of an Alt+key sequence.

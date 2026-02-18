@@ -14,6 +14,25 @@ import (
 	"github.com/peco/peco/pipeline"
 )
 
+// Source implements pipeline.Source, and is the buffer for the input
+type Source struct {
+	pipeline.ChanOutput
+
+	capacity   int
+	enableSep  bool
+	enableANSI bool
+	idgen      line.IDGenerator
+	in         io.Reader
+	inClosed   bool
+	isInfinite bool
+	lines      []line.Line
+	name       string
+	mutex      sync.RWMutex
+	ready      chan struct{}
+	setupDone  chan struct{}
+	setupOnce  sync.Once
+}
+
 // drawRefreshInterval is the interval at which the screen is redrawn while
 // reading input. This provides visual feedback as new lines arrive.
 const drawRefreshInterval = 100 * time.Millisecond

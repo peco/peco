@@ -1,5 +1,26 @@
 package peco
 
+import "sync"
+
+// PageCrop filters out a new LineBuffer based on entries
+// per page and the page number
+type PageCrop struct {
+	perPage     int
+	currentPage int
+}
+
+// Location tracks the current viewport position within the line buffer.
+type Location struct {
+	mutex   sync.RWMutex
+	col     int
+	lineno  int
+	maxPage int
+	page    int
+	perPage int
+	offset  int
+	total   int
+}
+
 func (l *Location) SetColumn(n int) {
 	l.mutex.Lock()
 	defer l.mutex.Unlock()

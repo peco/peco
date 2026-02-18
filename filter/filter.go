@@ -4,8 +4,29 @@ import (
 	"context"
 	"regexp"
 
+	"github.com/peco/peco/line"
 	"github.com/peco/peco/pipeline"
 )
+
+// Filter is the interface that all filter implementations must satisfy.
+type Filter interface {
+	Apply(context.Context, []line.Line, pipeline.ChanOutput) error
+	BufSize() int
+	NewContext(context.Context, string) context.Context
+	String() string
+	// SupportsParallel returns true if this filter can safely be invoked
+	// concurrently on independent chunks of lines. Filters that require
+	// global state across all lines (e.g. sorted output) should return false.
+	SupportsParallel() bool
+}
+
+// Collector is an optional interface that filters can implement to return
+// matched lines directly as a slice, bypassing channel-based output.
+// This avoids per-chunk channel allocation and goroutine overhead in the
+// parallel filter path.
+type Collector interface {
+	ApplyCollect(context.Context, []line.Line) ([]line.Line, error)
+}
 
 // isExcluded reports whether text matches any of the given negative regexps.
 func isExcluded(negRegexps []*regexp.Regexp, text string) bool {

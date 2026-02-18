@@ -19,6 +19,19 @@ import (
 	"github.com/peco/peco/line"
 )
 
+// Action describes an action that can be executed upon receiving user input.
+type Action interface {
+	Execute(context.Context, *Peco, Event)
+}
+
+// ActionFunc is a type of Action that is basically just a callback.
+type ActionFunc func(context.Context, *Peco, Event)
+
+// ActionMap is the interface for dispatching actions based on key events.
+type ActionMap interface {
+	ExecuteAction(context.Context, *Peco, Event) error
+}
+
 // This is the global map of canonical action name to actions
 var nameToActions map[string]Action
 
