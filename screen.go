@@ -78,6 +78,21 @@ func tcellEventToEvent(tev tcell.Event) Event {
 		// Rune keys (printable characters)
 		if key == tcell.KeyRune {
 			r := ev.Rune()
+
+			// Ctrl+letter still as rune: this happens when additional
+			// modifiers (Alt, Shift) are combined with Ctrl, which
+			// prevents tcell's NewEventKey from normalizing to KeyCtrl*.
+			// Convert to the control code that peco's keyseq expects.
+			if mod&keyseq.ModCtrl != 0 && r >= 'a' && r <= 'z' {
+				mod &^= keyseq.ModCtrl
+				return Event{
+					Type: EventKey,
+					Key:  keyseq.KeyType(r - 'a' + 1),
+					Ch:   0,
+					Mod:  mod,
+				}
+			}
+
 			// Special case: space must be sent as KeySpace with Ch=0
 			// to match the convention expected by doAcceptChar
 			if r == ' ' {
@@ -106,9 +121,28 @@ func tcellEventToEvent(tev tcell.Event) Event {
 			}
 		}
 
-		// Ctrl keys (0x00-0x1F) and DEL (0x7F) — tcell uses the same
-		// ASCII control code values as peco's keyseq, so direct cast works.
+		// Ctrl+letter keys: tcell.KeyCtrlA(65)..KeyCtrlZ(90).
+		// On terminals with enhanced keyboard protocols (CSI u /
+		// fixterms), tcell normalizes Ctrl+letter to these constants
+		// with ModCtrl set. Peco's keyseq system encodes the ctrl
+		// nature in the key value (0x01-0x1A), not in the modifier,
+		// so strip the redundant ModCtrl. (issue #715)
+		if key >= tcell.KeyCtrlA && key <= tcell.KeyCtrlZ {
+			mod &^= keyseq.ModCtrl
+			return Event{
+				Type: EventKey,
+				Key:  keyseq.KeyType(key - tcell.KeyCtrlA + 1),
+				Ch:   0,
+				Mod:  mod,
+			}
+		}
+
+		// Raw control codes (0x00-0x1F) and DEL (0x7F): these arrive
+		// from traditional terminals. tcell may add ModCtrl during
+		// normalization; strip it since peco's key bindings register
+		// ctrl keys with Modifier=0.
 		if key <= 0x1F || key == 0x7F {
+			mod &^= keyseq.ModCtrl
 			return Event{
 				Type: EventKey,
 				Key:  keyseq.KeyType(key),
