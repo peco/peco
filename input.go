@@ -9,6 +9,11 @@ import (
 	"github.com/peco/peco/internal/keyseq"
 )
 
+// escKeyTimeout is the delay before a bare Esc key press is treated as
+// a standalone Escape rather than the start of an Alt+key sequence.
+// Terminals send Alt as an Esc prefix, so we wait briefly for a follow-up key.
+const escKeyTimeout = 50 * time.Millisecond
+
 func NewInput(state *Peco, am ActionMap, src chan Event) *Input {
 	return &Input{
 		actions:    am,
@@ -68,7 +73,7 @@ func (i *Input) handleInputEvent(ctx context.Context, ev Event) error {
 			tmp := ev
 			i.modGen++
 			gen := i.modGen
-			i.mod = time.AfterFunc(50*time.Millisecond, func() {
+			i.mod = time.AfterFunc(escKeyTimeout, func() {
 				m.Lock()
 				if i.modGen != gen {
 					// A subsequent key event already cancelled this timer.
