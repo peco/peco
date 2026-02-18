@@ -1,6 +1,6 @@
 module github.com/peco/peco
 
-go 1.24.0
+go 1.25.0
 
 require (
 	github.com/gdamore/tcell/v2 v2.13.8

@@ -2,7 +2,6 @@ package pipeline
 
 import (
 	"bufio"
-	"fmt"
 	"io"
 	"regexp"
 	"strings"
@@ -25,7 +24,6 @@ func NewRegexpFilter(rx *regexp.Regexp) *RegexpFilter {
 }
 
 func (rf *RegexpFilter) Accept(ctx context.Context, in <-chan line.Line, out ChanOutput) {
-	defer fmt.Println("END RegexpFilter.Accept")
 	defer close(out)
 	for {
 		select {
@@ -63,8 +61,6 @@ func (f *LineFeeder) Reset() {
 }
 
 func (f *LineFeeder) Start(ctx context.Context, out ChanOutput) {
-	fmt.Println("START LineFeeder.Start")
-	defer fmt.Println("END LineFeeder.Start")
 	defer close(out)
 	for _, l := range f.lines {
 		out.Send(ctx, l)
@@ -92,7 +88,6 @@ func (r *Receiver) Done() <-chan struct{} {
 }
 
 func (r *Receiver) Accept(ctx context.Context, in <-chan line.Line, _ ChanOutput) {
-	defer fmt.Println("END Receiver.Accept")
 	defer close(r.done)
 
 	for {

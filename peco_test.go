@@ -928,18 +928,14 @@ func TestCancelFuncDataRace(t *testing.T) {
 	// p.err would be flagged.
 	var wg sync.WaitGroup
 	for range 10 {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
+		wg.Go(func() {
 			_ = p.Err()
-		}()
+		})
 	}
 	for i := range 5 {
-		wg.Add(1)
-		go func(i int) {
-			defer wg.Done()
+		wg.Go(func() {
 			p.Exit(fmt.Errorf("exit-%d", i))
-		}(i)
+		})
 	}
 	wg.Wait()
 

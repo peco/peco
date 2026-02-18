@@ -510,11 +510,9 @@ func (f *Filter) Loop(ctx context.Context, cancel func()) error {
 
 			f.state.Hub().SendStatusMsg(ctx, "Running query...", 0)
 
-			wg.Add(1)
-			go func() {
-				defer wg.Done()
+			wg.Go(func() {
 				f.Work(workctx, q)
-			}()
+			})
 		}
 	}
 }
