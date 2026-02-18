@@ -151,6 +151,9 @@ func (u UserPrompt) Draw(state *Peco) {
 	// Used to notify the screen where our cursor is
 	var posX int
 
+	// queryStartX is where the query text begins, one space after the prompt
+	queryStartX := u.promptLen + 1
+
 	switch ql {
 	case 0:
 		u.screen.Print(PrintArgs{
@@ -160,9 +163,9 @@ func (u UserPrompt) Draw(state *Peco) {
 			Bg:   bg,
 			Fill: true,
 		})
-		posX = u.promptLen + 1
+		posX = queryStartX
 		u.screen.Print(PrintArgs{
-			X:    u.promptLen + 1,
+			X:    queryStartX,
 			Y:    location,
 			Bg:   bg | AttrReverse,
 			Fg:   fg | AttrReverse,
@@ -179,14 +182,14 @@ func (u UserPrompt) Draw(state *Peco) {
 			Fill: true,
 		})
 		u.screen.Print(PrintArgs{
-			X:    u.promptLen + 1,
+			X:    queryStartX,
 			Y:    location,
 			Fg:   fg,
 			Bg:   bg,
 			Msg:  qs,
 			Fill: false,
 		})
-		posX = u.promptLen + 1 + runewidth.StringWidth(qs)
+		posX = queryStartX + runewidth.StringWidth(qs)
 		u.screen.Print(PrintArgs{
 			X:    posX,
 			Y:    location,
@@ -196,7 +199,7 @@ func (u UserPrompt) Draw(state *Peco) {
 			Fill: false,
 		})
 	default:
-		posX = c.Pos() + u.promptLen + 1
+		posX = c.Pos() + queryStartX
 		// the caret is in the middle of the string
 		prev := int(0)
 		for i, r := range q.RuneSlice() {
@@ -206,13 +209,13 @@ func (u UserPrompt) Draw(state *Peco) {
 				fg |= AttrReverse
 				bg |= AttrReverse
 			}
-			u.screen.SetCell(u.promptLen+1+prev, location, r, fg, bg)
+			u.screen.SetCell(queryStartX+prev, location, r, fg, bg)
 			prev += runewidth.RuneWidth(r)
 		}
 		fg := u.styles.Query.fg
 		bg := u.styles.Query.bg
 		u.screen.Print(PrintArgs{
-			X:    u.promptLen + prev + 1,
+			X:    queryStartX + prev,
 			Y:    location,
 			Fg:   fg,
 			Bg:   bg,
