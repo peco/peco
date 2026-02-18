@@ -16,11 +16,10 @@ func (fs *Set) Size() int {
 	return len(fs.filters)
 }
 
-func (fs *Set) Add(lf Filter) error {
+func (fs *Set) Add(lf Filter) {
 	fs.mutex.Lock()
 	defer fs.mutex.Unlock()
 	fs.filters = append(fs.filters, lf)
-	return nil
 }
 
 func (fs *Set) Rotate() {
