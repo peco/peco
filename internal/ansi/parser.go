@@ -165,12 +165,16 @@ func parseSGR(params string, fg, bg *Attribute) {
 		// 256-color or truecolor foreground: 38;5;N or 38;2;R;G;B
 		case code == 38:
 			if i+1 < len(parts) {
-				mode, _ := strconv.Atoi(parts[i+1])
+				mode, err := strconv.Atoi(parts[i+1])
+				if err != nil {
+					i++
+					break
+				}
 				switch mode {
 				case 5: // 256-color: 38;5;N
 					if i+2 < len(parts) {
-						n, _ := strconv.Atoi(parts[i+2])
-						if n >= 0 && n <= 255 {
+						n, err := strconv.Atoi(parts[i+2])
+						if err == nil && n >= 0 && n <= 255 {
 							flags := *fg & (AttrBold | AttrUnderline | AttrReverse)
 							*fg = Attribute(n+1) | flags
 						}
@@ -178,11 +182,13 @@ func parseSGR(params string, fg, bg *Attribute) {
 					}
 				case 2: // Truecolor: 38;2;R;G;B
 					if i+4 < len(parts) {
-						r, _ := strconv.Atoi(parts[i+2])
-						g, _ := strconv.Atoi(parts[i+3])
-						b, _ := strconv.Atoi(parts[i+4])
-						flags := *fg & (AttrBold | AttrUnderline | AttrReverse)
-						*fg = Attribute((r<<16)|(g<<8)|b) | AttrTrueColor | flags
+						r, err1 := strconv.Atoi(parts[i+2])
+						g, err2 := strconv.Atoi(parts[i+3])
+						b, err3 := strconv.Atoi(parts[i+4])
+						if err1 == nil && err2 == nil && err3 == nil {
+							flags := *fg & (AttrBold | AttrUnderline | AttrReverse)
+							*fg = Attribute((r<<16)|(g<<8)|b) | AttrTrueColor | flags
+						}
 						i += 4
 					}
 				default:
@@ -193,22 +199,28 @@ func parseSGR(params string, fg, bg *Attribute) {
 		// 256-color or truecolor background: 48;5;N or 48;2;R;G;B
 		case code == 48:
 			if i+1 < len(parts) {
-				mode, _ := strconv.Atoi(parts[i+1])
+				mode, err := strconv.Atoi(parts[i+1])
+				if err != nil {
+					i++
+					break
+				}
 				switch mode {
 				case 5: // 256-color: 48;5;N
 					if i+2 < len(parts) {
-						n, _ := strconv.Atoi(parts[i+2])
-						if n >= 0 && n <= 255 {
+						n, err := strconv.Atoi(parts[i+2])
+						if err == nil && n >= 0 && n <= 255 {
 							*bg = Attribute(n + 1)
 						}
 						i += 2
 					}
 				case 2: // Truecolor: 48;2;R;G;B
 					if i+4 < len(parts) {
-						r, _ := strconv.Atoi(parts[i+2])
-						g, _ := strconv.Atoi(parts[i+3])
-						b, _ := strconv.Atoi(parts[i+4])
-						*bg = Attribute((r<<16)|(g<<8)|b) | AttrTrueColor
+						r, err1 := strconv.Atoi(parts[i+2])
+						g, err2 := strconv.Atoi(parts[i+3])
+						b, err3 := strconv.Atoi(parts[i+4])
+						if err1 == nil && err2 == nil && err3 == nil {
+							*bg = Attribute((r<<16)|(g<<8)|b) | AttrTrueColor
+						}
 						i += 4
 					}
 				default:
