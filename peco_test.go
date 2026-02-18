@@ -913,8 +913,7 @@ func TestCancelFuncDataRace(t *testing.T) {
 	var out bytes.Buffer
 	p.Stdout = &out
 
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx := t.Context()
 
 	waitCh := make(chan error, 1)
 	go func() {
@@ -928,14 +927,14 @@ func TestCancelFuncDataRace(t *testing.T) {
 	// Under the race detector, unprotected access to p.cancelFunc and
 	// p.err would be flagged.
 	var wg sync.WaitGroup
-	for i := 0; i < 10; i++ {
+	for range 10 {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
 			_ = p.Err()
 		}()
 	}
-	for i := 0; i < 5; i++ {
+	for i := range 5 {
 		wg.Add(1)
 		go func(i int) {
 			defer wg.Done()

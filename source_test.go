@@ -8,8 +8,6 @@ import (
 	"testing"
 	"time"
 
-	"context"
-
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -105,8 +103,7 @@ func (r *errorAfterReader) Read(p []byte) (int, error) {
 }
 
 func TestSourceScannerErr(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx := t.Context()
 
 	ig := newIDGen()
 	go ig.Run(ctx)
