@@ -163,6 +163,150 @@ func TestParse_ComplexCombined(t *testing.T) {
 	require.Equal(t, ColorBlue, r.Attrs[0].Bg)
 }
 
+func TestParseSGR_MalformedExtendedColor(t *testing.T) {
+	// parseSGR is tested directly to verify that malformed extended color
+	// sequences don't corrupt color state.
+
+	t.Run("well-formed 256-color fg still works", func(t *testing.T) {
+		var fg, bg Attribute
+		parseSGR("38;5;196", &fg, &bg)
+		require.Equal(t, Attribute(197), fg) // 196+1
+		require.Equal(t, ColorDefault, bg)
+	})
+
+	t.Run("well-formed truecolor fg still works", func(t *testing.T) {
+		var fg, bg Attribute
+		parseSGR("38;2;255;128;0", &fg, &bg)
+		expected := Attribute((255<<16)|(128<<8)|0) | AttrTrueColor
+		require.Equal(t, expected, fg)
+		require.Equal(t, ColorDefault, bg)
+	})
+
+	t.Run("well-formed 256-color bg still works", func(t *testing.T) {
+		var fg, bg Attribute
+		parseSGR("48;5;21", &fg, &bg)
+		require.Equal(t, ColorDefault, fg)
+		require.Equal(t, Attribute(22), bg) // 21+1
+	})
+
+	t.Run("well-formed truecolor bg still works", func(t *testing.T) {
+		var fg, bg Attribute
+		parseSGR("48;2;0;128;255", &fg, &bg)
+		expected := Attribute((0<<16)|(128<<8)|255) | AttrTrueColor
+		require.Equal(t, ColorDefault, fg)
+		require.Equal(t, expected, bg)
+	})
+
+	t.Run("malformed mode in fg 38;abc;100 does not change fg", func(t *testing.T) {
+		var fg, bg Attribute
+		fg = ColorRed // set a prior color
+		parseSGR("38;abc;100", &fg, &bg)
+		// Malformed mode should skip the sequence, leaving fg unchanged
+		require.Equal(t, ColorRed, fg)
+		require.Equal(t, ColorDefault, bg)
+	})
+
+	t.Run("malformed 256-color value in fg 38;5;abc does not change fg", func(t *testing.T) {
+		var fg, bg Attribute
+		fg = ColorRed
+		parseSGR("38;5;abc", &fg, &bg)
+		// Malformed color value should skip the color, leaving fg unchanged
+		require.Equal(t, ColorRed, fg)
+		require.Equal(t, ColorDefault, bg)
+	})
+
+	t.Run("malformed truecolor R in fg 38;2;abc;0;0 does not change fg", func(t *testing.T) {
+		var fg, bg Attribute
+		fg = ColorRed
+		parseSGR("38;2;abc;0;0", &fg, &bg)
+		require.Equal(t, ColorRed, fg)
+		require.Equal(t, ColorDefault, bg)
+	})
+
+	t.Run("malformed truecolor G in fg 38;2;0;abc;0 does not change fg", func(t *testing.T) {
+		var fg, bg Attribute
+		fg = ColorRed
+		parseSGR("38;2;0;abc;0", &fg, &bg)
+		require.Equal(t, ColorRed, fg)
+		require.Equal(t, ColorDefault, bg)
+	})
+
+	t.Run("malformed truecolor B in fg 38;2;0;0;abc does not change fg", func(t *testing.T) {
+		var fg, bg Attribute
+		fg = ColorRed
+		parseSGR("38;2;0;0;abc", &fg, &bg)
+		require.Equal(t, ColorRed, fg)
+		require.Equal(t, ColorDefault, bg)
+	})
+
+	t.Run("malformed mode in bg 48;abc;100 does not change bg", func(t *testing.T) {
+		var fg, bg Attribute
+		bg = ColorGreen
+		parseSGR("48;abc;100", &fg, &bg)
+		require.Equal(t, ColorDefault, fg)
+		require.Equal(t, ColorGreen, bg)
+	})
+
+	t.Run("malformed 256-color value in bg 48;5;abc does not change bg", func(t *testing.T) {
+		var fg, bg Attribute
+		bg = ColorGreen
+		parseSGR("48;5;abc", &fg, &bg)
+		require.Equal(t, ColorDefault, fg)
+		require.Equal(t, ColorGreen, bg)
+	})
+
+	t.Run("malformed truecolor R in bg 48;2;abc;0;0 does not change bg", func(t *testing.T) {
+		var fg, bg Attribute
+		bg = ColorGreen
+		parseSGR("48;2;abc;0;0", &fg, &bg)
+		require.Equal(t, ColorDefault, fg)
+		require.Equal(t, ColorGreen, bg)
+	})
+
+	t.Run("malformed truecolor G in bg 48;2;0;abc;0 does not change bg", func(t *testing.T) {
+		var fg, bg Attribute
+		bg = ColorGreen
+		parseSGR("48;2;0;abc;0", &fg, &bg)
+		require.Equal(t, ColorDefault, fg)
+		require.Equal(t, ColorGreen, bg)
+	})
+
+	t.Run("malformed truecolor B in bg 48;2;0;0;abc does not change bg", func(t *testing.T) {
+		var fg, bg Attribute
+		bg = ColorGreen
+		parseSGR("48;2;0;0;abc", &fg, &bg)
+		require.Equal(t, ColorDefault, fg)
+		require.Equal(t, ColorGreen, bg)
+	})
+
+	t.Run("malformed extended color followed by valid code", func(t *testing.T) {
+		var fg, bg Attribute
+		// 38;abc;100 should be skipped, then 1 (bold) should still apply
+		parseSGR("38;abc;100;1", &fg, &bg)
+		require.Equal(t, AttrBold, fg)
+		require.Equal(t, ColorDefault, bg)
+	})
+
+	t.Run("malformed 256-color followed by valid code", func(t *testing.T) {
+		var fg, bg Attribute
+		// 38;5;abc should be skipped, then 31 (red) should apply
+		parseSGR("38;5;abc;31", &fg, &bg)
+		require.Equal(t, ColorRed, fg)
+		require.Equal(t, ColorDefault, bg)
+	})
+
+	t.Run("via Parse: malformed fg 256-color does not corrupt color state", func(t *testing.T) {
+		// ESC[38;5; with a non-numeric parameter byte (<) that still passes
+		// the CSI scanner (0x3C is in 0x20-0x3F range) but fails Atoi.
+		// 38;5;<3 — the "<3" is not a valid integer.
+		r := Parse("\x1b[38;5;<3mHello\x1b[0m")
+		require.Equal(t, "Hello", r.Stripped)
+		require.Len(t, r.Attrs, 1)
+		require.Equal(t, ColorDefault, r.Attrs[0].Fg)
+		require.Equal(t, ColorDefault, r.Attrs[0].Bg)
+	})
+}
+
 func TestExtractSegment_Nil(t *testing.T) {
 	require.Nil(t, ExtractSegment(nil, 0, 5))
 }
