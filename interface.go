@@ -494,7 +494,7 @@ type Input struct {
 // Most code (actions, input handling, source setup) only needs
 // the sender side.
 type HubSender interface {
-	Batch(context.Context, func(context.Context), bool)
+	Batch(context.Context, func(context.Context))
 	SendDraw(context.Context, *hub.DrawOptions)
 	SendDrawPrompt(context.Context)
 	SendPaging(context.Context, hub.PagingRequest)

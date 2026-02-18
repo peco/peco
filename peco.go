@@ -801,7 +801,7 @@ func (p *Peco) sendQuery(ctx context.Context, q string, nextFunc func()) {
 			if nextFunc != nil {
 				nextFunc()
 			}
-		}, false)
+		})
 	}
 }
 
@@ -841,7 +841,7 @@ func (p *Peco) ExecQuery(ctx context.Context, nextFunc func()) bool {
 			if nextFunc != nil {
 				nextFunc()
 			}
-		}, false)
+		})
 		return true
 	}
 

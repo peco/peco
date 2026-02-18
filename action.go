@@ -422,14 +422,10 @@ func doCancel(ctx context.Context, state *Peco, e Event) {
 	state.Exit(err)
 }
 
-// batchAction extracts the top-level action call flag from the context,
-// runs fn inside a Hub.Batch, and marks nested calls as non-top-level.
+// batchAction runs fn inside a Hub.Batch. Re-entrant locking is
+// handled automatically by Hub.Batch via context detection.
 func batchAction(ctx context.Context, state *Peco, fn func(context.Context)) {
-	toplevel, _ := ctx.Value(isTopLevelActionCallKey{}).(bool)
-	state.Hub().Batch(ctx, func(ctx context.Context) {
-		ctx = context.WithValue(ctx, isTopLevelActionCallKey{}, false)
-		fn(ctx)
-	}, toplevel)
+	state.Hub().Batch(ctx, fn)
 }
 
 func doToggleSelectionAndSelectNext(ctx context.Context, state *Peco, e Event) {

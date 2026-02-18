@@ -51,16 +51,22 @@ func New(bufsiz int) *Hub {
 
 type batchPayloadKey struct{}
 
+// batchLockKey is used to detect re-entrant Batch calls so that
+// nested calls skip mutex acquisition and avoid deadlock.
+type batchLockKey struct{}
+
 // Batch allows you to synchronously send messages during the
-// scope of f() being executed.
-func (h *Hub) Batch(ctx context.Context, f func(ctx context.Context), shouldLock bool) {
+// scope of f() being executed. The mutex is acquired automatically
+// unless this is a nested Batch call (detected via context).
+func (h *Hub) Batch(ctx context.Context, f func(ctx context.Context)) {
+	nested, _ := ctx.Value(batchLockKey{}).(bool)
+
 	if pdebug.Enabled {
-		g := pdebug.Marker("Batch (shouldLock=%t)", shouldLock)
+		g := pdebug.Marker("Batch (nested=%t)", nested)
 		defer g.End()
 	}
 
-	if shouldLock {
-		// lock during this operation
+	if !nested {
 		h.mutex.Lock()
 		defer h.mutex.Unlock()
 	}
@@ -75,7 +81,9 @@ func (h *Hub) Batch(ctx context.Context, f func(ctx context.Context), shouldLock
 		}
 	}()
 
-	f(context.WithValue(ctx, batchPayloadKey{}, true))
+	batchCtx := context.WithValue(ctx, batchPayloadKey{}, true)
+	batchCtx = context.WithValue(batchCtx, batchLockKey{}, true)
+	f(batchCtx)
 }
 
 var doneChPool = sync.Pool{

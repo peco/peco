@@ -62,7 +62,7 @@ func TestHub(t *testing.T) {
 		h.SendDraw(ctx, &hub.DrawOptions{})
 		h.SendStatusMsg(ctx, "Hello, World!", 0)
 		h.SendPaging(ctx, hub.PagingRequestType(1))
-	}, true)
+	})
 
 	phases := []string{
 		"query",
@@ -96,7 +96,7 @@ func TestBatchPanicPropagates(t *testing.T) {
 	require.Panics(t, func() {
 		h.Batch(ctx, func(_ context.Context) {
 			panic("bug in callback")
-		}, true)
+		})
 	}, "Batch must not silently swallow panics")
 }
 
@@ -109,7 +109,7 @@ func TestBatchPanicReleasesLock(t *testing.T) {
 		defer func() { recover() }()
 		h.Batch(ctx, func(_ context.Context) {
 			panic("first call panics")
-		}, true)
+		})
 	}()
 
 	// Second call: if the mutex was not released by the first panic,
@@ -123,7 +123,7 @@ func TestBatchPanicReleasesLock(t *testing.T) {
 				p.Done()
 			}()
 			h.SendQuery(ctx, "after panic")
-		}, true)
+		})
 		close(done)
 	}()
 
@@ -132,6 +132,33 @@ func TestBatchPanicReleasesLock(t *testing.T) {
 		// success — mutex was properly released
 	case <-time.After(2 * time.Second):
 		t.Fatal("Batch deadlocked — mutex was not released after panic")
+	}
+}
+
+func TestBatchNestedDoesNotDeadlock(t *testing.T) {
+	h := hub.New(5)
+	ctx := context.Background()
+
+	done := make(chan struct{})
+	go func() {
+		h.Batch(ctx, func(ctx context.Context) {
+			// Nested Batch call — must not deadlock
+			h.Batch(ctx, func(ctx context.Context) {
+				go func() {
+					p := <-h.QueryCh()
+					p.Done()
+				}()
+				h.SendQuery(ctx, "nested")
+			})
+		})
+		close(done)
+	}()
+
+	select {
+	case <-done:
+		// success — nested Batch did not deadlock
+	case <-time.After(2 * time.Second):
+		t.Fatal("nested Batch deadlocked")
 	}
 }
 
