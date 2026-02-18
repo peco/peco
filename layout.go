@@ -369,6 +369,100 @@ func selectionContains(state *Peco, n int) bool {
 	return false
 }
 
+// adjustPageForRunningQuery adjusts the page number during a running query
+// so that the screen is never empty when the buffer shrinks below the current page.
+func adjustPageForRunningQuery(loc *Location, linebuf Buffer, parent Layout, state *Peco) {
+	bufsiz := linebuf.Size()
+	page := loc.Page()
+
+	for page > 1 {
+		if (loc.PerPage()*(page-1) < bufsiz) &&
+			(loc.PerPage()*page) >= bufsiz {
+			break
+		}
+		page--
+	}
+	if loc.Page() != page {
+		loc.SetPage(page)
+		parent.DrawPrompt(state)
+	}
+}
+
+// renderMatchedLine renders a line with match highlighting, interleaving
+// matched and non-matched segments with their respective styles.
+func (l *ListArea) renderMatchedLine(ml *linepkg.Matched, line string, lineANSIAttrs []ansi.AttrSpan, x, y, xOffset int, fgAttr, bgAttr Attribute) {
+	matches := ml.Indices()
+	prev := x
+	index := 0
+	runeOffset := 0
+
+	for _, m := range matches {
+		if m[0] > index {
+			c := line[index:m[0]]
+			runeLen := utf8.RuneCountInString(c)
+			var segAttrs []ansi.AttrSpan
+			if lineANSIAttrs != nil {
+				segAttrs = ansi.ExtractSegment(lineANSIAttrs, runeOffset, runeOffset+runeLen)
+			}
+			n := l.screen.Print(PrintArgs{
+				X:         prev,
+				Y:         y,
+				XOffset:   xOffset,
+				Fg:        fgAttr,
+				Bg:        bgAttr,
+				Msg:       c,
+				ANSIAttrs: segAttrs,
+			})
+			prev += n
+			index += len(c)
+			runeOffset += runeLen
+		}
+		c := line[m[0]:m[1]]
+		runeLen := utf8.RuneCountInString(c)
+
+		n := l.screen.Print(PrintArgs{
+			X:       prev,
+			Y:       y,
+			XOffset: xOffset,
+			Fg:      l.styles.Matched.fg,
+			Bg:      mergeAttribute(bgAttr, l.styles.Matched.bg),
+			Msg:     c,
+		})
+		prev += n
+		index += len(c)
+		runeOffset += runeLen
+	}
+
+	if index < len(line) {
+		c := line[index:]
+		runeLen := utf8.RuneCountInString(c)
+		var segAttrs []ansi.AttrSpan
+		if lineANSIAttrs != nil {
+			segAttrs = ansi.ExtractSegment(lineANSIAttrs, runeOffset, runeOffset+runeLen)
+		}
+		l.screen.Print(PrintArgs{
+			X:         prev,
+			Y:         y,
+			XOffset:   xOffset,
+			Fg:        fgAttr,
+			Bg:        bgAttr,
+			Msg:       c,
+			Fill:      true,
+			ANSIAttrs: segAttrs,
+		})
+	} else {
+		l.screen.Print(PrintArgs{
+			X:       prev,
+			Y:       y,
+			XOffset: xOffset,
+			Fg:      fgAttr,
+			Bg:      bgAttr,
+			Msg:     "",
+			Fill:    true,
+		})
+	}
+}
+
 // Draw displays the ListArea on the screen
 func (l *ListArea) Draw(state *Peco, parent Layout, perPage int, options *hub.DrawOptions) {
 	if pdebug.Enabled {
@@ -381,30 +475,10 @@ func (l *ListArea) Draw(state *Peco, parent Layout, perPage int, options *hub.Dr
 	}
 
 	loc := state.Location()
-
 	linebuf := state.CurrentLineBuffer()
 
-	// Should only get into this clause if we are RUNNING A QUERY.
-	// regular paging shouldn't be affected. This clause basically
-	// makes sure that we never have an empty screen when we are
-	// at a large enough page, but we don't have enough entries
-	// to fill that many pages in the buffer
 	if options != nil && options.RunningQuery {
-		bufsiz := linebuf.Size()
-		page := loc.Page()
-
-		for page > 1 {
-			if (loc.PerPage()*(page-1) < bufsiz) &&
-				(loc.PerPage()*page) >= bufsiz {
-				break
-			}
-
-			page--
-		}
-		if loc.Page() != page {
-			loc.SetPage(page)
-			parent.DrawPrompt(state)
-		}
+		adjustPageForRunningQuery(loc, linebuf, parent, state)
 	}
 
 	pf := loc.PageCrop()
@@ -441,8 +515,7 @@ func (l *ListArea) Draw(state *Peco, parent Layout, perPage int, options *hub.Dr
 	var y int
 	start := l.AnchorPosition()
 
-	// If our buffer is smaller than perPage, we may need to
-	// clear some lines
+	// If our buffer is smaller than perPage, we may need to clear some lines
 	if pdebug.Enabled {
 		pdebug.Printf("ListArea.Draw: buffer size is %d, our view area is %d", bufsiz, perPage)
 	}
@@ -453,7 +526,6 @@ func (l *ListArea) Draw(state *Peco, parent Layout, perPage int, options *hub.Dr
 		} else {
 			y = start - n
 		}
-
 		l.screen.Print(PrintArgs{
 			Y:    y,
 			Fg:   l.styles.Basic.fg,
@@ -464,12 +536,10 @@ func (l *ListArea) Draw(state *Peco, parent Layout, perPage int, options *hub.Dr
 
 	var cached, written int
 	var fgAttr, bgAttr Attribute
-	var selectionPrefix = state.SelectionPrefix()
-	var prefix = ""
+	selectionPrefix := state.SelectionPrefix()
+	var prefix string
 
-	var prefixCurrentSelection string
-	var prefixSavedSelection string
-	var prefixDefault string
+	var prefixCurrentSelection, prefixSavedSelection, prefixDefault string
 	if plen := len(selectionPrefix); plen > 0 {
 		prefixCurrentSelection = selectionPrefix + " "
 		prefixSavedSelection = "*" + strings.Repeat(" ", plen)
@@ -588,7 +658,6 @@ func (l *ListArea) Draw(state *Peco, parent Layout, perPage int, options *hub.Dr
 					Msg:     "  ",
 				})
 			}
-
 			x += 2
 		}
 
@@ -607,77 +676,7 @@ func (l *ListArea) Draw(state *Peco, parent Layout, perPage int, options *hub.Dr
 			continue
 		}
 
-		matches := ml.Indices()
-		prev := x
-		index := 0
-		runeOffset := 0 // tracks rune position for ANSI ExtractSegment
-
-		for _, m := range matches {
-			if m[0] > index {
-				c := line[index:m[0]]
-				runeLen := utf8.RuneCountInString(c)
-				var segAttrs []ansi.AttrSpan
-				if lineANSIAttrs != nil {
-					segAttrs = ansi.ExtractSegment(lineANSIAttrs, runeOffset, runeOffset+runeLen)
-				}
-				n := l.screen.Print(PrintArgs{
-					X:         prev,
-					Y:         y,
-					XOffset:   xOffset,
-					Fg:        fgAttr,
-					Bg:        bgAttr,
-					Msg:       c,
-					ANSIAttrs: segAttrs,
-				})
-				prev += n
-				index += len(c)
-				runeOffset += runeLen
-			}
-			c := line[m[0]:m[1]]
-			runeLen := utf8.RuneCountInString(c)
-
-			// Match segments: no ANSI attrs, match style overrides
-			n := l.screen.Print(PrintArgs{
-				X:       prev,
-				Y:       y,
-				XOffset: xOffset,
-				Fg:      l.styles.Matched.fg,
-				Bg:      mergeAttribute(bgAttr, l.styles.Matched.bg),
-				Msg:     c,
-			})
-			prev += n
-			index += len(c)
-			runeOffset += runeLen
-		}
-
-		if index < len(line) {
-			c := line[index:]
-			runeLen := utf8.RuneCountInString(c)
-			var segAttrs []ansi.AttrSpan
-			if lineANSIAttrs != nil {
-				segAttrs = ansi.ExtractSegment(lineANSIAttrs, runeOffset, runeOffset+runeLen)
-			}
-			l.screen.Print(PrintArgs{
-				X:         prev,
-				Y:         y,
-				XOffset:   xOffset,
-				Fg:        fgAttr,
-				Bg:        bgAttr,
-				Msg:       c,
-				Fill:      true,
-				ANSIAttrs: segAttrs,
-			})
-		} else {
-			l.screen.Print(PrintArgs{
-				X:       prev,
-				Y:       y,
-				XOffset: xOffset,
-				Fg:      fgAttr,
-				Bg:      bgAttr,
-				Msg:     "",
-				Fill:    true,
-			})
-		}
+		l.renderMatchedLine(ml, line, lineANSIAttrs, x, y, xOffset, fgAttr, bgAttr)
 	}
 	l.SetDirty(false)
 	if pdebug.Enabled {
