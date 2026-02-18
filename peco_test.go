@@ -340,41 +340,170 @@ func TestConfigFuzzyFilter(t *testing.T) {
 }
 
 func TestApplyConfig(t *testing.T) {
-	// XXX We should add all the possible configurations that needs to be
-	// propagated to Peco from config
-
 	// This is a placeholder test address
 	// https://github.com/peco/peco/pull/338#issuecomment-244462220
-	var opts CLIOptions
 
-	opts.OptPrompt = "tpmorp>"
-	opts.OptQuery = "Hello, World"
-	opts.OptBufferSize = 256
-	opts.OptInitialIndex = 2
-	opts.OptInitialFilter = "Regexp"
-	opts.OptLayout = "bottom-up"
-	opts.OptSelect1 = true
-	opts.OptExitZero = true
-	opts.OptSelectAll = true
-	opts.OptOnCancel = "error"
-	opts.OptSelectionPrefix = ">"
-	opts.OptPrintQuery = true
+	t.Run("CLI options", func(t *testing.T) {
+		var opts CLIOptions
 
-	p := newPeco()
-	require.NoError(t, p.ApplyConfig(opts), "p.ApplyConfig should succeed")
-	require.Equal(t, opts.OptQuery, p.initialQuery, "p.initialQuery should be equal to opts.Query")
-	require.Equal(t, opts.OptBufferSize, p.bufferSize, "p.bufferSize should be equal to opts.BufferSize")
-	require.Equal(t, opts.OptEnableNullSep, p.enableSep, "p.enableSep should be equal to opts.OptEnableNullSep")
-	require.Equal(t, opts.OptInitialIndex, p.Location().LineNumber(), "p.Location().LineNumber() should be equal to opts.OptInitialIndex")
-	require.Equal(t, opts.OptInitialFilter, p.filters.Current().String(), "p.initialFilter should be equal to opts.OptInitialFilter")
-	require.Equal(t, opts.OptPrompt, p.prompt, "p.prompt should be equal to opts.OptPrompt")
-	require.Equal(t, opts.OptLayout, p.layoutType, "p.layoutType should be equal to opts.OptLayout")
-	require.Equal(t, opts.OptSelect1, p.selectOneAndExit, "p.selectOneAndExit should be equal to opts.OptSelect1")
-	require.Equal(t, opts.OptExitZero, p.exitZeroAndExit, "p.exitZeroAndExit should be equal to opts.OptExitZero")
-	require.Equal(t, opts.OptSelectAll, p.selectAllAndExit, "p.selectAllAndExit should be equal to opts.OptSelectAll")
-	require.Equal(t, OnCancelBehavior(opts.OptOnCancel), p.onCancel, "p.onCancel should be equal to opts.OptOnCancel")
-	require.Equal(t, opts.OptSelectionPrefix, p.selectionPrefix, "p.selectionPrefix should be equal to opts.OptSelectionPrefix")
-	require.Equal(t, opts.OptPrintQuery, p.printQuery, "p.printQuery should be equal to opts.OptPrintQuery")
+		opts.OptPrompt = "tpmorp>"
+		opts.OptQuery = "Hello, World"
+		opts.OptBufferSize = 256
+		opts.OptInitialIndex = 2
+		opts.OptInitialFilter = "Regexp"
+		opts.OptLayout = "bottom-up"
+		opts.OptSelect1 = true
+		opts.OptExitZero = true
+		opts.OptSelectAll = true
+		opts.OptOnCancel = "error"
+		opts.OptSelectionPrefix = ">"
+		opts.OptPrintQuery = true
+		opts.OptExec = "cat"
+		opts.OptANSI = true
+		opts.OptHeight = "20"
+
+		p := newPeco()
+		require.NoError(t, p.ApplyConfig(opts), "p.ApplyConfig should succeed")
+
+		require.Equal(t, opts.OptQuery, p.initialQuery, "p.initialQuery should be equal to opts.OptQuery")
+		require.Equal(t, opts.OptBufferSize, p.bufferSize, "p.bufferSize should be equal to opts.OptBufferSize")
+		require.Equal(t, opts.OptEnableNullSep, p.enableSep, "p.enableSep should be equal to opts.OptEnableNullSep")
+		require.Equal(t, opts.OptInitialIndex, p.Location().LineNumber(), "p.Location().LineNumber() should be equal to opts.OptInitialIndex")
+		require.Equal(t, opts.OptInitialFilter, p.filters.Current().String(), "p.initialFilter should be equal to opts.OptInitialFilter")
+		require.Equal(t, opts.OptPrompt, p.prompt, "p.prompt should be equal to opts.OptPrompt")
+		require.Equal(t, opts.OptLayout, p.layoutType, "p.layoutType should be equal to opts.OptLayout")
+		require.Equal(t, opts.OptSelect1, p.selectOneAndExit, "p.selectOneAndExit should be equal to opts.OptSelect1")
+		require.Equal(t, opts.OptExitZero, p.exitZeroAndExit, "p.exitZeroAndExit should be equal to opts.OptExitZero")
+		require.Equal(t, opts.OptSelectAll, p.selectAllAndExit, "p.selectAllAndExit should be equal to opts.OptSelectAll")
+		require.Equal(t, OnCancelBehavior(opts.OptOnCancel), p.onCancel, "p.onCancel should be equal to opts.OptOnCancel")
+		require.Equal(t, opts.OptSelectionPrefix, p.selectionPrefix, "p.selectionPrefix should be equal to opts.OptSelectionPrefix")
+		require.Equal(t, opts.OptPrintQuery, p.printQuery, "p.printQuery should be equal to opts.OptPrintQuery")
+		require.Equal(t, opts.OptExec, p.execOnFinish, "p.execOnFinish should be equal to opts.OptExec")
+		require.True(t, p.enableANSI, "p.enableANSI should be true when opts.OptANSI is true")
+		require.NotNil(t, p.heightSpec, "p.heightSpec should be set when opts.OptHeight is provided")
+		require.Equal(t, 20, p.heightSpec.Value, "p.heightSpec.Value should be 20")
+		require.False(t, p.heightSpec.IsPercent, "p.heightSpec.IsPercent should be false for absolute value")
+	})
+
+	t.Run("CLI options with percentage height", func(t *testing.T) {
+		var opts CLIOptions
+		opts.OptHeight = "50%"
+
+		p := newPeco()
+		require.NoError(t, p.ApplyConfig(opts), "p.ApplyConfig should succeed")
+
+		require.NotNil(t, p.heightSpec, "p.heightSpec should be set")
+		require.Equal(t, 50, p.heightSpec.Value, "p.heightSpec.Value should be 50")
+		require.True(t, p.heightSpec.IsPercent, "p.heightSpec.IsPercent should be true for percentage")
+	})
+
+	t.Run("Config-level fields", func(t *testing.T) {
+		p := newPeco()
+		p.config.MaxScanBufferSize = 512
+		p.config.Use256Color = true
+		p.config.FuzzyLongestSort = true
+		p.config.ANSI = true
+
+		var opts CLIOptions
+		require.NoError(t, p.ApplyConfig(opts), "p.ApplyConfig should succeed")
+
+		require.Equal(t, 512, p.maxScanBufferSize, "p.maxScanBufferSize should be equal to config.MaxScanBufferSize")
+		require.True(t, p.use256Color, "p.use256Color should be true when config.Use256Color is true")
+		require.True(t, p.fuzzyLongestSort, "p.fuzzyLongestSort should be true when config.FuzzyLongestSort is true")
+		require.True(t, p.enableANSI, "p.enableANSI should be true when config.ANSI is true")
+	})
+
+	t.Run("MaxScanBufferSize defaults to 256", func(t *testing.T) {
+		p := newPeco()
+
+		var opts CLIOptions
+		require.NoError(t, p.ApplyConfig(opts), "p.ApplyConfig should succeed")
+
+		require.Equal(t, 256, p.maxScanBufferSize, "p.maxScanBufferSize should default to 256")
+	})
+
+	t.Run("Config height used when CLI option absent", func(t *testing.T) {
+		p := newPeco()
+		p.config.Height = "30%"
+
+		var opts CLIOptions
+		require.NoError(t, p.ApplyConfig(opts), "p.ApplyConfig should succeed")
+
+		require.NotNil(t, p.heightSpec, "p.heightSpec should be set from config")
+		require.Equal(t, 30, p.heightSpec.Value, "p.heightSpec.Value should be 30")
+		require.True(t, p.heightSpec.IsPercent, "p.heightSpec.IsPercent should be true")
+	})
+
+	t.Run("CLI height overrides config height", func(t *testing.T) {
+		p := newPeco()
+		p.config.Height = "30%"
+
+		var opts CLIOptions
+		opts.OptHeight = "10"
+		require.NoError(t, p.ApplyConfig(opts), "p.ApplyConfig should succeed")
+
+		require.NotNil(t, p.heightSpec, "p.heightSpec should be set")
+		require.Equal(t, 10, p.heightSpec.Value, "p.heightSpec.Value should come from CLI option")
+		require.False(t, p.heightSpec.IsPercent, "p.heightSpec.IsPercent should be false for absolute CLI value")
+	})
+
+	t.Run("Config OnCancel used when CLI option absent", func(t *testing.T) {
+		p := newPeco()
+		p.config.OnCancel = OnCancelError
+
+		var opts CLIOptions
+		require.NoError(t, p.ApplyConfig(opts), "p.ApplyConfig should succeed")
+
+		require.Equal(t, OnCancelError, p.onCancel, "p.onCancel should come from config when CLI option is absent")
+	})
+
+	t.Run("Config SelectionPrefix used when CLI option absent", func(t *testing.T) {
+		p := newPeco()
+		p.config.SelectionPrefix = "*"
+
+		var opts CLIOptions
+		require.NoError(t, p.ApplyConfig(opts), "p.ApplyConfig should succeed")
+
+		require.Equal(t, "*", p.selectionPrefix, "p.selectionPrefix should come from config when CLI option is absent")
+	})
+
+	t.Run("Config Prompt used when CLI option absent", func(t *testing.T) {
+		p := newPeco()
+		p.config.Prompt = "FIND>"
+
+		var opts CLIOptions
+		require.NoError(t, p.ApplyConfig(opts), "p.ApplyConfig should succeed")
+
+		require.Equal(t, "FIND>", p.prompt, "p.prompt should come from config when CLI option is absent")
+	})
+
+	t.Run("Config InitialFilter used when CLI option absent", func(t *testing.T) {
+		p := newPeco()
+		p.config.InitialFilter = "SmartCase"
+
+		var opts CLIOptions
+		require.NoError(t, p.ApplyConfig(opts), "p.ApplyConfig should succeed")
+
+		require.Equal(t, "SmartCase", p.filters.Current().String(), "p.filters.Current() should come from config when CLI option is absent")
+	})
+
+	t.Run("ANSI enabled by either CLI or config", func(t *testing.T) {
+		// Only CLI flag set
+		p1 := newPeco()
+		require.NoError(t, p1.ApplyConfig(CLIOptions{OptANSI: true}), "p.ApplyConfig should succeed")
+		require.True(t, p1.enableANSI, "p.enableANSI should be true from CLI flag")
+
+		// Only config set
+		p2 := newPeco()
+		p2.config.ANSI = true
+		require.NoError(t, p2.ApplyConfig(CLIOptions{}), "p.ApplyConfig should succeed")
+		require.True(t, p2.enableANSI, "p.enableANSI should be true from config")
+
+		// Neither set
+		p3 := newPeco()
+		require.NoError(t, p3.ApplyConfig(CLIOptions{}), "p.ApplyConfig should succeed")
+		require.False(t, p3.enableANSI, "p.enableANSI should be false when neither is set")
+	})
 }
 
 // While this issue is labeled for Issue363, it tests against 376 as well.
