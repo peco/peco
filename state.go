@@ -20,11 +20,6 @@ func (s *SingleKeyJumpState) Mode() bool {
 	return s.mode
 }
 
-// SetMode sets single-key jump mode on or off.
-func (s *SingleKeyJumpState) SetMode(b bool) {
-	s.mode = b
-}
-
 // ShowPrefix returns whether jump prefixes should be displayed.
 func (s *SingleKeyJumpState) ShowPrefix() bool {
 	return s.showPrefix
