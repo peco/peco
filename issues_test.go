@@ -135,7 +135,7 @@ func TestIssue557_FilterBufSize(t *testing.T) {
 	// Use a configBufSize large enough to hold all lines in a single batch.
 	// This ensures the fuzzy filter sees all lines at once and can sort globally.
 	configBufSize := totalLines + 100
-	fp := newFilterProcessor(f, query, configBufSize)
+	fp := newFilterProcessor(f, query, configBufSize, nil)
 
 	// Set up pipeline: source -> filterProcessor -> destination
 	p := pipeline.New()
