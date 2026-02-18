@@ -15,6 +15,22 @@ import (
 	"github.com/peco/peco/pipeline"
 )
 
+// Filter is responsible for the actual "grep" part of peco
+type Filter struct {
+	state          *Peco
+	prevQuery      string
+	prevResults    *MemoryBuffer
+	prevFilterName string
+	prevMu         sync.Mutex
+}
+
+type filterProcessor struct {
+	filter  filter.Filter
+	query   string
+	bufSize int
+	onError func(error)
+}
+
 func newFilterProcessor(f filter.Filter, q string, bufSize int, onError func(error)) *filterProcessor {
 	return &filterProcessor{
 		filter:  f,

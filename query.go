@@ -1,5 +1,15 @@
 package peco
 
+import "sync"
+
+// Query holds the current query string and an optional saved query
+// for restore-after-cancel behavior.
+type Query struct {
+	query      []rune
+	savedQuery []rune
+	mutex      sync.Mutex
+}
+
 func (q *Query) Set(s string) {
 	q.mutex.Lock()
 	defer q.mutex.Unlock()

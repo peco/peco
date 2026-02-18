@@ -1,9 +1,12 @@
+//go:generate stringer -type VerticalAnchor -output vertical_anchor_gen.go .
+
 package peco
 
 import (
 	"errors"
 	"fmt"
 	"strings"
+	"sync"
 	"time"
 	"unicode/utf8"
 
@@ -13,6 +16,88 @@ import (
 	"github.com/peco/peco/internal/ansi"
 	linepkg "github.com/peco/peco/line"
 )
+
+// LayoutType describes the types of layout that peco can take
+type LayoutType string
+
+const (
+	DefaultLayoutType            = LayoutTypeTopDown       // LayoutTypeTopDown makes the layout so the items read from top to bottom
+	LayoutTypeTopDown            = "top-down"              // LayoutTypeTopDown displays prompt at top, list top-to-bottom
+	LayoutTypeBottomUp           = "bottom-up"             // LayoutTypeBottomUp displays prompt at bottom, list bottom-to-top
+	LayoutTypeTopDownQueryBottom = "top-down-query-bottom" // LayoutTypeTopDownQueryBottom displays list top-to-bottom, prompt at bottom
+)
+
+// VerticalAnchor describes the direction to which elements in the
+// layout are anchored to
+type VerticalAnchor int
+
+const (
+	AnchorTop    VerticalAnchor = iota + 1 // AnchorTop anchors elements towards the top of the screen
+	AnchorBottom                           // AnchorBottom anchors elements towards the bottom of the screen
+)
+
+// Layout represents the component that controls where elements are placed on screen
+type Layout interface {
+	PrintStatus(string, time.Duration)
+	DrawPrompt(*Peco)
+	DrawScreen(*Peco, *hub.DrawOptions)
+	MovePage(*Peco, hub.PagingRequest) (moved bool)
+	PurgeDisplayCache()
+	SortTopDown() bool
+}
+
+// AnchorSettings groups items that are required to control
+// where an anchored item is actually placed
+type AnchorSettings struct {
+	anchor       VerticalAnchor // AnchorTop or AnchorBottom
+	anchorOffset int            // offset this many lines from the anchor
+	screen       Screen
+}
+
+// UserPrompt draws the prompt line
+type UserPrompt struct {
+	*AnchorSettings
+	prompt    string
+	promptLen int
+	styles    *StyleSet
+}
+
+// StatusBar is the interface for printing status messages
+type StatusBar interface {
+	PrintStatus(string, time.Duration)
+}
+
+// screenStatusBar draws the status message bar on screen
+type screenStatusBar struct {
+	*AnchorSettings
+	clearTimer *time.Timer
+	styles     *StyleSet
+	timerMutex sync.Mutex
+}
+
+// nullStatusBar is a no-op status bar used when SuppressStatusMsg is true
+type nullStatusBar struct{}
+
+// ListArea represents the area where the actual line buffer is
+// displayed in the screen
+type ListArea struct {
+	*AnchorSettings
+	sortTopDown  bool
+	displayCache []linepkg.Line
+	dirty        bool
+	styles       *StyleSet
+}
+
+// BasicLayout is... the basic layout :) At this point this is the
+// only struct for layouts, which means that while the position
+// of components may be configurable, the actual types of components
+// that are used are set and static
+type BasicLayout struct {
+	statusBar StatusBar
+	screen    Screen
+	prompt    *UserPrompt
+	list      *ListArea
+}
 
 // extraOffset is a platform-specific constant that adds extra vertical
 // space to layout anchors. On Windows, terminals need an additional line

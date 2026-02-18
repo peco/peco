@@ -1,5 +1,3 @@
-//go:generate stringer -type VerticalAnchor -output vertical_anchor_gen.go .
-
 package peco
 
 import (
@@ -26,6 +24,112 @@ import (
 	"github.com/peco/peco/pipeline"
 	"github.com/peco/peco/sig"
 )
+
+// These are used as keys in the config file
+const (
+	IgnoreCaseMatch    = "IgnoreCase"
+	CaseSensitiveMatch = "CaseSensitive"
+	SmartCaseMatch     = "SmartCase"
+	IRegexpMatch       = "IRegexp"
+	RegexpMatch        = "Regexp"
+)
+
+type idgen struct {
+	ch chan uint64
+}
+
+// Peco is the global object containing everything required to run peco.
+// It also contains the global state of the program.
+type Peco struct {
+	Argv   []string
+	Stdin  io.Reader
+	Stdout io.Writer
+	Stderr io.Writer
+	hub    MessageHub
+
+	args       []string
+	bufferSize int
+	caret      Caret
+	// Config contains the values read in from config file
+	config              Config
+	currentLineBuffer   Buffer
+	enableSep           bool // Enable parsing on separators
+	execOnFinish        string
+	filters             filter.Set
+	idgen               *idgen
+	initialFilter       string
+	initialQuery        string   // populated if --query is specified
+	inputseq            Inputseq // current key sequence (just the names)
+	keymap              Keymap
+	layoutType          string
+	location            Location
+	maxScanBufferSize   int
+	mutex               sync.Mutex
+	onCancel            OnCancelBehavior
+	printQuery          bool
+	prompt              string
+	query               Query
+	queryExec           QueryExecState
+	readyCh             chan struct{}
+	resultCh            chan line.Line
+	screen              Screen
+	selection           *Selection
+	selectionPrefix     string
+	selectionRangeStart RangeStart
+	exitZeroAndExit     bool // True if --exit-0 is enabled
+	selectOneAndExit    bool // True if --select-1 is enabled
+	selectAllAndExit    bool // True if --select-all is enabled
+	singleKeyJump       SingleKeyJumpState
+	heightSpec          *HeightSpec
+	readConfigFn        func(*Config, string) error
+	styles              StyleSet
+	enableANSI          bool // Enable ANSI color code support
+	use256Color         bool
+	fuzzyLongestSort    bool
+
+	// Source is where we buffer input. It gets reused when a new query is
+	// executed.
+	source *Source
+
+	frozen FrozenState
+
+	zoom ZoomState
+
+	// cancelFunc is called for Exit()
+	cancelFunc func()
+	// Errors are stored here
+	err error
+}
+
+// HubSender provides methods for sending messages to the hub.
+// Most code (actions, input handling, source setup) only needs
+// the sender side.
+type HubSender interface {
+	Batch(context.Context, func(context.Context))
+	SendDraw(context.Context, *hub.DrawOptions)
+	SendDrawPrompt(context.Context)
+	SendPaging(context.Context, hub.PagingRequest)
+	SendQuery(context.Context, string)
+	SendStatusMsg(context.Context, string, time.Duration)
+}
+
+// HubReceiver provides methods for receiving messages from the hub.
+// Only the view loop and filter loop consume from these channels.
+type HubReceiver interface {
+	DrawCh() chan *hub.Payload[*hub.DrawOptions]
+	PagingCh() chan *hub.Payload[hub.PagingRequest]
+	QueryCh() chan *hub.Payload[string]
+	StatusMsgCh() chan *hub.Payload[hub.StatusMsg]
+}
+
+// MessageHub is the interface that must be satisfied by the
+// message hub component. Unless we're in testing, github.com/peco/peco/hub.Hub
+// is used. It combines HubSender (for dispatching messages) and
+// HubReceiver (for consuming them via channels).
+type MessageHub interface {
+	HubSender
+	HubReceiver
+}
 
 const version = "v0.5.11"
 

@@ -1,5 +1,13 @@
 package peco
 
+import "sync"
+
+// Caret tracks the cursor position within the query line.
+type Caret struct {
+	mutex sync.Mutex
+	pos   int
+}
+
 func (c *Caret) Pos() int {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()

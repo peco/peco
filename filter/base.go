@@ -7,6 +7,13 @@ import (
 	"github.com/peco/peco/pipeline"
 )
 
+// baseFilter provides shared implementations of Apply, ApplyCollect,
+// NewContext, and BufSize for filters that follow the applyInternal pattern.
+// Filters embed this type and set applyFn to their type-specific matching logic.
+type baseFilter struct {
+	applyFn func(ctx context.Context, lines []line.Line, emit func(line.Line)) error
+}
+
 func (b *baseFilter) NewContext(ctx context.Context, query string) context.Context {
 	return newContext(ctx, query)
 }

@@ -15,6 +15,12 @@ import (
 	"github.com/peco/peco/pipeline"
 )
 
+// Fuzzy is a filter that performs fuzzy matching.
+type Fuzzy struct {
+	baseFilter
+	sortLongest bool
+}
+
 // NewFuzzy builds a fuzzy-finder type of filter.
 // In effect, this uses a smart case filter, and for q query
 // like "ABC" it matches the equivalent of "A(.*)B(.*)C(.*)".

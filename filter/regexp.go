@@ -6,12 +6,46 @@ import (
 	"regexp"
 	"sort"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/peco/peco/internal/util"
 	"github.com/peco/peco/line"
 	"github.com/peco/peco/pipeline"
 )
+
+// internal stuff
+type regexpFlags interface {
+	flags(string) []string
+}
+
+type regexpFlagList []string
+
+type regexpFlagFunc func(string) []string
+
+type regexpQueryFactory struct {
+	compiled  map[string]regexpQuery
+	mutex     sync.Mutex
+	threshold time.Duration
+}
+
+type regexpQuery struct {
+	positive []*regexp.Regexp
+	negative []*regexp.Regexp
+	lastUsed time.Time
+}
+
+var ignoreCaseFlags = regexpFlagList([]string{"i"})
+var defaultFlags = regexpFlagList{}
+
+// Regexp is a filter that matches lines using regular expressions.
+type Regexp struct {
+	baseFilter
+	factory   *regexpQueryFactory
+	flags     regexpFlags
+	quotemeta bool
+	name      string
+}
 
 func (r regexpFlagList) flags(_ string) []string {
 	return []string(r)

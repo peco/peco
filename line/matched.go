@@ -2,6 +2,12 @@ package line
 
 import "github.com/peco/peco/internal/ansi"
 
+// Matched contains the indices to the matches
+type Matched struct {
+	Line
+	indices [][]int
+}
+
 // NewMatched creates a new Matched
 func NewMatched(rl Line, matches [][]int) *Matched {
 	return &Matched{rl, matches}

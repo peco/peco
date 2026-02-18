@@ -16,6 +16,22 @@ import (
 	"github.com/peco/peco/internal/keyseq"
 )
 
+// Screen hides the terminal library from the consuming code so that
+// it can be swapped out for testing
+type Screen interface {
+	Init(*Config) error
+	Close() error
+	Flush() error
+	PollEvent(context.Context, *Config) chan Event
+	Print(PrintArgs) int
+	Resume(context.Context) error
+	SetCell(int, int, rune, Attribute, Attribute)
+	SetCursor(int, int)
+	Size() (int, int)
+	SendEvent(Event)
+	Suspend()
+}
+
 // TcellScreen implements the Screen interface using tcell/v2.
 type TcellScreen struct {
 	mutex     sync.Mutex
