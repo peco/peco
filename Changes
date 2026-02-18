@@ -4,8 +4,6 @@ Changes
 v0.6.0 - UNRELEASED
   [Breaking Changes]
   * Migrated terminal backend from termbox-go to tcell (#567).
-    This should be transparent to most users, but custom code that
-    depended on termbox-go internals will need updating.
   * Removed deprecated config fields `Matcher`, `InitialMatcher`, and
     `CustomMatcher`. Use `InitialFilter` and `CustomFilter` instead.
   * Removed deprecated CLI option `--initial-matcher`.
