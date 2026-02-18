@@ -874,32 +874,12 @@ func (l *BasicLayout) MovePage(state *Peco, p hub.PagingRequest) (moved bool) {
 	return
 }
 
-// verticalScroll moves the cursor position vertically
-func verticalScroll(state *Peco, l *BasicLayout, p hub.PagingRequest) bool {
-	// Before we move, on which line were we located?
-	loc := state.Location()
-	lineBefore := loc.LineNumber()
-	lineno := lineBefore
-
-	if pdebug.Enabled {
-		defer func() {
-			pdebug.Printf("currentLine changed from %d -> %d", lineBefore, state.Location().LineNumber())
-		}()
-	}
-
-	buf := state.CurrentLineBuffer()
-	lcur := buf.Size()
-
-	defer func() {
-		for _, lno := range []int{lineBefore, loc.LineNumber()} {
-			if oldLine, err := buf.LineAt(lno); err == nil {
-				oldLine.SetDirty(true)
-			}
-		}
-	}()
-
-	lpp := l.linesPerPage()
-	if l.list.sortTopDown {
+// computeNewLineNumber calculates the new line number based on the paging
+// request, layout direction, and buffer size. It handles wrapping around
+// the ends of the buffer.
+func computeNewLineNumber(loc *Location, p hub.PagingRequest, sortTopDown bool, lineno, lcur, lpp int) int {
+	lineBefore := lineno
+	if sortTopDown {
 		switch p.Type() {
 		case hub.ToLineAbove:
 			lineno--
@@ -938,9 +918,9 @@ func verticalScroll(state *Peco, l *BasicLayout, p hub.PagingRequest) bool {
 		}
 	}
 
+	// Wrap around buffer boundaries
 	if lineno < 0 {
 		if lcur > 0 {
-			// Go to last page, if possible
 			lineno = lcur - 1
 		} else {
 			lineno = 0
@@ -949,60 +929,93 @@ func verticalScroll(state *Peco, l *BasicLayout, p hub.PagingRequest) bool {
 		lineno = 0
 	}
 
-	// XXX DO NOT RETURN UNTIL YOU SET THE LINE NUMBER HERE
-	loc.SetLineNumber(lineno)
+	return lineno
+}
 
-	// if we were in range mode, we need to do stuff. otherwise
-	// just bail out
+// updateRangeSelection updates the selection state when moving in range mode.
+// It adds lines between the range start and the current position, and removes
+// lines that were previously selected but are no longer in the range.
+func updateRangeSelection(state *Peco, buf Buffer, loc *Location, lineBefore, lcur int) {
 	r := state.SelectionRangeStart()
 	if !r.Valid() {
-		return true
+		return
 	}
 
 	sel := state.Selection()
-	if l.list.sortTopDown {
-		if loc.LineNumber() < r.Value() {
-			for lineno := loc.LineNumber(); lineno <= r.Value(); lineno++ {
-				if line, err := buf.LineAt(lineno); err == nil {
-					sel.Add(line)
-				}
-			}
-			switch {
-			case r.Value() <= lineBefore:
-				for lineno := r.Value(); lineno <= lcur && lineno < lineBefore; lineno++ {
-					if line, err := buf.LineAt(lineno); err == nil {
-						sel.Remove(line)
-					}
-				}
-			case lineBefore < loc.LineNumber():
-				for lineno := lineBefore; lineno < loc.LineNumber(); lineno++ {
-					if line, err := buf.LineAt(lineno); err == nil {
-						sel.Remove(line)
-					}
-				}
-			}
-		} else {
-			for lineno := r.Value(); lineno <= lcur && lineno <= loc.LineNumber(); lineno++ {
-				if line, err := buf.LineAt(lineno); err == nil {
-					sel.Add(line)
-				}
-			}
+	curLine := loc.LineNumber()
 
-			switch {
-			case lineBefore <= r.Value():
-				for lineno := lineBefore; lineno < r.Value(); lineno++ {
-					if line, err := buf.LineAt(lineno); err == nil {
-						sel.Remove(line)
-					}
+	if curLine < r.Value() {
+		for lineno := curLine; lineno <= r.Value(); lineno++ {
+			if line, err := buf.LineAt(lineno); err == nil {
+				sel.Add(line)
+			}
+		}
+		switch {
+		case r.Value() <= lineBefore:
+			for lineno := r.Value(); lineno <= lcur && lineno < lineBefore; lineno++ {
+				if line, err := buf.LineAt(lineno); err == nil {
+					sel.Remove(line)
 				}
-			case loc.LineNumber() < lineBefore:
-				for lineno := loc.LineNumber(); lineno <= lineBefore; lineno++ {
-					if line, err := buf.LineAt(lineno); err == nil {
-						sel.Remove(line)
-					}
+			}
+		case lineBefore < curLine:
+			for lineno := lineBefore; lineno < curLine; lineno++ {
+				if line, err := buf.LineAt(lineno); err == nil {
+					sel.Remove(line)
 				}
 			}
 		}
+	} else {
+		for lineno := r.Value(); lineno <= lcur && lineno <= curLine; lineno++ {
+			if line, err := buf.LineAt(lineno); err == nil {
+				sel.Add(line)
+			}
+		}
+
+		switch {
+		case lineBefore <= r.Value():
+			for lineno := lineBefore; lineno < r.Value(); lineno++ {
+				if line, err := buf.LineAt(lineno); err == nil {
+					sel.Remove(line)
+				}
+			}
+		case curLine < lineBefore:
+			for lineno := curLine; lineno <= lineBefore; lineno++ {
+				if line, err := buf.LineAt(lineno); err == nil {
+					sel.Remove(line)
+				}
+			}
+		}
+	}
+}
+
+// verticalScroll moves the cursor position vertically
+func verticalScroll(state *Peco, l *BasicLayout, p hub.PagingRequest) bool {
+	loc := state.Location()
+	lineBefore := loc.LineNumber()
+
+	if pdebug.Enabled {
+		defer func() {
+			pdebug.Printf("currentLine changed from %d -> %d", lineBefore, state.Location().LineNumber())
+		}()
+	}
+
+	buf := state.CurrentLineBuffer()
+	lcur := buf.Size()
+
+	defer func() {
+		for _, lno := range []int{lineBefore, loc.LineNumber()} {
+			if oldLine, err := buf.LineAt(lno); err == nil {
+				oldLine.SetDirty(true)
+			}
+		}
+	}()
+
+	lpp := l.linesPerPage()
+	lineno := computeNewLineNumber(loc, p, l.list.sortTopDown, lineBefore, lcur, lpp)
+	loc.SetLineNumber(lineno)
+
+	if l.list.sortTopDown {
+		updateRangeSelection(state, buf, loc, lineBefore, lcur)
 	}
 
 	return true
