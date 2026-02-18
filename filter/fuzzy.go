@@ -73,14 +73,7 @@ LINE:
 		txt := l.DisplayString()
 
 		// Check negative terms first — skip if any match
-		excluded := false
-		for _, rx := range negRegexps {
-			if rx.MatchString(txt) {
-				excluded = true
-				break
-			}
-		}
-		if excluded {
+		if isExcluded(negRegexps, txt) {
 			continue LINE
 		}
 

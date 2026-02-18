@@ -3,6 +3,7 @@ package filter
 import (
 	"context"
 	"fmt"
+	"regexp"
 	"testing"
 	"time"
 
@@ -456,6 +457,61 @@ func TestLiteralHyphenMatching(t *testing.T) {
 		require.Len(t, results, 1)
 		require.Equal(t, "-foo bar", results[0].DisplayString())
 	})
+}
+
+func TestIsExcluded(t *testing.T) {
+	rxFoo := regexp.MustCompile(`(?i)foo`)
+	rxBar := regexp.MustCompile(`(?i)bar`)
+
+	tests := []struct {
+		name       string
+		negRegexps []*regexp.Regexp
+		text       string
+		want       bool
+	}{
+		{
+			name:       "nil regexps never excludes",
+			negRegexps: nil,
+			text:       "anything",
+			want:       false,
+		},
+		{
+			name:       "empty regexps never excludes",
+			negRegexps: []*regexp.Regexp{},
+			text:       "anything",
+			want:       false,
+		},
+		{
+			name:       "single match excludes",
+			negRegexps: []*regexp.Regexp{rxFoo},
+			text:       "contains foo here",
+			want:       true,
+		},
+		{
+			name:       "no match does not exclude",
+			negRegexps: []*regexp.Regexp{rxFoo},
+			text:       "contains baz here",
+			want:       false,
+		},
+		{
+			name:       "second regexp matches",
+			negRegexps: []*regexp.Regexp{rxFoo, rxBar},
+			text:       "has bar in it",
+			want:       true,
+		},
+		{
+			name:       "neither regexp matches",
+			negRegexps: []*regexp.Regexp{rxFoo, rxBar},
+			text:       "has baz in it",
+			want:       false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			require.Equal(t, tt.want, isExcluded(tt.negRegexps, tt.text))
+		})
+	}
 }
 
 // testFuzzyMatch tests if non-sorted & sorted Fuzzy filter returns the expected result

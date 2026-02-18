@@ -2,9 +2,20 @@ package filter
 
 import (
 	"context"
+	"regexp"
 
 	"github.com/peco/peco/pipeline"
 )
+
+// isExcluded reports whether text matches any of the given negative regexps.
+func isExcluded(negRegexps []*regexp.Regexp, text string) bool {
+	for _, rx := range negRegexps {
+		if rx.MatchString(text) {
+			return true
+		}
+	}
+	return false
+}
 
 // newContext initializes the context so that it is suitable
 // to be passed to `Run()`
