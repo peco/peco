@@ -38,7 +38,7 @@ func TestPrintScreen(t *testing.T) {
 
 	makeVerifier := func(initX, initY int, fill bool) func(string) {
 		return func(msg string) {
-			screen.interceptor.reset()
+			screen.reset()
 			t.Logf("Checking printScreen(%d, %d, %s, %t)", initX, initY, msg, fill)
 			width := utf8.RuneCountInString(msg)
 			screen.Print(PrintArgs{
@@ -49,7 +49,7 @@ func TestPrintScreen(t *testing.T) {
 				Msg:  msg,
 				Fill: fill,
 			})
-			events := screen.interceptor.events["SetCell"]
+			events := screen.events["SetCell"]
 			if !fill {
 				if len(events) != width {
 					t.Errorf("Expected %d SetCell events, got %d",
@@ -90,7 +90,7 @@ func TestScreenStatusBar(t *testing.T) {
 	require.NoError(t, err)
 	st.PrintStatus("Hello, World!", 0)
 
-	events := screen.interceptor.events
+	events := screen.events
 	if l := len(events["Flush"]); l != 1 {
 		t.Errorf("Expected 1 Flush event, got %d", l)
 		return
@@ -102,7 +102,7 @@ func TestNullStatusBar(t *testing.T) {
 	var st StatusBar = nullStatusBar{}
 	st.PrintStatus("Hello, World!", 0)
 
-	events := screen.interceptor.events
+	events := screen.events
 	if l := len(events["Flush"]); l != 0 {
 		t.Errorf("Expected 0 Flush events with nullStatusBar, got %d", l)
 	}
@@ -165,7 +165,7 @@ func TestGHIssue294_PromptStyleUsedForPromptPrefix(t *testing.T) {
 	prompt.Draw(state)
 
 	// Collect SetCell events for y=0 (the prompt row).
-	events := screen.interceptor.events["SetCell"]
+	events := screen.events["SetCell"]
 
 	promptStr := "QUERY>"
 	promptLen := len(promptStr)
@@ -238,7 +238,7 @@ func TestGHIssue460_MatchedStyleDoesNotBleedToEndOfLine(t *testing.T) {
 
 		// Collect SetCell events for y=0 (our matched line).
 		var row []interceptorArgs
-		for _, ev := range screen.interceptor.events["SetCell"] {
+		for _, ev := range screen.events["SetCell"] {
 			if ev[1].(int) == 0 {
 				row = append(row, ev)
 			}
@@ -318,19 +318,19 @@ func TestGHIssue455_DrawScreenForceSync(t *testing.T) {
 		layout, err := NewDefaultLayout(state)
 		require.NoError(t, err)
 
-		screen.interceptor.reset()
+		screen.reset()
 		layout.DrawScreen(state, &hub.DrawOptions{DisableCache: true, ForceSync: true})
 
-		syncEvents := screen.interceptor.events["Sync"]
-		flushEvents := screen.interceptor.events["Flush"]
+		syncEvents := screen.events["Sync"]
+		flushEvents := screen.events["Flush"]
 
 		require.Len(t, syncEvents, 1, "expected exactly 1 Sync call")
 		// DrawPrompt internally calls Flush, but the final DrawScreen
 		// Flush should be replaced by Sync.
-		for i, ev := range screen.interceptor.events["Flush"] {
+		for i, ev := range screen.events["Flush"] {
 			t.Logf("Flush event %d: %v", i, ev)
 		}
-		for i, ev := range screen.interceptor.events["Sync"] {
+		for i, ev := range screen.events["Sync"] {
 			t.Logf("Sync event %d: %v", i, ev)
 		}
 		// The prompt's Flush still fires, but the final screen Flush
@@ -339,9 +339,9 @@ func TestGHIssue455_DrawScreenForceSync(t *testing.T) {
 		flushCountWithSync := len(flushEvents)
 
 		// Compare against the non-ForceSync case
-		screen.interceptor.reset()
+		screen.reset()
 		layout.DrawScreen(state, &hub.DrawOptions{DisableCache: true, ForceSync: false})
-		flushCountWithout := len(screen.interceptor.events["Flush"])
+		flushCountWithout := len(screen.events["Flush"])
 
 		require.Equal(t, flushCountWithout-1, flushCountWithSync,
 			"ForceSync should replace exactly one Flush call with Sync")
@@ -352,10 +352,10 @@ func TestGHIssue455_DrawScreenForceSync(t *testing.T) {
 		layout, err := NewDefaultLayout(state)
 		require.NoError(t, err)
 
-		screen.interceptor.reset()
+		screen.reset()
 		layout.DrawScreen(state, &hub.DrawOptions{DisableCache: true, ForceSync: false})
 
-		syncEvents := screen.interceptor.events["Sync"]
+		syncEvents := screen.events["Sync"]
 		require.Empty(t, syncEvents, "expected no Sync calls when ForceSync is false")
 	})
 
@@ -364,10 +364,10 @@ func TestGHIssue455_DrawScreenForceSync(t *testing.T) {
 		layout, err := NewDefaultLayout(state)
 		require.NoError(t, err)
 
-		screen.interceptor.reset()
+		screen.reset()
 		layout.DrawScreen(state, nil)
 
-		syncEvents := screen.interceptor.events["Sync"]
+		syncEvents := screen.events["Sync"]
 		require.Empty(t, syncEvents, "expected no Sync calls with nil options")
 	})
 }
