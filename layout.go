@@ -98,7 +98,7 @@ func (as AnchorSettings) AnchorPosition() int {
 
 // NewUserPrompt creates a new UserPrompt struct
 func NewUserPrompt(screen Screen, anchor VerticalAnchor, anchorOffset int, prompt string, styles *StyleSet) (*UserPrompt, error) {
-	if len(prompt) <= 0 { // default
+	if prompt == "" { // default
 		prompt = DefaultPrompt
 	}
 	promptLen := runewidth.StringWidth(prompt)
