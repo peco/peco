@@ -23,7 +23,6 @@ linters:
     - godox
     - gosec
     - gosmopolitan
-    - govet
     - inamedparam
     - interfacebloat
     - ireturn
@@ -39,7 +38,6 @@ linters:
     - paralleltest
     - perfsprint
     - recvcheck
-    - staticcheck
     - tagalign
     - tagliatelle
     - testifylint
