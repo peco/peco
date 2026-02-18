@@ -62,12 +62,8 @@ func (ff *Fuzzy) applyInternal(ctx context.Context, lines []line.Line, emit func
 
 LINE:
 	for i, l := range lines {
-		if i%1000 == 0 {
-			select {
-			case <-ctx.Done():
-				return ctx.Err()
-			default:
-			}
+		if err := checkCancelled(ctx, i); err != nil {
+			return err
 		}
 
 		txt := l.DisplayString()

@@ -12,6 +12,20 @@ func newContext(ctx context.Context, query string) context.Context {
 	return pipeline.NewQueryContext(ctx, query)
 }
 
+// checkCancelled returns ctx.Err() every 1000 iterations so that
+// long-running filter loops can bail out promptly on cancellation
+// without paying the cost of a channel receive on every single line.
+func checkCancelled(ctx context.Context, i int) error {
+	if i%1000 == 0 {
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		default:
+		}
+	}
+	return nil
+}
+
 // sort related stuff
 type byMatchStart [][]int
 

@@ -16,6 +16,38 @@ type indexer interface {
 	Indices() [][]int
 }
 
+func TestCheckCancelled(t *testing.T) {
+	t.Run("returns nil for non-boundary iterations", func(t *testing.T) {
+		ctx := context.Background()
+		for _, i := range []int{1, 2, 999, 1001, 2999} {
+			require.NoError(t, checkCancelled(ctx, i))
+		}
+	})
+
+	t.Run("returns nil at boundary when context is active", func(t *testing.T) {
+		ctx := context.Background()
+		for _, i := range []int{0, 1000, 2000, 3000} {
+			require.NoError(t, checkCancelled(ctx, i))
+		}
+	})
+
+	t.Run("returns error at boundary when context is cancelled", func(t *testing.T) {
+		ctx, cancel := context.WithCancel(context.Background())
+		cancel()
+
+		require.ErrorIs(t, checkCancelled(ctx, 0), context.Canceled)
+		require.ErrorIs(t, checkCancelled(ctx, 1000), context.Canceled)
+	})
+
+	t.Run("returns nil off-boundary even when context is cancelled", func(t *testing.T) {
+		ctx, cancel := context.WithCancel(context.Background())
+		cancel()
+
+		require.NoError(t, checkCancelled(ctx, 1))
+		require.NoError(t, checkCancelled(ctx, 999))
+	})
+}
+
 // TestFuzzy tests the Fuzzy filter against various inputs.
 //
 //	testFuzzy: simple substring match
