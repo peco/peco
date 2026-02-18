@@ -177,7 +177,7 @@ func TestParseSGR_MalformedExtendedColor(t *testing.T) {
 	t.Run("well-formed truecolor fg still works", func(t *testing.T) {
 		var fg, bg Attribute
 		parseSGR("38;2;255;128;0", &fg, &bg)
-		expected := Attribute((255<<16)|(128<<8)|0) | AttrTrueColor
+		expected := Attribute((255<<16)|(128<<8)) | AttrTrueColor
 		require.Equal(t, expected, fg)
 		require.Equal(t, ColorDefault, bg)
 	})
