@@ -6,6 +6,7 @@ import (
 	"io"
 	"os"
 	"runtime"
+	"runtime/debug"
 	"sync"
 	"testing"
 	"time"
@@ -232,7 +233,11 @@ func (s *SimScreen) Flush() error {
 func (s *SimScreen) PollEvent(ctx context.Context, _ *Config) chan Event {
 	evCh := make(chan Event)
 	go func() {
-		defer func() { recover() }()
+		defer func() {
+			if r := recover(); r != nil {
+				fmt.Fprintf(os.Stderr, "SimScreen: panic in PollEvent goroutine: %v\n%s", r, debug.Stack())
+			}
+		}()
 		defer close(evCh)
 
 		for {
