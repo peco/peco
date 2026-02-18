@@ -24,7 +24,7 @@ import (
 
 type nullHub struct{}
 
-func (h nullHub) Batch(_ context.Context, _ func(context.Context), _ bool)   {}
+func (h nullHub) Batch(_ context.Context, _ func(context.Context))           {}
 func (h nullHub) DrawCh() chan *hub.Payload[*hub.DrawOptions]                { return nil }
 func (h nullHub) PagingCh() chan *hub.Payload[hub.PagingRequest]             { return nil }
 func (h nullHub) QueryCh() chan *hub.Payload[string]                         { return nil }

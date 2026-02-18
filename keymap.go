@@ -26,8 +26,6 @@ func (km Keymap) Sequence() Keyseq {
 	return km.seq
 }
 
-type isTopLevelActionCallKey struct{}
-
 func (km Keymap) ExecuteAction(ctx context.Context, state *Peco, ev Event) (err error) {
 	if pdebug.Enabled {
 		g := pdebug.Marker("Keymap.ExecuteAction %v", ev).BindError(&err)
@@ -39,7 +37,6 @@ func (km Keymap) ExecuteAction(ctx context.Context, state *Peco, ev Event) (err 
 		return errors.New("action not found")
 	}
 
-	ctx = context.WithValue(ctx, isTopLevelActionCallKey{}, true)
 	a.Execute(ctx, state, ev)
 	return nil
 }
