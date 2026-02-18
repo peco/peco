@@ -4,7 +4,6 @@ import (
 	"errors"
 	"strings"
 	"sync"
-	"time"
 )
 
 var ErrInSequence = errors.New("expected a key sequence")
@@ -116,9 +115,8 @@ type keyseqMatcher interface {
 
 type Keyseq struct {
 	*Matcher
-	current       keyseqMatcher
-	mutex         sync.Mutex
-	prevInputTime time.Time
+	current keyseqMatcher
+	mutex   sync.Mutex
 }
 
 func New() *Keyseq {
@@ -150,15 +148,10 @@ func (k *Keyseq) Current() keyseqMatcher {
 	return k.current
 }
 
-func (k *Keyseq) updateInputTime() {
-	k.prevInputTime = time.Now()
-}
-
 func (k *Keyseq) AcceptKey(key Key) (any, error) {
 	// XXX should we return Action instead of interface{}?
 	k.mutex.Lock()
 	defer k.mutex.Unlock()
-	defer k.updateInputTime()
 	c := k.Current()
 	n := c.Get(key)
 
@@ -179,7 +172,7 @@ func (k *Keyseq) AcceptKey(key Key) (any, error) {
 		return nil, ErrInSequence
 	}
 
-	// If it got here, we should just rest the matcher, and return
+	// If it got here, we should just reset the matcher, and return
 	// whatever we matched
 	k.setCurrent(k.Matcher)
 
