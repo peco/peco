@@ -14,6 +14,10 @@ import (
 	"github.com/peco/peco/pipeline"
 )
 
+// drawRefreshInterval is the interval at which the screen is redrawn while
+// reading input. This provides visual feedback as new lines arrive.
+const drawRefreshInterval = 100 * time.Millisecond
+
 // NewSource creates a new Source. Does not start processing the input until you
 // call Setup()
 func NewSource(name string, in io.Reader, isInfinite bool, idgen line.IDGenerator, capacity int, enableSep bool, enableANSI bool) *Source {
@@ -63,7 +67,7 @@ func (s *Source) Setup(ctx context.Context, state *Peco) {
 		}
 
 		go func() {
-			ticker := time.NewTicker(100 * time.Millisecond)
+			ticker := time.NewTicker(drawRefreshInterval)
 			defer ticker.Stop()
 
 			for {
