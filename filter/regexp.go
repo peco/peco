@@ -164,12 +164,8 @@ func (rf *Regexp) applyInternal(ctx context.Context, lines []line.Line, emit fun
 	}
 
 	for i, l := range lines {
-		if i%1000 == 0 {
-			select {
-			case <-ctx.Done():
-				return ctx.Err()
-			default:
-			}
+		if err := checkCancelled(ctx, i); err != nil {
+			return err
 		}
 		v := l.DisplayString()
 
