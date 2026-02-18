@@ -79,27 +79,30 @@ func termsToRegexps(terms []string, fullQuery string, flags regexpFlags, quoteme
 	return regexps, nil
 }
 
-// NewRegexp creates a new regexp based filter
-func NewRegexp() *Regexp {
+// newRegexpFilter is an internal helper that constructs a Regexp filter
+// with the given name, flags, and quotemeta setting.
+func newRegexpFilter(name string, flags regexpFlags, quotemeta bool) *Regexp {
 	rf := &Regexp{
 		factory: &regexpQueryFactory{
 			compiled:  make(map[string]regexpQuery),
 			threshold: time.Minute,
 		},
-		flags:     defaultFlags,
-		quotemeta: false,
-		name:      "Regexp",
+		flags:     flags,
+		quotemeta: quotemeta,
+		name:      name,
 	}
 	rf.applyFn = rf.applyInternal
 	return rf
 }
 
+// NewRegexp creates a new regexp based filter
+func NewRegexp() *Regexp {
+	return newRegexpFilter("Regexp", defaultFlags, false)
+}
+
 // NewIRegexp creates a new case-insensitive regexp based filter
 func NewIRegexp() *Regexp {
-	rf := NewRegexp()
-	rf.flags = regexpFlagList([]string{"i"})
-	rf.name = "IRegexp"
-	return rf
+	return newRegexpFilter("IRegexp", ignoreCaseFlags, false)
 }
 
 const maxRegexpCacheSize = 100
@@ -247,31 +250,20 @@ func (rf *Regexp) String() string {
 }
 
 func NewIgnoreCase() *Regexp {
-	rf := NewRegexp()
-	rf.flags = ignoreCaseFlags
-	rf.quotemeta = true
-	rf.name = "IgnoreCase"
-	return rf
+	return newRegexpFilter("IgnoreCase", ignoreCaseFlags, true)
 }
 
 func NewCaseSensitive() *Regexp {
-	rf := NewRegexp()
-	rf.quotemeta = true
-	rf.name = "CaseSensitive"
-	return rf
+	return newRegexpFilter("CaseSensitive", defaultFlags, true)
 }
 
 // NewSmartCase creates a filter that turns ON the ignore-case flag in the regexp
 // if the query contains no upper-case character
 func NewSmartCase() *Regexp {
-	rf := NewRegexp()
-	rf.quotemeta = true
-	rf.name = "SmartCase"
-	rf.flags = regexpFlagFunc(func(q string) []string {
+	return newRegexpFilter("SmartCase", regexpFlagFunc(func(q string) []string {
 		if util.ContainsUpper(q) {
 			return defaultFlags
 		}
 		return []string{"i"}
-	})
-	return rf
+	}), true)
 }
