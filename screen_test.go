@@ -28,14 +28,14 @@ func (s *recordingScreen) Init(*Config) error                            { retur
 func (s *recordingScreen) Close() error                                  { return nil }
 func (s *recordingScreen) Flush() error                                  { return nil }
 func (s *recordingScreen) PollEvent(context.Context, *Config) chan Event { return nil }
-func (s *recordingScreen) Print(args PrintArgs) int                 { return screenPrint(s, args) }
-func (s *recordingScreen) Resume(context.Context) error             { return nil }
-func (s *recordingScreen) SetCursor(int, int)                       {}
-func (s *recordingScreen) SendEvent(Event)                          {}
-func (s *recordingScreen) Suspend()                                 {}
-func (s *recordingScreen) Sync()                                    {}
-func (s *recordingScreen) Size() (int, int)                         { return s.w, s.h }
-func (s *recordingScreen) SetCell(x, y int, ch rune, fg, bg Attribute) {
+func (s *recordingScreen) Print(args PrintArgs) int                      { return screenPrint(s, args) }
+func (s *recordingScreen) Resume(context.Context) error                  { return nil }
+func (s *recordingScreen) SetCursor(int, int)                            {}
+func (s *recordingScreen) SendEvent(Event)                               {}
+func (s *recordingScreen) Suspend()                                      {}
+func (s *recordingScreen) Sync()                                         {}
+func (s *recordingScreen) Size() (int, int)                              { return s.w, s.h }
+func (s *recordingScreen) SetCell(x, y int, ch rune, _, _ Attribute) {
 	s.cells = append(s.cells, setCellCall{x: x, y: y, ch: ch})
 }
 
