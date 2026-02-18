@@ -11,6 +11,7 @@ import (
 	"context"
 
 	"github.com/peco/peco/line"
+	"github.com/stretchr/testify/require"
 )
 
 type RegexpFilter struct {
@@ -144,5 +145,5 @@ barfoo
 	for _, l := range dst.lines {
 		got = append(got, l.DisplayString())
 	}
-	t.Logf("%#v", got)
+	require.Equal(t, []string{"foobar"}, got)
 }
