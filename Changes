@@ -3,6 +3,9 @@ Changes
 
 v0.6.0 - UNRELEASED
   [Breaking Changes]
+  * Migrated terminal backend from termbox-go to tcell (#567).
+    This should be transparent to most users, but custom code that
+    depended on termbox-go internals will need updating.
   * Removed deprecated config fields `Matcher`, `InitialMatcher`, and
     `CustomMatcher`. Use `InitialFilter` and `CustomFilter` instead.
   * Removed deprecated CLI option `--initial-matcher`.
@@ -10,6 +13,61 @@ v0.6.0 - UNRELEASED
   * The action `ViewArround` has been renamed to `ViewAround` (fix typo).
     The old name still works but shows a deprecation notice. If you have
     `"ViewArround"` in your config, please update it to `"ViewAround"`.
+
+  [Features]
+  * Added YAML configuration file support. You can now use
+    `~/.config/peco/config.yaml` in addition to JSON (#576).
+  * Added negative filter terms. Prefix a search term with `-` to exclude
+    matching lines, e.g. `-unittests SSO` matches "SSO" but excludes
+    lines containing "unittests" (#434, #592).
+  * Added `peco.Freeze` / `peco.Unfreeze` / `peco.ToggleFreeze` actions.
+    Freezing locks the current result set so you can clear the query,
+    switch filters, and continue filtering against the frozen subset (#424, #596).
+  * Added `--height` option for inline display. Limits peco to the
+    specified number of terminal rows instead of taking over the full
+    screen (#471, #598).
+  * Added `peco.ZoomIn` / `peco.ZoomOut` actions that expand visible
+    context around matched lines, showing surrounding lines (#289, #600).
+  * Added ANSI color rendering support. Colored output from tools like
+    `git log --color` or `rg --color` is now displayed with colors
+    preserved (#398, #602).
+  * Added `IRegexp` filter for case-insensitive regexp matching, so you
+    no longer need to manually type `(?i)` in regex queries (#564).
+  * Added `--exit-0` option to immediately exit with non-zero status
+    when the input is empty, analogous to `--select-1` (#538, #582).
+  * Added Ctrl+Shift key modifier and CSI u / fixterms escape sequence
+    support for modern terminals (#529, #581).
+  * Added Page Up/Down and Home/End key support (#428, #584).
+  * Added a new layout type: top-down list with query prompt at the
+    bottom (#445, #595).
+  * Added man page (`peco.1`) for offline documentation (#467, #587).
+  * Added support for ANSI color codes in the `--prompt` string (#294, #586).
+
+  [Bugs/Fixes]
+  * Fixed `ToggleQuery` (C-t) not working correctly (#563).
+  * Fixed fuzzy sort producing incorrect order with >1000 lines of
+    input due to chunk-size boundary (#557, #589).
+  * Fixed matched highlight style bleeding to the right edge of the
+    terminal (#460, #583).
+  * Fixed screen not being properly redrawn when stderr output from
+    piped commands corrupts the display (#455, #588).
+  * Suppressed flickering "Running query..." status message (#511, #585).
+  * Fixed `--null` not working correctly with custom filters (#312, #577).
+  * Fixed `doGoToNextSelection` and `doGoToPreviousSelection` sharing
+    the same default key binding (#575, #579).
+  * Fixed `lastLine` tracking variable not being updated (#574, #578).
+  * Fixed tab rendering off-by-one error (#672).
+  * Fixed various internal race conditions, resource leaks, and
+    potential deadlocks.
+
+  [Performance]
+  * Optimized filtering for large inputs with parallelized workers,
+    achieving 7-30x speedup for ~1M lines (#454, #590).
+  * Reduced overall memory consumption (#572).
+
+  [Miscellaneous]
+  * Large-scale internal refactoring and cleanup.
+  * Documented horizontal scrolling in README (#480).
 
 v0.5.11 - 21 Mar 2023
   [Features]
