@@ -276,10 +276,10 @@ func (f *errorFilter) Apply(_ context.Context, _ []line.Line, _ pipeline.ChanOut
 	return f.err
 }
 
-func (f *errorFilter) BufSize() int                                          { return 0 }
+func (f *errorFilter) BufSize() int                                             { return 0 }
 func (f *errorFilter) NewContext(ctx context.Context, _ string) context.Context { return ctx }
-func (f *errorFilter) String() string                                        { return "error-filter" }
-func (f *errorFilter) SupportsParallel() bool                                { return false }
+func (f *errorFilter) String() string                                           { return "error-filter" }
+func (f *errorFilter) SupportsParallel() bool                                   { return false }
 
 // TestFilterApplyErrorReporting verifies that when a filter's Apply method
 // returns an error, the error is propagated to the onError callback (which in
