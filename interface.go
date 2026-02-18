@@ -156,7 +156,7 @@ type Screen interface {
 	Flush() error
 	PollEvent(context.Context, *Config) chan Event
 	Print(PrintArgs) int
-	Resume(context.Context)
+	Resume(context.Context) error
 	SetCell(int, int, rune, Attribute, Attribute)
 	SetCursor(int, int)
 	Size() (int, int)

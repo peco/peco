@@ -261,8 +261,8 @@ func (s *SimScreen) Size() (int, int) {
 	return s.screen.Size()
 }
 
-func (s *SimScreen) Resume(_ context.Context) {}
-func (s *SimScreen) Suspend()                 {}
+func (s *SimScreen) Resume(_ context.Context) error { return nil }
+func (s *SimScreen) Suspend()                       {}
 
 // Sync records a "Sync" event via the interceptor. This satisfies the
 // optional syncer interface used by BasicLayout.DrawScreen when
