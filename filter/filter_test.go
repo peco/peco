@@ -9,7 +9,6 @@ import (
 
 	"github.com/peco/peco/line"
 	"github.com/peco/peco/pipeline"
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -63,21 +62,14 @@ func testFuzzy(octx context.Context, t *testing.T, filter Filter) {
 			ch := make(chan line.Line, 1)
 			l := line.NewRaw(uint64(i), v.input, false, false)
 			err := filter.Apply(ctx, []line.Line{l}, pipeline.ChanOutput(ch))
-			if !assert.NoError(t, err, `filter.Apply should succeed`) {
-				return
-			}
+			require.NoError(t, err, `filter.Apply should succeed`)
 
 			select {
 			case l, ok := <-ch:
-				if !assert.True(t, ok, `channel read should succeed`) {
-					return
-				}
-
+				require.True(t, ok, `channel read should succeed`)
 				t.Logf("%#v", l.(indexer).Indices())
 			case <-ctx.Done():
-				if !assert.False(t, v.selected, "did NOT expect to timeout") { // shouldn't happen if we're expecting a result
-					return
-				}
+				require.False(t, v.selected, "did NOT expect to timeout")
 			}
 		})
 	}
@@ -201,18 +193,14 @@ func testFuzzyLongest(octx context.Context, t *testing.T, filter Filter) {
 				case l := <-lc:
 					actual = append(actual, l.DisplayString())
 				case err := <-ec:
-					if !assert.NoError(t, err, `filter.Apply should succeed`) {
-						return
-					}
+					require.NoError(t, err, `filter.Apply should succeed`)
 					break OUTER
 				case <-ctx.Done():
 					t.Fatalf("unexpected timeout")
 				}
 			}
 
-			if !assert.Equal(t, v.expect, actual, "result is ordered in expected order") {
-				return
-			}
+			require.Equal(t, v.expect, actual, "result is ordered in expected order")
 		})
 	}
 }
@@ -593,16 +581,10 @@ func testFuzzyMatch(octx context.Context, t *testing.T, filter Filter) {
 			for {
 				select {
 				case l := <-lc:
-					if !assert.Implements(t, (*indexer)(nil), l, "result is an indexer") {
-						return
-					}
-					if !assert.Equal(t, v.expect, l.(indexer).Indices(), "result has expected indices") {
-						return
-					}
+					require.Implements(t, (*indexer)(nil), l, "result is an indexer")
+					require.Equal(t, v.expect, l.(indexer).Indices(), "result has expected indices")
 				case err := <-ec:
-					if !assert.NoError(t, err, `filter.Apply should succeed`) {
-						return
-					}
+					require.NoError(t, err, `filter.Apply should succeed`)
 					break OUTER
 				case <-ctx.Done():
 					t.Fatalf("unexpected timeout")

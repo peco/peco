@@ -13,7 +13,6 @@ import (
 	"github.com/peco/peco/internal/keyseq"
 	"github.com/peco/peco/line"
 	"github.com/peco/peco/pipeline"
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -23,29 +22,17 @@ func TestIssue212_SanityCheck(t *testing.T) {
 	// Check if the default layout type is honored */
 	// This the main issue on 212, but while we're at it, we're just
 	// going to check that all the default values are as expected
-	if !assert.Equal(t, state.config.Layout, "top-down", "Default layout type should be 'top-down', got '%s'", state.config.Layout) {
-		return
-	}
-
-	if !assert.Equal(t, len(state.config.Keymap), 0, "Default keymap should be empty, but got '%#v'", state.config.Keymap) {
-		return
-	}
+	require.Equal(t, state.config.Layout, "top-down", "Default layout type should be 'top-down', got '%s'", state.config.Layout)
+	require.Equal(t, len(state.config.Keymap), 0, "Default keymap should be empty, but got '%#v'", state.config.Keymap)
 
 	defstyle := StyleSet{}
 	defstyle.Init()
-	if !assert.Equal(t, state.config.Style, defstyle, "should be default style") {
-		return
-	}
-
-	if !assert.Equal(t, state.config.Prompt, "QUERY>", "Default prompt should be 'QUERY>', but got '%s'", state.config.Prompt) {
-		return
-	}
+	require.Equal(t, state.config.Style, defstyle, "should be default style")
+	require.Equal(t, state.config.Prompt, "QUERY>", "Default prompt should be 'QUERY>', but got '%s'", state.config.Prompt)
 
 	// Okay, this time create a dummy config file, and read that in
 	f, err := os.CreateTemp(t.TempDir(), "peco-test-config")
-	if !assert.NoError(t, err, "Failed to create temporary config file: %s", err) {
-		return
-	}
+	require.NoError(t, err, "Failed to create temporary config file: %s", err)
 	fn := f.Name()
 	defer os.Remove(fn)
 
@@ -59,12 +46,8 @@ func TestIssue212_SanityCheck(t *testing.T) {
 
 	<-state.Ready()
 
-	if !assert.NoError(t, state.config.ReadFilename(fn), "Failed to read config: %s", err) {
-		return
-	}
-	if !assert.Equal(t, state.config.Layout, "bottom-up", "Default layout type should be 'bottom-up', got '%s'", state.config.Layout) {
-		return
-	}
+	require.NoError(t, state.config.ReadFilename(fn), "Failed to read config: %s", err)
+	require.Equal(t, state.config.Layout, "bottom-up", "Default layout type should be 'bottom-up', got '%s'", state.config.Layout)
 }
 
 func TestIssue345(t *testing.T) {
@@ -79,16 +62,12 @@ func TestIssue345(t *testing.T) {
 		]
 	}
 }`)
-	if !assert.NoError(t, err, "newConfig should succeed") {
-		return
-	}
+	require.NoError(t, err, "newConfig should succeed")
 	defer os.Remove(cfg)
 
 	state := newPeco()
 	state.readConfigFn = readConfig
-	if !assert.NoError(t, state.config.Init(), "Config.Init should succeed") {
-		return
-	}
+	require.NoError(t, state.config.Init(), "Config.Init should succeed")
 
 	state.Argv = append(state.Argv, []string{"--rcfile", cfg}...)
 
@@ -102,9 +81,7 @@ func TestIssue345(t *testing.T) {
 		Type: EventKey,
 		Key:  keyseq.KeyCtrlT,
 	}
-	if !assert.NoError(t, state.Keymap().ExecuteAction(ctx, state, ev), "ExecuteAction should succeed") {
-		return
-	}
+	require.NoError(t, state.Keymap().ExecuteAction(ctx, state, ev), "ExecuteAction should succeed")
 
 	// Brief pause to let async hub messages from the combined action
 	// be processed before context cancellation tears down goroutines.
@@ -160,7 +137,7 @@ func TestIssue557_FilterBufSize(t *testing.T) {
 	// longest continuous match and shortest line length.
 	first, err := dst.LineAt(0)
 	require.NoError(t, err)
-	assert.Equal(t, "exact", first.DisplayString(), "best match should be first")
+	require.Equal(t, "exact", first.DisplayString(), "best match should be first")
 }
 
 // sliceSource is a simple pipeline.Source backed by a slice of lines.
