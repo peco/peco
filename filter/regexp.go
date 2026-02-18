@@ -171,14 +171,7 @@ func (rf *Regexp) applyInternal(ctx context.Context, lines []line.Line, emit fun
 		v := l.DisplayString()
 
 		// Check negative terms first (fail-fast, no index collection)
-		excluded := false
-		for _, rx := range negRegexps {
-			if rx.MatchString(v) {
-				excluded = true
-				break
-			}
-		}
-		if excluded {
+		if isExcluded(negRegexps, v) {
 			continue
 		}
 
