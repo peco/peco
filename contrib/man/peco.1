@@ -741,8 +741,6 @@ CustomFilter
 .IP \[bu] 2
 Prompt
 .IP \[bu] 2
-Use256Color
-.IP \[bu] 2
 ANSI
 .SS Global
 .PP
@@ -1578,8 +1576,8 @@ used.
 .IP \[bu] 2
 \f[V]\[dq]white\[dq]\f[R] for \f[V]tcell.ColorWhite\f[R]
 .IP \[bu] 2
-\f[V]\[dq]0\[dq]\f[R]-\f[V]\[dq]255\[dq]\f[R] for 256color (Use256Color
-must be enabled)
+\f[V]\[dq]0\[dq]\f[R]-\f[V]\[dq]255\[dq]\f[R] for 256color
+(automatically supported via tcell)
 .SS Background Colors
 .IP \[bu] 2
 \f[V]\[dq]on_black\[dq]\f[R] for \f[V]tcell.ColorBlack\f[R]
@@ -1599,7 +1597,7 @@ must be enabled)
 \f[V]\[dq]on_white\[dq]\f[R] for \f[V]tcell.ColorWhite\f[R]
 .IP \[bu] 2
 \f[V]\[dq]on_0\[dq]\f[R]-\f[V]\[dq]on_255\[dq]\f[R] for 256color
-(Use256Color must be enabled)
+(automatically supported via tcell)
 .SS Attributes
 .IP \[bu] 2
 \f[V]\[dq]bold\[dq]\f[R] for fg: \f[V]tcell.AttrBold\f[R]
@@ -1732,21 +1730,6 @@ See \[en]layout.
 \f[C]
 {
   \[dq]SelectionPrefix\[dq]: \[dq]>\[dq]
-}
-\f[R]
-.fi
-.SS Use256Color
-.PP
-Boolean value that determines whether or not to use 256color.
-The default is \f[V]false\f[R].
-.PP
-Note: This has no effect on Windows because Windows console does not
-support extra color modes.
-.IP
-.nf
-\f[C]
-{
-    \[dq]Use256Color\[dq]: true
 }
 \f[R]
 .fi

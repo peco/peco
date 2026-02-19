@@ -84,7 +84,6 @@ type Peco struct {
 	readConfigFn        func(*Config, string) error
 	styles              StyleSet
 	enableANSI          bool // Enable ANSI color code support
-	use256Color         bool
 	fuzzyLongestSort    bool
 
 	// Source is where we buffer input. It gets reused when a new query is
@@ -239,10 +238,6 @@ func (p *Peco) Screen() Screen {
 
 func (p *Peco) Styles() *StyleSet {
 	return &p.styles
-}
-
-func (p *Peco) Use256Color() bool {
-	return p.use256Color
 }
 
 func (p *Peco) Prompt() string {
@@ -737,8 +732,6 @@ func (p *Peco) ApplyConfig(opts CLIOptions) error {
 	} else if v := p.config.Prompt; len(v) > 0 {
 		p.prompt = v
 	}
-
-	p.use256Color = p.config.Use256Color
 
 	p.onCancel = p.config.OnCancel
 	if p.onCancel == "" {

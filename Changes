@@ -11,6 +11,9 @@ v0.6.0 - UNRELEASED
   * The action `ViewArround` has been renamed to `ViewAround` (fix typo).
     The old name still works but shows a deprecation notice. If you have
     `"ViewArround"` in your config, please update it to `"ViewAround"`.
+  * Removed `Use256Color` config field. After the tcell migration,
+    256-color and truecolor support is automatic via terminfo detection.
+    Existing configs with this field will continue to load without error.
 
   [Features]
   * Added YAML configuration file support. You can now use

@@ -45,7 +45,6 @@ type Config struct {
 	Style               StyleSet                      `json:"Style" yaml:"Style"`
 	Prompt              string                        `json:"Prompt" yaml:"Prompt"`
 	Layout              string                        `json:"Layout" yaml:"Layout"`
-	Use256Color         bool                          `json:"Use256Color" yaml:"Use256Color"`
 	OnCancel            OnCancelBehavior              `json:"OnCancel" yaml:"OnCancel"`
 	CustomFilter        map[string]CustomFilterConfig `json:"CustomFilter" yaml:"CustomFilter"`
 	QueryExecutionDelay int                           `json:"QueryExecutionDelay" yaml:"QueryExecutionDelay"`
@@ -153,7 +152,6 @@ func (c *Config) Init() error {
 	c.Style.Init()
 	c.Prompt = DefaultPrompt
 	c.Layout = LayoutTypeTopDown
-	c.Use256Color = false
 	return nil
 }
 

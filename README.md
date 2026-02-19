@@ -455,7 +455,6 @@ Below are configuration sections that you may specify in your config file:
 * [Styles](#styles)
 * [CustomFilter](#customfilter)
 * [Prompt](#prompt)
-* [Use256Color](#use256color)
 * [ANSI](#ansi)
 
 ## Global
@@ -800,7 +799,7 @@ Styles can be customized in `config.json`.
 - `"magenta"` for `tcell.ColorMagenta`
 - `"cyan"` for `tcell.ColorCyan`
 - `"white"` for `tcell.ColorWhite`
-- `"0"`-`"255"` for 256color ([Use256Color](#use256color) must be enabled)
+- `"0"`-`"255"` for 256color (automatically supported via tcell)
 
 ### Background Colors
 
@@ -812,7 +811,7 @@ Styles can be customized in `config.json`.
 - `"on_magenta"` for `tcell.ColorMagenta`
 - `"on_cyan"` for `tcell.ColorCyan`
 - `"on_white"` for `tcell.ColorWhite`
-- `"on_0"`-`"on_255"` for 256color ([Use256Color](#use256color) must be enabled)
+- `"on_0"`-`"on_255"` for 256color (automatically supported via tcell)
 
 ### Attributes
 
@@ -893,18 +892,6 @@ See --layout.
 ```
 {
   "SelectionPrefix": ">"
-}
-```
-
-## Use256Color
-
-Boolean value that determines whether or not to use 256color. The default is `false`.
-
-Note: This has no effect on Windows because Windows console does not support extra color modes.
-
-```json
-{
-    "Use256Color": true
 }
 ```
 
