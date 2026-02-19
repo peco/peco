@@ -344,6 +344,7 @@ type StyleSet struct {
 	SavedSelection Style `json:"SavedSelection" yaml:"SavedSelection"`
 	Selected       Style `json:"Selected" yaml:"Selected"`
 	Query          Style `json:"Query" yaml:"Query"`
+	QueryCursor    Style `json:"QueryCursor" yaml:"QueryCursor"`
 	Matched        Style `json:"Matched" yaml:"Matched"`
 	Prompt         Style `json:"Prompt" yaml:"Prompt"`
 	Context        Style `json:"Context" yaml:"Context"`

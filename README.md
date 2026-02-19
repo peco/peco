@@ -774,7 +774,7 @@ Note: If in case below keymap seems wrong, check the source code in [keymap.go](
 
 ## Styles
 
-For now, styles of following 7 items can be customized in `config.json`.
+Styles can be customized in `config.json`.
 
 ```json
 {
@@ -783,6 +783,7 @@ For now, styles of following 7 items can be customized in `config.json`.
         "SavedSelection": ["bold", "on_yellow", "white"],
         "Selected": ["underline", "on_cyan", "black"],
         "Query": ["yellow", "bold"],
+        "QueryCursor": ["white", "on_red"],
         "Matched": ["red", "on_blue"],
         "Prompt": ["green", "bold"],
         "Context": ["bold"]
@@ -794,6 +795,7 @@ For now, styles of following 7 items can be customized in `config.json`.
 - `SavedSelection` for lines of saved selection
 - `Selected` for a currently selecting line
 - `Query` for a query line
+- `QueryCursor` for the cursor on the query line. If not specified, the cursor colors are derived automatically: when `Query` has custom colors, they are swapped (fg becomes bg and vice versa); otherwise, the terminal's reverse video attribute is used.
 - `Matched` for a query matched word
 - `Prompt` for the query prompt prefix (e.g., `QUERY>`)
 - `Context` for context lines shown by ZoomIn (default: bold)
