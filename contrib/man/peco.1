@@ -153,6 +153,13 @@ their own parsing.
 Only positive terms produce match highlighting.
 Lines matched solely by negative exclusion (e.g.\ an all-negative query
 like \f[V]-foo\f[R]) are shown without highlighting.
+.PP
+\f[B]Note:\f[R] When using the SmartCase filter with negative terms,
+results may be incomplete if the query transitions from all-lowercase to
+mixed-case (e.g.\ typing \f[V]foo -bar\f[R] then adding an uppercase
+character).
+If this happens, clearing the query and retyping it will produce the
+correct results.
 .SS Select Multiple Lines
 .PP
 You can select multiple lines!
