@@ -440,6 +440,71 @@ func TestTopDownQueryBottomLayout(t *testing.T) {
 		"SortTopDown() should return true")
 }
 
+// TestCursorStyle verifies that UserPrompt.cursorStyle returns the correct
+// fg/bg attributes depending on QueryCursor and Query style configuration.
+func TestCursorStyle(t *testing.T) {
+	makePrompt := func(t *testing.T, styles *StyleSet) UserPrompt {
+		t.Helper()
+		screen := NewDummyScreen()
+		p, err := NewUserPrompt(screen, AnchorTop, 0, "QUERY>", styles)
+		require.NoError(t, err)
+		return *p
+	}
+
+	t.Run("both default falls back to AttrReverse", func(t *testing.T) {
+		styles := NewStyleSet()
+		// Query and QueryCursor are both ColorDefault (zero value)
+		p := makePrompt(t, styles)
+		fg, bg := p.cursorStyle()
+		require.Equal(t, ColorDefault|AttrReverse, fg)
+		require.Equal(t, ColorDefault|AttrReverse, bg)
+	})
+
+	t.Run("Query has custom colors and QueryCursor is default swaps fg/bg", func(t *testing.T) {
+		styles := NewStyleSet()
+		styles.Query.fg = ColorYellow
+		styles.Query.bg = ColorBlue
+		p := makePrompt(t, styles)
+		fg, bg := p.cursorStyle()
+		require.Equal(t, ColorBlue, fg, "should use Query.bg as cursor fg")
+		require.Equal(t, ColorYellow, bg, "should use Query.fg as cursor bg")
+	})
+
+	t.Run("QueryCursor explicitly set takes precedence", func(t *testing.T) {
+		styles := NewStyleSet()
+		styles.Query.fg = ColorYellow
+		styles.Query.bg = ColorBlue
+		styles.QueryCursor.fg = ColorWhite
+		styles.QueryCursor.bg = ColorRed
+		p := makePrompt(t, styles)
+		fg, bg := p.cursorStyle()
+		require.Equal(t, ColorWhite, fg)
+		require.Equal(t, ColorRed, bg)
+	})
+
+	t.Run("QueryCursor with only fg set takes precedence", func(t *testing.T) {
+		styles := NewStyleSet()
+		styles.Query.fg = ColorYellow
+		styles.Query.bg = ColorBlue
+		styles.QueryCursor.fg = ColorGreen
+		// bg remains ColorDefault
+		p := makePrompt(t, styles)
+		fg, bg := p.cursorStyle()
+		require.Equal(t, ColorGreen, fg)
+		require.Equal(t, ColorDefault, bg)
+	})
+
+	t.Run("Query has only fg set swaps correctly", func(t *testing.T) {
+		styles := NewStyleSet()
+		styles.Query.fg = ColorRed
+		// Query.bg remains ColorDefault
+		p := makePrompt(t, styles)
+		fg, bg := p.cursorStyle()
+		require.Equal(t, ColorDefault, fg, "should use Query.bg (default) as cursor fg")
+		require.Equal(t, ColorRed, bg, "should use Query.fg as cursor bg")
+	})
+}
+
 // TestInvalidAnchorReturnsError verifies that invalid vertical anchors
 // produce errors instead of panics.
 func TestInvalidAnchorReturnsError(t *testing.T) {

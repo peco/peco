@@ -201,6 +201,22 @@ func NewUserPrompt(screen Screen, anchor VerticalAnchor, anchorOffset int, promp
 	}, nil
 }
 
+// cursorStyle returns the fg/bg attributes for the query cursor.
+// If QueryCursor is explicitly configured, it is used directly.
+// Otherwise, the Query style's fg/bg are swapped. If both are
+// ColorDefault, AttrReverse is used as a fallback.
+func (u UserPrompt) cursorStyle() (Attribute, Attribute) {
+	qc := u.styles.QueryCursor
+	if qc.fg != ColorDefault || qc.bg != ColorDefault {
+		return qc.fg, qc.bg
+	}
+	qfg, qbg := u.styles.Query.fg, u.styles.Query.bg
+	if qfg != ColorDefault || qbg != ColorDefault {
+		return qbg, qfg
+	}
+	return ColorDefault | AttrReverse, ColorDefault | AttrReverse
+}
+
 // Draw draws the query prompt
 func (u UserPrompt) Draw(state *Peco) {
 	if pdebug.Enabled {
@@ -249,11 +265,12 @@ func (u UserPrompt) Draw(state *Peco) {
 			Fill: true,
 		})
 		posX = queryStartX
+		cfgCursor, cbgCursor := u.cursorStyle()
 		u.screen.Print(PrintArgs{
 			X:    queryStartX,
 			Y:    location,
-			Bg:   bg | AttrReverse,
-			Fg:   fg | AttrReverse,
+			Fg:   cfgCursor,
+			Bg:   cbgCursor,
 			Msg:  " ",
 			Fill: false,
 		})
@@ -275,24 +292,26 @@ func (u UserPrompt) Draw(state *Peco) {
 			Fill: false,
 		})
 		posX = queryStartX + runewidth.StringWidth(qs)
+		cfgCursor, cbgCursor := u.cursorStyle()
 		u.screen.Print(PrintArgs{
 			X:    posX,
 			Y:    location,
-			Fg:   fg | AttrReverse,
-			Bg:   bg | AttrReverse,
+			Fg:   cfgCursor,
+			Bg:   cbgCursor,
 			Msg:  " ",
 			Fill: false,
 		})
 	default:
 		posX = c.Pos() + queryStartX
 		// the caret is in the middle of the string
+		cfgCursor, cbgCursor := u.cursorStyle()
 		prev := int(0)
 		for i, r := range q.RuneSlice() {
 			fg := u.styles.Query.fg
 			bg := u.styles.Query.bg
 			if i == c.Pos() {
-				fg |= AttrReverse
-				bg |= AttrReverse
+				fg = cfgCursor
+				bg = cbgCursor
 			}
 			u.screen.SetCell(queryStartX+prev, location, r, fg, bg)
 			prev += runewidth.RuneWidth(r)
