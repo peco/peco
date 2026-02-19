@@ -845,7 +845,7 @@ The filter does not need to be a go program. It can be a perl/ruby/python/bash s
 
 ### Batching Behavior
 
-External filters are invoked **sequentially**, one batch at a time (not in parallel). Each invocation receives a subset of the input lines on stdin, not the complete input. `BufferThreshold` controls how many lines are buffered before each invocation.
+Unlike the built-in filters (which process batches in parallel), external filters are invoked **sequentially**, one batch at a time. Each invocation receives a subset of the input lines on stdin, not the complete input. `BufferThreshold` controls how many lines are buffered before each invocation.
 
 Because of this batching, your filter **must be stateless** — it cannot assume it sees all input lines in a single invocation. Each invocation is independent. Filters that require global context (e.g., sorting the entire input or counting total lines) will not work correctly, as they only see one batch per invocation.
 
