@@ -686,6 +686,8 @@ Some keys just... don't map correctly / too easily for various reasons. Here, we
 |---------------|------------------|-------------------|
 | Shift+Tab     | M-\[,Z           | Verified on macOS |
 
+**Note:** Due to the tcell migration, Shift+Tab is internally mapped to Tab. If you need a distinct Shift+Tab binding, use the `M-[,Z` key sequence in your config instead.
+
 ### Available actions
 
 | Name | Notes |
