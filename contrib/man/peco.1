@@ -529,15 +529,18 @@ mamba install -c conda-forge peco
 pixi global install peco
 \f[R]
 .fi
+.SS Using go install
+.PP
+If you have a Go toolchain installed, you can install peco with:
+.IP
+.nf
+\f[C]
+go install github.com/peco/peco/cmd/peco\[at]latest
+\f[R]
+.fi
 .SS Building peco yourself
 .PP
-Make sure to clone the source code under $GOPATH
-(i.e.\ $GOPATH/src/github.com/peco/peco).
-This is required as the main binary refers to an internal package, which
-requires that the source code be located in the correct package
-location.
-.PP
-Navigate to the directory above, then run:
+Clone the repository and run:
 .IP
 .nf
 \f[C]
@@ -545,29 +548,9 @@ make build
 \f[R]
 .fi
 .PP
-This will do the following:
-.IP "1." 3
-Run \f[V]go build\f[R] to create \f[V]releases/$VERSION_NUMBER/peco\f[R]
-.PP
-You can copy the binary to somewhere in your $PATH, and it should just
-work.
-.PP
-The above installs the correct versions of peco\[cq]s dependencies.
-Then build it:
-.IP
-.nf
-\f[C]
-go build cmd/peco/peco.go
-\f[R]
-.fi
-.PP
-This compiles a peco binary in the root of the cloned peco repository.
-Copy this file to an appropriate location.
-.SS go get IS NOT RECOMMENDED
-.PP
-Please DO NOT use \f[V]go get\f[R] to install this tool.
-It bypasses the developers\[cq] intention of controlling the dependency
-versioning.
+This will build the binary into
+\f[V]releases/peco_<os>_<arch>/peco\f[R].
+Copy it to somewhere in your \f[V]$PATH\f[R].
 .SH Command Line Options
 .SS -h, \[en]help
 .PP
@@ -1647,6 +1630,32 @@ WILL NOT BE HIGHLIGHTED.
 The filter does not need to be a go program.
 It can be a perl/ruby/python/bash script, or anything else that is
 executable.
+.SS Batching Behavior
+.PP
+Unlike the built-in filters (which process batches in parallel),
+external filters are invoked \f[B]sequentially\f[R], one batch at a
+time.
+Each invocation receives a subset of the input lines on stdin, not the
+complete input.
+\f[V]BufferThreshold\f[R] controls how many lines are buffered before
+each invocation.
+.PP
+Because of this batching, your filter \f[B]must be stateless\f[R] \[em]
+it cannot assume it sees all input lines in a single invocation.
+Each invocation is independent.
+Filters that require global context (e.g., sorting the entire input or
+counting total lines) will not work correctly, as they only see one
+batch per invocation.
+.PP
+A larger \f[V]BufferThreshold\f[R] means fewer invocations but a longer
+wait before results appear.
+A smaller threshold means more invocations but faster feedback.
+.PP
+Note that negative query terms (e.g., \f[V]-foo\f[R]) are NOT parsed by
+peco for external filters; the raw query string including any
+\f[V]-\f[R] prefixes is passed as-is to the external command via
+\f[V]$QUERY\f[R].
+.SS Configuration
 .PP
 Once you have a filter, you must specify how the matcher is spawned:
 .IP
@@ -1674,16 +1683,15 @@ query as the user typed in (i.e.\ multiple-word queries will be passed
 as a single string).
 You may pass in any other arguments in this array.
 If you omit this in your config, a default value of
-\f[V][]string{\[dq]$QUERY\[dq]}\f[R] will be used
+\f[V][]string{\[dq]$QUERY\[dq]}\f[R] will be used.
 .PP
 \f[V]BufferThreshold\f[R] specifies that the filter command should be
 invoked when peco has this many lines to process in the buffer.
 For example, if you are using peco against a 1000-line input, and your
 \f[V]BufferThreshold\f[R] is 100 (which is the default), then your
 filter will be invoked 10 times.
-For obvious reasons, the larger this threshold is, the faster the
-overall performance will be, but the longer you will have to wait to see
-the filter results.
+The larger this threshold is, the faster the overall performance will
+be, but the longer you will have to wait to see the filter results.
 .PP
 You may specify as many filters as you like in the
 \f[V]CustomFilter\f[R] section.
