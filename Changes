@@ -40,6 +40,9 @@ v0.6.0 - UNRELEASED
     bottom (#445, #595).
   * Added man page (`peco.1`) for offline documentation (#467, #587).
   * Added support for ANSI color codes in the `--prompt` string (#294, #586).
+  * Added `QueryCursor` style for explicit control over the query prompt
+    cursor appearance. When not configured, the cursor is derived from
+    the `Query` style by swapping fg/bg colors.
 
   [Bugs/Fixes]
   * Fixed `ToggleQuery` (C-t) not working correctly (#563).
