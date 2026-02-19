@@ -61,7 +61,7 @@ func (ecf *ExternalCmd) NewContext(ctx context.Context, query string) context.Co
 }
 
 func (ecf ExternalCmd) SupportsParallel() bool {
-	return true
+	return false
 }
 
 func (ecf ExternalCmd) String() string {

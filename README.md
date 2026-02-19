@@ -837,12 +837,23 @@ This is an experimental feature. Please note that some details of this specifica
 
 By default `peco` comes with `IgnoreCase`, `CaseSensitive`, `SmartCase`, `IRegexp`, `Regexp` and `Fuzzy` filters, but since v0.1.3, it is possible to create your own custom filter.
 
-The filter will be executed via  `Command.Run()` as an external process, and it will be passed the query values in the command line, and the original unaltered buffer is passed via `os.Stdin`. Your filter must perform the matching, and print out to `os.Stdout` matched lines. Your filter MAY be called multiple times if the buffer
-given to peco is big enough. See `BufferThreshold` below.
+The filter will be executed via `Command.Run()` as an external process, and it will be passed the query values in the command line, and the original unaltered buffer is passed via `os.Stdin`. Your filter must perform the matching, and print out to `os.Stdout` matched lines. Your filter MAY be called multiple times if the buffer given to peco is big enough. See `BufferThreshold` below.
 
 Note that currently there is no way for the custom filter to specify where in the line the match occurred, so matched portions in the string WILL NOT BE HIGHLIGHTED.
 
 The filter does not need to be a go program. It can be a perl/ruby/python/bash script, or anything else that is executable.
+
+### Batching Behavior
+
+External filters are invoked **sequentially**, one batch at a time (not in parallel). Each invocation receives a subset of the input lines on stdin, not the complete input. `BufferThreshold` controls how many lines are buffered before each invocation.
+
+Because of this batching, your filter **must be stateless** — it cannot assume it sees all input lines in a single invocation. Each invocation is independent. Filters that require global context (e.g., sorting the entire input or counting total lines) will not work correctly, as they only see one batch per invocation.
+
+A larger `BufferThreshold` means fewer invocations but a longer wait before results appear. A smaller threshold means more invocations but faster feedback.
+
+Note that negative query terms (e.g., `-foo`) are NOT parsed by peco for external filters; the raw query string including any `-` prefixes is passed as-is to the external command via `$QUERY`.
+
+### Configuration
 
 Once you have a filter, you must specify how the matcher is spawned:
 
@@ -860,10 +871,9 @@ Once you have a filter, you must specify how the matcher is spawned:
 
 `Cmd` specifies the command name. This must be searchable via `exec.LookPath`.
 
-Elements in the `Args` section are string keys to array of program arguments. The special token `$QUERY` will be replaced with the unaltered query as the user typed in (i.e. multiple-word queries will be passed as a single string). You may pass in any other arguments in this array. If you omit this in your config, a default value of `[]string{"$QUERY"}` will be used
+Elements in the `Args` section are string keys to array of program arguments. The special token `$QUERY` will be replaced with the unaltered query as the user typed in (i.e. multiple-word queries will be passed as a single string). You may pass in any other arguments in this array. If you omit this in your config, a default value of `[]string{"$QUERY"}` will be used.
 
-`BufferThreshold` specifies that the filter command should be invoked when peco has this many lines to process
-in the buffer. For example, if you are using peco against a 1000-line input, and your `BufferThreshold` is 100 (which is the default), then your filter will be invoked 10 times. For obvious reasons, the larger this threshold is, the faster the overall performance will be, but the longer you will have to wait to see the filter results.
+`BufferThreshold` specifies that the filter command should be invoked when peco has this many lines to process in the buffer. For example, if you are using peco against a 1000-line input, and your `BufferThreshold` is 100 (which is the default), then your filter will be invoked 10 times. The larger this threshold is, the faster the overall performance will be, but the longer you will have to wait to see the filter results.
 
 You may specify as many filters as you like in the `CustomFilter` section.
 

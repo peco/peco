@@ -40,6 +40,12 @@ func collectOutput(ctx context.Context, out pipeline.ChanOutput) []line.Line {
 	}
 }
 
+func TestExternalCmd_SupportsParallel(t *testing.T) {
+	idgen := &testIDGen{}
+	ecf := NewExternalCmd("cat", "cat", nil, 0, idgen, false)
+	require.False(t, ecf.SupportsParallel(), "ExternalCmd must not support parallel execution")
+}
+
 func TestExternalCmd_CancelCleansUpGoroutine(t *testing.T) {
 	idgen := &testIDGen{}
 
