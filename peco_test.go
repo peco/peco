@@ -405,7 +405,6 @@ func TestApplyConfig(t *testing.T) {
 	t.Run("Config-level fields", func(t *testing.T) {
 		p := newPeco()
 		p.config.MaxScanBufferSize = 512
-		p.config.Use256Color = true
 		p.config.FuzzyLongestSort = true
 		p.config.ANSI = true
 
@@ -413,7 +412,6 @@ func TestApplyConfig(t *testing.T) {
 		require.NoError(t, p.ApplyConfig(opts), "p.ApplyConfig should succeed")
 
 		require.Equal(t, 512, p.maxScanBufferSize, "p.maxScanBufferSize should be equal to config.MaxScanBufferSize")
-		require.True(t, p.use256Color, "p.use256Color should be true when config.Use256Color is true")
 		require.True(t, p.fuzzyLongestSort, "p.fuzzyLongestSort should be true when config.FuzzyLongestSort is true")
 		require.True(t, p.enableANSI, "p.enableANSI should be true when config.ANSI is true")
 	})
