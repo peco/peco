@@ -626,13 +626,15 @@ Specifies the query line\[cq]s prompt string.
 When specified, takes precedence over the configuration file\[cq]s
 \f[V]Prompt\f[R] section.
 The default value is \f[V]QUERY>\f[R].
-.SS \[en]layout \f[V]top-down|bottom-up\f[R]
+.SS \[en]layout \f[V]top-down|bottom-up|top-down-query-bottom\f[R]
 .PP
 Specifies the display layout.
 Default is \f[V]top-down\f[R], where query prompt is at the top,
 followed by the list, then the system status message line.
 \f[V]bottom-up\f[R] changes this to the list first (displayed in reverse
 order), the query prompt, and then the system status message line.
+\f[V]top-down-query-bottom\f[R] places the list at the top with the
+query prompt at the bottom.
 .PP
 For \f[V]percol\f[R] users, \f[V]--layout=bottom-up\f[R] is almost
 equivalent of \f[V]--prompt-bottom --result-bottom-up\f[R].
@@ -644,6 +646,14 @@ and immediately exits.
 .PP
 If there are multiple lines in the input, the usual selection view is
 displayed.
+.SS \[en]exit-0
+.PP
+When specified and the input is empty (zero lines), peco exits
+immediately with status 1 without displaying the selection view.
+.SS \[en]select-all
+.PP
+When specified, peco selects all input lines and immediately exits
+without displaying the selection view.
 .SS \[en]on-cancel \f[V]success|error\f[R]
 .PP
 Specifies the exit status to use when the user cancels the query
@@ -713,6 +723,12 @@ ls | peco --height 40%
 .PP
 Without \f[V]--height\f[R], peco uses the full terminal screen (default
 behavior, unchanged).
+.PP
+\f[B]Note:\f[R] In inline mode, peco sets the environment variable
+\f[V]TCELL_ALTSCREEN=disable\f[R] to prevent tcell from using the
+alternate screen buffer, and restores the original value on exit.
+If peco is killed abnormally (e.g.\ \f[V]SIGKILL\f[R]), you may need to
+unset this variable manually: \f[V]unset TCELL_ALTSCREEN\f[R].
 .SH Configuration File
 .PP
 peco by default consults a few locations for the config files.
@@ -1126,6 +1142,11 @@ T}@T{
 Verified on macOS
 T}
 .TE
+.PP
+\f[B]Note:\f[R] Due to the tcell migration, Shift+Tab is internally
+mapped to Tab.
+If you need a distinct Shift+Tab binding, use the \f[V]M-[,Z\f[R] key
+sequence in your config instead.
 .SS Available actions
 .PP
 .TS
@@ -1330,6 +1351,21 @@ T{
 peco.ToggleQuery
 T}@T{
 Toggle list between filtered by query and not filtered.
+T}
+T{
+peco.ViewAround
+T}@T{
+Toggle display of context lines around each match
+T}
+T{
+peco.GoToNextSelection
+T}@T{
+Jump cursor to the next saved selection
+T}
+T{
+peco.GoToPreviousSelection
+T}@T{
+Jump cursor to the previous saved selection
 T}
 T{
 peco.ToggleRangeMode
@@ -1560,6 +1596,9 @@ used.
 \f[V]Context\f[R] for context lines shown by ZoomIn (default: bold)
 .SS Foreground Colors
 .IP \[bu] 2
+\f[V]\[dq]default\[dq]\f[R] for the terminal\[cq]s default foreground
+color
+.IP \[bu] 2
 \f[V]\[dq]black\[dq]\f[R] for \f[V]tcell.ColorBlack\f[R]
 .IP \[bu] 2
 \f[V]\[dq]red\[dq]\f[R] for \f[V]tcell.ColorRed\f[R]
@@ -1578,7 +1617,13 @@ used.
 .IP \[bu] 2
 \f[V]\[dq]0\[dq]\f[R]-\f[V]\[dq]255\[dq]\f[R] for 256color
 (automatically supported via tcell)
+.IP \[bu] 2
+\f[V]\[dq]#RRGGBB\[dq]\f[R] for 24-bit truecolor
+(e.g.\ \f[V]\[dq]#ff6600\[dq]\f[R])
 .SS Background Colors
+.IP \[bu] 2
+\f[V]\[dq]on_default\[dq]\f[R] for the terminal\[cq]s default background
+color
 .IP \[bu] 2
 \f[V]\[dq]on_black\[dq]\f[R] for \f[V]tcell.ColorBlack\f[R]
 .IP \[bu] 2
@@ -1598,6 +1643,9 @@ used.
 .IP \[bu] 2
 \f[V]\[dq]on_0\[dq]\f[R]-\f[V]\[dq]on_255\[dq]\f[R] for 256color
 (automatically supported via tcell)
+.IP \[bu] 2
+\f[V]\[dq]on_#RRGGBB\[dq]\f[R] for 24-bit truecolor
+(e.g.\ \f[V]\[dq]on_#003366\[dq]\f[R])
 .SS Attributes
 .IP \[bu] 2
 \f[V]\[dq]bold\[dq]\f[R] for fg: \f[V]tcell.AttrBold\f[R]
