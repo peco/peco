@@ -1,0 +1,44 @@
+version: 2
+
+builds:
+  - id: peco
+    main: ./cmd/peco
+    binary: peco
+    ldflags:
+      - -s -w -X github.com/peco/peco.version={{.Version}}
+    goos:
+      - linux
+      - darwin
+      - windows
+    goarch:
+      - amd64
+      - arm
+      - arm64
+    ignore:
+      - goos: darwin
+        goarch: arm
+      - goos: windows
+        goarch: arm
+      - goos: windows
+        goarch: arm64
+
+archives:
+  - formats:
+      - tar.gz
+    format_overrides:
+      - goos: darwin
+        formats:
+          - zip
+      - goos: windows
+        formats:
+          - zip
+    files:
+      - README.md
+      - Changes
+
+checksum:
+  name_template: "checksums.txt"
+  algorithm: sha256
+
+changelog:
+  disable: true

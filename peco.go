@@ -131,7 +131,7 @@ type MessageHub interface {
 	HubReceiver
 }
 
-const version = "v0.5.11"
+var version = "v0.5.11"
 
 type ignorableError struct {
 	err error

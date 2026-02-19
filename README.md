@@ -316,35 +316,23 @@ mamba install -c conda-forge peco
 pixi global install peco
 ```
 
+### Using go install
+
+If you have a Go toolchain installed, you can install peco with:
+
+```
+go install github.com/peco/peco/cmd/peco@latest
+```
+
 ### Building peco yourself
 
-Make sure to clone the source code under $GOPATH (i.e. $GOPATH/src/github.com/peco/peco). This is required
-as the main binary refers to an internal package, which requires that the source code be located in
-the correct package location.
-
-Navigate to the directory above, then run:
+Clone the repository and run:
 
 ```
 make build
 ```
 
-This will do the following:
-
-1. Run `go build` to create `releases/$VERSION_NUMBER/peco`
-
-You can copy the binary to somewhere in your $PATH, and it should just work.
-
-The above installs the correct versions of peco's dependencies. Then build it:
-
-```
-go build cmd/peco/peco.go
-```
-
-This compiles a peco binary in the root of the cloned peco repository. Copy this file to an appropriate location.
-
-### go get IS NOT RECOMMENDED
-
-Please DO NOT use `go get` to install this tool. It bypasses the developers' intention of controlling the dependency versioning.
+This will build the binary into `releases/peco_<os>_<arch>/peco`. Copy it to somewhere in your `$PATH`.
 
 # Command Line Options
 
