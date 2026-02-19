@@ -27,8 +27,12 @@ jobs:
           check-latest: true
       - name: Test
         run: make test
-      - name: Build all targets
-        run: make all
+      - name: Install GoReleaser
+        uses: goreleaser/goreleaser-action@e435ccd777264be153ace6237001ef4d979d3a7a # v6
+        with:
+          install-only: true
+      - name: Build
+        run: make build
 
   generate:
     runs-on: ubuntu-latest
