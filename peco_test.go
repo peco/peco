@@ -1007,3 +1007,83 @@ func TestCancelFuncDataRace(t *testing.T) {
 		t.Fatal("timeout waiting for Run to return")
 	}
 }
+
+func TestSelect1WithQuery(t *testing.T) {
+	// --select-1 --query should auto-select when query narrows to exactly 1 match
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	p := newPeco()
+	p.Argv = []string{"--select-1", "--query", "bar"}
+	p.Stdin = bytes.NewBufferString("foo\nbar\nbaz\n")
+	var out bytes.Buffer
+	p.Stdout = &out
+
+	resultCh := make(chan error)
+	go func() {
+		defer close(resultCh)
+		select {
+		case <-ctx.Done():
+			return
+		case resultCh <- p.Run(ctx):
+			return
+		}
+	}()
+
+	select {
+	case <-ctx.Done():
+		t.Fatal("timeout: --select-1 --query bar should have auto-selected")
+	case err := <-resultCh:
+		require.True(t, util.IsCollectResultsError(err), "expected collectResultsError")
+		p.PrintResults()
+	}
+
+	require.Equal(t, "bar\n", out.String(), "output should be the single matching line")
+}
+
+func TestWaitAndCall(t *testing.T) {
+	t.Run("fires callback after timeout", func(t *testing.T) {
+		p := newPeco()
+
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+
+		called := make(chan struct{})
+		start := time.Now()
+		go func() {
+			p.waitAndCall(ctx, func() { close(called) })
+		}()
+
+		select {
+		case <-called:
+			elapsed := time.Since(start)
+			require.True(t, elapsed >= 2*time.Second, "should wait at least 2s (got %v)", elapsed)
+		case <-time.After(5 * time.Second):
+			t.Fatal("callback was not fired within 5s")
+		}
+	})
+
+	t.Run("respects context cancellation", func(t *testing.T) {
+		p := newPeco()
+
+		ctx, cancel := context.WithCancel(context.Background())
+
+		called := false
+		done := make(chan struct{})
+		go func() {
+			p.waitAndCall(ctx, func() { called = true })
+			close(done)
+		}()
+
+		// Cancel quickly — before the 2s timer fires
+		time.Sleep(200 * time.Millisecond)
+		cancel()
+
+		select {
+		case <-done:
+			require.False(t, called, "callback should NOT fire after context cancellation")
+		case <-time.After(5 * time.Second):
+			t.Fatal("waitAndCall did not return after context cancellation")
+		}
+	})
+}
