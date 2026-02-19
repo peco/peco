@@ -60,6 +60,8 @@ Only positive terms produce match highlighting. Lines matched solely by negative
 
 **Note:** When using the SmartCase filter with negative terms, results may be incomplete if the query transitions from all-lowercase to mixed-case (e.g. typing `foo -bar` then adding an uppercase character). If this happens, clearing the query and retyping it will produce the correct results.
 
+**Upgrading from v0.5.x:** This is a breaking change. In v0.5.x, a query like `test -v` matched lines containing both "test" and literal "-v". In v0.6.0, the same query matches "test" while *excluding* lines containing "v". If you need to search for a literal hyphen-prefixed term, escape it with a backslash (e.g. `\-v`).
+
 ## Select Multiple Lines
 
 You can select multiple lines! (this example uses C-Space)
