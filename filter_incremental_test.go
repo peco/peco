@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/peco/peco/filter"
+	"github.com/peco/peco/hub"
 	"github.com/peco/peco/line"
 	"github.com/peco/peco/pipeline"
 	"github.com/stretchr/testify/require"
@@ -265,6 +266,73 @@ func TestIncrementalFiltering(t *testing.T) {
 	require.Contains(t, displayStrings, "foobar test")
 	require.Contains(t, displayStrings, "foobaz entry")
 	require.Contains(t, displayStrings, "the foobird flies")
+}
+
+// TestFrozenCacheInvalidation verifies that the incremental filter cache
+// is invalidated when the frozen state changes. Without this fix, cached
+// results from the original source would be reused after freezing, producing
+// wrong results.
+func TestFrozenCacheInvalidation(t *testing.T) {
+	// Set up a Peco state with a recording hub
+	state := New()
+	rHub := &recordingHub{}
+	state.hub = rHub
+	state.selection = NewSelection()
+
+	// Populate filters (needed by Filter.Work)
+	state.filters.Add(filter.NewIgnoreCase())
+
+	// Create original source with lines that include "apache" matches
+	src := &Source{}
+	src.setupDone = make(chan struct{})
+	for i, s := range []string{"apache config", "apache error", "APACHE LOG", "nginx proxy", "redis cache"} {
+		src.Append(line.NewRaw(uint64(i), s, false, false))
+	}
+	close(src.setupDone)
+	state.source = src
+	state.currentLineBuffer = src
+
+	// Create a Filter and simulate a previous "apache" query
+	f := NewFilter(state)
+
+	// Run a real filter for "apache" to populate the cache
+	q1 := hub.NewPayload("apache", false)
+	f.Work(context.Background(), q1)
+
+	// Verify cache was populated from original source (3 matches: apache config, apache error, APACHE LOG)
+	f.prevMu.Lock()
+	require.Equal(t, "apache", f.prevQuery)
+	require.NotNil(t, f.prevResults)
+	require.Equal(t, 3, f.prevResults.Size(), "should have 3 'apache' matches from original source")
+	require.Nil(t, f.prevFrozenSrc, "prevFrozenSrc should be nil (not frozen)")
+	f.prevMu.Unlock()
+
+	// Now freeze with a subset: only "apache config" and "nginx proxy"
+	frozen := NewMemoryBuffer(0)
+	frozen.AppendLine(line.NewRaw(0, "apache config", false, false))
+	frozen.AppendLine(line.NewRaw(3, "nginx proxy", false, false))
+	frozen.MarkComplete()
+	state.Frozen().Set(frozen)
+
+	// Query "apache c" — this is a refinement of "apache", so without the fix
+	// the stale cache (3 results from original source) would be used instead
+	// of filtering from the frozen buffer (which has only 1 apache match).
+	q2 := hub.NewPayload("apache c", false)
+	f.Work(context.Background(), q2)
+
+	// The result should come from the frozen buffer, not the stale cache.
+	// Frozen buffer has "apache config" and "nginx proxy". Filtering for
+	// "apache c" should match only "apache config".
+	buf := state.CurrentLineBuffer()
+	require.Equal(t, 1, buf.Size(), "should have 1 match from frozen buffer")
+	l, err := buf.LineAt(0)
+	require.NoError(t, err)
+	require.Equal(t, "apache config", l.Buffer())
+
+	// Verify cache is now updated with frozen source
+	f.prevMu.Lock()
+	require.Equal(t, frozen, f.prevFrozenSrc, "prevFrozenSrc should match current frozen source")
+	f.prevMu.Unlock()
 }
 
 // errorFilter is a mock filter that always returns an error from Apply.
