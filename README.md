@@ -394,6 +394,14 @@ When specified *and* the input contains exactly 1 line, peco skips prompting you
 
 If there are multiple lines in the input, the usual selection view is displayed.
 
+### --exit-0
+
+When specified and the input is empty (zero lines), peco exits immediately with status 1 without displaying the selection view.
+
+### --select-all
+
+When specified, peco selects all input lines and immediately exits without displaying the selection view.
+
 ### --on-cancel `success|error`
 
 Specifies the exit status to use when the user cancels the query execution.
