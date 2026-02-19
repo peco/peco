@@ -53,6 +53,8 @@ func (s *InlineScreen) Init(_ *Config) error {
 		return fmt.Errorf("failed to initialize tcell screen: %w", err)
 	}
 
+	screen.EnableMouse()
+
 	s.mutex.Lock()
 	s.screen = screen
 	s.mutex.Unlock()

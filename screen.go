@@ -170,6 +170,39 @@ func tcellEventToEvent(tev tcell.Event) Event {
 		// Fallback: treat as error
 		return Event{Type: EventError}
 
+	case *tcell.EventMouse:
+		buttons := ev.Buttons()
+
+		var key keyseq.KeyType
+		switch {
+		case buttons&tcell.Button1 != 0:
+			key = keyseq.MouseLeft
+		case buttons&tcell.Button2 != 0:
+			key = keyseq.MouseMiddle
+		case buttons&tcell.Button3 != 0:
+			key = keyseq.MouseRight
+		default:
+			return Event{Type: EventError}
+		}
+
+		var mod keyseq.ModifierKey
+		if ev.Modifiers()&tcell.ModCtrl != 0 {
+			mod |= keyseq.ModCtrl
+		}
+		if ev.Modifiers()&tcell.ModShift != 0 {
+			mod |= keyseq.ModShift
+		}
+		if ev.Modifiers()&tcell.ModAlt != 0 {
+			mod |= keyseq.ModAlt
+		}
+
+		return Event{
+			Type: EventKey,
+			Key:  key,
+			Ch:   0,
+			Mod:  mod,
+		}
+
 	case *tcell.EventResize:
 		return Event{Type: EventResize}
 
@@ -221,6 +254,8 @@ func (t *TcellScreen) Init(_ *Config) error {
 	if err := screen.Init(); err != nil {
 		return fmt.Errorf("failed to initialize tcell screen: %w", err)
 	}
+
+	screen.EnableMouse()
 
 	t.screen = screen
 	return nil

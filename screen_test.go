@@ -552,3 +552,4 @@ func TestTcellEventToEventCtrlWithAltPreservesAlt(t *testing.T) {
 		require.Equal(t, keyseq.ModAlt, got.Mod, "ModAlt should be preserved, ModCtrl stripped")
 	})
 }
+

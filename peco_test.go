@@ -177,10 +177,23 @@ func (s *SimScreen) Print(args PrintArgs) int {
 	return screenPrint(s, args)
 }
 
+// keyseqToTcellButton maps peco mouse key constants to tcell button masks.
+var keyseqToTcellButton = map[keyseq.KeyType]tcell.ButtonMask{
+	keyseq.MouseLeft:   tcell.Button1,
+	keyseq.MouseMiddle: tcell.Button2,
+	keyseq.MouseRight:  tcell.Button3,
+}
+
 func (s *SimScreen) SendEvent(e Event) {
 	var mod tcell.ModMask
 	if e.Mod == keyseq.ModAlt {
 		mod = tcell.ModAlt
+	}
+
+	// Mouse events
+	if btn, ok := keyseqToTcellButton[e.Key]; ok {
+		s.screen.InjectMouse(0, 0, btn, mod)
+		return
 	}
 
 	// Regular character
@@ -1086,4 +1099,53 @@ func TestWaitAndCall(t *testing.T) {
 			t.Fatal("waitAndCall did not return after context cancellation")
 		}
 	})
+}
+
+// TestMouseClickToggleSelection verifies that mouse events flow through
+// the full pipeline: InjectMouse → tcellEventToEvent → input loop →
+// keymap dispatch → action. This is an integration test for the mouse
+// support restored after the tcell migration.
+func TestMouseClickToggleSelection(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	p := newPeco()
+	p.Argv = []string{}
+	p.Stdin = bytes.NewBufferString("alpha\nbeta\ngamma\n")
+	p.config.Keymap = map[string]string{
+		"MouseLeft": "peco.ToggleSelectionAndSelectNext",
+	}
+	var out bytes.Buffer
+	p.Stdout = &out
+
+	resultCh := make(chan error)
+	go func() {
+		defer close(resultCh)
+		select {
+		case <-ctx.Done():
+			return
+		case resultCh <- p.Run(ctx):
+			return
+		}
+	}()
+
+	<-p.Ready()
+
+	// Click to select first line, then press Enter to finish
+	time.AfterFunc(100*time.Millisecond, func() {
+		p.screen.SendEvent(Event{Type: EventKey, Key: keyseq.MouseLeft})
+	})
+	time.AfterFunc(200*time.Millisecond, func() {
+		p.screen.SendEvent(Event{Type: EventKey, Key: keyseq.KeyEnter})
+	})
+
+	select {
+	case <-ctx.Done():
+		t.Fatal("timeout reached")
+	case err := <-resultCh:
+		require.True(t, util.IsCollectResultsError(err), "isCollectResultsError")
+		p.PrintResults()
+	}
+
+	require.Equal(t, "alpha\n", out.String(), "mouse click should have selected first line")
 }
