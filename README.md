@@ -718,6 +718,9 @@ Some keys just... don't map correctly / too easily for various reasons. Here, we
 | peco.ToggleSelectMode   | (DEPRECATED) Alias to ToggleRangeMode |
 | peco.CancelSelectMode   | (DEPRECATED) Alias to CancelRangeMode |
 | peco.ToggleQuery        | Toggle list between filtered by query and not filtered. |
+| peco.ViewAround         | Toggle display of context lines around each match |
+| peco.GoToNextSelection  | Jump cursor to the next saved selection |
+| peco.GoToPreviousSelection | Jump cursor to the previous saved selection |
 | peco.ToggleRangeMode   | Start selecting by range, or append selecting range to selections |
 | peco.CancelRangeMode   | Finish selecting by range and cancel range selection |
 | peco.RotateFilter       | Rotate between filters (by default, ignore-case/no-ignore-case)|
