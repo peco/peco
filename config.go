@@ -13,6 +13,135 @@ import (
 	"github.com/peco/peco/internal/util"
 )
 
+// OnCancelBehavior specifies what happens when the user cancels peco.
+type OnCancelBehavior string
+
+const (
+	OnCancelSuccess OnCancelBehavior = "success"
+	OnCancelError   OnCancelBehavior = "error"
+)
+
+func (o *OnCancelBehavior) UnmarshalText(b []byte) error {
+	switch s := string(b); s {
+	case "", "success":
+		*o = OnCancelSuccess
+	case "error":
+		*o = OnCancelError
+	default:
+		return fmt.Errorf("invalid OnCancel value %q: must be %q or %q", s, OnCancelSuccess, OnCancelError)
+	}
+	return nil
+}
+
+// Config holds all the data that can be configured in the
+// external configuration file
+type Config struct {
+	Action map[string][]string `json:"Action" yaml:"Action"`
+	// Keymap used to be directly responsible for dispatching
+	// events against user input, but since then this has changed
+	// into something that just records the user's config input
+	Keymap              map[string]string             `json:"Keymap" yaml:"Keymap"`
+	InitialFilter       string                        `json:"InitialFilter" yaml:"InitialFilter"`
+	Style               StyleSet                      `json:"Style" yaml:"Style"`
+	Prompt              string                        `json:"Prompt" yaml:"Prompt"`
+	Layout              string                        `json:"Layout" yaml:"Layout"`
+	Use256Color         bool                          `json:"Use256Color" yaml:"Use256Color"`
+	OnCancel            OnCancelBehavior              `json:"OnCancel" yaml:"OnCancel"`
+	CustomFilter        map[string]CustomFilterConfig `json:"CustomFilter" yaml:"CustomFilter"`
+	QueryExecutionDelay int                           `json:"QueryExecutionDelay" yaml:"QueryExecutionDelay"`
+	StickySelection     bool                          `json:"StickySelection" yaml:"StickySelection"`
+	MaxScanBufferSize   int                           `json:"MaxScanBufferSize" yaml:"MaxScanBufferSize"`
+	FilterBufSize       int                           `json:"FilterBufSize" yaml:"FilterBufSize"`
+	FuzzyLongestSort    bool                          `json:"FuzzyLongestSort" yaml:"FuzzyLongestSort"`
+	SuppressStatusMsg   bool                          `json:"SuppressStatusMsg" yaml:"SuppressStatusMsg"`
+	ANSI                bool                          `json:"ANSI" yaml:"ANSI"`
+
+	// If this is true, then the prefix for single key jump mode
+	// is displayed by default.
+	SingleKeyJump SingleKeyJumpConfig `json:"SingleKeyJump" yaml:"SingleKeyJump"`
+
+	// Use this prefix to denote currently selected line
+	SelectionPrefix string `json:"SelectionPrefix" yaml:"SelectionPrefix"`
+
+	// Height specifies the display height in lines or percentage (e.g. "10", "50%").
+	// When set, peco renders inline without using the alternate screen buffer.
+	Height string `json:"Height" yaml:"Height"`
+}
+
+// SingleKeyJumpConfig holds configuration for single key jump mode.
+type SingleKeyJumpConfig struct {
+	ShowPrefix bool `json:"ShowPrefix" yaml:"ShowPrefix"`
+}
+
+// CustomFilterConfig is used to specify configuration parameters
+// to CustomFilters
+type CustomFilterConfig struct {
+	// Cmd is the name of the command to invoke
+	Cmd string `json:"Cmd" yaml:"Cmd"`
+
+	// TODO: need to check if how we use this is correct
+	Args []string `json:"Args" yaml:"Args"`
+
+	// BufferThreshold defines how many lines peco buffers before
+	// invoking the external command. If this value is big, we
+	// will execute the external command fewer times, but the
+	// results will not be generated for longer periods of time.
+	// If this value is small, we will execute the external command
+	// more often, but you pay the penalty of invoking that command
+	// more times.
+	BufferThreshold int `json:"BufferThreshold" yaml:"BufferThreshold"`
+}
+
+// StyleSet holds styles for various sections
+type StyleSet struct {
+	Basic          Style `json:"Basic" yaml:"Basic"`
+	SavedSelection Style `json:"SavedSelection" yaml:"SavedSelection"`
+	Selected       Style `json:"Selected" yaml:"Selected"`
+	Query          Style `json:"Query" yaml:"Query"`
+	QueryCursor    Style `json:"QueryCursor" yaml:"QueryCursor"`
+	Matched        Style `json:"Matched" yaml:"Matched"`
+	Prompt         Style `json:"Prompt" yaml:"Prompt"`
+	Context        Style `json:"Context" yaml:"Context"`
+}
+
+// Attribute represents terminal display attributes such as colors
+// and text styling (bold, underline, reverse). It is a uint32 bitfield:
+//
+//	Bits 0-8:   Palette color index (0=default, 1-256 for 256-color palette)
+//	Bits 0-23:  RGB color value (when AttrTrueColor flag is set)
+//	Bit 24:     AttrTrueColor flag — distinguishes true color from palette
+//	Bit 25:     AttrBold
+//	Bit 26:     AttrUnderline
+//	Bit 27:     AttrReverse
+//	Bits 28-31: Reserved
+type Attribute uint32
+
+// Named palette color constants (values 0-8).
+const (
+	ColorDefault Attribute = 0x0000
+	ColorBlack   Attribute = 0x0001
+	ColorRed     Attribute = 0x0002
+	ColorGreen   Attribute = 0x0003
+	ColorYellow  Attribute = 0x0004
+	ColorBlue    Attribute = 0x0005
+	ColorMagenta Attribute = 0x0006
+	ColorCyan    Attribute = 0x0007
+	ColorWhite   Attribute = 0x0008
+)
+
+const (
+	AttrTrueColor Attribute = 0x01000000
+	AttrBold      Attribute = 0x02000000
+	AttrUnderline Attribute = 0x04000000
+	AttrReverse   Attribute = 0x08000000
+)
+
+// Style describes display attributes for foreground and background.
+type Style struct {
+	fg Attribute
+	bg Attribute
+}
+
 var homedirFunc = util.Homedir
 
 // DefaultPrompt is the default prompt string shown in the query line.

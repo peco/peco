@@ -7,6 +7,12 @@ import (
 	"github.com/peco/peco/hub"
 )
 
+// View handles the drawing/updating the screen
+type View struct {
+	layout Layout
+	state  *Peco
+}
+
 func NewView(state *Peco) (*View, error) {
 	layout, err := NewLayout(LayoutType(state.LayoutType()), state)
 	if err != nil {

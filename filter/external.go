@@ -13,9 +13,23 @@ import (
 	"github.com/peco/peco/pipeline"
 )
 
+// DefaultCustomFilterBufferThreshold is the default value
+// for BufferThreshold setting on CustomFilters.
+const DefaultCustomFilterBufferThreshold = 100
+
 // queryPlaceholder is the placeholder string in external command arguments
 // that gets replaced with the actual query at filter execution time.
 const queryPlaceholder = "$QUERY"
+
+// ExternalCmd is a filter that delegates matching to an external command.
+type ExternalCmd struct {
+	args            []string
+	cmd             string
+	enableSep       bool
+	idgen           line.IDGenerator
+	name            string
+	thresholdBufsiz int
+}
 
 // NewExternalCmd creates a new filter that uses an external
 // command to filter the input

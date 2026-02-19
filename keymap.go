@@ -13,6 +13,23 @@ import (
 	"github.com/peco/peco/internal/keyseq"
 )
 
+// Keyseq is the interface for key sequence matching engines.
+type Keyseq interface {
+	Add(keyseq.KeyList, any)
+	AcceptKey(keyseq.Key) (any, error)
+	CancelChain()
+	Clear()
+	Compile() error
+	InMiddleOfChain() bool
+}
+
+// Keymap holds all the key sequence to action map
+type Keymap struct {
+	Config map[string]string
+	Action map[string][]string // custom actions
+	seq    Keyseq
+}
+
 // NewKeymap creates a new Keymap struct
 func NewKeymap(config map[string]string, actions map[string][]string) Keymap {
 	return Keymap{
