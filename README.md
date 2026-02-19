@@ -58,6 +58,8 @@ Negative matching works with all built-in filters (IgnoreCase, CaseSensitive, Sm
 
 Only positive terms produce match highlighting. Lines matched solely by negative exclusion (e.g. an all-negative query like `-foo`) are shown without highlighting.
 
+**Note:** When using the SmartCase filter with negative terms, results may be incomplete if the query transitions from all-lowercase to mixed-case (e.g. typing `foo -bar` then adding an uppercase character). If this happens, clearing the query and retyping it will produce the correct results.
+
 ## Select Multiple Lines
 
 You can select multiple lines! (this example uses C-Space)
