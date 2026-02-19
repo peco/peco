@@ -21,6 +21,7 @@ type Filter struct {
 	prevQuery      string
 	prevResults    *MemoryBuffer
 	prevFilterName string
+	prevFrozenSrc  *MemoryBuffer // frozen source at cache time
 	prevMu         sync.Mutex
 }
 
@@ -391,6 +392,7 @@ func (f *Filter) Work(ctx context.Context, q *hub.Payload[string]) {
 		f.prevQuery = ""
 		f.prevResults = nil
 		f.prevFilterName = ""
+		f.prevFrozenSrc = nil
 		f.prevMu.Unlock()
 
 		state.ResetCurrentLineBuffer(ctx)
@@ -412,6 +414,7 @@ func (f *Filter) Work(ctx context.Context, q *hub.Payload[string]) {
 	f.prevMu.Lock()
 	if f.prevResults != nil &&
 		f.prevFilterName == filterName &&
+		f.prevFrozenSrc == state.Frozen().Source() &&
 		isQueryRefinement(f.prevQuery, query) {
 		if pdebug.Enabled {
 			pdebug.Printf("Using incremental source (prev=%q, new=%q, prevSize=%d)", f.prevQuery, query, f.prevResults.Size())
@@ -481,6 +484,7 @@ func (f *Filter) Work(ctx context.Context, q *hub.Payload[string]) {
 		f.prevQuery = query
 		f.prevResults = buf
 		f.prevFilterName = filterName
+		f.prevFrozenSrc = state.Frozen().Source()
 		f.prevMu.Unlock()
 	}
 
