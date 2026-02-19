@@ -10,6 +10,7 @@ import (
 	"reflect"
 	"runtime"
 	"sync"
+	"sync/atomic"
 	"time"
 	"unicode/utf8"
 
@@ -78,6 +79,7 @@ type Peco struct {
 	selectionRangeStart RangeStart
 	exitZeroAndExit     bool // True if --exit-0 is enabled
 	selectOneAndExit    bool // True if --select-1 is enabled
+	selectOneTriggered  atomic.Bool
 	selectAllAndExit    bool // True if --select-all is enabled
 	singleKeyJump       SingleKeyJumpState
 	heightSpec          *HeightSpec
@@ -416,8 +418,14 @@ func (p *Peco) Setup() (err error) {
 
 func (p *Peco) selectOneAndExitIfPossible() {
 	// If we have only one line, we just want to bail out
-	// printing that one line as the result
+	// printing that one line as the result.
+	// CAS guard: multiple goroutines may call this concurrently
+	// (startEarlyExitHandlers, ExecQuery callback, waitAndCall).
+	// Only the first to succeed after Size()==1 proceeds with exit.
 	if b := p.CurrentLineBuffer(); b.Size() == 1 {
+		if !p.selectOneTriggered.CompareAndSwap(false, true) {
+			return
+		}
 		if l, err := b.LineAt(0); err == nil {
 			ch := make(chan line.Line)
 			p.SetResultCh(ch)
@@ -426,6 +434,13 @@ func (p *Peco) selectOneAndExitIfPossible() {
 			close(ch)
 		}
 	}
+}
+
+func (p *Peco) selectOneCallback() func() {
+	if p.selectOneAndExit {
+		return p.selectOneAndExitIfPossible
+	}
+	return nil
 }
 
 func (p *Peco) exitZeroIfPossible() {
@@ -892,11 +907,12 @@ func (p *Peco) sendQuery(ctx context.Context, q string, nextFunc func()) {
 
 	if p.source.IsInfinite() {
 		// If the source is a stream, we can't do batch mode, and hence
-		// we can't guarantee proper timing. But... okay, we simulate
-		// something like it
+		// we can't guarantee proper timing. Poll until select-1 is
+		// provably impossible (Size > 1), or fire the callback after
+		// a timeout as a best-effort check.
 		p.Hub().SendQuery(ctx, q)
 		if nextFunc != nil {
-			time.AfterFunc(time.Second, nextFunc)
+			go p.waitAndCall(ctx, nextFunc)
 		}
 	} else {
 		// No delay, execute immediately
@@ -906,6 +922,30 @@ func (p *Peco) sendQuery(ctx context.Context, q string, nextFunc func()) {
 				nextFunc()
 			}
 		})
+	}
+}
+
+// waitAndCall is used for streaming/infinite sources where we can't wait
+// for the filter pipeline to complete. It fires fn after a timeout as a
+// best-effort check, respecting context cancellation. The ticker keeps
+// the loop iterating so the timer channel is reliably drained even if a
+// select iteration races with ctx.Done.
+func (p *Peco) waitAndCall(ctx context.Context, fn func()) {
+	ticker := time.NewTicker(100 * time.Millisecond)
+	defer ticker.Stop()
+	timer := time.NewTimer(2 * time.Second)
+	defer timer.Stop()
+
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-ticker.C:
+			// periodic wake-up to re-enter select
+		case <-timer.C:
+			fn()
+			return
+		}
 	}
 }
 

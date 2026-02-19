@@ -41,7 +41,7 @@ var defaultKeyBinding map[string]Action
 // execQueryAndDraw runs ExecQuery and, if the query was non-empty
 // (ExecQuery returns false), sends a draw-prompt message.
 func execQueryAndDraw(ctx context.Context, state *Peco) {
-	if state.ExecQuery(ctx, nil) {
+	if state.ExecQuery(ctx, state.selectOneCallback()) {
 		return
 	}
 	state.Hub().SendDrawPrompt(ctx)
@@ -228,7 +228,7 @@ func doAcceptChar(ctx context.Context, state *Peco, e Event) {
 	h := state.Hub()
 	h.SendDrawPrompt(ctx) // Update prompt before running query
 
-	state.ExecQuery(ctx, nil)
+	state.ExecQuery(ctx, state.selectOneCallback())
 }
 
 func doRotateFilter(ctx context.Context, state *Peco, _ Event) {
@@ -682,7 +682,7 @@ func doKillEndOfLine(ctx context.Context, state *Peco, _ Event) {
 
 func doDeleteAll(ctx context.Context, state *Peco, _ Event) {
 	state.Query().Reset()
-	state.ExecQuery(ctx, nil)
+	state.ExecQuery(ctx, state.selectOneCallback())
 }
 
 func doDeleteForwardChar(ctx context.Context, state *Peco, _ Event) {
