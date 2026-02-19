@@ -791,6 +791,7 @@ Styles can be customized in `config.json`.
 
 ### Foreground Colors
 
+- `"default"` for the terminal's default foreground color
 - `"black"` for `tcell.ColorBlack`
 - `"red"` for `tcell.ColorRed`
 - `"green"` for `tcell.ColorGreen`
@@ -800,9 +801,11 @@ Styles can be customized in `config.json`.
 - `"cyan"` for `tcell.ColorCyan`
 - `"white"` for `tcell.ColorWhite`
 - `"0"`-`"255"` for 256color (automatically supported via tcell)
+- `"#RRGGBB"` for 24-bit truecolor (e.g. `"#ff6600"`)
 
 ### Background Colors
 
+- `"on_default"` for the terminal's default background color
 - `"on_black"` for `tcell.ColorBlack`
 - `"on_red"` for `tcell.ColorRed`
 - `"on_green"` for `tcell.ColorGreen`
@@ -812,6 +815,7 @@ Styles can be customized in `config.json`.
 - `"on_cyan"` for `tcell.ColorCyan`
 - `"on_white"` for `tcell.ColorWhite`
 - `"on_0"`-`"on_255"` for 256color (automatically supported via tcell)
+- `"on_#RRGGBB"` for 24-bit truecolor (e.g. `"on_#003366"`)
 
 ### Attributes
 
