@@ -446,6 +446,8 @@ ls | peco --height 40%
 
 Without `--height`, peco uses the full terminal screen (default behavior, unchanged).
 
+**Note:** In inline mode, peco sets the environment variable `TCELL_ALTSCREEN=disable` to prevent tcell from using the alternate screen buffer, and restores the original value on exit. If peco is killed abnormally (e.g. `SIGKILL`), you may need to unset this variable manually: `unset TCELL_ALTSCREEN`.
+
 # Configuration File
 
 peco by default consults a few locations for the config files.
