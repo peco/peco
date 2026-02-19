@@ -1532,8 +1532,7 @@ T}
 .TE
 .SS Styles
 .PP
-For now, styles of following 7 items can be customized in
-\f[V]config.json\f[R].
+Styles can be customized in \f[V]config.json\f[R].
 .IP
 .nf
 \f[C]
@@ -1543,6 +1542,7 @@ For now, styles of following 7 items can be customized in
         \[dq]SavedSelection\[dq]: [\[dq]bold\[dq], \[dq]on_yellow\[dq], \[dq]white\[dq]],
         \[dq]Selected\[dq]: [\[dq]underline\[dq], \[dq]on_cyan\[dq], \[dq]black\[dq]],
         \[dq]Query\[dq]: [\[dq]yellow\[dq], \[dq]bold\[dq]],
+        \[dq]QueryCursor\[dq]: [\[dq]white\[dq], \[dq]on_red\[dq]],
         \[dq]Matched\[dq]: [\[dq]red\[dq], \[dq]on_blue\[dq]],
         \[dq]Prompt\[dq]: [\[dq]green\[dq], \[dq]bold\[dq]],
         \[dq]Context\[dq]: [\[dq]bold\[dq]]
@@ -1558,6 +1558,12 @@ For now, styles of following 7 items can be customized in
 \f[V]Selected\f[R] for a currently selecting line
 .IP \[bu] 2
 \f[V]Query\f[R] for a query line
+.IP \[bu] 2
+\f[V]QueryCursor\f[R] for the cursor on the query line.
+If not specified, the cursor colors are derived automatically: when
+\f[V]Query\f[R] has custom colors, they are swapped (fg becomes bg and
+vice versa); otherwise, the terminal\[cq]s reverse video attribute is
+used.
 .IP \[bu] 2
 \f[V]Matched\f[R] for a query matched word
 .IP \[bu] 2
