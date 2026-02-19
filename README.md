@@ -382,9 +382,9 @@ Specifies the initial filter to use upon start up. You should specify the name o
 
 Specifies the query line's prompt string. When specified, takes precedence over the configuration file's `Prompt` section. The default value is `QUERY>`.
 
-### --layout `top-down|bottom-up`
+### --layout `top-down|bottom-up|top-down-query-bottom`
 
-Specifies the display layout. Default is `top-down`, where query prompt is at the top, followed by the list, then the system status message line. `bottom-up` changes this to the list first (displayed in reverse order), the query prompt, and then the system status message line.
+Specifies the display layout. Default is `top-down`, where query prompt is at the top, followed by the list, then the system status message line. `bottom-up` changes this to the list first (displayed in reverse order), the query prompt, and then the system status message line. `top-down-query-bottom` places the list at the top with the query prompt at the bottom.
 
 For `percol` users, `--layout=bottom-up` is almost equivalent of `--prompt-bottom --result-bottom-up`.
 
