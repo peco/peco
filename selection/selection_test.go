@@ -1,4 +1,4 @@
-package peco
+package selection
 
 import (
 	"testing"
@@ -8,7 +8,7 @@ import (
 )
 
 func TestSelection(t *testing.T) {
-	s := NewSelection()
+	s := New()
 
 	var i uint64
 	alice := line.NewRaw(i, "Alice", false, false)

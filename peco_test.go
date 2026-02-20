@@ -19,6 +19,7 @@ import (
 	"github.com/peco/peco/internal/keyseq"
 	"github.com/peco/peco/internal/util"
 	"github.com/peco/peco/line"
+	"github.com/peco/peco/selection"
 	"github.com/stretchr/testify/require"
 )
 
@@ -302,7 +303,7 @@ func TestIDGen(t *testing.T) {
 		lines = append(lines, line.NewRaw(idgen.Next(), fmt.Sprintf("%d", i), false, false))
 	}
 
-	sel := NewSelection()
+	sel := selection.New()
 	for _, l := range lines {
 		if sel.Has(l) {
 			t.Errorf("Collision detected %d", l.ID())

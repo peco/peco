@@ -12,6 +12,7 @@ import (
 	"github.com/peco/peco/hub"
 	"github.com/peco/peco/line"
 	"github.com/peco/peco/pipeline"
+	"github.com/peco/peco/selection"
 	"github.com/stretchr/testify/require"
 )
 
@@ -277,7 +278,7 @@ func TestFrozenCacheInvalidation(t *testing.T) {
 	state := New()
 	rHub := &recordingHub{}
 	state.hub = rHub
-	state.selection = NewSelection()
+	state.selection = selection.New()
 
 	// Populate filters (needed by Filter.Work)
 	state.filters.Add(filter.NewIgnoreCase())

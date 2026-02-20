@@ -16,13 +16,13 @@ import (
 
 	"context"
 
-	"github.com/google/btree"
 	"github.com/lestrrat-go/pdebug"
 	"github.com/peco/peco/filter"
 	"github.com/peco/peco/hub"
 	"github.com/peco/peco/internal/util"
 	"github.com/peco/peco/line"
 	"github.com/peco/peco/pipeline"
+	"github.com/peco/peco/selection"
 	"github.com/peco/peco/sig"
 )
 
@@ -74,9 +74,9 @@ type Peco struct {
 	readyCh             chan struct{}
 	resultCh            chan line.Line
 	screen              Screen
-	selection           *Selection
+	selection           *selection.Set
 	selectionPrefix     string
-	selectionRangeStart RangeStart
+	selectionRangeStart selection.RangeStart
 	exitZeroAndExit     bool // True if --exit-0 is enabled
 	selectOneAndExit    bool // True if --select-1 is enabled
 	selectOneTriggered  atomic.Bool
@@ -211,7 +211,7 @@ func New() *Peco {
 		readyCh:           make(chan struct{}),
 		configReader:      defaultConfigReader,
 		screen:            NewTcellScreen(),
-		selection:         NewSelection(),
+		selection:         selection.New(),
 		maxScanBufferSize: bufio.MaxScanTokenSize,
 	}
 }
@@ -264,28 +264,11 @@ func (p *Peco) SetResultCh(ch chan line.Line) {
 	p.resultCh = ch
 }
 
-func (p *Peco) Selection() *Selection {
+func (p *Peco) Selection() *selection.Set {
 	return p.selection
 }
 
-func (s RangeStart) Valid() bool {
-	return s.valid
-}
-
-func (s RangeStart) Value() int {
-	return s.val
-}
-
-func (s *RangeStart) SetValue(n int) {
-	s.val = n
-	s.valid = true
-}
-
-func (s *RangeStart) Reset() {
-	s.valid = false
-}
-
-func (p *Peco) SelectionRangeStart() *RangeStart {
+func (p *Peco) SelectionRangeStart() *selection.RangeStart {
 	return &p.selectionRangeStart
 }
 
@@ -1086,11 +1069,7 @@ func (p *Peco) PrintResults() {
 	p.SetResultCh(make(chan line.Line))
 	go func() {
 		defer close(p.resultCh)
-		p.selection.Ascend(func(it btree.Item) bool {
-			l, ok := it.(line.Line)
-			if !ok {
-				return true
-			}
+		p.selection.Ascend(func(l line.Line) bool {
 			p.ResultCh() <- l
 			return true
 		})
