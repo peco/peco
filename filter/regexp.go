@@ -143,6 +143,29 @@ func NewIRegexp() *Regexp {
 
 const maxRegexpCacheSize = 100
 
+// evictLRU removes the least recently used entries from the cache until its
+// size is at or below targetSize. The caller must hold f.mutex.
+func (f *regexpQueryFactory) evictLRU(targetSize int) {
+	type cacheEntry struct {
+		key      string
+		lastUsed time.Time
+	}
+
+	entries := make([]cacheEntry, 0, len(f.compiled))
+	for k, v := range f.compiled {
+		entries = append(entries, cacheEntry{key: k, lastUsed: v.lastUsed})
+	}
+
+	sort.Slice(entries, func(i, j int) bool {
+		return entries[i].lastUsed.Before(entries[j].lastUsed)
+	})
+
+	toRemove := len(f.compiled) - targetSize
+	for i := range toRemove {
+		delete(f.compiled, entries[i].key)
+	}
+}
+
 // Compile parses the query string into positive and negative regexp slices,
 // caching compiled results for reuse within the expiry threshold.
 func (f *regexpQueryFactory) Compile(s string, flags regexpFlags, quotemeta bool) (positive, negative []*regexp.Regexp, err error) {
@@ -181,9 +204,10 @@ func (f *regexpQueryFactory) Compile(s string, flags regexpFlags, quotemeta bool
 				delete(f.compiled, k)
 			}
 		}
-		// If still over limit after evicting stale entries, clear all
+		// If still over limit after evicting stale entries, evict the
+		// least recently used entries to bring cache down to half capacity.
 		if len(f.compiled) >= maxRegexpCacheSize {
-			f.compiled = make(map[string]regexpQuery)
+			f.evictLRU(maxRegexpCacheSize / 2)
 		}
 	}
 
