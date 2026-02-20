@@ -24,13 +24,8 @@ func TestLayoutType(t *testing.T) {
 	}
 	for _, l := range layouts {
 		valid := config.IsValidLayoutType(l.value)
-		if valid != l.expectOK {
-			t.Errorf("LayoutType %s, expected IsValidLayoutType to return %t, but got %t",
-				l.value,
-				l.expectOK,
-				valid,
-			)
-		}
+		require.Equal(t, l.expectOK, valid,
+			"IsValidLayoutType(%s)", l.value)
 	}
 }
 
@@ -52,12 +47,8 @@ func TestPrintScreen(t *testing.T) {
 			})
 			events := screen.events["SetCell"]
 			if !fill {
-				if len(events) != width {
-					t.Errorf("Expected %d SetCell events, got %d",
-						width,
-						len(events),
-					)
-				}
+				require.Equal(t, width, len(events),
+					"SetCell event count for %q (fill=false)", msg)
 				return
 			}
 
@@ -66,13 +57,8 @@ func TestPrintScreen(t *testing.T) {
 			if rw := runewidth.StringWidth(msg); rw != width {
 				w -= rw - width
 			}
-			if len(events) != w {
-				t.Errorf("Expected %d SetCell events, got %d",
-					w,
-					len(events),
-				)
-				return
-			}
+			require.Equal(t, w, len(events),
+				"SetCell event count for %q (fill=true)", msg)
 		}
 	}
 
@@ -92,10 +78,7 @@ func TestScreenStatusBar(t *testing.T) {
 	st.PrintStatus("Hello, World!", 0)
 
 	events := screen.events
-	if l := len(events["Flush"]); l != 1 {
-		t.Errorf("Expected 1 Flush event, got %d", l)
-		return
-	}
+	require.Equal(t, 1, len(events["Flush"]), "Flush event count")
 }
 
 func TestNullStatusBar(t *testing.T) {
@@ -104,9 +87,7 @@ func TestNullStatusBar(t *testing.T) {
 	st.PrintStatus("Hello, World!", 0)
 
 	events := screen.events
-	if l := len(events["Flush"]); l != 0 {
-		t.Errorf("Expected 0 Flush events with nullStatusBar, got %d", l)
-	}
+	require.Equal(t, 0, len(events["Flush"]), "nullStatusBar should not Flush")
 }
 
 func TestMergeAttribute(t *testing.T) {
@@ -126,22 +107,19 @@ func TestMergeAttribute(t *testing.T) {
 	}
 
 	for _, c := range tests {
-		if m := mergeAttribute(colors[c[0]], colors[c[1]]); m != colors[c[2]] {
-			t.Errorf("(%s + %s) expected %d(%s), got %d", c[0], c[1], colors[c[2]], c[2], m)
-		}
+		m := mergeAttribute(colors[c[0]], colors[c[1]])
+		require.Equal(t, colors[c[2]], m, "(%s + %s) should be %s", c[0], c[1], c[2])
 	}
 
 	// merge with white
-	for _, c := range colors {
-		if m := mergeAttribute(c, colors["white"]); m != colors["white"] {
-			t.Errorf("expected white(%d), got %d", colors["white"], m)
-		}
+	for name, c := range colors {
+		m := mergeAttribute(c, colors["white"])
+		require.Equal(t, colors["white"], m, "%s + white should be white", name)
 	}
 
 	// merge attributes
-	if m := mergeAttribute(config.AttrBold|colors["red"], config.AttrUnderline|colors["cyan"]); m != config.AttrBold|config.AttrUnderline|colors["white"] {
-		t.Errorf("expected %d, got %d", config.AttrBold|config.AttrUnderline|colors["white"], m)
-	}
+	m := mergeAttribute(config.AttrBold|colors["red"], config.AttrUnderline|colors["cyan"])
+	require.Equal(t, config.AttrBold|config.AttrUnderline|colors["white"], m)
 }
 
 // TestGHIssue294_PromptStyleUsedForPromptPrefix verifies that UserPrompt.Draw
