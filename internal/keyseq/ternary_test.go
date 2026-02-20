@@ -1,6 +1,10 @@
 package keyseq
 
-import "testing"
+import (
+	"testing"
+
+	"github.com/stretchr/testify/require"
+)
 
 func TestBalance(t *testing.T) {
 	trie := NewTernaryTrie()
@@ -13,9 +17,7 @@ func TestBalance(t *testing.T) {
 	for i, k := range list {
 		trie.Put(KeyList{k}, i)
 	}
-	if s := trie.Size(); s != 15 {
-		t.Fatalf("Size() returns not 15: %d", s)
-	}
+	require.Equal(t, 15, trie.Size())
 	trie.Balance()
 
 	/*

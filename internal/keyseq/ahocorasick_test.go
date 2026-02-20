@@ -2,31 +2,24 @@ package keyseq
 
 import (
 	"testing"
+
+	"github.com/stretchr/testify/require"
 )
 
 func checkNode(t *testing.T, node Node, size int, data nodeData) {
-	if node == nil {
-		t.Error("Nil node:", data)
-	}
-	if node.Size() != size {
-		t.Errorf("Unexpected childrens: %d != %d", node.Size(), size)
-	}
+	require.NotNil(t, node, "Nil node:", data)
+	require.Equal(t, size, node.Size(), "Unexpected childrens")
 	d := node.Value().(*nodeData)
-	if d == nil {
-		t.Error("Nil data:", data, node)
+	require.NotNil(t, d, "Nil data:", data, node)
+	if data.pattern != nil {
+		require.True(t, d.pattern.Equals(*data.pattern), "Pattern unmatched:", data, node, *d.pattern)
 	}
-	if data.pattern != nil && !d.pattern.Equals(*data.pattern) {
-		t.Error("Pattern unmatched:", data, node, *d.pattern)
+	if data.value != nil {
+		require.Equal(t, data.value, d.value, "Value unmatched:", data, node, d.value)
 	}
-	if data.value != nil && d.value != data.value {
-		t.Error("Value unmatched:", data, node, d.value)
-	}
-	if d.failure == nil {
-		t.Error("Nil failure:", data, node)
-	} else if d.failure != data.failure {
-		t.Errorf("Failure unmatched: data=%+v node=%+v d.failure=%+v",
-			data, node, d.failure)
-	}
+	require.NotNil(t, d.failure, "Nil failure:", data, node)
+	require.Equal(t, data.failure, d.failure, "Failure unmatched: data=%+v node=%+v d.failure=%+v",
+		data, node, d.failure)
 }
 
 func invalidData(failure Node) nodeData {
