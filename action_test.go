@@ -12,6 +12,7 @@ import (
 	"github.com/peco/peco/filter"
 	"github.com/peco/peco/hub"
 	"github.com/peco/peco/internal/keyseq"
+	"github.com/peco/peco/query"
 	"github.com/peco/peco/line"
 	"github.com/peco/peco/selection"
 	"github.com/stretchr/testify/require"
@@ -265,12 +266,12 @@ func TestViewAroundActionName(t *testing.T) {
 	require.True(t, ok, "peco.ViewArround must remain registered for backward compatibility")
 }
 
-func expectCaretPos(t *testing.T, c *Caret, expect int) {
+func expectCaretPos(t *testing.T, c *query.Caret, expect int) {
 	t.Helper()
 	require.Equal(t, expect, c.Pos(), "Expected caret position %d, got %d", expect, c.Pos())
 }
 
-func expectQueryString(t *testing.T, q *Query, expect string) {
+func expectQueryString(t *testing.T, q *query.Text, expect string) {
 	t.Helper()
 	require.Equal(t, expect, q.String(), "Expected '%s', got '%s'", expect, q.String())
 }

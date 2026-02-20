@@ -1,35 +1,35 @@
-package peco
+package query
 
 import "sync"
 
-// Query holds the current query string and an optional saved query
+// Text holds the current query string and an optional saved query
 // for restore-after-cancel behavior.
-type Query struct {
+type Text struct {
 	query      []rune
 	savedQuery []rune
 	mutex      sync.Mutex
 }
 
-func (q *Query) Set(s string) {
+func (q *Text) Set(s string) {
 	q.mutex.Lock()
 	defer q.mutex.Unlock()
 	q.query = []rune(s)
 }
 
-func (q *Query) Reset() {
+func (q *Text) Reset() {
 	q.mutex.Lock()
 	defer q.mutex.Unlock()
 	q.query = []rune(nil)
 }
 
-func (q *Query) RestoreSavedQuery() {
+func (q *Text) RestoreSavedQuery() {
 	q.mutex.Lock()
 	defer q.mutex.Unlock()
 	q.query = q.savedQuery
 	q.savedQuery = []rune(nil)
 }
 
-func (q *Query) SaveQuery() {
+func (q *Text) SaveQuery() {
 	q.mutex.Lock()
 	defer q.mutex.Unlock()
 	q.savedQuery = q.query
@@ -37,7 +37,7 @@ func (q *Query) SaveQuery() {
 }
 
 // DeleteRange deletes runes in the range [start, end) from the query with boundary validation.
-func (q *Query) DeleteRange(start, end int) {
+func (q *Text) DeleteRange(start, end int) {
 	q.mutex.Lock()
 	defer q.mutex.Unlock()
 	if start == -1 {
@@ -59,20 +59,20 @@ func (q *Query) DeleteRange(start, end int) {
 	q.query = q.query[:l-(end-start)]
 }
 
-func (q *Query) String() string {
+func (q *Text) String() string {
 	q.mutex.Lock()
 	defer q.mutex.Unlock()
 	return string(q.query)
 }
 
-func (q *Query) Len() int {
+func (q *Text) Len() int {
 	q.mutex.Lock()
 	defer q.mutex.Unlock()
 	return len(q.query)
 }
 
 // RuneSlice returns a copy of the query runes
-func (q *Query) RuneSlice() []rune {
+func (q *Text) RuneSlice() []rune {
 	q.mutex.Lock()
 	defer q.mutex.Unlock()
 	out := make([]rune, len(q.query))
@@ -80,7 +80,7 @@ func (q *Query) RuneSlice() []rune {
 	return out
 }
 
-func (q *Query) RuneAt(where int) rune {
+func (q *Text) RuneAt(where int) rune {
 	q.mutex.Lock()
 	defer q.mutex.Unlock()
 	if where < 0 || where >= len(q.query) {
@@ -90,7 +90,7 @@ func (q *Query) RuneAt(where int) rune {
 }
 
 // InsertAt inserts a rune at the specified position in the query.
-func (q *Query) InsertAt(ch rune, where int) {
+func (q *Text) InsertAt(ch rune, where int) {
 	q.mutex.Lock()
 	defer q.mutex.Unlock()
 
@@ -105,4 +105,37 @@ func (q *Query) InsertAt(ch rune, where int) {
 	buf[where] = ch
 	copy(buf[where+1:], sq[where:])
 	q.query = buf
+}
+
+// Caret tracks the cursor position within the query line.
+type Caret struct {
+	mutex sync.Mutex
+	pos   int
+}
+
+// Pos returns the current caret position, thread-safe.
+func (c *Caret) Pos() int {
+	c.mutex.Lock()
+	defer c.mutex.Unlock()
+	return c.pos
+}
+
+// setPosNL sets the caret position without acquiring the mutex.
+// The caller must already hold the lock.
+func (c *Caret) setPosNL(p int) {
+	c.pos = p
+}
+
+// SetPos sets the caret position, thread-safe.
+func (c *Caret) SetPos(p int) {
+	c.mutex.Lock()
+	defer c.mutex.Unlock()
+	c.setPosNL(p)
+}
+
+// Move moves the caret by the given delta, thread-safe.
+func (c *Caret) Move(diff int) {
+	c.mutex.Lock()
+	defer c.mutex.Unlock()
+	c.setPosNL(c.pos + diff)
 }
