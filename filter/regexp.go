@@ -127,7 +127,7 @@ func newRegexpFilter(name string, flags regexpFlags, quotemeta bool) *Regexp {
 		quotemeta: quotemeta,
 		name:      name,
 	}
-	rf.applyFn = rf.applyInternal
+	rf.impl = rf
 	return rf
 }
 
