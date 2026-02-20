@@ -244,8 +244,8 @@ func KeyEventToString(key KeyType, ch rune, mod ModifierKey) (string, error) {
 }
 
 // ToKey parses a single key name string into its KeyType, modifier, and rune components.
-func ToKey(key string) (k KeyType, modifier ModifierKey, ch rune, err error) {
-	modifier = ModNone
+func ToKey(key string) (KeyType, ModifierKey, rune, error) {
+	modifier := ModNone
 
 	// Try full string first. This handles legacy key names like "C-a",
 	// "C-v", "Home", "ArrowLeft", etc. that are registered in stringToKey.
@@ -284,7 +284,7 @@ func ToKey(key string) (k KeyType, modifier ModifierKey, ch rune, err error) {
 
 done:
 	// Try as a single rune (handles multi-byte chars like "せ")
-	ch, _ = utf8.DecodeRuneInString(key)
+	ch, _ := utf8.DecodeRuneInString(key)
 	if ch != utf8.RuneError {
 		return 0, modifier, ch, nil
 	}

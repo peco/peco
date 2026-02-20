@@ -82,7 +82,7 @@ func (n *TernaryNode) Get(k Key) Node {
 }
 
 // Dig finds or creates a child node for the given key, returning the node and whether it was newly created.
-func (n *TernaryNode) Dig(k Key) (node Node, isnew bool) {
+func (n *TernaryNode) Dig(k Key) (Node, bool) {
 	curr := n.firstChild
 	if curr == nil {
 		n.firstChild = NewTernaryNode(k)
