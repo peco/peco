@@ -7,7 +7,6 @@ import (
 	"regexp"
 	"sort"
 	"strings"
-	"unicode"
 	"unicode/utf8"
 
 	"github.com/peco/peco/internal/util"
@@ -99,29 +98,31 @@ LINE:
 			return fmt.Errorf("the query has no valid character")
 		}
 
-		// Find the index of the first valid rune in the input line
-		txt = l.DisplayString()
+		// Find all byte offsets where the first query rune appears,
+		// reusing txt from line 77 instead of re-fetching DisplayString().
 		var firstRuneOffsets []int
-		accum := 0
-		var r rune
-		var n int
-		for len(txt) > 0 {
-			txt, r, n = popRune(txt)
-			var found bool
+		remaining := txt
+		base := 0
+		for len(remaining) > 0 {
+			var idx int
 			if hasUpper {
-				found = r == firstRune
+				idx = strings.IndexRune(remaining, firstRune)
 			} else {
-				found = unicode.ToUpper(r) == unicode.ToUpper(firstRune)
+				idx = strings.IndexFunc(remaining, util.CaseInsensitiveIndexFunc(firstRune))
 			}
-			if found {
-				firstRuneOffsets = append(firstRuneOffsets, accum)
+			if idx == -1 {
+				break
+			}
 
-				if !ff.sortLongest {
-					// Old behavior only sees the first match
-					break
-				}
+			firstRuneOffsets = append(firstRuneOffsets, base+idx)
+
+			if !ff.sortLongest {
+				break
 			}
-			accum += n
+
+			_, n := utf8.DecodeRuneInString(remaining[idx:])
+			remaining = remaining[idx+n:]
+			base += idx + n
 		}
 		if len(firstRuneOffsets) == 0 {
 			continue LINE
@@ -132,31 +133,32 @@ LINE:
 
 	OUTER:
 		for _, offset := range firstRuneOffsets {
-			query := fuzzyQuery
-			txt = l.DisplayString()[offset:]
-			base := offset
+			q := fuzzyQuery
+			candidateTxt := txt[offset:]
+			candidateBase := offset
 			var matches [][]int
 
-			for len(query) > 0 {
-				query, r, n = popRune(query)
+			for len(q) > 0 {
+				var r rune
+				var n int
+				q, r, n = popRune(q)
 				if r == utf8.RuneError {
-					// "Silently" ignore
 					continue OUTER
 				}
 
-				var i int
+				var idx int
 				if hasUpper {
-					i = strings.IndexRune(txt, r)
+					idx = strings.IndexRune(candidateTxt, r)
 				} else {
-					i = strings.IndexFunc(txt, util.CaseInsensitiveIndexFunc(r))
+					idx = strings.IndexFunc(candidateTxt, util.CaseInsensitiveIndexFunc(r))
 				}
-				if i == -1 {
+				if idx == -1 {
 					continue OUTER
 				}
 
-				txt = txt[i+n:]
-				matches = append(matches, []int{base + i, base + i + n})
-				base = base + i + n
+				candidateTxt = candidateTxt[idx+n:]
+				matches = append(matches, []int{candidateBase + idx, candidateBase + idx + n})
+				candidateBase = candidateBase + idx + n
 			}
 
 			candidates = append(candidates, newFuzzyMatchedItem(l, matches))
