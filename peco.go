@@ -102,34 +102,20 @@ type Peco struct {
 	err error
 }
 
-// HubSender provides methods for sending messages to the hub.
-// Most code (actions, input handling, source setup) only needs
-// the sender side.
-type HubSender interface {
+// MessageHub is the interface that must be satisfied by the
+// message hub component. Unless we're in testing, github.com/peco/peco/hub.Hub
+// is used.
+type MessageHub interface {
 	Batch(context.Context, func(context.Context))
 	SendDraw(context.Context, *hub.DrawOptions)
 	SendDrawPrompt(context.Context)
 	SendPaging(context.Context, hub.PagingRequest)
 	SendQuery(context.Context, string)
 	SendStatusMsg(context.Context, string, time.Duration)
-}
-
-// HubReceiver provides methods for receiving messages from the hub.
-// Only the view loop and filter loop consume from these channels.
-type HubReceiver interface {
 	DrawCh() chan *hub.Payload[*hub.DrawOptions]
 	PagingCh() chan *hub.Payload[hub.PagingRequest]
 	QueryCh() chan *hub.Payload[string]
 	StatusMsgCh() chan *hub.Payload[hub.StatusMsg]
-}
-
-// MessageHub is the interface that must be satisfied by the
-// message hub component. Unless we're in testing, github.com/peco/peco/hub.Hub
-// is used. It combines HubSender (for dispatching messages) and
-// HubReceiver (for consuming them via channels).
-type MessageHub interface {
-	HubSender
-	HubReceiver
 }
 
 var version = "v0.5.11"

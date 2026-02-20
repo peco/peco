@@ -37,10 +37,8 @@ func (h nullHub) StatusMsgCh() chan *hub.Payload[hub.StatusMsg]              { r
 
 // Compile-time interface compliance checks.
 var (
-	_ MessageHub  = (*hub.Hub)(nil)
-	_ HubSender   = (*hub.Hub)(nil)
-	_ HubReceiver = (*hub.Hub)(nil)
-	_ MessageHub  = nullHub{}
+	_ MessageHub = (*hub.Hub)(nil)
+	_ MessageHub = nullHub{}
 )
 
 type interceptorArgs []any
