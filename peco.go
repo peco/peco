@@ -445,14 +445,32 @@ func (p *Peco) startComponents(ctx context.Context, cancel func()) {
 		p.Exit(fmt.Errorf("failed to initialize screen: %w", err))
 		return
 	}
-	go func() { _ = NewInput(p, p.Keymap(), p.screen.PollEvent(ctx, &p.config)).Loop(ctx, cancel) }()
+	go func() {
+		if err := NewInput(p, p.Keymap(), p.screen.PollEvent(ctx, &p.config)).Loop(ctx, cancel); err != nil {
+			if pdebug.Enabled {
+				pdebug.Printf("Input.Loop error: %s", err)
+			}
+		}
+	}()
 	v, err := NewView(p)
 	if err != nil {
 		p.Exit(fmt.Errorf("failed to create view: %w", err))
 		return
 	}
-	go func() { _ = v.Loop(ctx, cancel) }()
-	go func() { _ = NewFilter(p).Loop(ctx, cancel) }()
+	go func() {
+		if err := v.Loop(ctx, cancel); err != nil {
+			if pdebug.Enabled {
+				pdebug.Printf("View.Loop error: %s", err)
+			}
+		}
+	}()
+	go func() {
+		if err := NewFilter(p).Loop(ctx, cancel); err != nil {
+			if pdebug.Enabled {
+				pdebug.Printf("Filter.Loop error: %s", err)
+			}
+		}
+	}()
 }
 
 // startEarlyExitHandlers launches goroutines that handle --select-1,
