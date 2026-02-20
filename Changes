@@ -45,7 +45,7 @@ v0.6.0 - UNRELEASED
     when the input is empty, analogous to `--select-1` (#538, #582).
   * Added Ctrl+Shift key modifier and CSI u / fixterms escape sequence
     support for modern terminals (#529, #581).
-  * Added Page Up/Down and Home/End key support (#428, #584).
+  * Added Home/End key support (#428, #584).
   * Added a new layout type: top-down list with query prompt at the
     bottom (#445, #595).
   * Added man page (`peco.1`) for offline documentation (#467, #587).

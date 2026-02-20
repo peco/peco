@@ -131,13 +131,13 @@ func init() {
 	selectUp.Register("SelectUp", keyseq.KeyArrowUp, keyseq.KeyCtrlP)
 	wrapDeprecated(selectDown, "SelectNext", "SelectUp/SelectDown").Register("SelectNext")
 
-	scrollPageDown.Register("ScrollPageDown", keyseq.KeyArrowRight, keyseq.KeyPgdn)
+	scrollPageDown.Register("ScrollPageDown", keyseq.KeyArrowRight)
 	wrapDeprecated(scrollPageDown, "SelectNextPage", "ScrollPageDown/ScrollPageUp").Register("SelectNextPage")
 
 	selectDown.Register("SelectDown", keyseq.KeyArrowDown, keyseq.KeyCtrlN)
 	wrapDeprecated(selectUp, "SelectPrevious", "SelectUp/SelectDown").Register("SelectPrevious")
 
-	scrollPageUp.Register("ScrollPageUp", keyseq.KeyArrowLeft, keyseq.KeyPgup)
+	scrollPageUp.Register("ScrollPageUp", keyseq.KeyArrowLeft)
 	wrapDeprecated(scrollPageUp, "SelectPreviousPage", "ScrollPageDown/ScrollPageUp").Register("SelectPreviousPage")
 
 	makePagingAction(hub.ToScrollLeft).Register("ScrollLeft")
