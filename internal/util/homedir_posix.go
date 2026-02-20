@@ -7,6 +7,7 @@ import (
 	"os"
 )
 
+// Homedir returns the current user's home directory from the HOME environment variable.
 func Homedir() (string, error) {
 	home := os.Getenv("HOME")
 	if home == "" {

@@ -80,15 +80,19 @@ func (m byMatchStart) Less(i, j int) bool {
 
 	return false
 }
+// matchContains reports whether match range a fully contains match range b.
 func matchContains(a []int, b []int) bool {
 	return a[0] <= b[0] && a[1] >= b[1]
 }
 
+// matchOverlaps reports whether two match ranges overlap.
 func matchOverlaps(a []int, b []int) bool {
 	return a[0] <= b[0] && a[1] >= b[0] ||
 		a[0] <= b[1] && a[1] >= b[1]
 }
 
+// mergeMatches combines two overlapping match ranges into a single range
+// spanning both.
 func mergeMatches(a []int, b []int) []int {
 	ret := make([]int, 2)
 

@@ -174,6 +174,7 @@ func (p *Pipeline) Run(ctx context.Context) (err error) {
 	return nil
 }
 
+// Done returns a channel that is closed when the pipeline completes.
 func (p *Pipeline) Done() <-chan struct{} {
 	p.mutex.Lock()
 	defer p.mutex.Unlock()

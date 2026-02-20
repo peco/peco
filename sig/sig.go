@@ -14,6 +14,7 @@ type ReceivedHandler interface {
 
 type ReceivedHandlerFunc func(os.Signal)
 
+// Handle calls the underlying function with the received signal.
 func (s ReceivedHandlerFunc) Handle(sig os.Signal) {
 	s(sig)
 }
@@ -23,6 +24,7 @@ type Handler struct {
 	sigCh            chan os.Signal
 }
 
+// New creates a new signal handler that forwards the specified signals (default: SIGTERM, SIGINT, SIGHUP) to h.
 func New(h ReceivedHandler, sigs ...os.Signal) *Handler {
 	if len(sigs) == 0 {
 		sigs = append(sigs, syscall.SIGTERM, syscall.SIGINT, syscall.SIGHUP)
@@ -37,6 +39,7 @@ func New(h ReceivedHandler, sigs ...os.Signal) *Handler {
 	}
 }
 
+// Loop listens for OS signals and invokes the handler when one is received, then returns.
 func (h *Handler) Loop(ctx context.Context, cancel func()) error {
 	defer cancel()
 	defer signal.Stop(h.sigCh)

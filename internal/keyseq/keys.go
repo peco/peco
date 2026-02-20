@@ -104,6 +104,7 @@ const (
 var stringToKey = map[string]KeyType{}
 var keyToString = map[KeyType]string{}
 
+// mapkey registers a bidirectional mapping between a key name string and its KeyType constant.
 func mapkey(n string, k KeyType) {
 	stringToKey[n] = k
 	keyToString[k] = n
@@ -193,6 +194,7 @@ func init() {
 	mapkey("C-8", KeyCtrl8)
 }
 
+// ToKeyList parses a comma-separated key binding string (e.g. "C-x,C-c") into a list of KeySeq values.
 func ToKeyList(ksk string) (KeyList, error) {
 	list := KeyList{}
 	for term := range strings.SplitSeq(ksk, ",") {
@@ -241,6 +243,7 @@ func KeyEventToString(key KeyType, ch rune, mod ModifierKey) (string, error) {
 	return s, nil
 }
 
+// ToKey parses a single key name string into its KeyType, modifier, and rune components.
 func ToKey(key string) (k KeyType, modifier ModifierKey, ch rune, err error) {
 	modifier = ModNone
 

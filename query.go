@@ -36,6 +36,7 @@ func (q *Query) SaveQuery() {
 	q.query = []rune(nil)
 }
 
+// DeleteRange deletes runes in the range [start, end) from the query with boundary validation.
 func (q *Query) DeleteRange(start, end int) {
 	q.mutex.Lock()
 	defer q.mutex.Unlock()
@@ -88,6 +89,7 @@ func (q *Query) RuneAt(where int) rune {
 	return q.query[where]
 }
 
+// InsertAt inserts a rune at the specified position in the query.
 func (q *Query) InsertAt(ch rune, where int) {
 	q.mutex.Lock()
 	defer q.mutex.Unlock()

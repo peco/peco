@@ -358,6 +358,7 @@ func newScreenStatusBar(screen Screen, anchor VerticalAnchor, anchorOffset int, 
 	}, nil
 }
 
+// stopTimer stops and drains the clear timer, preventing stale events from firing.
 func (s *screenStatusBar) stopTimer() {
 	s.timerMutex.Lock()
 	defer s.timerMutex.Unlock()
@@ -367,6 +368,7 @@ func (s *screenStatusBar) stopTimer() {
 	}
 }
 
+// setClearTimer sets or resets the timer that will clear the status message after a delay.
 func (s *screenStatusBar) setClearTimer(t *time.Timer) {
 	s.timerMutex.Lock()
 	defer s.timerMutex.Unlock()
@@ -469,6 +471,7 @@ func (l *ListArea) SetDirty(dirty bool) {
 	l.dirty = dirty
 }
 
+// selectionContains reports whether the line at index n is in the current selection.
 func selectionContains(state *Peco, n int) bool {
 	if l, err := state.CurrentLineBuffer().LineAt(n); err == nil {
 		return state.Selection().Has(l)
@@ -946,6 +949,7 @@ func (l *BasicLayout) DrawScreen(state *Peco, options *hub.DrawOptions) {
 	}
 }
 
+// linesPerPage calculates the number of visible lines per page based on terminal height.
 func (l *BasicLayout) linesPerPage() int {
 	_, height := l.screen.Size()
 

@@ -411,6 +411,8 @@ func (p *Peco) Setup() (err error) {
 	return nil
 }
 
+// selectOneAndExitIfPossible selects the first line and exits if there is
+// exactly one line in the buffer and --select-1 mode is active.
 func (p *Peco) selectOneAndExitIfPossible() {
 	// If we have only one line, we just want to bail out
 	// printing that one line as the result.
@@ -431,6 +433,8 @@ func (p *Peco) selectOneAndExitIfPossible() {
 	}
 }
 
+// selectOneCallback returns a callback for pipeline completion that triggers
+// selectOneAndExitIfPossible if --select-1 mode is enabled, or nil otherwise.
 func (p *Peco) selectOneCallback() func() {
 	if p.selectOneAndExit {
 		return p.selectOneAndExitIfPossible
@@ -438,12 +442,16 @@ func (p *Peco) selectOneCallback() func() {
 	return nil
 }
 
+// exitZeroIfPossible exits immediately with status 1 if the current line
+// buffer is empty and --exit-0 mode is enabled.
 func (p *Peco) exitZeroIfPossible() {
 	if p.CurrentLineBuffer().Size() == 0 {
 		p.Exit(setExitStatus(makeIgnorable(errors.New("no input, exiting")), 1))
 	}
 }
 
+// selectAllAndExitIfPossible adds all lines in the current buffer to the
+// selection and exits when --select-all mode is enabled.
 func (p *Peco) selectAllAndExitIfPossible() {
 	b := p.CurrentLineBuffer()
 	selection := p.Selection()
@@ -538,6 +546,8 @@ func (p *Peco) setupInitialQuery(ctx context.Context) {
 	}
 }
 
+// Run is the main entry point that sets up the TUI, starts the input source
+// and pipeline components, and blocks until the context is canceled.
 func (p *Peco) Run(ctx context.Context) (err error) {
 	if pdebug.Enabled {
 		g := pdebug.Marker("Peco.Run").BindError(&err)
@@ -624,6 +634,8 @@ func (p *Peco) Run(ctx context.Context) (err error) {
 	return p.Err()
 }
 
+// parseCommandLine parses CLI arguments from argv into the CLIOptions struct
+// and stores any remaining positional arguments in args.
 func (p *Peco) parseCommandLine(opts *CLIOptions, args *[]string, argv []string) error {
 	remaining, err := opts.parse(argv)
 	if err != nil {
@@ -653,6 +665,8 @@ func (p *Peco) parseCommandLine(opts *CLIOptions, args *[]string, argv []string)
 	return nil
 }
 
+// SetupSource configures the input source (stdin or a file specified as a
+// positional argument) and starts reading lines into the Source buffer.
 func (p *Peco) SetupSource(ctx context.Context) (s *Source, err error) {
 	if pdebug.Enabled {
 		g := pdebug.Marker("Peco.SetupSource").BindError(&err)
@@ -701,6 +715,8 @@ func (p *Peco) SetupSource(ctx context.Context) (s *Source, err error) {
 	return src, nil
 }
 
+// readConfig loads the configuration from the given filename into cfg.
+// If filename is empty, no file is read and nil is returned.
 func readConfig(cfg *Config, filename string) error {
 	if filename != "" {
 		if err := cfg.ReadFilename(filename); err != nil {
@@ -711,6 +727,8 @@ func readConfig(cfg *Config, filename string) error {
 	return nil
 }
 
+// ApplyConfig applies the loaded Config and CLI options to the Peco instance,
+// setting up layout, styles, keymap, filters, and all other runtime parameters.
 func (p *Peco) ApplyConfig(opts CLIOptions) error {
 	// If layoutType is not set and is set in the config, set it
 	if p.layoutType == "" {
@@ -810,6 +828,8 @@ func (p *Peco) ApplyConfig(opts CLIOptions) error {
 	return nil
 }
 
+// populateInitialFilter sets the initial active filter based on the
+// --initial-filter flag or the InitialFilter config value.
 func (p *Peco) populateInitialFilter() error {
 	if v := p.initialFilter; len(v) > 0 {
 		if err := p.filters.SetCurrentByName(v); err != nil {
@@ -819,6 +839,8 @@ func (p *Peco) populateInitialFilter() error {
 	return nil
 }
 
+// populateSingleKeyJump configures the single-key-jump mode by building
+// the prefix-to-index mapping from the config.
 func (p *Peco) populateSingleKeyJump() error { //nolint:unparam
 	p.singleKeyJump.showPrefix = p.config.SingleKeyJump.ShowPrefix
 
@@ -836,6 +858,8 @@ func (p *Peco) populateSingleKeyJump() error { //nolint:unparam
 	return nil
 }
 
+// populateFilters registers the built-in filter set (IgnoreCase, CaseSensitive,
+// SmartCase, Regexp, Fuzzy, etc.) and any custom external filters from config.
 func (p *Peco) populateFilters() {
 	p.filters.Add(filter.NewIgnoreCase())
 	p.filters.Add(filter.NewCaseSensitive())
@@ -850,6 +874,8 @@ func (p *Peco) populateFilters() {
 	}
 }
 
+// populateKeymap creates a new Keymap from the config and applies the
+// key-to-action bindings.
 func (p *Peco) populateKeymap() error {
 	// Create a new keymap object
 	k := NewKeymap(p.config.Keymap, p.config.Action)
@@ -862,17 +888,22 @@ func (p *Peco) populateKeymap() error {
 	return nil
 }
 
+// populateStyles applies the style settings from config to the Peco StyleSet.
 func (p *Peco) populateStyles() error { //nolint:unparam
 	p.styles = p.config.Style
 	return nil
 }
 
+// CurrentLineBuffer returns the current active line buffer, which is either
+// the filtered result set or the original source buffer.
 func (p *Peco) CurrentLineBuffer() Buffer {
 	p.mutex.Lock()
 	defer p.mutex.Unlock()
 	return p.currentLineBuffer
 }
 
+// SetCurrentLineBuffer replaces the current line buffer with b and triggers
+// a redraw of the screen.
 func (p *Peco) SetCurrentLineBuffer(ctx context.Context, b Buffer) {
 	p.mutex.Lock()
 	defer p.mutex.Unlock()
@@ -884,6 +915,8 @@ func (p *Peco) SetCurrentLineBuffer(ctx context.Context, b Buffer) {
 	go p.Hub().SendDraw(ctx, nil)
 }
 
+// ResetCurrentLineBuffer clears the current line buffer, reverting it to the
+// source buffer (or the frozen source if zoom/freeze is active).
 func (p *Peco) ResetCurrentLineBuffer(ctx context.Context) {
 	if fs := p.Frozen().Source(); fs != nil {
 		p.SetCurrentLineBuffer(ctx, fs)
@@ -892,6 +925,9 @@ func (p *Peco) ResetCurrentLineBuffer(ctx context.Context) {
 	}
 }
 
+// sendQuery sends the query string q to the hub for filter processing. For
+// finite sources it uses batch mode; for infinite/streaming sources it sends
+// immediately and schedules nextFunc via waitAndCall.
 func (p *Peco) sendQuery(ctx context.Context, q string, nextFunc func()) {
 	if pdebug.Enabled {
 		g := pdebug.Marker("sending query to filter goroutine (q=%v, isInfinite=%t)", q, p.source.IsInfinite())
@@ -1031,6 +1067,9 @@ func (p *Peco) ExecQuery(ctx context.Context, nextFunc func()) bool {
 	return true
 }
 
+// PrintResults writes the selected lines (or the current line if none are
+// selected) to the configured output writer. If --print-query is set, the
+// query string is printed first.
 func (p *Peco) PrintResults() {
 	if pdebug.Enabled {
 		g := pdebug.Marker("Peco.PrintResults")

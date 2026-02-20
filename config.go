@@ -21,6 +21,8 @@ const (
 	OnCancelError   OnCancelBehavior = "error"
 )
 
+// UnmarshalText parses a text value into an OnCancelBehavior, accepting
+// "success" (or empty) and "error" as valid values.
 func (o *OnCancelBehavior) UnmarshalText(b []byte) error {
 	switch s := string(b); s {
 	case "", "success":
@@ -224,6 +226,8 @@ func NewStyleSet() *StyleSet {
 	return ss
 }
 
+// Init initializes the StyleSet with default foreground and background colors
+// for each UI element (basic, query, matched, selected, prompt, context, etc.).
 func (ss *StyleSet) Init() {
 	ss.Basic.fg = ColorDefault
 	ss.Basic.bg = ColorDefault
@@ -259,6 +263,8 @@ func (s *Style) UnmarshalYAML(unmarshal func(any) error) error {
 	return stringsToStyle(s, raw)
 }
 
+// stringsToStyle parses an array of color and attribute strings (e.g. "red",
+// "on_blue", "bold", "#ff00ff") into a Style's foreground and background Attributes.
 func stringsToStyle(style *Style, raw []string) error {
 	style.fg = ColorDefault
 	style.bg = ColorDefault
@@ -312,6 +318,8 @@ type configLocateFunc func(string) (string, error)
 
 var configFilenames = []string{"config.json", "config.yaml", "config.yml"}
 
+// locateRcfileIn searches the given directory for a config file with one of
+// the known filenames (config.json, config.yaml, config.yml).
 func locateRcfileIn(dir string) (string, error) {
 	for _, basename := range configFilenames {
 		file := filepath.Join(dir, basename)

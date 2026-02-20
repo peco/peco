@@ -62,10 +62,13 @@ func NewSource(name string, in io.Reader, isInfinite bool, idgen line.IDGenerato
 	return s
 }
 
+// Name returns the display name of this source.
 func (s *Source) Name() string {
 	return s.name
 }
 
+// IsInfinite reports whether the source is an infinite stream (e.g. tail -f)
+// that has not yet been closed.
 func (s *Source) IsInfinite() bool {
 	return s.isInfinite && !s.inClosed
 }
@@ -197,7 +200,8 @@ func (s *Source) Setup(ctx context.Context, state *Peco) {
 	})
 }
 
-// Start starts
+// Start begins sending buffered lines into the pipeline output channel.
+// If input is still being read, it resumes from where the last send left off.
 func (s *Source) Start(ctx context.Context, out pipeline.ChanOutput) {
 	var sent int
 	// I should be the only one running this method until I bail out
@@ -306,24 +310,29 @@ func (s *Source) SetupDone() <-chan struct{} {
 	return s.setupDone
 }
 
+// linesInRange returns a slice of lines between start and end indices from the buffer.
 func (s *Source) linesInRange(start, end int) []line.Line {
 	s.mutex.RLock()
 	defer s.mutex.RUnlock()
 	return s.lines[start:end]
 }
 
+// LineAt returns the line at the given index from the buffer.
 func (s *Source) LineAt(n int) (line.Line, error) {
 	s.mutex.RLock()
 	defer s.mutex.RUnlock()
 	return bufferLineAt(s.lines, n)
 }
 
+// Size returns the number of lines currently in the buffer.
 func (s *Source) Size() int {
 	s.mutex.RLock()
 	defer s.mutex.RUnlock()
 	return len(s.lines)
 }
 
+// Append adds a new line to the source buffer. If a capacity is set and
+// exceeded, the oldest lines are discarded to maintain the limit.
 func (s *Source) Append(l line.Line) {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()

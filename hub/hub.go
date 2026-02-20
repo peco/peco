@@ -113,6 +113,7 @@ var doneChPool = sync.Pool{
 	},
 }
 
+// waitDone blocks until the receiver signals completion by calling Done.
 func (p *Payload[T]) waitDone() {
 	// Save the channel reference before blocking. This read is safe because
 	// p.done was set by send() on this same goroutine before the payload
@@ -129,6 +130,7 @@ func (p *Payload[T]) waitDone() {
 	doneChPool.Put(ch)
 }
 
+// isBatchCtx reports whether the context was created by a Batch call.
 func isBatchCtx(ctx context.Context) bool {
 	var isBatchMode bool
 	v := ctx.Value(batchPayloadKey{})
@@ -223,6 +225,7 @@ func (r statusMsgReq) Delay() time.Duration {
 	return r.delay
 }
 
+// newStatusMsgReq creates a StatusMsg with the given message text and display duration.
 func newStatusMsgReq(s string, d time.Duration) *statusMsgReq {
 	return &statusMsgReq{
 		msg:   s,

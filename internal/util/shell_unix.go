@@ -7,6 +7,7 @@ import (
 	"os/exec"
 )
 
+// Shell creates an exec.Cmd that runs the given command strings via /bin/sh -c.
 func Shell(ctx context.Context, cmd ...string) *exec.Cmd {
 	const shellpath = `/bin/sh`
 	const shellopt = `-c`

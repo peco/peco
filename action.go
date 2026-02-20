@@ -52,6 +52,7 @@ func (a ActionFunc) Execute(ctx context.Context, state *Peco, e Event) {
 	a(ctx, state, e)
 }
 
+// registerKeySequence registers a key sequence in the default key binding map for action dispatch.
 func (a ActionFunc) registerKeySequence(k keyseq.KeyList) {
 	defaultKeyBinding[k.String()] = a
 }
@@ -74,6 +75,7 @@ func (a ActionFunc) RegisterKeySequence(name string, k keyseq.KeyList) {
 	a.registerKeySequence(k)
 }
 
+// wrapDeprecated wraps an action function to emit a deprecation warning before executing it.
 func wrapDeprecated(fn func(context.Context, *Peco, Event), oldName, newName string) ActionFunc {
 	return ActionFunc(func(ctx context.Context, state *Peco, e Event) {
 		state.Hub().SendStatusMsg(ctx, fmt.Sprintf("%s is deprecated. Use %s", oldName, newName), 0)
@@ -231,6 +233,7 @@ func doAcceptChar(ctx context.Context, state *Peco, e Event) {
 	state.ExecQuery(ctx, state.selectOneCallback())
 }
 
+// doRotateFilter cycles to the next filter in the configured filter set and re-runs the query.
 func doRotateFilter(ctx context.Context, state *Peco, _ Event) {
 	if pdebug.Enabled {
 		g := pdebug.Marker("doRotateFilter")
@@ -243,6 +246,7 @@ func doRotateFilter(ctx context.Context, state *Peco, _ Event) {
 	execQueryAndDraw(ctx, state)
 }
 
+// doBackToInitialFilter resets the filter back to the one configured at startup and re-runs the query.
 func doBackToInitialFilter(ctx context.Context, state *Peco, _ Event) {
 	if pdebug.Enabled {
 		g := pdebug.Marker("doBackToInitialFilter")
@@ -255,6 +259,7 @@ func doBackToInitialFilter(ctx context.Context, state *Peco, _ Event) {
 	execQueryAndDraw(ctx, state)
 }
 
+// doToggleSelection toggles the selection state of the line at the current cursor position.
 func doToggleSelection(_ context.Context, state *Peco, _ Event) {
 	if pdebug.Enabled {
 		g := pdebug.Marker("doToggleSelection")
@@ -274,6 +279,7 @@ func doToggleSelection(_ context.Context, state *Peco, _ Event) {
 	selection.Add(l)
 }
 
+// doToggleRangeMode enables or disables range selection mode, anchoring or clearing the range start.
 func doToggleRangeMode(_ context.Context, state *Peco, _ Event) {
 	if pdebug.Enabled {
 		g := pdebug.Marker("doToggleRangeMode")
@@ -292,15 +298,18 @@ func doToggleRangeMode(_ context.Context, state *Peco, _ Event) {
 	}
 }
 
+// doCancelRangeMode exits range selection mode without modifying the current selections.
 func doCancelRangeMode(_ context.Context, state *Peco, _ Event) {
 	state.SelectionRangeStart().Reset()
 }
 
+// doSelectNone deselects all currently selected lines and redraws the screen.
 func doSelectNone(ctx context.Context, state *Peco, _ Event) {
 	state.Selection().Reset()
 	state.Hub().SendDraw(ctx, &hub.DrawOptions{DisableCache: true})
 }
 
+// doSelectAll selects every line in the current line buffer.
 func doSelectAll(ctx context.Context, state *Peco, _ Event) {
 	selection := state.Selection()
 	b := state.CurrentLineBuffer()
@@ -314,6 +323,7 @@ func doSelectAll(ctx context.Context, state *Peco, _ Event) {
 	state.Hub().SendDraw(ctx, nil)
 }
 
+// doSelectVisible selects all lines currently visible on screen within the page crop.
 func doSelectVisible(ctx context.Context, state *Peco, _ Event) {
 	if pdebug.Enabled {
 		g := pdebug.Marker("doSelectVisible")
@@ -343,6 +353,8 @@ func (err collectResultsError) Error() string {
 func (err collectResultsError) CollectResults() bool {
 	return true
 }
+// doFinish completes the peco session. If execOnFinish is set, it runs the configured
+// command with the selected lines as stdin; otherwise it exits with a collect-results signal.
 func doFinish(ctx context.Context, state *Peco, _ Event) {
 	if pdebug.Enabled {
 		g := pdebug.Marker("doFinish")
@@ -418,6 +430,8 @@ func doFinish(ctx context.Context, state *Peco, _ Event) {
 	}
 }
 
+// doCancel cancels the current operation: a pending key sequence, range mode, or the entire
+// peco session. The exit status depends on the OnCancel configuration.
 func doCancel(ctx context.Context, state *Peco, e Event) {
 	km := state.Keymap()
 
@@ -445,6 +459,8 @@ func batchAction(ctx context.Context, state *Peco, fn func(context.Context)) {
 	state.Hub().Batch(ctx, fn)
 }
 
+// doToggleSelectionAndSelectNext toggles the selection of the current line, then moves
+// the cursor to the next line (direction depends on layout orientation).
 func doToggleSelectionAndSelectNext(ctx context.Context, state *Peco, e Event) {
 	batchAction(ctx, state, func(ctx context.Context) {
 		doToggleSelection(ctx, state, e)
@@ -456,6 +472,7 @@ func doToggleSelectionAndSelectNext(ctx context.Context, state *Peco, e Event) {
 	})
 }
 
+// doInvertSelection inverts the selection state of every line in the current buffer.
 func doInvertSelection(ctx context.Context, state *Peco, _ Event) {
 	if pdebug.Enabled {
 		g := pdebug.Marker("doInvertSelection")
@@ -481,6 +498,8 @@ func doInvertSelection(ctx context.Context, state *Peco, _ Event) {
 	state.Hub().SendDraw(ctx, nil)
 }
 
+// doDeleteBackwardWord deletes the word before the cursor in the query, handling
+// whitespace boundaries, then re-runs the query.
 func doDeleteBackwardWord(ctx context.Context, state *Peco, _ Event) {
 	if pdebug.Enabled {
 		g := pdebug.Marker("doDeleteBackwardWord")
@@ -521,6 +540,7 @@ func doDeleteBackwardWord(ctx context.Context, state *Peco, _ Event) {
 	execQueryAndDraw(ctx, state)
 }
 
+// doForwardWord moves the cursor forward to the beginning of the next word in the query.
 func doForwardWord(ctx context.Context, state *Peco, _ Event) {
 	if state.Caret().Pos() >= state.Query().Len() {
 		return
@@ -548,6 +568,7 @@ func doForwardWord(ctx context.Context, state *Peco, _ Event) {
 	c.SetPos(q.Len())
 }
 
+// doBackwardWord moves the cursor backward to the beginning of the previous word in the query.
 func doBackwardWord(ctx context.Context, state *Peco, _ Event) {
 	c := state.Caret()
 	q := state.Query()
@@ -594,6 +615,7 @@ func doBackwardWord(ctx context.Context, state *Peco, _ Event) {
 	c.SetPos(0)
 }
 
+// doForwardChar moves the cursor one character forward in the query.
 func doForwardChar(ctx context.Context, state *Peco, _ Event) {
 	c := state.Caret()
 	if c.Pos() >= state.Query().Len() {
@@ -603,6 +625,7 @@ func doForwardChar(ctx context.Context, state *Peco, _ Event) {
 	state.Hub().SendDrawPrompt(ctx)
 }
 
+// doBackwardChar moves the cursor one character backward in the query.
 func doBackwardChar(ctx context.Context, state *Peco, _ Event) {
 	c := state.Caret()
 	if c.Pos() <= 0 {
@@ -612,6 +635,7 @@ func doBackwardChar(ctx context.Context, state *Peco, _ Event) {
 	state.Hub().SendDrawPrompt(ctx)
 }
 
+// doDeleteForwardWord deletes the word (or whitespace run) after the cursor in the query.
 func doDeleteForwardWord(ctx context.Context, state *Peco, _ Event) {
 	c := state.Caret()
 	q := state.Query()
@@ -645,16 +669,20 @@ func doDeleteForwardWord(ctx context.Context, state *Peco, _ Event) {
 	execQueryAndDraw(ctx, state)
 }
 
+// doBeginningOfLine moves the cursor to the beginning of the query line.
 func doBeginningOfLine(ctx context.Context, state *Peco, _ Event) {
 	state.Caret().SetPos(0)
 	state.Hub().SendDrawPrompt(ctx)
 }
 
+// doEndOfLine moves the cursor to the end of the query line.
 func doEndOfLine(ctx context.Context, state *Peco, _ Event) {
 	state.Caret().SetPos(state.Query().Len())
 	state.Hub().SendDrawPrompt(ctx)
 }
 
+// doEndOfFile deletes the character at the cursor if the query is non-empty, or cancels
+// the session if the query is empty (similar to Ctrl-D behavior in a shell).
 func doEndOfFile(ctx context.Context, state *Peco, e Event) {
 	if state.Query().Len() > 0 {
 		doDeleteForwardChar(ctx, state, e)
@@ -663,6 +691,7 @@ func doEndOfFile(ctx context.Context, state *Peco, e Event) {
 	}
 }
 
+// doKillBeginningOfLine deletes all text from the cursor to the beginning of the query.
 func doKillBeginningOfLine(ctx context.Context, state *Peco, _ Event) {
 	q := state.Query()
 	q.DeleteRange(0, state.Caret().Pos())
@@ -670,6 +699,7 @@ func doKillBeginningOfLine(ctx context.Context, state *Peco, _ Event) {
 	execQueryAndDraw(ctx, state)
 }
 
+// doKillEndOfLine deletes all text from the cursor to the end of the query.
 func doKillEndOfLine(ctx context.Context, state *Peco, _ Event) {
 	if state.Query().Len() <= state.Caret().Pos() {
 		return
@@ -680,11 +710,13 @@ func doKillEndOfLine(ctx context.Context, state *Peco, _ Event) {
 	execQueryAndDraw(ctx, state)
 }
 
+// doDeleteAll clears the entire query string and re-runs the query.
 func doDeleteAll(ctx context.Context, state *Peco, _ Event) {
 	state.Query().Reset()
 	state.ExecQuery(ctx, state.selectOneCallback())
 }
 
+// doDeleteForwardChar deletes the character at the current cursor position in the query.
 func doDeleteForwardChar(ctx context.Context, state *Peco, _ Event) {
 	q := state.Query()
 	c := state.Caret()
@@ -698,6 +730,7 @@ func doDeleteForwardChar(ctx context.Context, state *Peco, _ Event) {
 	execQueryAndDraw(ctx, state)
 }
 
+// doDeleteBackwardChar deletes the character immediately before the cursor in the query.
 func doDeleteBackwardChar(ctx context.Context, state *Peco, _ Event) {
 	if pdebug.Enabled {
 		g := pdebug.Marker("doDeleteBackwardChar")
@@ -734,10 +767,12 @@ func doDeleteBackwardChar(ctx context.Context, state *Peco, _ Event) {
 	execQueryAndDraw(ctx, state)
 }
 
+// doRefreshScreen forces a full screen redraw with cache disabled and synchronous rendering.
 func doRefreshScreen(ctx context.Context, state *Peco, _ Event) {
 	state.Hub().SendDraw(ctx, &hub.DrawOptions{DisableCache: true, ForceSync: true})
 }
 
+// doToggleQuery swaps between the current query and the last saved query, then re-runs the filter.
 func doToggleQuery(ctx context.Context, state *Peco, _ Event) {
 	if pdebug.Enabled {
 		g := pdebug.Marker("doToggleQuery")
@@ -754,10 +789,12 @@ func doToggleQuery(ctx context.Context, state *Peco, _ Event) {
 	execQueryAndDraw(ctx, state)
 }
 
+// doKonamiCommand is an easter egg triggered by the Konami code key sequence.
 func doKonamiCommand(ctx context.Context, state *Peco, _ Event) {
 	state.Hub().SendStatusMsg(ctx, "All your filters are belongs to us", 0)
 }
 
+// doToggleSingleKeyJump toggles single-key-jump mode on or off.
 func doToggleSingleKeyJump(ctx context.Context, state *Peco, _ Event) {
 	if pdebug.Enabled {
 		g := pdebug.Marker("doToggleSingleKeyJump")
@@ -766,6 +803,8 @@ func doToggleSingleKeyJump(ctx context.Context, state *Peco, _ Event) {
 	state.ToggleSingleKeyJumpMode(ctx)
 }
 
+// doToggleViewAround clears the query and jumps to the current line's position in the
+// unfiltered source, effectively toggling between filtered and context views.
 func doToggleViewAround(ctx context.Context, state *Peco, e Event) {
 	if pdebug.Enabled {
 		g := pdebug.Marker("doToggleViewAround")
@@ -785,6 +824,7 @@ func doToggleViewAround(ctx context.Context, state *Peco, e Event) {
 	}
 }
 
+// doGoToNextSelection moves the cursor to the next selected line, wrapping around if needed.
 func doGoToNextSelection(ctx context.Context, state *Peco, _ Event) {
 	if pdebug.Enabled {
 		g := pdebug.Marker("doGoToNextSelection")
@@ -793,6 +833,7 @@ func doGoToNextSelection(ctx context.Context, state *Peco, _ Event) {
 	doGoToAdjacentSelection(ctx, state, true)
 }
 
+// doGoToPreviousSelection moves the cursor to the previous selected line, wrapping around if needed.
 func doGoToPreviousSelection(ctx context.Context, state *Peco, _ Event) {
 	if pdebug.Enabled {
 		g := pdebug.Marker("doGoToPreviousSelection")
@@ -881,6 +922,8 @@ func resetQueryState(state *Peco) {
 	}
 }
 
+// doFreezeResults snapshots the current result set into a frozen buffer, preventing
+// further filtering until unfrozen.
 func doFreezeResults(ctx context.Context, state *Peco, _ Event) {
 	if pdebug.Enabled {
 		g := pdebug.Marker("doFreezeResults")
@@ -908,6 +951,7 @@ func doFreezeResults(ctx context.Context, state *Peco, _ Event) {
 	state.Hub().SendDrawPrompt(ctx)
 }
 
+// doUnfreezeResults restores live filtering by clearing the frozen buffer and resetting the query.
 func doUnfreezeResults(ctx context.Context, state *Peco, _ Event) {
 	if pdebug.Enabled {
 		g := pdebug.Marker("doUnfreezeResults")
@@ -926,6 +970,8 @@ func doUnfreezeResults(ctx context.Context, state *Peco, _ Event) {
 	state.Hub().SendDrawPrompt(ctx)
 }
 
+// doZoomIn expands the view to show context lines around matched lines by building
+// a ContextBuffer from the current filter results and the original source.
 func doZoomIn(ctx context.Context, state *Peco, _ Event) {
 	if pdebug.Enabled {
 		g := pdebug.Marker("doZoomIn")
@@ -974,6 +1020,7 @@ func doZoomIn(ctx context.Context, state *Peco, _ Event) {
 	state.Hub().SendDraw(ctx, &hub.DrawOptions{DisableCache: true})
 }
 
+// doZoomOut restores the pre-zoom line buffer, collapsing the expanded context view.
 func doZoomOut(ctx context.Context, state *Peco, _ Event) {
 	if pdebug.Enabled {
 		g := pdebug.Marker("doZoomOut")
@@ -996,6 +1043,7 @@ func doZoomOut(ctx context.Context, state *Peco, _ Event) {
 	state.Hub().SendDraw(ctx, &hub.DrawOptions{DisableCache: true})
 }
 
+// doSingleKeyJump looks up the line index for the pressed key and jumps to it, then finishes.
 func doSingleKeyJump(ctx context.Context, state *Peco, e Event) {
 	if pdebug.Enabled {
 		g := pdebug.Marker("doSingleKeyJump %c", e.Ch)
@@ -1013,6 +1061,7 @@ func doSingleKeyJump(ctx context.Context, state *Peco, e Event) {
 	})
 }
 
+// makeCombinedAction creates a composite action that executes multiple actions sequentially in a batch.
 func makeCombinedAction(actions ...Action) ActionFunc {
 	return ActionFunc(func(ctx context.Context, state *Peco, e Event) {
 		batchAction(ctx, state, func(ctx context.Context) {
