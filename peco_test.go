@@ -307,7 +307,7 @@ func TestIDGen(t *testing.T) {
 	sel := selection.New()
 	for _, l := range lines {
 		if sel.Has(l) {
-			t.Errorf("Collision detected %d", l.ID())
+			t.Fatalf("Collision detected %d", l.ID())
 		}
 		sel.Add(l)
 	}
@@ -557,7 +557,7 @@ func TestGHIssue363(t *testing.T) {
 
 	select {
 	case <-ctx.Done():
-		t.Errorf("timeout reached")
+		t.Fatal("timeout reached")
 		return
 	case err := <-resultCh:
 		require.True(t, util.IsCollectResultsError(err), "isCollectResultsError")
@@ -663,7 +663,7 @@ func TestExitZero(t *testing.T) {
 
 		select {
 		case <-ctx.Done():
-			t.Errorf("timeout reached")
+			t.Fatal("timeout reached")
 			return
 		case err := <-resultCh:
 			require.True(t, util.IsIgnorableError(err), "error should be ignorable")
@@ -709,7 +709,7 @@ func TestExitZero(t *testing.T) {
 			if util.IsIgnorableError(err) {
 				st, ok := util.GetExitStatus(err)
 				if ok && st == 1 {
-					t.Errorf("--exit-0 should not trigger when input is non-empty")
+					t.Fatal("--exit-0 should not trigger when input is non-empty")
 				}
 			}
 		}
@@ -837,7 +837,7 @@ func TestPrintQuery(t *testing.T) {
 
 		select {
 		case <-ctx.Done():
-			t.Errorf("timeout reached")
+			t.Fatal("timeout reached")
 			return
 		case err := <-resultCh:
 			require.True(t, util.IsCollectResultsError(err), "isCollectResultsError")
@@ -875,7 +875,7 @@ func TestPrintQuery(t *testing.T) {
 
 		select {
 		case <-ctx.Done():
-			t.Errorf("timeout reached")
+			t.Fatal("timeout reached")
 			return
 		case err := <-resultCh:
 			require.True(t, util.IsCollectResultsError(err), "isCollectResultsError")
