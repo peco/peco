@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"io"
 	"os/exec"
 	"sync"
 
@@ -174,6 +175,9 @@ func (ecf *ExternalCmd) Apply(ctx context.Context, buf []line.Line, out pipeline
 				}
 			}
 			if err != nil {
+				if err != io.EOF {
+					readerPanicErr = fmt.Errorf("failed to read from external filter %q: %w", ecf.name, err)
+				}
 				return
 			}
 		}
@@ -189,7 +193,7 @@ func (ecf *ExternalCmd) Apply(ctx context.Context, buf []line.Line, out pipeline
 	for {
 		select {
 		case <-ctx.Done():
-			return nil
+			return ctx.Err()
 		case l, ok := <-cmdCh:
 			if l == nil || !ok {
 				return nil
