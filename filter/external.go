@@ -199,7 +199,7 @@ func (ecf *ExternalCmd) Apply(ctx context.Context, buf []line.Line, out pipeline
 				return nil
 			}
 			if err := out.Send(ctx, l); err != nil {
-				return nil
+				return err
 			}
 		}
 	}
