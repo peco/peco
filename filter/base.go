@@ -9,17 +9,16 @@ import (
 
 // LineEmitter receives matched lines from a filter.
 type LineEmitter interface {
-	Emit(line.Line)
+	Emit(context.Context, line.Line)
 }
 
 // chanEmitter sends matched lines to a pipeline channel.
 type chanEmitter struct {
-	ctx context.Context
 	out pipeline.ChanOutput
 }
 
-func (e *chanEmitter) Emit(l line.Line) {
-	_ = e.out.Send(e.ctx, l)
+func (e *chanEmitter) Emit(ctx context.Context, l line.Line) {
+	_ = e.out.Send(ctx, l)
 }
 
 // LineCollector accumulates matched lines into a slice.
@@ -28,12 +27,12 @@ type LineCollector struct {
 }
 
 // NewLineCollector creates a LineCollector pre-allocated with the given capacity.
-func NewLineCollector(cap int) *LineCollector {
-	return &LineCollector{lines: make([]line.Line, 0, cap)}
+func NewLineCollector(n int) *LineCollector {
+	return &LineCollector{lines: make([]line.Line, 0, n)}
 }
 
 // Emit appends a matched line to the collector.
-func (c *LineCollector) Emit(l line.Line) {
+func (c *LineCollector) Emit(_ context.Context, l line.Line) {
 	c.lines = append(c.lines, l)
 }
 
@@ -60,7 +59,7 @@ func (b *baseFilter) BufSize() int {
 
 // Apply runs the filter's matching logic on lines, sending matches to out.
 func (b *baseFilter) Apply(ctx context.Context, lines []line.Line, out pipeline.ChanOutput) error {
-	return b.applyFn(ctx, lines, &chanEmitter{ctx: ctx, out: out})
+	return b.applyFn(ctx, lines, &chanEmitter{out: out})
 }
 
 // ApplyCollect runs the filter and returns matched lines directly as a slice,

@@ -216,7 +216,7 @@ func (rf *Regexp) applyInternal(ctx context.Context, lines []line.Line, em LineE
 
 		// All-negative query: emit line with nil indices (no highlighting)
 		if len(posRegexps) == 0 {
-			em.Emit(line.NewMatched(l, nil))
+			em.Emit(ctx, line.NewMatched(l, nil))
 			continue
 		}
 
@@ -265,7 +265,7 @@ func (rf *Regexp) applyInternal(ctx context.Context, lines []line.Line, em LineE
 				deduped = append(deduped, m)
 			}
 		}
-		em.Emit(line.NewMatched(l, deduped))
+		em.Emit(ctx, line.NewMatched(l, deduped))
 	}
 	return nil
 }
