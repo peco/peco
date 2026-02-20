@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/peco/peco/line"
+	"github.com/stretchr/testify/require"
 )
 
 func TestSelection(t *testing.T) {
@@ -13,19 +14,11 @@ func TestSelection(t *testing.T) {
 	alice := line.NewRaw(i, "Alice", false, false)
 	i++
 	s.Add(alice)
-	if s.Len() != 1 {
-		t.Errorf("expected Len = 1, got %d", s.Len())
-	}
+	require.Equal(t, 1, s.Len())
 	s.Add(line.NewRaw(i, "Bob", false, false))
-	if s.Len() != 2 {
-		t.Errorf("expected Len = 2, got %d", s.Len())
-	}
+	require.Equal(t, 2, s.Len())
 	s.Add(alice)
-	if s.Len() != 2 {
-		t.Errorf("expected Len = 2, got %d", s.Len())
-	}
+	require.Equal(t, 2, s.Len())
 	s.Remove(alice)
-	if s.Len() != 1 {
-		t.Errorf("expected Len = 1, got %d", s.Len())
-	}
+	require.Equal(t, 1, s.Len())
 }

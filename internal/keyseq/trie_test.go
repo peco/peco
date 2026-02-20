@@ -2,18 +2,14 @@ package keyseq
 
 import (
 	"testing"
+
+	"github.com/stretchr/testify/require"
 )
 
 func checkTrieNode(t *testing.T, n Node, k Key, value int) {
-	if n == nil {
-		t.Fatal("TrieNode is null")
-	}
-	if l := n.Label(); l != k {
-		t.Errorf("TrieNode.Label() expected:'%c' actual:'%c'", k, l)
-	}
-	if v := n.Value().(int); v != value {
-		t.Errorf("TrieNode.Value() expected:%d actual:%d", value, v)
-	}
+	require.NotNil(t, n, "TrieNode is null")
+	require.Equal(t, k, n.Label(), "TrieNode.Label()")
+	require.Equal(t, value, n.Value().(int), "TrieNode.Value()")
 }
 
 func TestTrie(t *testing.T) {
@@ -27,14 +23,10 @@ func TestTrie(t *testing.T) {
 		checkTrieNode(t, nodes[i], Key{0, 0, rune(i + 1)}, 111*(i+1))
 	}
 
-	if s := trie.Size(); s != 5 {
-		t.Errorf("trie.Size() returns not 5: %d", s)
-	}
+	require.Equal(t, 5, trie.Size())
 }
 
 func TestNotFound(t *testing.T) {
 	trie := NewTrie()
-	if trie.Get(Key{999, 999, 'a'}) != nil {
-		t.Errorf("found 'not_exist' in empty trie")
-	}
+	require.Nil(t, trie.Get(Key{999, 999, 'a'}))
 }
