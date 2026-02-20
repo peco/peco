@@ -13,6 +13,7 @@ import (
 	"github.com/peco/peco/hub"
 	"github.com/peco/peco/internal/keyseq"
 	"github.com/peco/peco/line"
+	"github.com/peco/peco/selection"
 	"github.com/stretchr/testify/require"
 )
 
@@ -201,7 +202,7 @@ func TestPagingActions(t *testing.T) {
 			rHub := &recordingHub{}
 			state := New()
 			state.hub = rHub
-			state.selection = NewSelection()
+			state.selection = selection.New()
 			state.currentLineBuffer = NewMemoryBuffer(0)
 
 			action, ok := nameToActions[tt.action]
@@ -549,7 +550,7 @@ func TestGHIssue574_PreviousSelectionLastLineNotUpdated(t *testing.T) {
 
 	state := New()
 	state.hub = rHub
-	state.selection = NewSelection()
+	state.selection = selection.New()
 
 	// Set the current line buffer to our prepared buffer.
 	state.currentLineBuffer = mb
@@ -648,7 +649,7 @@ func TestNextSelectionNavigation(t *testing.T) {
 
 	state := New()
 	state.hub = rHub
-	state.selection = NewSelection()
+	state.selection = selection.New()
 	state.currentLineBuffer = mb
 
 	state.Selection().Add(lines[1]) // ID=20
@@ -727,7 +728,7 @@ func TestGHIssue428_PgUpPgDnDefaultBindings(t *testing.T) {
 
 	state := New()
 	state.hub = rHub
-	state.selection = NewSelection()
+	state.selection = selection.New()
 	state.currentLineBuffer = NewMemoryBuffer(0)
 
 	// Populate the keymap with defaults (no custom config).
@@ -772,7 +773,7 @@ func TestGHIssue455_RefreshScreenSendsForceSync(t *testing.T) {
 
 	state := New()
 	state.hub = rHub
-	state.selection = NewSelection()
+	state.selection = selection.New()
 	state.currentLineBuffer = NewMemoryBuffer(0)
 
 	doRefreshScreen(ctx, state, Event{})
@@ -801,7 +802,7 @@ func TestDoFreezeResults(t *testing.T) {
 		rHub := &recordingHub{}
 		state := New()
 		state.hub = rHub
-		state.selection = NewSelection()
+		state.selection = selection.New()
 
 		lines := makeLines("alpha", "beta", "gamma")
 		mb := NewMemoryBuffer(0)
@@ -834,7 +835,7 @@ func TestDoFreezeResults(t *testing.T) {
 		rHub := &recordingHub{}
 		state := New()
 		state.hub = rHub
-		state.selection = NewSelection()
+		state.selection = selection.New()
 		state.source = &Source{}
 
 		lines := makeLines("frozen1", "frozen2")
@@ -856,7 +857,7 @@ func TestDoFreezeResults(t *testing.T) {
 		rHub := &recordingHub{}
 		state := New()
 		state.hub = rHub
-		state.selection = NewSelection()
+		state.selection = selection.New()
 
 		origLines := makeLines("orig1", "orig2", "orig3")
 		origSource := &Source{}
@@ -886,7 +887,7 @@ func TestDoFreezeResults(t *testing.T) {
 		rHub := &recordingHub{}
 		state := New()
 		state.hub = rHub
-		state.selection = NewSelection()
+		state.selection = selection.New()
 		state.currentLineBuffer = NewMemoryBuffer(0)
 
 		doFreezeResults(ctx, state, Event{})
@@ -901,7 +902,7 @@ func TestDoFreezeResults(t *testing.T) {
 		rHub := &recordingHub{}
 		state := New()
 		state.hub = rHub
-		state.selection = NewSelection()
+		state.selection = selection.New()
 
 		doUnfreezeResults(ctx, state, Event{})
 
@@ -1068,7 +1069,7 @@ func TestDoZoomInOut(t *testing.T) {
 		rHub := &recordingHub{}
 		state := New()
 		state.hub = rHub
-		state.selection = NewSelection()
+		state.selection = selection.New()
 		state.source = &Source{}
 		state.source.lines = source.lines
 		state.currentLineBuffer = filtered

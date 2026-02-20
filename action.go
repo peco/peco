@@ -11,12 +11,12 @@ import (
 
 	"context"
 
-	"github.com/google/btree"
 	"github.com/lestrrat-go/pdebug"
 	"github.com/peco/peco/hub"
 	"github.com/peco/peco/internal/keyseq"
 	"github.com/peco/peco/internal/util"
 	"github.com/peco/peco/line"
+	"github.com/peco/peco/selection"
 )
 
 // Action describes an action that can be executed upon receiving user input.
@@ -196,7 +196,7 @@ func init() {
 }
 
 // selectLine marks the line as dirty and adds it to the selection.
-func selectLine(l line.Line, s *Selection) {
+func selectLine(l line.Line, s *selection.Set) {
 	l.SetDirty(true)
 	s.Add(l)
 }
@@ -368,7 +368,7 @@ func doFinish(ctx context.Context, state *Peco, _ Event) {
 		return
 	}
 
-	sel := NewSelection()
+	sel := selection.New()
 	state.Selection().Copy(sel)
 	if sel.Len() == 0 {
 		if l, err := state.CurrentLineBuffer().LineAt(state.Location().LineNumber()); err == nil {
@@ -377,12 +377,8 @@ func doFinish(ctx context.Context, state *Peco, _ Event) {
 	}
 
 	var stdin bytes.Buffer
-	sel.Ascend(func(it btree.Item) bool {
-		line, ok := it.(line.Line)
-		if !ok {
-			return true
-		}
-		stdin.WriteString(line.Buffer())
+	sel.Ascend(func(l line.Line) bool {
+		stdin.WriteString(l.Buffer())
 		stdin.WriteRune('\n')
 		return true
 	})
@@ -870,11 +866,7 @@ func doGoToAdjacentSelection(ctx context.Context, state *Peco, forward bool) {
 	}
 	found := false
 
-	selection.Ascend(func(it btree.Item) bool {
-		l, ok := it.(line.Line)
-		if !ok {
-			return true
-		}
+	selection.Ascend(func(l line.Line) bool {
 		id := l.ID()
 		if forward {
 			if id > currentLine && id < target {
