@@ -18,9 +18,7 @@ func TestHub(t *testing.T) {
 
 	go func() {
 		hr := <-h.QueryCh()
-		if hr.Data() != "Hello World!" {
-			t.Errorf("Expected query data to be 'Hello World!', got '%s'", hr.Data())
-		}
+		require.Equal(t, "Hello World!", hr.Data())
 		time.Sleep(100 * time.Millisecond)
 		done["query"] = time.Now()
 		hr.Done()
@@ -37,10 +35,7 @@ func TestHub(t *testing.T) {
 		hr := <-h.StatusMsgCh()
 		// Data() returns hub.StatusMsg directly — no type assertion needed
 		r := hr.Data()
-		if r.Message() != "Hello, World!" {
-			t.Errorf("Expected data to be 'Hello, World!', got '%s'", r.Message())
-			return
-		}
+		require.Equal(t, "Hello, World!", r.Message())
 		time.Sleep(100 * time.Millisecond)
 		done["status"] = time.Now()
 		hr.Done()
@@ -49,9 +44,7 @@ func TestHub(t *testing.T) {
 		hr := <-h.PagingCh()
 		// Data() returns hub.PagingRequest directly — no type assertion needed
 		r := hr.Data()
-		if r.Type() != hub.PagingRequestType(1) {
-			t.Errorf("Expected paging type 1, got %d", r.Type())
-		}
+		require.Equal(t, hub.PagingRequestType(1), r.Type())
 		time.Sleep(100 * time.Millisecond)
 		done["paging"] = time.Now()
 		hr.Done()
@@ -81,9 +74,8 @@ func TestHub(t *testing.T) {
 		next := phases[i+1]
 
 		t.Logf("Checkin if %s was fired before %s", cur, next)
-		if done[next].Before(done[cur]) {
-			t.Errorf("%s executed before %s?!", next, cur)
-		}
+		require.False(t, done[next].Before(done[cur]),
+			"%s executed before %s", next, cur)
 	}
 }
 
