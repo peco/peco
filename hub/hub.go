@@ -152,7 +152,11 @@ func send[T any](ctx context.Context, ch chan *Payload[T], r *Payload[T]) {
 	}
 
 	if r.Batch() {
-		r.done, _ = doneChPool.Get().(chan struct{})
+		doneCh, ok := doneChPool.Get().(chan struct{})
+		if !ok || doneCh == nil {
+			doneCh = make(chan struct{})
+		}
+		r.done = doneCh
 		if pdebug.Enabled {
 			defer pdebug.Printf("request is part of batch operation. waiting")
 		}

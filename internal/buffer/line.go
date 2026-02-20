@@ -25,6 +25,9 @@ func ReleaseLineListBuf(l []line.Line) {
 
 // GetLineListBuf retrieves a line list buffer from the sync.Pool, allocating if needed.
 func GetLineListBuf() []line.Line {
-	l, _ := lineListPool.Get().([]line.Line)
+	l, ok := lineListPool.Get().([]line.Line)
+	if !ok || l == nil {
+		l = make([]line.Line, 0, DefaultFilterBufSize)
+	}
 	return l
 }
