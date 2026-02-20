@@ -12,19 +12,10 @@ import (
 
 	"github.com/lestrrat-go/pdebug"
 	"github.com/mattn/go-runewidth"
+	"github.com/peco/peco/config"
 	"github.com/peco/peco/hub"
 	"github.com/peco/peco/internal/ansi"
 	linepkg "github.com/peco/peco/line"
-)
-
-// LayoutType describes the types of layout that peco can take
-type LayoutType string
-
-const (
-	DefaultLayoutType            = LayoutTypeTopDown       // LayoutTypeTopDown makes the layout so the items read from top to bottom
-	LayoutTypeTopDown            = "top-down"              // LayoutTypeTopDown displays prompt at top, list top-to-bottom
-	LayoutTypeBottomUp           = "bottom-up"             // LayoutTypeBottomUp displays prompt at bottom, list bottom-to-top
-	LayoutTypeTopDownQueryBottom = "top-down-query-bottom" // LayoutTypeTopDownQueryBottom displays list top-to-bottom, prompt at bottom
 )
 
 // VerticalAnchor describes the direction to which elements in the
@@ -59,7 +50,7 @@ type UserPrompt struct {
 	*AnchorSettings
 	prompt    string
 	promptLen int
-	styles    *StyleSet
+	styles    *config.StyleSet
 }
 
 // StatusBar is the interface for printing status messages
@@ -71,7 +62,7 @@ type StatusBar interface {
 type screenStatusBar struct {
 	*AnchorSettings
 	clearTimer *time.Timer
-	styles     *StyleSet
+	styles     *config.StyleSet
 	timerMutex sync.Mutex
 }
 
@@ -85,7 +76,7 @@ type ListArea struct {
 	sortTopDown  bool
 	displayCache []linepkg.Line
 	dirty        bool
-	styles       *StyleSet
+	styles       *config.StyleSet
 }
 
 // BasicLayout is... the basic layout :) At this point this is the
@@ -122,25 +113,19 @@ func (f LayoutBuilderFunc) Build(state *Peco) (*BasicLayout, error) {
 	return f(state)
 }
 
-var layoutRegistry = map[LayoutType]LayoutBuilder{}
+var layoutRegistry = map[string]LayoutBuilder{}
 
 // RegisterLayout registers a layout builder under the given name.
-func RegisterLayout(name LayoutType, builder LayoutBuilder) {
+func RegisterLayout(name string, builder LayoutBuilder) {
 	layoutRegistry[name] = builder
 }
 
 // NewLayout creates a layout by looking up the registry. Falls back to top-down.
-func NewLayout(layoutType LayoutType, state *Peco) (*BasicLayout, error) {
+func NewLayout(layoutType string, state *Peco) (*BasicLayout, error) {
 	if builder, ok := layoutRegistry[layoutType]; ok {
 		return builder.Build(state)
 	}
-	return layoutRegistry[LayoutTypeTopDown].Build(state)
-}
-
-// IsValidLayoutType checks if a string is a supported layout type
-func IsValidLayoutType(v LayoutType) bool {
-	_, ok := layoutRegistry[v]
-	return ok
+	return layoutRegistry[config.LayoutTypeTopDown].Build(state)
 }
 
 // IsValidVerticalAnchor checks if the specified anchor is supported
@@ -152,8 +137,8 @@ func IsValidVerticalAnchor(anchor VerticalAnchor) bool {
 // If either has a default color (0), the non-default color wins via OR.
 // Otherwise, color bits are merged using OR on 0-based indices.
 // Attribute flags (bold, underline, reverse, true color) are always OR'd.
-func mergeAttribute(a, b Attribute) Attribute {
-	const flagMask = AttrTrueColor | AttrBold | AttrUnderline | AttrReverse
+func mergeAttribute(a, b config.Attribute) config.Attribute {
+	const flagMask = config.AttrTrueColor | config.AttrBold | config.AttrUnderline | config.AttrReverse
 	aColor := a &^ flagMask
 	bColor := b &^ flagMask
 	flags := (a | b) & flagMask
@@ -192,9 +177,9 @@ func (as AnchorSettings) AnchorPosition() int {
 }
 
 // NewUserPrompt creates a new UserPrompt struct
-func NewUserPrompt(screen Screen, anchor VerticalAnchor, anchorOffset int, prompt string, styles *StyleSet) (*UserPrompt, error) {
+func NewUserPrompt(screen Screen, anchor VerticalAnchor, anchorOffset int, prompt string, styles *config.StyleSet) (*UserPrompt, error) {
 	if prompt == "" { // default
-		prompt = DefaultPrompt
+		prompt = config.DefaultPrompt
 	}
 	promptLen := runewidth.StringWidth(prompt)
 
@@ -215,16 +200,16 @@ func NewUserPrompt(screen Screen, anchor VerticalAnchor, anchorOffset int, promp
 // If QueryCursor is explicitly configured, it is used directly.
 // Otherwise, the Query style's fg/bg are swapped. If both are
 // ColorDefault, AttrReverse is used as a fallback.
-func (u UserPrompt) cursorStyle() (Attribute, Attribute) {
+func (u UserPrompt) cursorStyle() (config.Attribute, config.Attribute) {
 	qc := u.styles.QueryCursor
-	if qc.fg != ColorDefault || qc.bg != ColorDefault {
-		return qc.fg, qc.bg
+	if qc.Fg != config.ColorDefault || qc.Bg != config.ColorDefault {
+		return qc.Fg, qc.Bg
 	}
-	qfg, qbg := u.styles.Query.fg, u.styles.Query.bg
-	if qfg != ColorDefault || qbg != ColorDefault {
+	qfg, qbg := u.styles.Query.Fg, u.styles.Query.Bg
+	if qfg != config.ColorDefault || qbg != config.ColorDefault {
 		return qbg, qfg
 	}
-	return ColorDefault | AttrReverse, ColorDefault | AttrReverse
+	return config.ColorDefault | config.AttrReverse, config.ColorDefault | config.AttrReverse
 }
 
 // Draw draws the query prompt
@@ -239,8 +224,8 @@ func (u UserPrompt) Draw(state *Peco) {
 	// print "QUERY>"
 	u.screen.Print(PrintArgs{
 		Y:   location,
-		Fg:  u.styles.Prompt.fg,
-		Bg:  u.styles.Prompt.bg,
+		Fg:  u.styles.Prompt.Fg,
+		Bg:  u.styles.Prompt.Bg,
 		Msg: u.prompt,
 	})
 
@@ -256,8 +241,8 @@ func (u UserPrompt) Draw(state *Peco) {
 		c.SetPos(ql)
 	}
 
-	fg := u.styles.Query.fg
-	bg := u.styles.Query.bg
+	fg := u.styles.Query.Fg
+	bg := u.styles.Query.Bg
 
 	// Used to notify the screen where our cursor is
 	var posX int
@@ -317,8 +302,8 @@ func (u UserPrompt) Draw(state *Peco) {
 		cfgCursor, cbgCursor := u.cursorStyle()
 		prev := int(0)
 		for i, r := range q.RuneSlice() {
-			fg := u.styles.Query.fg
-			bg := u.styles.Query.bg
+			fg := u.styles.Query.Fg
+			bg := u.styles.Query.Bg
 			if i == c.Pos() {
 				fg = cfgCursor
 				bg = cbgCursor
@@ -326,8 +311,8 @@ func (u UserPrompt) Draw(state *Peco) {
 			u.screen.SetCell(queryStartX+prev, location, r, fg, bg)
 			prev += runewidth.RuneWidth(r)
 		}
-		fg := u.styles.Query.fg
-		bg := u.styles.Query.bg
+		fg := u.styles.Query.Fg
+		bg := u.styles.Query.Bg
 		u.screen.Print(PrintArgs{
 			X:    queryStartX + prev,
 			Y:    location,
@@ -346,8 +331,8 @@ func (u UserPrompt) Draw(state *Peco) {
 	u.screen.Print(PrintArgs{
 		X:   width - runewidth.StringWidth(pmsg),
 		Y:   location,
-		Fg:  u.styles.Basic.fg,
-		Bg:  u.styles.Basic.bg,
+		Fg:  u.styles.Basic.Fg,
+		Bg:  u.styles.Basic.Bg,
 		Msg: pmsg,
 	})
 
@@ -355,7 +340,7 @@ func (u UserPrompt) Draw(state *Peco) {
 }
 
 // newScreenStatusBar creates a new screenStatusBar struct
-func newScreenStatusBar(screen Screen, anchor VerticalAnchor, anchorOffset int, styles *StyleSet) (*screenStatusBar, error) {
+func newScreenStatusBar(screen Screen, anchor VerticalAnchor, anchorOffset int, styles *config.StyleSet) (*screenStatusBar, error) {
 	as, err := NewAnchorSettings(screen, anchor, anchorOffset)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create status bar: %w", err)
@@ -413,8 +398,8 @@ func (s *screenStatusBar) PrintStatus(msg string, clearDelay time.Duration) {
 		}
 	}
 
-	fgAttr := s.styles.Basic.fg
-	bgAttr := s.styles.Basic.bg
+	fgAttr := s.styles.Basic.Fg
+	bgAttr := s.styles.Basic.Bg
 
 	if w > width {
 		s.screen.Print(PrintArgs{
@@ -429,8 +414,8 @@ func (s *screenStatusBar) PrintStatus(msg string, clearDelay time.Duration) {
 		s.screen.Print(PrintArgs{
 			X:   w - width,
 			Y:   location,
-			Fg:  fgAttr | AttrBold | AttrReverse,
-			Bg:  bgAttr | AttrReverse,
+			Fg:  fgAttr | config.AttrBold | config.AttrReverse,
+			Bg:  bgAttr | config.AttrReverse,
 			Msg: msg,
 		})
 	}
@@ -454,7 +439,7 @@ func (l *BasicLayout) PrintStatus(msg string, delay time.Duration) {
 }
 
 // NewListArea creates a new ListArea struct
-func NewListArea(screen Screen, anchor VerticalAnchor, anchorOffset int, sortTopDown bool, styles *StyleSet) (*ListArea, error) {
+func NewListArea(screen Screen, anchor VerticalAnchor, anchorOffset int, sortTopDown bool, styles *config.StyleSet) (*ListArea, error) {
 	as, err := NewAnchorSettings(screen, anchor, anchorOffset)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create list area: %w", err)
@@ -510,7 +495,7 @@ func adjustPageForRunningQuery(loc *Location, linebuf Buffer, parent Layout, sta
 
 // renderMatchedLine renders a line with match highlighting, interleaving
 // matched and non-matched segments with their respective styles.
-func (l *ListArea) renderMatchedLine(ml *linepkg.Matched, line string, lineANSIAttrs []ansi.AttrSpan, x, y, xOffset int, fgAttr, bgAttr Attribute) {
+func (l *ListArea) renderMatchedLine(ml *linepkg.Matched, line string, lineANSIAttrs []ansi.AttrSpan, x, y, xOffset int, fgAttr, bgAttr config.Attribute) {
 	matches := ml.Indices()
 	prev := x
 	index := 0
@@ -544,8 +529,8 @@ func (l *ListArea) renderMatchedLine(ml *linepkg.Matched, line string, lineANSIA
 			X:       prev,
 			Y:       y,
 			XOffset: xOffset,
-			Fg:      l.styles.Matched.fg,
-			Bg:      mergeAttribute(bgAttr, l.styles.Matched.bg),
+			Fg:      l.styles.Matched.Fg,
+			Bg:      mergeAttribute(bgAttr, l.styles.Matched.Bg),
 			Msg:     c,
 		})
 		prev += n
@@ -648,14 +633,14 @@ func (l *ListArea) Draw(state *Peco, parent Layout, perPage int, options *hub.Dr
 		}
 		l.screen.Print(PrintArgs{
 			Y:    y,
-			Fg:   l.styles.Basic.fg,
-			Bg:   l.styles.Basic.bg,
+			Fg:   l.styles.Basic.Fg,
+			Bg:   l.styles.Basic.Bg,
 			Fill: true,
 		})
 	}
 
 	var cached, written int
-	var fgAttr, bgAttr Attribute
+	var fgAttr, bgAttr config.Attribute
 	selectionPrefix := state.SelectionPrefix()
 	var prefix string
 
@@ -679,14 +664,14 @@ func (l *ListArea) Draw(state *Peco, parent Layout, perPage int, options *hub.Dr
 		} else {
 			switch {
 			case n+loc.Offset() == loc.LineNumber():
-				fgAttr = l.styles.Selected.fg
-				bgAttr = l.styles.Selected.bg
+				fgAttr = l.styles.Selected.Fg
+				bgAttr = l.styles.Selected.Bg
 			case selectionContains(state, n+loc.Offset()):
-				fgAttr = l.styles.SavedSelection.fg
-				bgAttr = l.styles.SavedSelection.bg
+				fgAttr = l.styles.SavedSelection.Fg
+				bgAttr = l.styles.SavedSelection.Bg
 			default:
-				fgAttr = l.styles.Basic.fg
-				bgAttr = l.styles.Basic.bg
+				fgAttr = l.styles.Basic.Fg
+				bgAttr = l.styles.Basic.Bg
 			}
 		}
 
@@ -717,9 +702,9 @@ func (l *ListArea) Draw(state *Peco, parent Layout, perPage int, options *hub.Dr
 
 		// Apply Context style for non-matched surrounding lines
 		if _, isCtx := target.(*ContextLine); isCtx {
-			if fgAttr == l.styles.Basic.fg && bgAttr == l.styles.Basic.bg {
-				fgAttr = l.styles.Context.fg
-				bgAttr = l.styles.Context.bg
+			if fgAttr == l.styles.Basic.Fg && bgAttr == l.styles.Basic.Bg {
+				fgAttr = l.styles.Context.Fg
+				bgAttr = l.styles.Context.Bg
 			}
 		}
 
@@ -731,7 +716,7 @@ func (l *ListArea) Draw(state *Peco, parent Layout, perPage int, options *hub.Dr
 		// non-selected (basic) lines so selection/savedSelection
 		// styling takes precedence.
 		var lineANSIAttrs []ansi.AttrSpan
-		isBasicStyle := (fgAttr == l.styles.Basic.fg && bgAttr == l.styles.Basic.bg)
+		isBasicStyle := (fgAttr == l.styles.Basic.Fg && bgAttr == l.styles.Basic.Bg)
 		if isBasicStyle {
 			if al, ok := target.(ansiLiner); ok {
 				lineANSIAttrs = al.ANSIAttrs()
@@ -756,7 +741,7 @@ func (l *ListArea) Draw(state *Peco, parent Layout, perPage int, options *hub.Dr
 					X:       x,
 					Y:       y,
 					XOffset: xOffset,
-					Fg:      fgAttr | AttrBold | AttrReverse,
+					Fg:      fgAttr | config.AttrBold | config.AttrReverse,
 					Bg:      bgAttr,
 					Msg:     string(prefixes[n]),
 				})
@@ -886,9 +871,9 @@ func (l *BasicLayout) SortTopDown() bool {
 }
 
 func init() {
-	RegisterLayout(LayoutTypeTopDown, LayoutBuilderFunc(DefaultLayout))
-	RegisterLayout(LayoutTypeBottomUp, LayoutBuilderFunc(BottomUpLayout))
-	RegisterLayout(LayoutTypeTopDownQueryBottom, LayoutBuilderFunc(TopDownQueryBottomLayout))
+	RegisterLayout(config.LayoutTypeTopDown, LayoutBuilderFunc(DefaultLayout))
+	RegisterLayout(config.LayoutTypeBottomUp, LayoutBuilderFunc(BottomUpLayout))
+	RegisterLayout(config.LayoutTypeTopDownQueryBottom, LayoutBuilderFunc(TopDownQueryBottomLayout))
 }
 
 func (l *BasicLayout) PurgeDisplayCache() {

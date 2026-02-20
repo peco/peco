@@ -1,4 +1,4 @@
-package peco
+package config
 
 import (
 	"testing"
@@ -77,7 +77,7 @@ func TestParseHeightSpec(t *testing.T) {
 }
 
 func TestHeightSpecResolve(t *testing.T) {
-	// For absolute values: Value is result lines, total = Value + chromLines(2)
+	// For absolute values: Value is result lines, total = Value + ChromLines(2)
 	t.Run("absolute adds chrome", func(t *testing.T) {
 		spec := HeightSpec{Value: 10, IsPercent: false}
 		// 10 result lines + 2 chrome = 12 total
@@ -107,7 +107,7 @@ func TestHeightSpecResolve(t *testing.T) {
 		// but Resolve handles it defensively.
 		spec := HeightSpec{Value: 0, IsPercent: false}
 		// 0 + 2 = 2, clamped to min 3
-		require.Equal(t, chromLines+1, spec.Resolve(24))
+		require.Equal(t, ChromLines+1, spec.Resolve(24))
 	})
 
 	// For percentages: Value is percentage of total terminal height
@@ -123,8 +123,8 @@ func TestHeightSpecResolve(t *testing.T) {
 
 	t.Run("percentage clamp to min", func(t *testing.T) {
 		spec := HeightSpec{Value: 1, IsPercent: true}
-		// 1% of 24 = 0, clamped to chromLines+1 = 3
-		require.Equal(t, chromLines+1, spec.Resolve(24))
+		// 1% of 24 = 0, clamped to ChromLines+1 = 3
+		require.Equal(t, ChromLines+1, spec.Resolve(24))
 	})
 
 	t.Run("percentage clamp to terminal height", func(t *testing.T) {

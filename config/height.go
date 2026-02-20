@@ -1,4 +1,4 @@
-package peco
+package config
 
 import (
 	"fmt"
@@ -49,11 +49,11 @@ func ParseHeightSpec(s string) (HeightSpec, error) {
 	return HeightSpec{Value: v, IsPercent: false}, nil
 }
 
-// chromLines is the number of lines used by the prompt and status bar.
-const chromLines = 2
+// ChromLines is the number of lines used by the prompt and status bar.
+const ChromLines = 2
 
 // Resolve converts the HeightSpec to an absolute number of screen rows,
-// clamped to [chromLines+1, termHeight].
+// clamped to [ChromLines+1, termHeight].
 //
 // For absolute values, Value is the number of result lines — the prompt
 // and status bar are added automatically (total = Value + 2).
@@ -64,10 +64,10 @@ func (h HeightSpec) Resolve(termHeight int) int {
 	if h.IsPercent {
 		height = termHeight * h.Value / 100
 	} else {
-		height = h.Value + chromLines
+		height = h.Value + ChromLines
 	}
 
-	minHeight := chromLines + 1 // at least 1 result line
+	minHeight := ChromLines + 1 // at least 1 result line
 	if height < minHeight {
 		height = minHeight
 	}

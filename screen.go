@@ -12,6 +12,7 @@ import (
 	"github.com/gdamore/tcell/v2"
 	pdebug "github.com/lestrrat-go/pdebug"
 	"github.com/mattn/go-runewidth"
+	"github.com/peco/peco/config"
 	"github.com/peco/peco/internal/ansi"
 	"github.com/peco/peco/internal/keyseq"
 )
@@ -19,13 +20,13 @@ import (
 // Screen hides the terminal library from the consuming code so that
 // it can be swapped out for testing
 type Screen interface {
-	Init(*Config) error
+	Init(*config.Config) error
 	Close() error
 	Flush() error
-	PollEvent(context.Context, *Config) chan Event
+	PollEvent(context.Context, *config.Config) chan Event
 	Print(PrintArgs) int
 	Resume(context.Context) error
-	SetCell(int, int, rune, Attribute, Attribute)
+	SetCell(int, int, rune, config.Attribute, config.Attribute)
 	SetCursor(int, int)
 	Size() (int, int)
 	SendEvent(Event)
@@ -212,8 +213,8 @@ func tcellEventToEvent(tev tcell.Event) Event {
 }
 
 // attributeToTcellColor converts a peco Attribute to a tcell.Color.
-func attributeToTcellColor(attr Attribute) tcell.Color {
-	if attr&AttrTrueColor != 0 {
+func attributeToTcellColor(attr config.Attribute) tcell.Color {
+	if attr&config.AttrTrueColor != 0 {
 		rgb := attr & 0x00FFFFFF
 		return tcell.NewHexColor(int32(rgb))
 	}
@@ -225,27 +226,27 @@ func attributeToTcellColor(attr Attribute) tcell.Color {
 }
 
 // attributeToTcellStyle converts peco Attribute fg/bg values to a tcell.Style.
-func attributeToTcellStyle(fg, bg Attribute) tcell.Style {
+func attributeToTcellStyle(fg, bg config.Attribute) tcell.Style {
 	style := tcell.StyleDefault.
 		Foreground(attributeToTcellColor(fg)).
 		Background(attributeToTcellColor(bg))
 
 	// Extract style attributes from both fg and bg
 	attrs := fg | bg
-	if attrs&AttrBold != 0 {
+	if attrs&config.AttrBold != 0 {
 		style = style.Bold(true)
 	}
-	if attrs&AttrUnderline != 0 {
+	if attrs&config.AttrUnderline != 0 {
 		style = style.Underline(true)
 	}
-	if attrs&AttrReverse != 0 {
+	if attrs&config.AttrReverse != 0 {
 		style = style.Reverse(true)
 	}
 
 	return style
 }
 
-func (t *TcellScreen) Init(_ *Config) error {
+func (t *TcellScreen) Init(_ *config.Config) error {
 	screen, err := tcell.NewScreen()
 	if err != nil {
 		return fmt.Errorf("failed to create tcell screen: %w", err)
@@ -338,7 +339,7 @@ func (t *TcellScreen) Sync() {
 // PollEvent returns a channel that you can listen to for
 // terminal events. The actual polling is done in a
 // separate goroutine
-func (t *TcellScreen) PollEvent(ctx context.Context, cfg *Config) chan Event {
+func (t *TcellScreen) PollEvent(ctx context.Context, cfg *config.Config) chan Event {
 	evCh := make(chan Event)
 
 	go func() {
@@ -449,7 +450,7 @@ func (t *TcellScreen) Resume(ctx context.Context) error {
 }
 
 // SetCell writes to the terminal
-func (t *TcellScreen) SetCell(x, y int, ch rune, fg, bg Attribute) {
+func (t *TcellScreen) SetCell(x, y int, ch rune, fg, bg config.Attribute) {
 	t.mutex.Lock()
 	defer t.mutex.Unlock()
 	if t.screen == nil {
@@ -473,8 +474,8 @@ type PrintArgs struct {
 	X         int
 	XOffset   int
 	Y         int
-	Fg        Attribute
-	Bg        Attribute
+	Fg        config.Attribute
+	Bg        config.Attribute
 	Msg       string
 	Fill      bool
 	ANSIAttrs []ansi.AttrSpan // per-character ANSI attributes for this segment
@@ -512,11 +513,11 @@ func screenPrint(t Screen, args PrintArgs) int {
 		efg, ebg := fg, bg
 		if ansiAttrs != nil && spanIdx < len(ansiAttrs) {
 			span := ansiAttrs[spanIdx]
-			if Attribute(span.Fg) != ColorDefault {
-				efg = Attribute(span.Fg)
+			if config.Attribute(span.Fg) != config.ColorDefault {
+				efg = config.Attribute(span.Fg)
 			}
-			if Attribute(span.Bg) != ColorDefault {
-				ebg = Attribute(span.Bg)
+			if config.Attribute(span.Bg) != config.ColorDefault {
+				ebg = config.Attribute(span.Bg)
 			}
 			spanPos++
 			if spanPos >= span.Length {

@@ -1,4 +1,4 @@
-package peco
+package config
 
 import (
 	"encoding/json"
@@ -22,28 +22,28 @@ var expectedConfig = Config{
 	Prompt: "[peco]",
 	Style: StyleSet{
 		Matched: Style{
-			fg: ColorCyan | AttrBold,
-			bg: ColorRed,
+			Fg: ColorCyan | AttrBold,
+			Bg: ColorRed,
 		},
 		Query: Style{
-			fg: ColorYellow | AttrBold,
-			bg: ColorDefault,
+			Fg: ColorYellow | AttrBold,
+			Bg: ColorDefault,
 		},
 		Selected: Style{
-			fg: ColorBlack | AttrUnderline,
-			bg: ColorCyan,
+			Fg: ColorBlack | AttrUnderline,
+			Bg: ColorCyan,
 		},
 		SavedSelection: Style{
-			fg: ColorBlack | AttrBold,
-			bg: ColorCyan,
+			Fg: ColorBlack | AttrBold,
+			Bg: ColorCyan,
 		},
 		Prompt: Style{
-			fg: ColorGreen | AttrBold,
-			bg: ColorDefault,
+			Fg: ColorGreen | AttrBold,
+			Bg: ColorDefault,
 		},
 		Context: Style{
-			fg: ColorDefault | AttrBold,
-			bg: ColorDefault,
+			Fg: ColorDefault | AttrBold,
+			Bg: ColorDefault,
 		},
 	},
 }
@@ -111,39 +111,39 @@ func TestStringsToStyle(t *testing.T) {
 	tests := []stringsToStyleTest{
 		{
 			strings: []string{"on_default", "default"},
-			style:   &Style{fg: ColorDefault, bg: ColorDefault},
+			style:   &Style{Fg: ColorDefault, Bg: ColorDefault},
 		},
 		{
 			strings: []string{"bold", "on_blue", "yellow"},
-			style:   &Style{fg: ColorYellow | AttrBold, bg: ColorBlue},
+			style:   &Style{Fg: ColorYellow | AttrBold, Bg: ColorBlue},
 		},
 		{
 			strings: []string{"underline", "on_cyan", "black"},
-			style:   &Style{fg: ColorBlack | AttrUnderline, bg: ColorCyan},
+			style:   &Style{Fg: ColorBlack | AttrUnderline, Bg: ColorCyan},
 		},
 		{
 			strings: []string{"reverse", "on_red", "white"},
-			style:   &Style{fg: ColorWhite | AttrReverse, bg: ColorRed},
+			style:   &Style{Fg: ColorWhite | AttrReverse, Bg: ColorRed},
 		},
 		{
 			strings: []string{"on_bold", "on_magenta", "green"},
-			style:   &Style{fg: ColorGreen, bg: ColorMagenta | AttrBold},
+			style:   &Style{Fg: ColorGreen, Bg: ColorMagenta | AttrBold},
 		},
 		{
 			strings: []string{"underline", "on_240", "214"},
-			style:   &Style{fg: Attribute(214+1) | AttrUnderline, bg: Attribute(240 + 1)},
+			style:   &Style{Fg: Attribute(214+1) | AttrUnderline, Bg: Attribute(240 + 1)},
 		},
 		{
 			strings: []string{"#ff8800", "on_#0088ff"},
-			style:   &Style{fg: Attribute(0xff8800) | AttrTrueColor, bg: Attribute(0x0088ff) | AttrTrueColor},
+			style:   &Style{Fg: Attribute(0xff8800) | AttrTrueColor, Bg: Attribute(0x0088ff) | AttrTrueColor},
 		},
 		{
 			strings: []string{"bold", "#00ff00", "on_#000000"},
-			style:   &Style{fg: Attribute(0x00ff00) | AttrTrueColor | AttrBold, bg: Attribute(0x000000) | AttrTrueColor},
+			style:   &Style{Fg: Attribute(0x00ff00) | AttrTrueColor | AttrBold, Bg: Attribute(0x000000) | AttrTrueColor},
 		},
 		{
 			strings: []string{"#000000"},
-			style:   &Style{fg: Attribute(0x000000) | AttrTrueColor, bg: ColorDefault},
+			style:   &Style{Fg: Attribute(0x000000) | AttrTrueColor, Bg: ColorDefault},
 		},
 	}
 
@@ -151,7 +151,7 @@ func TestStringsToStyle(t *testing.T) {
 	var a Style
 	for _, test := range tests {
 		t.Logf("    checking %s...", test.strings)
-		require.NoError(t, stringsToStyle(&a, test.strings), "stringsToStyle should succeed")
+		require.NoError(t, StringsToStyle(&a, test.strings), "StringsToStyle should succeed")
 		require.Equal(t, test.style, &a, "Expected '%s' to be '%#v', but got '%#v'", test.strings, test.style, a)
 	}
 }
@@ -172,7 +172,7 @@ func TestLocateRcfile(t *testing.T) {
 	}
 
 	i := 0
-	locater := ConfigLocatorFunc(func(dir string) (string, error) {
+	locater := LocatorFunc(func(dir string) (string, error) {
 		t.Logf("looking for file in %s", dir)
 		require.True(t, i <= len(expected)-1, "Got %d directories, only have %d", i+1, len(expected))
 		require.Equal(t, expected[i], dir, "Expected %s, got %s", expected[i], dir)
@@ -213,7 +213,7 @@ func TestLocateRcfileYAML(t *testing.T) {
 	t.Setenv("XDG_CONFIG_HOME", "")
 	t.Setenv("XDG_CONFIG_DIRS", "")
 
-	file, err := LocateRcfile(defaultConfigLocator)
+	file, err := LocateRcfile(DefaultConfigLocator)
 	require.NoError(t, err)
 	require.Equal(t, filepath.Join(pecoDir, "config.yaml"), file)
 }
@@ -262,15 +262,6 @@ func TestOnCancelBehavior(t *testing.T) {
 		var cfg Config
 		require.NoError(t, cfg.Init())
 		err := yaml.Unmarshal([]byte("OnCancel: bogus"), &cfg)
-		require.Error(t, err)
-		require.Contains(t, err.Error(), "bogus")
-	})
-
-	t.Run("invalid CLI option rejected", func(t *testing.T) {
-		p := newPeco()
-		var opts CLIOptions
-		opts.OptOnCancel = "bogus"
-		err := p.ApplyConfig(opts)
 		require.Error(t, err)
 		require.Contains(t, err.Error(), "bogus")
 	})

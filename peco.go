@@ -17,6 +17,7 @@ import (
 	"context"
 
 	"github.com/lestrrat-go/pdebug"
+	"github.com/peco/peco/config"
 	"github.com/peco/peco/filter"
 	"github.com/peco/peco/hub"
 	"github.com/peco/peco/internal/util"
@@ -53,7 +54,7 @@ type Peco struct {
 	bufferSize int
 	caret      query.Caret
 	// Config contains the values read in from config file
-	config              Config
+	config              config.Config
 	currentLineBuffer   Buffer
 	enableSep           bool // Enable parsing on separators
 	execOnFinish        string
@@ -67,7 +68,7 @@ type Peco struct {
 	location            Location
 	maxScanBufferSize   int
 	mutex               sync.Mutex
-	onCancel            OnCancelBehavior
+	onCancel            config.OnCancelBehavior
 	printQuery          bool
 	prompt              string
 	query               query.Text
@@ -83,9 +84,9 @@ type Peco struct {
 	selectOneTriggered  atomic.Bool
 	selectAllAndExit    bool // True if --select-all is enabled
 	singleKeyJump       SingleKeyJumpState
-	heightSpec          *HeightSpec
+	heightSpec          *config.HeightSpec
 	configReader        ConfigReader
-	styles              StyleSet
+	styles              config.StyleSet
 	enableANSI          bool // Enable ANSI color code support
 	fuzzyLongestSort    bool
 
@@ -225,7 +226,7 @@ func (p *Peco) Screen() Screen {
 	return p.screen
 }
 
-func (p *Peco) Styles() *StyleSet {
+func (p *Peco) Styles() *config.StyleSet {
 	return &p.styles
 }
 
@@ -625,7 +626,7 @@ func (p *Peco) parseCommandLine(opts *CLIOptions, args *[]string, argv []string)
 	}
 
 	if opts.OptRcfile == "" {
-		if file, err := LocateRcfile(defaultConfigLocator); err == nil {
+		if file, err := config.LocateRcfile(config.DefaultConfigLocator); err == nil {
 			opts.OptRcfile = file
 		}
 	}
@@ -687,23 +688,23 @@ func (p *Peco) SetupSource(ctx context.Context) (s *Source, err error) {
 
 // ConfigReader reads configuration from a file into a Config struct.
 type ConfigReader interface {
-	ReadConfig(*Config, string) error
+	ReadConfig(*config.Config, string) error
 }
 
 // ConfigReaderFunc is a function that implements ConfigReader.
-type ConfigReaderFunc func(*Config, string) error
+type ConfigReaderFunc func(*config.Config, string) error
 
 // ReadConfig calls the underlying function.
-func (f ConfigReaderFunc) ReadConfig(cfg *Config, filename string) error {
+func (f ConfigReaderFunc) ReadConfig(cfg *config.Config, filename string) error {
 	return f(cfg, filename)
 }
 
 // nopConfigReader is a ConfigReader that does nothing.
-var nopConfigReader = ConfigReaderFunc(func(*Config, string) error { return nil })
+var nopConfigReader = ConfigReaderFunc(func(*config.Config, string) error { return nil })
 
 // defaultConfigReader loads the configuration from the given filename into cfg.
 // If filename is empty, no file is read and nil is returned.
-var defaultConfigReader = ConfigReaderFunc(func(cfg *Config, filename string) error {
+var defaultConfigReader = ConfigReaderFunc(func(cfg *config.Config, filename string) error {
 	if filename != "" {
 		if err := cfg.ReadFilename(filename); err != nil {
 			return fmt.Errorf("failed to read config file: %w", err)
@@ -721,7 +722,7 @@ func (p *Peco) ApplyConfig(opts CLIOptions) error {
 		if v := p.config.Layout; v != "" {
 			p.layoutType = v
 		} else {
-			p.layoutType = DefaultLayoutType
+			p.layoutType = config.DefaultLayoutType
 		}
 	}
 
@@ -754,7 +755,7 @@ func (p *Peco) ApplyConfig(opts CLIOptions) error {
 
 	p.onCancel = p.config.OnCancel
 	if p.onCancel == "" {
-		p.onCancel = OnCancelSuccess
+		p.onCancel = config.OnCancelSuccess
 	}
 	if opts.OptOnCancel != "" {
 		if err := p.onCancel.UnmarshalText([]byte(opts.OptOnCancel)); err != nil {
@@ -786,7 +787,7 @@ func (p *Peco) ApplyConfig(opts CLIOptions) error {
 		heightStr = v
 	}
 	if heightStr != "" {
-		spec, err := ParseHeightSpec(heightStr)
+		spec, err := config.ParseHeightSpec(heightStr)
 		if err != nil {
 			return fmt.Errorf("failed to parse height specification: %w", err)
 		}

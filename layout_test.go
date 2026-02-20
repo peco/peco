@@ -5,6 +5,7 @@ import (
 	"unicode/utf8"
 
 	"github.com/mattn/go-runewidth"
+	"github.com/peco/peco/config"
 	"github.com/peco/peco/filter"
 	"github.com/peco/peco/hub"
 	"github.com/peco/peco/line"
@@ -13,16 +14,16 @@ import (
 
 func TestLayoutType(t *testing.T) {
 	layouts := []struct {
-		value    LayoutType
+		value    string
 		expectOK bool
 	}{
-		{LayoutTypeTopDown, true},
-		{LayoutTypeBottomUp, true},
-		{LayoutTypeTopDownQueryBottom, true},
+		{config.LayoutTypeTopDown, true},
+		{config.LayoutTypeBottomUp, true},
+		{config.LayoutTypeTopDownQueryBottom, true},
 		{"foobar", false},
 	}
 	for _, l := range layouts {
-		valid := IsValidLayoutType(l.value)
+		valid := config.IsValidLayoutType(l.value)
 		if valid != l.expectOK {
 			t.Errorf("LayoutType %s, expected IsValidLayoutType to return %t, but got %t",
 				l.value,
@@ -44,8 +45,8 @@ func TestPrintScreen(t *testing.T) {
 			screen.Print(PrintArgs{
 				X:    initX,
 				Y:    initY,
-				Fg:   ColorDefault,
-				Bg:   ColorDefault,
+				Fg:   config.ColorDefault,
+				Bg:   config.ColorDefault,
 				Msg:  msg,
 				Fill: fill,
 			})
@@ -86,7 +87,7 @@ func TestPrintScreen(t *testing.T) {
 
 func TestScreenStatusBar(t *testing.T) {
 	screen := NewDummyScreen()
-	st, err := newScreenStatusBar(screen, AnchorBottom, 0, NewStyleSet())
+	st, err := newScreenStatusBar(screen, AnchorBottom, 0, config.NewStyleSet())
 	require.NoError(t, err)
 	st.PrintStatus("Hello, World!", 0)
 
@@ -109,7 +110,7 @@ func TestNullStatusBar(t *testing.T) {
 }
 
 func TestMergeAttribute(t *testing.T) {
-	colors := stringToFg
+	colors := config.StringToFg
 
 	// merge colors
 	tests := [][]string{
@@ -138,20 +139,20 @@ func TestMergeAttribute(t *testing.T) {
 	}
 
 	// merge attributes
-	if m := mergeAttribute(AttrBold|colors["red"], AttrUnderline|colors["cyan"]); m != AttrBold|AttrUnderline|colors["white"] {
-		t.Errorf("expected %d, got %d", AttrBold|AttrUnderline|colors["white"], m)
+	if m := mergeAttribute(config.AttrBold|colors["red"], config.AttrUnderline|colors["cyan"]); m != config.AttrBold|config.AttrUnderline|colors["white"] {
+		t.Errorf("expected %d, got %d", config.AttrBold|config.AttrUnderline|colors["white"], m)
 	}
 }
 
 // TestGHIssue294_PromptStyleUsedForPromptPrefix verifies that UserPrompt.Draw
 // uses the Prompt style (not Basic) when rendering the prompt prefix string.
 func TestGHIssue294_PromptStyleUsedForPromptPrefix(t *testing.T) {
-	styles := NewStyleSet()
-	styles.Prompt.fg = ColorGreen | AttrBold
-	styles.Prompt.bg = ColorBlue
+	styles := config.NewStyleSet()
+	styles.Prompt.Fg = config.ColorGreen | config.AttrBold
+	styles.Prompt.Bg = config.ColorBlue
 	// Make sure Basic is different so we can distinguish them.
-	styles.Basic.fg = ColorDefault
-	styles.Basic.bg = ColorDefault
+	styles.Basic.Fg = config.ColorDefault
+	styles.Basic.Bg = config.ColorDefault
 
 	screen := NewDummyScreen()
 	prompt, err := NewUserPrompt(screen, AnchorTop, 0, "QUERY>", styles)
@@ -177,23 +178,23 @@ func TestGHIssue294_PromptStyleUsedForPromptPrefix(t *testing.T) {
 		ev := events[i]
 		x := ev[0].(int)
 		ch := ev[2].(rune)
-		fg := ev[3].(Attribute)
-		bg := ev[4].(Attribute)
+		fg := ev[3].(config.Attribute)
+		bg := ev[4].(config.Attribute)
 
 		require.Equal(t, i, x, "expected x=%d", i)
 		require.Equal(t, rune(promptStr[i]), ch, "expected character %c at position %d", promptStr[i], i)
-		require.Equal(t, styles.Prompt.fg, fg,
-			"cell at x=%d should use Prompt.fg, got %v", i, fg)
-		require.Equal(t, styles.Prompt.bg, bg,
-			"cell at x=%d should use Prompt.bg, got %v", i, bg)
+		require.Equal(t, styles.Prompt.Fg, fg,
+			"cell at x=%d should use Prompt.Fg, got %v", i, fg)
+		require.Equal(t, styles.Prompt.Bg, bg,
+			"cell at x=%d should use Prompt.Bg, got %v", i, bg)
 	}
 
 	// The cells after the prompt should NOT use the Prompt style —
 	// they should use the Query style (for the query text area).
 	if len(events) > promptLen {
 		ev := events[promptLen]
-		fg := ev[3].(Attribute)
-		require.NotEqual(t, styles.Prompt.fg, fg,
+		fg := ev[3].(config.Attribute)
+		require.NotEqual(t, styles.Prompt.Fg, fg,
 			"cell after prompt should not use Prompt style")
 	}
 }
@@ -201,12 +202,12 @@ func TestGHIssue294_PromptStyleUsedForPromptPrefix(t *testing.T) {
 // TestGHIssue460_MatchedStyleDoesNotBleedToEndOfLine verifies that matched
 // text highlighting in ListArea.Draw does not extend to the screen edge.
 func TestGHIssue460_MatchedStyleDoesNotBleedToEndOfLine(t *testing.T) {
-	// Use a distinct Matched.bg so we can detect it in SetCell events.
-	styles := NewStyleSet()
-	styles.Matched.bg = ColorBlue
+	// Use a distinct Matched.Bg so we can detect it in SetCell events.
+	styles := config.NewStyleSet()
+	styles.Matched.Bg = config.ColorBlue
 
-	matchedBg := mergeAttribute(styles.Basic.bg, styles.Matched.bg) // ColorBlue
-	basicBg := styles.Basic.bg                                      // ColorDefault
+	matchedBg := mergeAttribute(styles.Basic.Bg, styles.Matched.Bg) // config.ColorBlue
+	basicBg := styles.Basic.Bg                                      // config.ColorDefault
 
 	// Helper: set up a Peco state with one matched line and draw it,
 	// returning the SetCell events for the line's row (y=0).
@@ -256,7 +257,7 @@ func TestGHIssue460_MatchedStyleDoesNotBleedToEndOfLine(t *testing.T) {
 
 		for _, ev := range row {
 			x := ev[0].(int)
-			bg := ev[4].(Attribute)
+			bg := ev[4].(config.Attribute)
 			if x >= 6 && x <= 10 {
 				require.Equal(t, matchedBg, bg,
 					"cell at x=%d should have matched bg", x)
@@ -277,7 +278,7 @@ func TestGHIssue460_MatchedStyleDoesNotBleedToEndOfLine(t *testing.T) {
 
 		for _, ev := range row {
 			x := ev[0].(int)
-			bg := ev[4].(Attribute)
+			bg := ev[4].(config.Attribute)
 			if x >= 6 && x <= 10 {
 				require.Equal(t, matchedBg, bg,
 					"cell at x=%d should have matched bg", x)
@@ -383,7 +384,7 @@ func TestNewLayout(t *testing.T) {
 
 	t.Run("top-down", func(t *testing.T) {
 		state := makeState()
-		layout, err := NewLayout(LayoutTypeTopDown, state)
+		layout, err := NewLayout(config.LayoutTypeTopDown, state)
 		require.NoError(t, err)
 		require.True(t, layout.SortTopDown(), "top-down layout should sort top-down")
 		require.Equal(t, AnchorTop, layout.prompt.anchor, "top-down prompt should be anchored at top")
@@ -391,7 +392,7 @@ func TestNewLayout(t *testing.T) {
 
 	t.Run("bottom-up", func(t *testing.T) {
 		state := makeState()
-		layout, err := NewLayout(LayoutTypeBottomUp, state)
+		layout, err := NewLayout(config.LayoutTypeBottomUp, state)
 		require.NoError(t, err)
 		require.False(t, layout.SortTopDown(), "bottom-up layout should not sort top-down")
 		require.Equal(t, AnchorBottom, layout.prompt.anchor, "bottom-up prompt should be anchored at bottom")
@@ -399,7 +400,7 @@ func TestNewLayout(t *testing.T) {
 
 	t.Run("top-down-query-bottom", func(t *testing.T) {
 		state := makeState()
-		layout, err := NewLayout(LayoutTypeTopDownQueryBottom, state)
+		layout, err := NewLayout(config.LayoutTypeTopDownQueryBottom, state)
 		require.NoError(t, err)
 		require.True(t, layout.SortTopDown(), "top-down-query-bottom layout should sort top-down")
 		require.Equal(t, AnchorBottom, layout.prompt.anchor, "top-down-query-bottom prompt should be anchored at bottom")
@@ -443,7 +444,7 @@ func TestTopDownQueryBottomLayout(t *testing.T) {
 // TestCursorStyle verifies that UserPrompt.cursorStyle returns the correct
 // fg/bg attributes depending on QueryCursor and Query style configuration.
 func TestCursorStyle(t *testing.T) {
-	makePrompt := func(t *testing.T, styles *StyleSet) UserPrompt {
+	makePrompt := func(t *testing.T, styles *config.StyleSet) UserPrompt {
 		t.Helper()
 		screen := NewDummyScreen()
 		p, err := NewUserPrompt(screen, AnchorTop, 0, "QUERY>", styles)
@@ -451,57 +452,57 @@ func TestCursorStyle(t *testing.T) {
 		return *p
 	}
 
-	t.Run("both default falls back to AttrReverse", func(t *testing.T) {
-		styles := NewStyleSet()
-		// Query and QueryCursor are both ColorDefault (zero value)
+	t.Run("both default falls back to config.AttrReverse", func(t *testing.T) {
+		styles := config.NewStyleSet()
+		// Query and QueryCursor are both config.ColorDefault (zero value)
 		p := makePrompt(t, styles)
 		fg, bg := p.cursorStyle()
-		require.Equal(t, ColorDefault|AttrReverse, fg)
-		require.Equal(t, ColorDefault|AttrReverse, bg)
+		require.Equal(t, config.ColorDefault|config.AttrReverse, fg)
+		require.Equal(t, config.ColorDefault|config.AttrReverse, bg)
 	})
 
 	t.Run("Query has custom colors and QueryCursor is default swaps fg/bg", func(t *testing.T) {
-		styles := NewStyleSet()
-		styles.Query.fg = ColorYellow
-		styles.Query.bg = ColorBlue
+		styles := config.NewStyleSet()
+		styles.Query.Fg = config.ColorYellow
+		styles.Query.Bg = config.ColorBlue
 		p := makePrompt(t, styles)
 		fg, bg := p.cursorStyle()
-		require.Equal(t, ColorBlue, fg, "should use Query.bg as cursor fg")
-		require.Equal(t, ColorYellow, bg, "should use Query.fg as cursor bg")
+		require.Equal(t, config.ColorBlue, fg, "should use Query.Bg as cursor fg")
+		require.Equal(t, config.ColorYellow, bg, "should use Query.Fg as cursor bg")
 	})
 
 	t.Run("QueryCursor explicitly set takes precedence", func(t *testing.T) {
-		styles := NewStyleSet()
-		styles.Query.fg = ColorYellow
-		styles.Query.bg = ColorBlue
-		styles.QueryCursor.fg = ColorWhite
-		styles.QueryCursor.bg = ColorRed
+		styles := config.NewStyleSet()
+		styles.Query.Fg = config.ColorYellow
+		styles.Query.Bg = config.ColorBlue
+		styles.QueryCursor.Fg = config.ColorWhite
+		styles.QueryCursor.Bg = config.ColorRed
 		p := makePrompt(t, styles)
 		fg, bg := p.cursorStyle()
-		require.Equal(t, ColorWhite, fg)
-		require.Equal(t, ColorRed, bg)
+		require.Equal(t, config.ColorWhite, fg)
+		require.Equal(t, config.ColorRed, bg)
 	})
 
 	t.Run("QueryCursor with only fg set takes precedence", func(t *testing.T) {
-		styles := NewStyleSet()
-		styles.Query.fg = ColorYellow
-		styles.Query.bg = ColorBlue
-		styles.QueryCursor.fg = ColorGreen
-		// bg remains ColorDefault
+		styles := config.NewStyleSet()
+		styles.Query.Fg = config.ColorYellow
+		styles.Query.Bg = config.ColorBlue
+		styles.QueryCursor.Fg = config.ColorGreen
+		// bg remains config.ColorDefault
 		p := makePrompt(t, styles)
 		fg, bg := p.cursorStyle()
-		require.Equal(t, ColorGreen, fg)
-		require.Equal(t, ColorDefault, bg)
+		require.Equal(t, config.ColorGreen, fg)
+		require.Equal(t, config.ColorDefault, bg)
 	})
 
 	t.Run("Query has only fg set swaps correctly", func(t *testing.T) {
-		styles := NewStyleSet()
-		styles.Query.fg = ColorRed
-		// Query.bg remains ColorDefault
+		styles := config.NewStyleSet()
+		styles.Query.Fg = config.ColorRed
+		// Query.Bg remains config.ColorDefault
 		p := makePrompt(t, styles)
 		fg, bg := p.cursorStyle()
-		require.Equal(t, ColorDefault, fg, "should use Query.bg (default) as cursor fg")
-		require.Equal(t, ColorRed, bg, "should use Query.fg as cursor bg")
+		require.Equal(t, config.ColorDefault, fg, "should use Query.Bg (default) as cursor fg")
+		require.Equal(t, config.ColorRed, bg, "should use Query.Fg as cursor bg")
 	})
 }
 
@@ -518,17 +519,17 @@ func TestInvalidAnchorReturnsError(t *testing.T) {
 	})
 
 	t.Run("NewUserPrompt", func(t *testing.T) {
-		_, err := NewUserPrompt(screen, invalidAnchor, 0, "QUERY>", NewStyleSet())
+		_, err := NewUserPrompt(screen, invalidAnchor, 0, "QUERY>", config.NewStyleSet())
 		require.Error(t, err)
 	})
 
 	t.Run("NewListArea", func(t *testing.T) {
-		_, err := NewListArea(screen, invalidAnchor, 0, true, NewStyleSet())
+		_, err := NewListArea(screen, invalidAnchor, 0, true, config.NewStyleSet())
 		require.Error(t, err)
 	})
 
 	t.Run("newScreenStatusBar", func(t *testing.T) {
-		_, err := newScreenStatusBar(screen, invalidAnchor, 0, NewStyleSet())
+		_, err := newScreenStatusBar(screen, invalidAnchor, 0, config.NewStyleSet())
 		require.Error(t, err)
 	})
 }

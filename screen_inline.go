@@ -10,6 +10,7 @@ import (
 
 	"github.com/gdamore/tcell/v2"
 	pdebug "github.com/lestrrat-go/pdebug"
+	"github.com/peco/peco/config"
 )
 
 // InlineScreen implements the Screen interface for rendering peco in a
@@ -18,7 +19,7 @@ import (
 type InlineScreen struct {
 	mutex      sync.Mutex
 	screen     tcell.Screen
-	heightSpec HeightSpec
+	heightSpec config.HeightSpec
 	height     int // resolved line count
 	yOffset    int // physical row where inline region starts
 
@@ -30,7 +31,7 @@ type InlineScreen struct {
 }
 
 // NewInlineScreen creates a new InlineScreen with the given height spec.
-func NewInlineScreen(spec HeightSpec) *InlineScreen {
+func NewInlineScreen(spec config.HeightSpec) *InlineScreen {
 	return &InlineScreen{
 		heightSpec: spec,
 		errWriter:  os.Stderr,
@@ -38,7 +39,7 @@ func NewInlineScreen(spec HeightSpec) *InlineScreen {
 }
 
 // Init initializes the tcell screen for inline mode, disabling the alternate screen buffer.
-func (s *InlineScreen) Init(_ *Config) error {
+func (s *InlineScreen) Init(_ *config.Config) error {
 	// Save and override TCELL_ALTSCREEN to prevent alternate screen buffer
 	s.savedAltscreen = os.Getenv("TCELL_ALTSCREEN")
 	os.Setenv("TCELL_ALTSCREEN", "disable")
@@ -119,7 +120,7 @@ func (s *InlineScreen) Close() error {
 	return nil
 }
 
-func (s *InlineScreen) SetCell(x, y int, ch rune, fg, bg Attribute) {
+func (s *InlineScreen) SetCell(x, y int, ch rune, fg, bg config.Attribute) {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
 	if s.screen == nil {
@@ -173,7 +174,7 @@ func (s *InlineScreen) Size() (int, int) {
 }
 
 // PollEvent creates an event channel and polls for terminal events with special resize handling.
-func (s *InlineScreen) PollEvent(ctx context.Context, _ *Config) chan Event {
+func (s *InlineScreen) PollEvent(ctx context.Context, _ *config.Config) chan Event {
 	evCh := make(chan Event)
 
 	go func() {
