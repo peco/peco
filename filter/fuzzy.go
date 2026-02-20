@@ -46,6 +46,8 @@ func (ff Fuzzy) String() string {
 	return "Fuzzy"
 }
 
+// applyInternal performs fuzzy matching on each line, emitting matches with
+// their character-level match indices for highlighting.
 func (ff *Fuzzy) applyInternal(ctx context.Context, lines []line.Line, emit func(line.Line)) error {
 	originalQuery := pipeline.QueryFromContext(ctx)
 
@@ -183,11 +185,15 @@ LINE:
 	return nil
 }
 
+// popRune decodes and removes the first rune from s, returning the remainder,
+// the decoded rune, and its byte width.
 func popRune(s string) (string, rune, int) {
 	r, n := utf8.DecodeRuneInString(s)
 	return s[n:], r, n
 }
 
+// less returns a comparison function that orders fuzzy matches by longest
+// contiguous match, earliest position, then shortest line length.
 func less(s []fuzzyMatchedItem) func(i, j int) bool {
 	return func(i, j int) bool {
 		if s[i].longest != s[j].longest {
@@ -210,6 +216,8 @@ type fuzzyMatchedItem struct {
 	earliest int
 }
 
+// newFuzzyMatchedItem creates a fuzzyMatchedItem, computing the longest
+// contiguous match length and earliest match position from the given indices.
 func newFuzzyMatchedItem(line line.Line, matches [][]int) fuzzyMatchedItem {
 	longest := 0
 	count := 0

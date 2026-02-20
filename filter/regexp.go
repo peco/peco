@@ -55,6 +55,8 @@ func (r regexpFlagFunc) flags(s string) []string {
 	return r(s)
 }
 
+// regexpFor compiles q into a regexp, optionally quoting meta characters
+// and prepending inline flags (e.g. case-insensitive).
 func regexpFor(q string, flags []string, quotemeta bool) (*regexp.Regexp, error) {
 	reTxt := q
 	if quotemeta {
@@ -141,6 +143,8 @@ func NewIRegexp() *Regexp {
 
 const maxRegexpCacheSize = 100
 
+// Compile parses the query string into positive and negative regexp slices,
+// caching compiled results for reuse within the expiry threshold.
 func (f *regexpQueryFactory) Compile(s string, flags regexpFlags, quotemeta bool) (positive, negative []*regexp.Regexp, err error) {
 	f.mutex.Lock()
 	defer f.mutex.Unlock()
@@ -190,6 +194,8 @@ func (f *regexpQueryFactory) Compile(s string, flags regexpFlags, quotemeta bool
 	return posRxs, negRxs, nil
 }
 
+// applyInternal matches each line against the compiled positive and negative
+// regexps, deduplicating overlapping match ranges before emitting results.
 func (rf *Regexp) applyInternal(ctx context.Context, lines []line.Line, emit func(line.Line)) error {
 	query := pipeline.QueryFromContext(ctx)
 	posRegexps, negRegexps, err := rf.factory.Compile(query, rf.flags, rf.quotemeta)
@@ -272,10 +278,12 @@ func (rf *Regexp) String() string {
 	return rf.name
 }
 
+// NewIgnoreCase creates a case-insensitive literal string filter.
 func NewIgnoreCase() *Regexp {
 	return newRegexpFilter("IgnoreCase", ignoreCaseFlags, true)
 }
 
+// NewCaseSensitive creates a case-sensitive literal string filter.
 func NewCaseSensitive() *Regexp {
 	return newRegexpFilter("CaseSensitive", defaultFlags, true)
 }

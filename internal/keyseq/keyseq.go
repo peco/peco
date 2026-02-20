@@ -25,6 +25,7 @@ type Key struct {
 	Ch       rune
 }
 
+// String returns a comma-separated string representation of the key list.
 func (kl KeyList) String() string {
 	list := make([]string, len(kl))
 	for i := range kl {
@@ -33,6 +34,7 @@ func (kl KeyList) String() string {
 	return strings.Join(list, ",")
 }
 
+// String returns the modifier key as a dash-separated string (e.g. "C-S-M").
 func (m ModifierKey) String() string {
 	var parts []string
 	if m&ModCtrl != 0 {
@@ -47,6 +49,7 @@ func (m ModifierKey) String() string {
 	return strings.Join(parts, "-")
 }
 
+// String returns a human-readable representation of the key, including any modifiers.
 func (k Key) String() string {
 	var s string
 	if m := k.Modifier.String(); m != "" {
@@ -62,6 +65,7 @@ func (k Key) String() string {
 	return s
 }
 
+// NewKeyFromKey creates a Key from a KeyType with no modifier and no rune.
 func NewKeyFromKey(k KeyType) Key {
 	return Key{
 		Modifier: 0,
@@ -73,6 +77,7 @@ func NewKeyFromKey(k KeyType) Key {
 // KeyList is just the list of keys
 type KeyList []Key
 
+// Compare returns -1, 0, or 1 comparing k and x by modifier, key type, and character.
 func (k Key) Compare(x Key) int {
 	if k.Modifier < x.Modifier {
 		return -1
@@ -95,6 +100,7 @@ func (k Key) Compare(x Key) int {
 	return 0
 }
 
+// Equals reports whether kl and x contain the same keys in the same order.
 func (kl KeyList) Equals(x KeyList) bool {
 	if len(kl) != len(x) {
 		return false
@@ -119,6 +125,7 @@ type Keyseq struct {
 	mutex   sync.Mutex
 }
 
+// New creates a new Keyseq matcher for resolving multi-key bindings.
 func New() *Keyseq {
 	return &Keyseq{
 		Matcher: NewMatcher(),
@@ -126,10 +133,12 @@ func New() *Keyseq {
 	}
 }
 
+// InMiddleOfChain reports whether the matcher is partway through a multi-key sequence.
 func (k *Keyseq) InMiddleOfChain() bool {
 	return k.current != nil && k.current != k.Matcher
 }
 
+// CancelChain resets the matcher to the root, abandoning any in-progress key sequence.
 func (k *Keyseq) CancelChain() {
 	k.mutex.Lock()
 	defer k.mutex.Unlock()
@@ -148,6 +157,8 @@ func (k *Keyseq) Current() keyseqMatcher {
 	return k.current
 }
 
+// AcceptKey advances the key sequence matcher with the given key, returning the bound action
+// if a complete sequence is matched, or ErrInSequence if more keys are expected.
 func (k *Keyseq) AcceptKey(key Key) (any, error) {
 	// XXX should we return Action instead of interface{}?
 	k.mutex.Lock()

@@ -34,6 +34,7 @@ type CLIOptions struct {
 	OptHeight          string `long:"height" description:"display height in lines or percentage (e.g. '10', '50%')"`
 }
 
+// parse parses command-line arguments and validates the resulting options.
 func (options *CLIOptions) parse(s []string) ([]string, error) {
 	p := flags.NewParser(options, flags.PrintErrors)
 	args, err := p.ParseArgs(s)
@@ -49,6 +50,7 @@ func (options *CLIOptions) parse(s []string) ([]string, error) {
 	return args, nil
 }
 
+// Validate checks the parsed CLI options for correctness (e.g., layout type).
 func (options CLIOptions) Validate() error {
 	if options.OptLayout != "" {
 		if !IsValidLayoutType(LayoutType(options.OptLayout)) {
@@ -58,6 +60,7 @@ func (options CLIOptions) Validate() error {
 	return nil
 }
 
+// help generates formatted help text from struct field tags.
 func (options CLIOptions) help() []byte {
 	buf := bytes.Buffer{}
 

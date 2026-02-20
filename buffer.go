@@ -49,6 +49,8 @@ type ContextLine struct {
 	line.Line
 }
 
+// NewFilteredBuffer creates a FilteredBuffer containing one page of lines from
+// the source buffer, computing the maximum column width for horizontal scrolling.
 func NewFilteredBuffer(src Buffer, page, perPage int) *FilteredBuffer {
 	fb := FilteredBuffer{
 		src: src,
@@ -118,12 +120,15 @@ func NewMemoryBuffer(capacity int) *MemoryBuffer {
 	return mb
 }
 
+// Size returns the number of lines currently held in the buffer, thread-safe.
 func (mb *MemoryBuffer) Size() int {
 	mb.mutex.RLock()
 	defer mb.mutex.RUnlock()
 	return len(mb.lines)
 }
 
+// Reset clears the buffer, reinitializing the done channel and lines slice
+// so the buffer can be reused for a new pipeline run.
 func (mb *MemoryBuffer) Reset() {
 	mb.mutex.Lock()
 	defer mb.mutex.Unlock()
@@ -148,12 +153,16 @@ func (mb *MemoryBuffer) MarkComplete() {
 	})
 }
 
+// Done returns a channel that is closed when the buffer has been fully populated.
 func (mb *MemoryBuffer) Done() <-chan struct{} {
 	mb.mutex.RLock()
 	defer mb.mutex.RUnlock()
 	return mb.done
 }
 
+// Accept receives lines from a pipeline input channel and appends them to the
+// buffer in batches. It marks the buffer complete when the channel closes or
+// the context is cancelled.
 func (mb *MemoryBuffer) Accept(ctx context.Context, in <-chan line.Line, _ pipeline.ChanOutput) {
 	if pdebug.Enabled {
 		g := pdebug.Marker("MemoryBuffer.Accept")
@@ -226,18 +235,22 @@ func (mb *MemoryBuffer) AppendLine(l line.Line) {
 	mb.mutex.Unlock()
 }
 
+// LineAt returns the line at the given index, thread-safe.
 func (mb *MemoryBuffer) LineAt(n int) (line.Line, error) {
 	mb.mutex.RLock()
 	defer mb.mutex.RUnlock()
 	return bufferLineAt(mb.lines, n)
 }
 
+// linesInRange returns a slice of lines between start and end indices, thread-safe.
 func (mb *MemoryBuffer) linesInRange(start, end int) []line.Line {
 	mb.mutex.RLock()
 	defer mb.mutex.RUnlock()
 	return mb.lines[start:end]
 }
 
+// bufferLineAt is a shared helper that retrieves a line by index from a raw
+// line slice, returning an error if the index is out of bounds.
 func bufferLineAt(lines []line.Line, n int) (line.Line, error) {
 	if s := len(lines); s <= 0 || n >= s {
 		return nil, errors.New("empty buffer")
@@ -372,6 +385,7 @@ func (cb *ContextBuffer) LineAt(i int) (line.Line, error) {
 	return cb.entries[i], nil
 }
 
+// linesInRange returns a slice of entries between start and end indices.
 func (cb *ContextBuffer) linesInRange(start, end int) []line.Line {
 	return cb.entries[start:end]
 }

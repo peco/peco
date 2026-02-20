@@ -56,6 +56,7 @@ func (ecf ExternalCmd) BufSize() int {
 	return ecf.thresholdBufsiz
 }
 
+// NewContext returns a context initialized with the given query for pipeline use.
 func (ecf *ExternalCmd) NewContext(ctx context.Context, query string) context.Context {
 	return newContext(ctx, query)
 }
@@ -68,6 +69,8 @@ func (ecf ExternalCmd) String() string {
 	return ecf.name
 }
 
+// Apply pipes the buffered lines through the external command and sends
+// matching output lines to out.
 func (ecf *ExternalCmd) Apply(ctx context.Context, buf []line.Line, out pipeline.ChanOutput) (err error) {
 	var readerPanicErr error
 

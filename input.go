@@ -13,6 +13,7 @@ type Input struct {
 	state   *Peco
 }
 
+// NewInput creates and returns a new Input instance for handling keyboard events.
 func NewInput(state *Peco, am ActionMap, src chan Event) *Input {
 	return &Input{
 		actions: am,
@@ -21,6 +22,7 @@ func NewInput(state *Peco, am ActionMap, src chan Event) *Input {
 	}
 }
 
+// Loop runs the main input event loop, reading terminal events and dispatching them.
 func (i *Input) Loop(ctx context.Context, cancel func()) error {
 	defer cancel()
 
@@ -39,6 +41,7 @@ func (i *Input) Loop(ctx context.Context, cancel func()) error {
 	}
 }
 
+// handleInputEvent processes a single terminal input event, mapping it to an action.
 func (i *Input) handleInputEvent(ctx context.Context, ev Event) error {
 	if pdebug.Enabled {
 		g := pdebug.Marker("event received from user: %#v", ev)

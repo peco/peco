@@ -14,6 +14,7 @@ var lineListPool = sync.Pool{
 	},
 }
 
+// ReleaseLineListBuf returns a line list buffer to the sync.Pool for reuse.
 func ReleaseLineListBuf(l []line.Line) {
 	if l == nil {
 		return
@@ -22,6 +23,7 @@ func ReleaseLineListBuf(l []line.Line) {
 	lineListPool.Put(l) //nolint:staticcheck // SA6002: converting to pointer-based pool breaks tests
 }
 
+// GetLineListBuf retrieves a line list buffer from the sync.Pool, allocating if needed.
 func GetLineListBuf() []line.Line {
 	l, _ := lineListPool.Get().([]line.Line)
 	return l

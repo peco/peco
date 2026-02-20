@@ -36,6 +36,7 @@ func (s *Selection) Add(l line.Line) {
 	s.tree.ReplaceOrInsert(l)
 }
 
+// Copy copies all selected lines from s into dst.
 func (s *Selection) Copy(dst *Selection) {
 	s.Ascend(func(it btree.Item) bool {
 		l, ok := it.(line.Line)
@@ -54,24 +55,28 @@ func (s *Selection) Remove(l line.Line) {
 	s.tree.Delete(l)
 }
 
+// Reset clears all selected indices from the selection.
 func (s *Selection) Reset() {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
 	s.tree = btree.New(32)
 }
 
+// Has reports whether the given line is in the selection.
 func (s *Selection) Has(x line.Line) bool {
 	s.mutex.RLock()
 	defer s.mutex.RUnlock()
 	return s.tree.Has(x)
 }
 
+// Len returns the number of selected lines.
 func (s *Selection) Len() int {
 	s.mutex.RLock()
 	defer s.mutex.RUnlock()
 	return s.tree.Len()
 }
 
+// Ascend iterates over selected lines in ascending order, calling i for each.
 func (s *Selection) Ascend(i btree.ItemIterator) {
 	s.mutex.RLock()
 	defer s.mutex.RUnlock()

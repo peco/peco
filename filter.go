@@ -32,6 +32,8 @@ type filterProcessor struct {
 	onError func(error)
 }
 
+// newFilterProcessor creates a filterProcessor that runs the given filter
+// against a query, managing result buffering and error reporting.
 func newFilterProcessor(f filter.Filter, q string, bufSize int, onError func(error)) *filterProcessor {
 	return &filterProcessor{
 		filter:  f,
@@ -41,6 +43,7 @@ func newFilterProcessor(f filter.Filter, q string, bufSize int, onError func(err
 	}
 }
 
+// Accept receives lines from the pipeline, applies the filter, and forwards matches.
 func (fp *filterProcessor) Accept(ctx context.Context, in <-chan line.Line, out pipeline.ChanOutput) {
 	acceptAndFilter(ctx, fp.filter, fp.bufSize, fp.onError, in, out)
 }
@@ -235,6 +238,8 @@ func AcceptAndFilter(ctx context.Context, f filter.Filter, configBufSize int, in
 	acceptAndFilter(ctx, f, configBufSize, nil, in, out)
 }
 
+// acceptAndFilter is the core filtering loop: it reads lines from in, batches
+// them, applies the filter function, and buffers matches for output.
 func acceptAndFilter(ctx context.Context, f filter.Filter, configBufSize int, onError func(error), in <-chan line.Line, out pipeline.ChanOutput) {
 	useParallel := f.SupportsParallel() && runtime.GOMAXPROCS(0) > 1
 
@@ -255,6 +260,8 @@ func acceptAndFilter(ctx context.Context, f filter.Filter, configBufSize int, on
 	}
 }
 
+// acceptAndFilterSerial runs the filter in a single goroutine, used as the
+// fallback when the filter does not support parallel execution.
 func acceptAndFilterSerial(ctx context.Context, f filter.Filter, bufsiz int, buf []line.Line, onError func(error), in <-chan line.Line, out pipeline.ChanOutput) {
 	flush := make(chan []line.Line)
 	flushDone := make(chan struct{})
@@ -265,6 +272,8 @@ func acceptAndFilterSerial(ctx context.Context, f filter.Filter, bufsiz int, buf
 	batchAndFlush(ctx, bufsiz, buf, in, flush, func(b []line.Line) []line.Line { return b })
 }
 
+// acceptAndFilterParallel distributes filter work across multiple goroutines,
+// tagging each batch with a sequence number for ordered result merging.
 func acceptAndFilterParallel(ctx context.Context, f filter.Filter, bufsiz int, buf []line.Line, onError func(error), in <-chan line.Line, out pipeline.ChanOutput) {
 	flush := make(chan orderedChunk)
 	flushDone := make(chan struct{})
@@ -324,6 +333,7 @@ func batchAndFlush[T any](ctx context.Context, bufsiz int, buf []line.Line, in <
 	}
 }
 
+// NewFilter creates a new Filter bound to the given Peco state.
 func NewFilter(state *Peco) *Filter {
 	return &Filter{
 		state: state,

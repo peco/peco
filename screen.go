@@ -261,6 +261,7 @@ func (t *TcellScreen) Init(_ *Config) error {
 	return nil
 }
 
+// NewTcellScreen creates a new TcellScreen with initialized channels and default error output.
 func NewTcellScreen() *TcellScreen {
 	return &TcellScreen{
 		suspendCh: make(chan struct{}),
@@ -414,6 +415,7 @@ func (t *TcellScreen) PollEvent(ctx context.Context, cfg *Config) chan Event {
 	return evCh
 }
 
+// Suspend signals the event polling goroutine to suspend the screen.
 func (t *TcellScreen) Suspend() {
 	select {
 	case t.suspendCh <- struct{}{}:
@@ -421,6 +423,7 @@ func (t *TcellScreen) Suspend() {
 	}
 }
 
+// Resume sends a resume request and waits for screen re-initialization to complete.
 func (t *TcellScreen) Resume(ctx context.Context) error {
 	// Resume must be a block operation, because we can't safely proceed
 	// without actually knowing that the screen has been re-initialized.
@@ -481,6 +484,7 @@ func (t *TcellScreen) Print(args PrintArgs) int {
 	return screenPrint(t, args)
 }
 
+// screenPrint writes a string to the screen with tab expansion, ANSI color support, and optional line fill.
 func screenPrint(t Screen, args PrintArgs) int {
 	var written int
 

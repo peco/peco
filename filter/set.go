@@ -19,24 +19,28 @@ type Set struct {
 	mutex   sync.Mutex
 }
 
+// Reset sets the active filter back to the first one in the set.
 func (fs *Set) Reset() {
 	fs.mutex.Lock()
 	defer fs.mutex.Unlock()
 	fs.current = 0
 }
 
+// Size returns the number of filters in the set.
 func (fs *Set) Size() int {
 	fs.mutex.Lock()
 	defer fs.mutex.Unlock()
 	return len(fs.filters)
 }
 
+// Add appends a new filter to the set.
 func (fs *Set) Add(lf Filter) {
 	fs.mutex.Lock()
 	defer fs.mutex.Unlock()
 	fs.filters = append(fs.filters, lf)
 }
 
+// Rotate cycles to the next filter in the set, wrapping around to the first.
 func (fs *Set) Rotate() {
 	fs.mutex.Lock()
 	defer fs.mutex.Unlock()
@@ -49,6 +53,8 @@ func (fs *Set) Rotate() {
 	}
 }
 
+// SetCurrentByName switches the active filter to the one matching the given
+// name, returning ErrFilterNotFound if no filter matches.
 func (fs *Set) SetCurrentByName(name string) error {
 	fs.mutex.Lock()
 	defer fs.mutex.Unlock()

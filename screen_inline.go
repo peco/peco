@@ -37,6 +37,7 @@ func NewInlineScreen(spec HeightSpec) *InlineScreen {
 	}
 }
 
+// Init initializes the tcell screen for inline mode, disabling the alternate screen buffer.
 func (s *InlineScreen) Init(_ *Config) error {
 	// Save and override TCELL_ALTSCREEN to prevent alternate screen buffer
 	s.savedAltscreen = os.Getenv("TCELL_ALTSCREEN")
@@ -171,6 +172,7 @@ func (s *InlineScreen) Size() (int, int) {
 	return w, s.height
 }
 
+// PollEvent creates an event channel and polls for terminal events with special resize handling.
 func (s *InlineScreen) PollEvent(ctx context.Context, _ *Config) chan Event {
 	evCh := make(chan Event)
 

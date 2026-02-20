@@ -105,6 +105,7 @@ func (l *Location) MaxPage() int {
 	return l.maxPage
 }
 
+// PageCrop returns a PageCrop snapshot of the current page and perPage values under a read lock.
 func (l *Location) PageCrop() PageCrop {
 	l.mutex.RLock()
 	defer l.mutex.RUnlock()

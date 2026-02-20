@@ -43,6 +43,7 @@ func (km Keymap) Sequence() Keyseq {
 	return km.seq
 }
 
+// ExecuteAction looks up and executes the action(s) bound to the given key event.
 func (km Keymap) ExecuteAction(ctx context.Context, state *Peco, ev Event) (err error) {
 	if pdebug.Enabled {
 		g := pdebug.Marker("Keymap.ExecuteAction %v", ev).BindError(&err)
@@ -91,6 +92,7 @@ func (km Keymap) LookupAction(ev Event) Action {
 	}
 }
 
+// wrapRememberSequence wraps an action to record the key press as part of a multi-key sequence.
 func wrapRememberSequence(a Action) Action {
 	return ActionFunc(func(ctx context.Context, state *Peco, ev Event) {
 		if s, err := keyseq.KeyEventToString(ev.Key, ev.Ch, ev.Mod); err == nil {
@@ -102,6 +104,7 @@ func wrapRememberSequence(a Action) Action {
 	})
 }
 
+// wrapClearSequence wraps an action to clear the accumulated key sequence after execution.
 func wrapClearSequence(a Action) Action {
 	return ActionFunc(func(ctx context.Context, state *Peco, ev Event) {
 		seq := state.Inputseq()
@@ -121,6 +124,7 @@ func wrapClearSequence(a Action) Action {
 
 const maxResolveActionDepth = 100
 
+// resolveActionName maps a string action name from config to the corresponding action function.
 func (km Keymap) resolveActionName(name string, depth int) (Action, error) {
 	if depth >= maxResolveActionDepth {
 		return nil, fmt.Errorf("could not resolve %s: deep recursion", name)

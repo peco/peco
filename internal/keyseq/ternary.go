@@ -4,6 +4,7 @@ type TernaryTrie struct {
 	root TernaryNode
 }
 
+// NewTernaryTrie creates a new empty ternary search trie.
 func NewTernaryTrie() *TernaryTrie {
 	return &TernaryTrie{}
 }
@@ -24,6 +25,7 @@ func (t *TernaryTrie) Put(k KeyList, v any) Node {
 	return Put(t, k, v)
 }
 
+// Size returns the total number of nodes in the trie.
 func (t *TernaryTrie) Size() int {
 	count := 0
 	EachDepth(t, func(Node) bool {
@@ -33,6 +35,7 @@ func (t *TernaryTrie) Size() int {
 	return count
 }
 
+// Balance rebalances all sibling lists in the trie for optimal search performance.
 func (t *TernaryTrie) Balance() {
 	EachDepth(t, func(n Node) bool {
 		tn, _ := n.(*TernaryNode)
@@ -49,14 +52,17 @@ type TernaryNode struct {
 	value      any
 }
 
+// NewTernaryNode creates a new ternary trie node with the given key label.
 func NewTernaryNode(l Key) *TernaryNode {
 	return &TernaryNode{label: l}
 }
 
+// GetList looks up a child node matching the first key in the list.
 func (n *TernaryNode) GetList(k KeyList) Node {
 	return n.Get(k[0])
 }
 
+// Get searches the children of this node for a child matching key k.
 func (n *TernaryNode) Get(k Key) Node {
 	curr := n.firstChild
 	for curr != nil {
@@ -72,6 +78,7 @@ func (n *TernaryNode) Get(k Key) Node {
 	return nil
 }
 
+// Dig finds or creates a child node for the given key, returning the node and whether it was newly created.
 func (n *TernaryNode) Dig(k Key) (node Node, isnew bool) {
 	curr := n.firstChild
 	if curr == nil {
@@ -106,6 +113,7 @@ func (n *TernaryNode) HasChildren() bool {
 	return n.firstChild != nil
 }
 
+// Size returns the number of direct children of this node.
 func (n *TernaryNode) Size() int {
 	if n.firstChild == nil {
 		return 0
@@ -118,6 +126,7 @@ func (n *TernaryNode) Size() int {
 	return count
 }
 
+// Each calls proc for every child node in sorted order, stopping early if proc returns false.
 func (n *TernaryNode) Each(proc func(Node) bool) {
 	var f func(*TernaryNode) bool
 	f = func(n *TernaryNode) bool {
@@ -131,6 +140,7 @@ func (n *TernaryNode) Each(proc func(Node) bool) {
 	f(n.firstChild)
 }
 
+// RemoveAll removes all children from this node.
 func (n *TernaryNode) RemoveAll() {
 	n.firstChild = nil
 }
@@ -147,6 +157,7 @@ func (n *TernaryNode) SetValue(v any) {
 	n.value = v
 }
 
+// children collects all direct child nodes into a sorted slice.
 func (n *TernaryNode) children() []*TernaryNode {
 	children := make([]*TernaryNode, n.Size())
 	if n.firstChild == nil {
@@ -162,6 +173,7 @@ func (n *TernaryNode) children() []*TernaryNode {
 	return children
 }
 
+// Balance rebalances the children of this node into a balanced binary search tree.
 func (n *TernaryNode) Balance() {
 	if n.firstChild == nil {
 		return
@@ -174,6 +186,7 @@ func (n *TernaryNode) Balance() {
 	n.firstChild = balance(children, 0, len(children))
 }
 
+// balance recursively builds a balanced binary tree from a sorted slice of nodes.
 func balance(nodes []*TernaryNode, s, e int) *TernaryNode {
 	count := e - s
 	if count <= 0 {

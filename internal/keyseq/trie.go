@@ -12,10 +12,12 @@ type Trie interface {
 	Size() int
 }
 
+// NewTrie creates a new empty Trie for storing key sequences.
 func NewTrie() Trie {
 	return NewTernaryTrie()
 }
 
+// Get looks up a value by key sequence path in the trie, returning nil if not found.
 func Get(t Trie, k KeyList) Node {
 	if t == nil {
 		return nil
@@ -30,6 +32,7 @@ func Get(t Trie, k KeyList) Node {
 	return n
 }
 
+// Put inserts a value at the given key sequence path in the trie, creating nodes as needed.
 func Put(t Trie, k KeyList, v any) Node {
 	if t == nil {
 		return nil
@@ -42,6 +45,7 @@ func Put(t Trie, k KeyList, v any) Node {
 	return n
 }
 
+// EachDepth iterates over trie nodes in depth-first order, calling proc for each node.
 func EachDepth(t Trie, proc func(Node) bool) {
 	if t == nil {
 		return
@@ -55,6 +59,7 @@ func EachDepth(t Trie, proc func(Node) bool) {
 	r.Each(f)
 }
 
+// EachWidth iterates over trie nodes in breadth-first order, calling proc for each node.
 func EachWidth(t Trie, proc func(Node) bool) {
 	if t == nil {
 		return
@@ -92,6 +97,7 @@ type Node interface {
 	SetValue(v any)
 }
 
+// Children returns all child nodes of n as a slice.
 func Children(n Node) []Node {
 	children := make([]Node, n.Size())
 	idx := 0
