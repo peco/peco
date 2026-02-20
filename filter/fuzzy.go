@@ -48,7 +48,7 @@ func (ff Fuzzy) String() string {
 
 // applyInternal performs fuzzy matching on each line, emitting matches with
 // their character-level match indices for highlighting.
-func (ff *Fuzzy) applyInternal(ctx context.Context, lines []line.Line, emit func(line.Line)) error {
+func (ff *Fuzzy) applyInternal(ctx context.Context, lines []line.Line, em LineEmitter) error {
 	originalQuery := pipeline.QueryFromContext(ctx)
 
 	// Parse negative terms and compile them as case-insensitive regexps
@@ -83,7 +83,7 @@ LINE:
 
 		// All-negative query: emit all non-excluded lines with nil indices
 		if len(fuzzyQuery) == 0 {
-			emit(line.NewMatched(l, nil))
+			em.Emit(line.NewMatched(l, nil))
 			continue LINE
 		}
 
@@ -179,7 +179,7 @@ LINE:
 	}
 
 	for i := range matched {
-		emit(line.NewMatched(matched[i].line, matched[i].matches))
+		em.Emit(line.NewMatched(matched[i].line, matched[i].matches))
 	}
 
 	return nil

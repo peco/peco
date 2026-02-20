@@ -83,7 +83,7 @@ type Peco struct {
 	selectAllAndExit    bool // True if --select-all is enabled
 	singleKeyJump       SingleKeyJumpState
 	heightSpec          *HeightSpec
-	readConfigFn        func(*Config, string) error
+	configReader        ConfigReader
 	styles              StyleSet
 	enableANSI          bool // Enable ANSI color code support
 	fuzzyLongestSort    bool
@@ -209,7 +209,7 @@ func New() *Peco {
 		idgen:             newIDGen(),
 		queryExec:         QueryExecState{delay: 50 * time.Millisecond},
 		readyCh:           make(chan struct{}),
-		readConfigFn:      readConfig,
+		configReader:      defaultConfigReader,
 		screen:            NewTcellScreen(),
 		selection:         NewSelection(),
 		maxScanBufferSize: bufio.MaxScanTokenSize,
@@ -381,7 +381,7 @@ func (p *Peco) Setup() (err error) {
 	}
 
 	// Read config
-	if err := p.readConfigFn(&p.config, opts.OptRcfile); err != nil {
+	if err := p.configReader.ReadConfig(&p.config, opts.OptRcfile); err != nil {
 		return fmt.Errorf("failed to setup configuration: %w", err)
 	}
 
@@ -641,7 +641,7 @@ func (p *Peco) parseCommandLine(opts *CLIOptions, args *[]string, argv []string)
 	}
 
 	if opts.OptRcfile == "" {
-		if file, err := LocateRcfile(locateRcfileIn); err == nil {
+		if file, err := LocateRcfile(defaultConfigLocator); err == nil {
 			opts.OptRcfile = file
 		}
 	}
@@ -701,9 +701,25 @@ func (p *Peco) SetupSource(ctx context.Context) (s *Source, err error) {
 	return src, nil
 }
 
-// readConfig loads the configuration from the given filename into cfg.
+// ConfigReader reads configuration from a file into a Config struct.
+type ConfigReader interface {
+	ReadConfig(*Config, string) error
+}
+
+// ConfigReaderFunc is a function that implements ConfigReader.
+type ConfigReaderFunc func(*Config, string) error
+
+// ReadConfig calls the underlying function.
+func (f ConfigReaderFunc) ReadConfig(cfg *Config, filename string) error {
+	return f(cfg, filename)
+}
+
+// nopConfigReader is a ConfigReader that does nothing.
+var nopConfigReader = ConfigReaderFunc(func(*Config, string) error { return nil })
+
+// defaultConfigReader loads the configuration from the given filename into cfg.
 // If filename is empty, no file is read and nil is returned.
-func readConfig(cfg *Config, filename string) error {
+var defaultConfigReader = ConfigReaderFunc(func(cfg *Config, filename string) error {
 	if filename != "" {
 		if err := cfg.ReadFilename(filename); err != nil {
 			return fmt.Errorf("failed to read config file: %w", err)
@@ -711,7 +727,7 @@ func readConfig(cfg *Config, filename string) error {
 	}
 
 	return nil
-}
+})
 
 // ApplyConfig applies the loaded Config and CLI options to the Peco instance,
 // setting up layout, styles, keymap, filters, and all other runtime parameters.

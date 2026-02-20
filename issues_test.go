@@ -66,7 +66,7 @@ func TestIssue345(t *testing.T) {
 	defer os.Remove(cfg)
 
 	state := newPeco()
-	state.readConfigFn = readConfig
+	state.configReader = defaultConfigReader
 	require.NoError(t, state.config.Init(), "Config.Init should succeed")
 
 	state.Argv = append(state.Argv, []string{"--rcfile", cfg}...)

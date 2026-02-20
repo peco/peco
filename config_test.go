@@ -172,13 +172,13 @@ func TestLocateRcfile(t *testing.T) {
 	}
 
 	i := 0
-	locater := func(dir string) (string, error) {
+	locater := ConfigLocatorFunc(func(dir string) (string, error) {
 		t.Logf("looking for file in %s", dir)
 		require.True(t, i <= len(expected)-1, "Got %d directories, only have %d", i+1, len(expected))
 		require.Equal(t, expected[i], dir, "Expected %s, got %s", expected[i], dir)
 		i++
 		return "", errors.New("error: Not found")
-	}
+	})
 
 	t.Setenv("XDG_CONFIG_HOME", dir)
 	t.Setenv("XDG_CONFIG_DIRS", strings.Join(
@@ -213,7 +213,7 @@ func TestLocateRcfileYAML(t *testing.T) {
 	t.Setenv("XDG_CONFIG_HOME", "")
 	t.Setenv("XDG_CONFIG_DIRS", "")
 
-	file, err := LocateRcfile(locateRcfileIn)
+	file, err := LocateRcfile(defaultConfigLocator)
 	require.NoError(t, err)
 	require.Equal(t, filepath.Join(pecoDir, "config.yaml"), file)
 }

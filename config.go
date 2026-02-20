@@ -312,15 +312,24 @@ func stringsToStyle(style *Style, raw []string) error {
 	return nil
 }
 
-// This is a variable because we want to change its behavior
-// when we run tests.
-type configLocateFunc func(string) (string, error)
+// ConfigLocator locates a config file in a given directory.
+type ConfigLocator interface {
+	Locate(string) (string, error)
+}
+
+// ConfigLocatorFunc is a function that implements ConfigLocator.
+type ConfigLocatorFunc func(string) (string, error)
+
+// Locate calls the underlying function.
+func (f ConfigLocatorFunc) Locate(dir string) (string, error) {
+	return f(dir)
+}
 
 var configFilenames = []string{"config.json", "config.yaml", "config.yml"}
 
-// locateRcfileIn searches the given directory for a config file with one of
-// the known filenames (config.json, config.yaml, config.yml).
-func locateRcfileIn(dir string) (string, error) {
+// defaultConfigLocator searches for a config file with one of the known
+// filenames (config.json, config.yaml, config.yml) in the given directory.
+var defaultConfigLocator = ConfigLocatorFunc(func(dir string) (string, error) {
 	for _, basename := range configFilenames {
 		file := filepath.Join(dir, basename)
 		if _, err := os.Stat(file); err == nil {
@@ -328,10 +337,10 @@ func locateRcfileIn(dir string) (string, error) {
 		}
 	}
 	return "", fmt.Errorf("config file not found in %s", dir)
-}
+})
 
 // LocateRcfile attempts to find the config file in various locations
-func LocateRcfile(locater configLocateFunc) (string, error) {
+func LocateRcfile(locater ConfigLocator) (string, error) {
 	// http://standards.freedesktop.org/basedir-spec/basedir-spec-latest.html
 	//
 	// Try in this order:
@@ -343,12 +352,12 @@ func LocateRcfile(locater configLocateFunc) (string, error) {
 
 	// Try dir supplied via env var
 	if dir := os.Getenv("XDG_CONFIG_HOME"); dir != "" {
-		if file, err := locater(filepath.Join(dir, "peco")); err == nil {
+		if file, err := locater.Locate(filepath.Join(dir, "peco")); err == nil {
 			return file, nil
 		}
 	} else if uErr == nil { // silently ignore failure for homedir()
 		// Try "default" XDG location, is user is available
-		if file, err := locater(filepath.Join(home, ".config", "peco")); err == nil {
+		if file, err := locater.Locate(filepath.Join(home, ".config", "peco")); err == nil {
 			return file, nil
 		}
 	}
@@ -358,14 +367,14 @@ func LocateRcfile(locater configLocateFunc) (string, error) {
 	// with filepath.ListSeparator, so use it
 	if dirs := os.Getenv("XDG_CONFIG_DIRS"); dirs != "" {
 		for dir := range strings.SplitSeq(dirs, fmt.Sprintf("%c", filepath.ListSeparator)) {
-			if file, err := locater(filepath.Join(dir, "peco")); err == nil {
+			if file, err := locater.Locate(filepath.Join(dir, "peco")); err == nil {
 				return file, nil
 			}
 		}
 	}
 
 	if uErr == nil { // silently ignore failure for homedir()
-		if file, err := locater(filepath.Join(home, ".peco")); err == nil {
+		if file, err := locater.Locate(filepath.Join(home, ".peco")); err == nil {
 			return file, nil
 		}
 	}

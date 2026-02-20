@@ -109,22 +109,32 @@ type ansiLiner interface {
 	ANSIAttrs() []ansi.AttrSpan
 }
 
-// LayoutFactory is a function that creates a BasicLayout for the given Peco state.
-type LayoutFactory func(*Peco) (*BasicLayout, error)
+// LayoutBuilder creates a BasicLayout for the given Peco state.
+type LayoutBuilder interface {
+	Build(*Peco) (*BasicLayout, error)
+}
 
-var layoutRegistry = map[LayoutType]LayoutFactory{}
+// LayoutBuilderFunc is a function that implements LayoutBuilder.
+type LayoutBuilderFunc func(*Peco) (*BasicLayout, error)
 
-// RegisterLayout registers a layout factory under the given name.
-func RegisterLayout(name LayoutType, factory LayoutFactory) {
-	layoutRegistry[name] = factory
+// Build calls the underlying function.
+func (f LayoutBuilderFunc) Build(state *Peco) (*BasicLayout, error) {
+	return f(state)
+}
+
+var layoutRegistry = map[LayoutType]LayoutBuilder{}
+
+// RegisterLayout registers a layout builder under the given name.
+func RegisterLayout(name LayoutType, builder LayoutBuilder) {
+	layoutRegistry[name] = builder
 }
 
 // NewLayout creates a layout by looking up the registry. Falls back to top-down.
 func NewLayout(layoutType LayoutType, state *Peco) (*BasicLayout, error) {
-	if factory, ok := layoutRegistry[layoutType]; ok {
-		return factory(state)
+	if builder, ok := layoutRegistry[layoutType]; ok {
+		return builder.Build(state)
 	}
-	return layoutRegistry[LayoutTypeTopDown](state)
+	return layoutRegistry[LayoutTypeTopDown].Build(state)
 }
 
 // IsValidLayoutType checks if a string is a supported layout type
@@ -803,8 +813,8 @@ func newStatusBar(state *Peco) (StatusBar, error) {
 	return newScreenStatusBar(state.Screen(), AnchorBottom, 0+extraOffset, state.Styles())
 }
 
-// NewDefaultLayout creates a new Layout in the default format (top-down)
-func NewDefaultLayout(state *Peco) (*BasicLayout, error) {
+// DefaultLayout creates a Layout in the default format (top-down).
+func DefaultLayout(state *Peco) (*BasicLayout, error) {
 	sb, err := newStatusBar(state)
 	if err != nil {
 		return nil, err
@@ -825,8 +835,8 @@ func NewDefaultLayout(state *Peco) (*BasicLayout, error) {
 	}, nil
 }
 
-// NewBottomUpLayout creates a new Layout in bottom-up format
-func NewBottomUpLayout(state *Peco) (*BasicLayout, error) {
+// BottomUpLayout creates a Layout in bottom-up format.
+func BottomUpLayout(state *Peco) (*BasicLayout, error) {
 	sb, err := newStatusBar(state)
 	if err != nil {
 		return nil, err
@@ -847,9 +857,9 @@ func NewBottomUpLayout(state *Peco) (*BasicLayout, error) {
 	}, nil
 }
 
-// NewTopDownQueryBottomLayout creates a new Layout with list top-to-bottom
+// TopDownQueryBottomLayout creates a Layout with list top-to-bottom
 // and the query prompt at the bottom.
-func NewTopDownQueryBottomLayout(state *Peco) (*BasicLayout, error) {
+func TopDownQueryBottomLayout(state *Peco) (*BasicLayout, error) {
 	sb, err := newStatusBar(state)
 	if err != nil {
 		return nil, err
@@ -876,9 +886,9 @@ func (l *BasicLayout) SortTopDown() bool {
 }
 
 func init() {
-	RegisterLayout(LayoutTypeTopDown, NewDefaultLayout)
-	RegisterLayout(LayoutTypeBottomUp, NewBottomUpLayout)
-	RegisterLayout(LayoutTypeTopDownQueryBottom, NewTopDownQueryBottomLayout)
+	RegisterLayout(LayoutTypeTopDown, LayoutBuilderFunc(DefaultLayout))
+	RegisterLayout(LayoutTypeBottomUp, LayoutBuilderFunc(BottomUpLayout))
+	RegisterLayout(LayoutTypeTopDownQueryBottom, LayoutBuilderFunc(TopDownQueryBottomLayout))
 }
 
 func (l *BasicLayout) PurgeDisplayCache() {

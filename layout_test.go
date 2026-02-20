@@ -315,7 +315,7 @@ func TestGHIssue455_DrawScreenForceSync(t *testing.T) {
 
 	t.Run("ForceSync true calls Sync instead of final Flush", func(t *testing.T) {
 		state, screen := setupState(t)
-		layout, err := NewDefaultLayout(state)
+		layout, err := DefaultLayout(state)
 		require.NoError(t, err)
 
 		screen.reset()
@@ -349,7 +349,7 @@ func TestGHIssue455_DrawScreenForceSync(t *testing.T) {
 
 	t.Run("ForceSync false does not call Sync", func(t *testing.T) {
 		state, screen := setupState(t)
-		layout, err := NewDefaultLayout(state)
+		layout, err := DefaultLayout(state)
 		require.NoError(t, err)
 
 		screen.reset()
@@ -361,7 +361,7 @@ func TestGHIssue455_DrawScreenForceSync(t *testing.T) {
 
 	t.Run("nil options does not call Sync", func(t *testing.T) {
 		state, screen := setupState(t)
-		layout, err := NewDefaultLayout(state)
+		layout, err := DefaultLayout(state)
 		require.NoError(t, err)
 
 		screen.reset()
@@ -423,7 +423,7 @@ func TestTopDownQueryBottomLayout(t *testing.T) {
 
 	state.Filters().Add(filter.NewIgnoreCase())
 
-	layout, err := NewTopDownQueryBottomLayout(state)
+	layout, err := TopDownQueryBottomLayout(state)
 	require.NoError(t, err)
 
 	require.Equal(t, AnchorBottom, layout.prompt.anchor,
