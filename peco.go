@@ -22,6 +22,7 @@ import (
 	"github.com/peco/peco/internal/util"
 	"github.com/peco/peco/line"
 	"github.com/peco/peco/pipeline"
+	"github.com/peco/peco/query"
 	"github.com/peco/peco/selection"
 	"github.com/peco/peco/sig"
 )
@@ -50,7 +51,7 @@ type Peco struct {
 
 	args       []string
 	bufferSize int
-	caret      Caret
+	caret      query.Caret
 	// Config contains the values read in from config file
 	config              Config
 	currentLineBuffer   Buffer
@@ -69,7 +70,7 @@ type Peco struct {
 	onCancel            OnCancelBehavior
 	printQuery          bool
 	prompt              string
-	query               Query
+	query               query.Text
 	queryExec           QueryExecState
 	readyCh             chan struct{}
 	resultCh            chan line.Line
@@ -306,7 +307,7 @@ func (p *Peco) Filters() *filter.Set {
 	return &p.filters
 }
 
-func (p *Peco) Query() *Query {
+func (p *Peco) Query() *query.Text {
 	return &p.query
 }
 
@@ -314,7 +315,7 @@ func (p *Peco) QueryExec() *QueryExecState {
 	return &p.queryExec
 }
 
-func (p *Peco) Caret() *Caret {
+func (p *Peco) Caret() *query.Caret {
 	return &p.caret
 }
 

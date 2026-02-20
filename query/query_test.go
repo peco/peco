@@ -1,4 +1,4 @@
-package peco
+package query
 
 import (
 	"testing"
@@ -21,7 +21,7 @@ func TestQuerySetAndString(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			var q Query
+			var q Text
 			q.Set(tt.input)
 			require.Equal(t, tt.input, q.String())
 		})
@@ -30,7 +30,7 @@ func TestQuerySetAndString(t *testing.T) {
 
 func TestQueryLen(t *testing.T) {
 	t.Parallel()
-	var q Query
+	var q Text
 	require.Equal(t, 0, q.Len())
 
 	q.Set("hello")
@@ -43,7 +43,7 @@ func TestQueryLen(t *testing.T) {
 
 func TestQueryReset(t *testing.T) {
 	t.Parallel()
-	var q Query
+	var q Text
 	q.Set("hello")
 	require.Equal(t, 5, q.Len())
 
@@ -54,7 +54,7 @@ func TestQueryReset(t *testing.T) {
 
 func TestQuerySaveAndRestore(t *testing.T) {
 	t.Parallel()
-	var q Query
+	var q Text
 	q.Set("original")
 
 	q.SaveQuery()
@@ -72,7 +72,7 @@ func TestQuerySaveAndRestore(t *testing.T) {
 
 func TestQuerySaveAndRestoreEmpty(t *testing.T) {
 	t.Parallel()
-	var q Query
+	var q Text
 	// Save an empty query
 	q.SaveQuery()
 	require.Equal(t, "", q.String())
@@ -104,7 +104,7 @@ func TestQueryDeleteRange(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			var q Query
+			var q Text
 			q.Set(tt.initial)
 			q.DeleteRange(tt.start, tt.end)
 			require.Equal(t, tt.expected, q.String())
@@ -114,7 +114,7 @@ func TestQueryDeleteRange(t *testing.T) {
 
 func TestQueryRuneSlice(t *testing.T) {
 	t.Parallel()
-	var q Query
+	var q Text
 	q.Set("hello")
 
 	runes := q.RuneSlice()
@@ -127,14 +127,14 @@ func TestQueryRuneSlice(t *testing.T) {
 
 func TestQueryRuneSliceEmpty(t *testing.T) {
 	t.Parallel()
-	var q Query
+	var q Text
 	runes := q.RuneSlice()
 	require.Empty(t, runes)
 }
 
 func TestQueryRuneAt(t *testing.T) {
 	t.Parallel()
-	var q Query
+	var q Text
 	q.Set("hello")
 
 	require.Equal(t, 'h', q.RuneAt(0))
@@ -144,7 +144,7 @@ func TestQueryRuneAt(t *testing.T) {
 
 func TestQueryRuneAtUnicode(t *testing.T) {
 	t.Parallel()
-	var q Query
+	var q Text
 	q.Set("あいう")
 
 	require.Equal(t, 'あ', q.RuneAt(0))
@@ -154,7 +154,7 @@ func TestQueryRuneAtUnicode(t *testing.T) {
 
 func TestQueryRuneAtOutOfBounds(t *testing.T) {
 	t.Parallel()
-	var q Query
+	var q Text
 	q.Set("hello")
 
 	// Out-of-bounds index returns zero rune without panicking
@@ -166,7 +166,7 @@ func TestQueryRuneAtOutOfBounds(t *testing.T) {
 	require.Equal(t, rune(0), q.RuneAt(-100))
 
 	// Empty query: any index returns zero rune
-	var empty Query
+	var empty Text
 	require.Equal(t, rune(0), empty.RuneAt(0))
 	require.Equal(t, rune(0), empty.RuneAt(-1))
 }
@@ -189,7 +189,7 @@ func TestQueryInsertAt(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			var q Query
+			var q Text
 			q.Set(tt.initial)
 			q.InsertAt(tt.ch, tt.where)
 			require.Equal(t, tt.expected, q.String())
@@ -199,7 +199,7 @@ func TestQueryInsertAt(t *testing.T) {
 
 func TestQueryMultipleInserts(t *testing.T) {
 	t.Parallel()
-	var q Query
+	var q Text
 	// Build "abc" by inserting one character at a time
 	q.InsertAt('a', 0)
 	q.InsertAt('b', 1)
@@ -213,4 +213,64 @@ func TestQueryMultipleInserts(t *testing.T) {
 	// Insert in middle
 	q.InsertAt('X', 2)
 	require.Equal(t, "0aXbc", q.String())
+}
+
+func TestCaretInitialPos(t *testing.T) {
+	t.Parallel()
+	var c Caret
+	require.Equal(t, 0, c.Pos())
+}
+
+func TestCaretSetPos(t *testing.T) {
+	t.Parallel()
+	var c Caret
+	c.SetPos(5)
+	require.Equal(t, 5, c.Pos())
+
+	c.SetPos(0)
+	require.Equal(t, 0, c.Pos())
+
+	c.SetPos(100)
+	require.Equal(t, 100, c.Pos())
+}
+
+func TestCaretMove(t *testing.T) {
+	t.Parallel()
+	var c Caret
+	c.SetPos(5)
+
+	c.Move(3)
+	require.Equal(t, 8, c.Pos())
+
+	c.Move(-2)
+	require.Equal(t, 6, c.Pos())
+
+	// Move to negative territory
+	c.Move(-10)
+	require.Equal(t, -4, c.Pos())
+}
+
+func TestCaretMoveFromZero(t *testing.T) {
+	t.Parallel()
+	var c Caret
+
+	c.Move(1)
+	require.Equal(t, 1, c.Pos())
+
+	c.Move(-1)
+	require.Equal(t, 0, c.Pos())
+}
+
+func TestCaretMultipleMoves(t *testing.T) {
+	t.Parallel()
+	var c Caret
+	for range 10 {
+		c.Move(1)
+	}
+	require.Equal(t, 10, c.Pos())
+
+	for range 5 {
+		c.Move(-1)
+	}
+	require.Equal(t, 5, c.Pos())
 }
