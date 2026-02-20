@@ -16,6 +16,11 @@ v0.6.0 - UNRELEASED
     Existing configs with this field will continue to load without error.
   * Shift+Tab is now mapped to Tab internally. Use `M-[,Z` in your
     keymap config if you need a distinct Shift+Tab binding.
+  * Query terms starting with `-` are now interpreted as negative
+    (exclusion) filters. In v0.5.x, `foo -bar` searched for lines
+    matching both "foo" and literal "-bar"; in v0.6.0 it searches for
+    "foo" while excluding lines containing "bar". To match a literal
+    hyphen prefix, escape it with a backslash: `\-bar`.
 
   [Features]
   * Added YAML configuration file support. You can now use
