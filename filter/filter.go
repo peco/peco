@@ -80,6 +80,7 @@ func (m byMatchStart) Less(i, j int) bool {
 
 	return false
 }
+
 // matchContains reports whether match range a fully contains match range b.
 func matchContains(a []int, b []int) bool {
 	return a[0] <= b[0] && a[1] >= b[1]

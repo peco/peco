@@ -353,6 +353,7 @@ func (err collectResultsError) Error() string {
 func (err collectResultsError) CollectResults() bool {
 	return true
 }
+
 // doFinish completes the peco session. If execOnFinish is set, it runs the configured
 // command with the selected lines as stdin; otherwise it exits with a collect-results signal.
 func doFinish(ctx context.Context, state *Peco, _ Event) {
