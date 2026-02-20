@@ -20,6 +20,11 @@ v0.6.0 - UNRELEASED
     Existing configs with this field will continue to load without error.
   * Shift+Tab is now mapped to Tab internally. Use `M-[,Z` in your
     keymap config if you need a distinct Shift+Tab binding.
+  * Default key bindings for `GoToNextSelection` and
+    `GoToPreviousSelection` have changed. `GoToNextSelection` was
+    previously unbound (it silently conflicted with `KillEndOfLine` on
+    Ctrl+K in v0.5.x) and is now bound to Alt+j. `GoToPreviousSelection`
+    was previously bound to Ctrl+J and is now bound to Alt+k.
   * Query terms starting with `-` are now interpreted as negative
     (exclusion) filters. In v0.5.x, `foo -bar` searched for lines
     matching both "foo" and literal "-bar"; in v0.6.0 it searches for
@@ -69,7 +74,15 @@ v0.6.0 - UNRELEASED
   * Suppressed flickering "Running query..." status message (#511, #585).
   * Fixed `--null` not working correctly with custom filters (#312, #577).
   * Fixed `doGoToNextSelection` and `doGoToPreviousSelection` sharing
-    the same default key binding (#575, #579).
+    the same default key binding (#575, #579). `GoToNextSelection` is
+    now bound to Alt+j and `GoToPreviousSelection` to Alt+k. The
+    previous Ctrl+J and Ctrl+K bindings have been removed (Ctrl+K
+    remains bound to `KillEndOfLine`). If you relied on Ctrl+J or
+    Ctrl+K for selection navigation, update your keymap config.
+  * Fixed `GoToPreviousSelection` being registered with a malformed
+    internal name (`\tdoGoToPreviousSelection`) in v0.5.x. Users who
+    had `"peco.GoToPreviousSelection"` in their config keymap will find
+    that it now correctly binds to the action.
   * Fixed `lastLine` tracking variable not being updated (#574, #578).
   * Fixed tab rendering off-by-one error (#672).
   * Fixed various internal race conditions, resource leaks, and
