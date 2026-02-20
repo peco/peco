@@ -369,17 +369,17 @@ func TestFilterApplyErrorReporting(t *testing.T) {
 
 	var mu sync.Mutex
 	var reported []error
-	onError := func(err error) {
+	onError := FilterErrorHandlerFunc(func(err error) {
 		mu.Lock()
 		defer mu.Unlock()
 		reported = append(reported, err)
-	}
+	})
 
 	out := make(chan line.Line, len(inputLines))
 	acceptAndFilter(context.Background(), ef, 0, onError, in, pipeline.ChanOutput(out))
 
 	mu.Lock()
 	defer mu.Unlock()
-	require.Len(t, reported, 1, "onError should have been called once")
+	require.Len(t, reported, 1, "error handler should have been called once")
 	require.Equal(t, simulatedErr, reported[0])
 }

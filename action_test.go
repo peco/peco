@@ -104,7 +104,7 @@ func (b *failingBuffer) Size() int {
 func TestDoSelectAllWithLineAtError(t *testing.T) {
 	state := New()
 	state.screen = NewDummyScreen()
-	state.readConfigFn = func(*Config, string) error { return nil }
+	state.configReader = nopConfigReader
 
 	rh := &recordingHub{}
 	state.hub = rh
@@ -135,7 +135,7 @@ func TestDoSelectAllWithLineAtError(t *testing.T) {
 func TestDoInvertSelectionWithLineAtError(t *testing.T) {
 	state := New()
 	state.screen = NewDummyScreen()
-	state.readConfigFn = func(*Config, string) error { return nil }
+	state.configReader = nopConfigReader
 
 	rh := &recordingHub{}
 	state.hub = rh

@@ -196,7 +196,7 @@ func (f *regexpQueryFactory) Compile(s string, flags regexpFlags, quotemeta bool
 
 // applyInternal matches each line against the compiled positive and negative
 // regexps, deduplicating overlapping match ranges before emitting results.
-func (rf *Regexp) applyInternal(ctx context.Context, lines []line.Line, emit func(line.Line)) error {
+func (rf *Regexp) applyInternal(ctx context.Context, lines []line.Line, em LineEmitter) error {
 	query := pipeline.QueryFromContext(ctx)
 	posRegexps, negRegexps, err := rf.factory.Compile(query, rf.flags, rf.quotemeta)
 	if err != nil {
@@ -216,7 +216,7 @@ func (rf *Regexp) applyInternal(ctx context.Context, lines []line.Line, emit fun
 
 		// All-negative query: emit line with nil indices (no highlighting)
 		if len(posRegexps) == 0 {
-			emit(line.NewMatched(l, nil))
+			em.Emit(ctx, line.NewMatched(l, nil))
 			continue
 		}
 
@@ -265,7 +265,7 @@ func (rf *Regexp) applyInternal(ctx context.Context, lines []line.Line, emit fun
 				deduped = append(deduped, m)
 			}
 		}
-		emit(line.NewMatched(l, deduped))
+		em.Emit(ctx, line.NewMatched(l, deduped))
 	}
 	return nil
 }
