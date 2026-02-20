@@ -12,8 +12,8 @@ import (
 	"github.com/peco/peco/filter"
 	"github.com/peco/peco/hub"
 	"github.com/peco/peco/internal/keyseq"
-	"github.com/peco/peco/query"
 	"github.com/peco/peco/line"
+	"github.com/peco/peco/query"
 	"github.com/peco/peco/selection"
 	"github.com/stretchr/testify/require"
 )

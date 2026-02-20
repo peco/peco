@@ -19,10 +19,10 @@ import (
 	"github.com/lestrrat-go/pdebug"
 	"github.com/peco/peco/filter"
 	"github.com/peco/peco/hub"
-	"github.com/peco/peco/query"
 	"github.com/peco/peco/internal/util"
 	"github.com/peco/peco/line"
 	"github.com/peco/peco/pipeline"
+	"github.com/peco/peco/query"
 	"github.com/peco/peco/selection"
 	"github.com/peco/peco/sig"
 )
