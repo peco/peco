@@ -15,6 +15,7 @@ import (
 
 	"github.com/gdamore/tcell/v2"
 	"github.com/lestrrat-go/pdebug"
+	"github.com/peco/peco/config"
 	"github.com/peco/peco/hub"
 	"github.com/peco/peco/internal/keyseq"
 	"github.com/peco/peco/internal/util"
@@ -151,7 +152,7 @@ func NewDummyScreen() *SimScreen {
 	}
 }
 
-func (s *SimScreen) Init(_ *Config) error {
+func (s *SimScreen) Init(_ *config.Config) error {
 	return nil
 }
 
@@ -220,7 +221,7 @@ func (s *SimScreen) SendEvent(e Event) {
 	}
 }
 
-func (s *SimScreen) SetCell(x, y int, ch rune, fg, bg Attribute) {
+func (s *SimScreen) SetCell(x, y int, ch rune, fg, bg config.Attribute) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	if s.closed {
@@ -242,7 +243,7 @@ func (s *SimScreen) Flush() error {
 	return nil
 }
 
-func (s *SimScreen) PollEvent(ctx context.Context, _ *Config) chan Event {
+func (s *SimScreen) PollEvent(ctx context.Context, _ *config.Config) chan Event {
 	evCh := make(chan Event)
 	go func() {
 		defer func() {
@@ -330,6 +331,15 @@ func TestPecoHelp(t *testing.T) {
 	require.True(t, util.IsIgnorableError(err), "p.Run() should return error with Ignorable() method, and it should return true")
 }
 
+func TestOnCancelInvalidCLIOption(t *testing.T) {
+	p := newPeco()
+	var opts CLIOptions
+	opts.OptOnCancel = "bogus"
+	err := p.ApplyConfig(opts)
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "bogus")
+}
+
 func TestGHIssue331(t *testing.T) {
 	// Verify fields are populated when Run() initializes config.
 	state, _ := setupPecoTest(t)
@@ -392,7 +402,7 @@ func TestApplyConfig(t *testing.T) {
 		require.Equal(t, opts.OptSelect1, p.selectOneAndExit, "p.selectOneAndExit should be equal to opts.OptSelect1")
 		require.Equal(t, opts.OptExitZero, p.exitZeroAndExit, "p.exitZeroAndExit should be equal to opts.OptExitZero")
 		require.Equal(t, opts.OptSelectAll, p.selectAllAndExit, "p.selectAllAndExit should be equal to opts.OptSelectAll")
-		require.Equal(t, OnCancelBehavior(opts.OptOnCancel), p.onCancel, "p.onCancel should be equal to opts.OptOnCancel")
+		require.Equal(t, config.OnCancelBehavior(opts.OptOnCancel), p.onCancel, "p.onCancel should be equal to opts.OptOnCancel")
 		require.Equal(t, opts.OptSelectionPrefix, p.selectionPrefix, "p.selectionPrefix should be equal to opts.OptSelectionPrefix")
 		require.Equal(t, opts.OptPrintQuery, p.printQuery, "p.printQuery should be equal to opts.OptPrintQuery")
 		require.Equal(t, opts.OptExec, p.execOnFinish, "p.execOnFinish should be equal to opts.OptExec")
@@ -464,12 +474,12 @@ func TestApplyConfig(t *testing.T) {
 
 	t.Run("Config OnCancel used when CLI option absent", func(t *testing.T) {
 		p := newPeco()
-		p.config.OnCancel = OnCancelError
+		p.config.OnCancel = config.OnCancelError
 
 		var opts CLIOptions
 		require.NoError(t, p.ApplyConfig(opts), "p.ApplyConfig should succeed")
 
-		require.Equal(t, OnCancelError, p.onCancel, "p.onCancel should come from config when CLI option is absent")
+		require.Equal(t, config.OnCancelError, p.onCancel, "p.onCancel should come from config when CLI option is absent")
 	})
 
 	t.Run("Config SelectionPrefix used when CLI option absent", func(t *testing.T) {

@@ -1,4 +1,4 @@
-package peco
+package config
 
 import (
 	"encoding/json"
@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"strconv"
 	"strings"
 
 	"github.com/goccy/go-yaml"
@@ -93,60 +92,10 @@ type CustomFilterConfig struct {
 	BufferThreshold int `json:"BufferThreshold" yaml:"BufferThreshold"`
 }
 
-// StyleSet holds styles for various sections
-type StyleSet struct {
-	Basic          Style `json:"Basic" yaml:"Basic"`
-	SavedSelection Style `json:"SavedSelection" yaml:"SavedSelection"`
-	Selected       Style `json:"Selected" yaml:"Selected"`
-	Query          Style `json:"Query" yaml:"Query"`
-	QueryCursor    Style `json:"QueryCursor" yaml:"QueryCursor"`
-	Matched        Style `json:"Matched" yaml:"Matched"`
-	Prompt         Style `json:"Prompt" yaml:"Prompt"`
-	Context        Style `json:"Context" yaml:"Context"`
-}
-
-// Attribute represents terminal display attributes such as colors
-// and text styling (bold, underline, reverse). It is a uint32 bitfield:
-//
-//	Bits 0-8:   Palette color index (0=default, 1-256 for 256-color palette)
-//	Bits 0-23:  RGB color value (when AttrTrueColor flag is set)
-//	Bit 24:     AttrTrueColor flag — distinguishes true color from palette
-//	Bit 25:     AttrBold
-//	Bit 26:     AttrUnderline
-//	Bit 27:     AttrReverse
-//	Bits 28-31: Reserved
-type Attribute uint32
-
-// Named palette color constants (values 0-8).
-const (
-	ColorDefault Attribute = 0x0000
-	ColorBlack   Attribute = 0x0001
-	ColorRed     Attribute = 0x0002
-	ColorGreen   Attribute = 0x0003
-	ColorYellow  Attribute = 0x0004
-	ColorBlue    Attribute = 0x0005
-	ColorMagenta Attribute = 0x0006
-	ColorCyan    Attribute = 0x0007
-	ColorWhite   Attribute = 0x0008
-)
-
-const (
-	AttrTrueColor Attribute = 0x01000000
-	AttrBold      Attribute = 0x02000000
-	AttrUnderline Attribute = 0x04000000
-	AttrReverse   Attribute = 0x08000000
-)
-
-// Style describes display attributes for foreground and background.
-type Style struct {
-	fg Attribute
-	bg Attribute
-}
-
-var homedirFunc = util.Homedir
-
 // DefaultPrompt is the default prompt string shown in the query line.
 const DefaultPrompt = "QUERY>"
+
+var homedirFunc = util.Homedir
 
 // Init initializes the Config with default values
 func (c *Config) Init() error {
@@ -179,157 +128,31 @@ func (c *Config) ReadFilename(filename string) error {
 		}
 	}
 
-	if !IsValidLayoutType(LayoutType(c.Layout)) {
+	if !IsValidLayoutType(c.Layout) {
 		return fmt.Errorf("invalid layout type: %s", c.Layout)
 	}
 
 	return nil
 }
 
-var (
-	stringToFg = map[string]Attribute{
-		"default": ColorDefault,
-		"black":   ColorBlack,
-		"red":     ColorRed,
-		"green":   ColorGreen,
-		"yellow":  ColorYellow,
-		"blue":    ColorBlue,
-		"magenta": ColorMagenta,
-		"cyan":    ColorCyan,
-		"white":   ColorWhite,
-	}
-	stringToBg = map[string]Attribute{
-		"on_default": ColorDefault,
-		"on_black":   ColorBlack,
-		"on_red":     ColorRed,
-		"on_green":   ColorGreen,
-		"on_yellow":  ColorYellow,
-		"on_blue":    ColorBlue,
-		"on_magenta": ColorMagenta,
-		"on_cyan":    ColorCyan,
-		"on_white":   ColorWhite,
-	}
-	stringToFgAttr = map[string]Attribute{
-		"bold":      AttrBold,
-		"underline": AttrUnderline,
-		"reverse":   AttrReverse,
-	}
-	stringToBgAttr = map[string]Attribute{
-		"on_bold": AttrBold,
-	}
-)
-
-// NewStyleSet creates a new StyleSet struct
-func NewStyleSet() *StyleSet {
-	ss := &StyleSet{}
-	ss.Init()
-	return ss
-}
-
-// Init initializes the StyleSet with default foreground and background colors
-// for each UI element (basic, query, matched, selected, prompt, context, etc.).
-func (ss *StyleSet) Init() {
-	ss.Basic.fg = ColorDefault
-	ss.Basic.bg = ColorDefault
-	ss.Query.fg = ColorDefault
-	ss.Query.bg = ColorDefault
-	ss.Matched.fg = ColorCyan
-	ss.Matched.bg = ColorDefault
-	ss.SavedSelection.fg = ColorBlack | AttrBold
-	ss.SavedSelection.bg = ColorCyan
-	ss.Selected.fg = ColorDefault | AttrUnderline
-	ss.Selected.bg = ColorMagenta
-	ss.Prompt.fg = ColorDefault
-	ss.Prompt.bg = ColorDefault
-	ss.Context.fg = ColorDefault | AttrBold
-	ss.Context.bg = ColorDefault
-}
-
-// UnmarshalJSON satisfies json.RawMessage.
-func (s *Style) UnmarshalJSON(buf []byte) error {
-	raw := []string{}
-	if err := json.Unmarshal(buf, &raw); err != nil {
-		return fmt.Errorf("failed to unmarshal Style: %w", err)
-	}
-	return stringsToStyle(s, raw)
-}
-
-// UnmarshalYAML decodes a YAML array of strings into a Style.
-func (s *Style) UnmarshalYAML(unmarshal func(any) error) error {
-	var raw []string
-	if err := unmarshal(&raw); err != nil {
-		return fmt.Errorf("failed to unmarshal Style from YAML: %w", err)
-	}
-	return stringsToStyle(s, raw)
-}
-
-// stringsToStyle parses an array of color and attribute strings (e.g. "red",
-// "on_blue", "bold", "#ff00ff") into a Style's foreground and background Attributes.
-func stringsToStyle(style *Style, raw []string) error {
-	style.fg = ColorDefault
-	style.bg = ColorDefault
-
-	for _, s := range raw {
-		fg, ok := stringToFg[s]
-		if ok {
-			style.fg = fg
-		} else if strings.HasPrefix(s, "#") && len(s) == 7 {
-			if rgb, err := strconv.ParseUint(s[1:], 16, 32); err == nil {
-				style.fg = Attribute(rgb) | AttrTrueColor
-			}
-		} else {
-			if fg, err := strconv.ParseUint(s, 10, 8); err == nil {
-				style.fg = Attribute(fg + 1)
-			}
-		}
-
-		bg, ok := stringToBg[s]
-		if ok {
-			style.bg = bg
-		} else if strings.HasPrefix(s, "on_#") && len(s) == 10 {
-			if rgb, err := strconv.ParseUint(s[4:], 16, 32); err == nil {
-				style.bg = Attribute(rgb) | AttrTrueColor
-			}
-		} else {
-			if strings.HasPrefix(s, "on_") {
-				if bg, err := strconv.ParseUint(s[3:], 10, 8); err == nil {
-					style.bg = Attribute(bg + 1)
-				}
-			}
-		}
-	}
-
-	for _, s := range raw {
-		if fgAttr, ok := stringToFgAttr[s]; ok {
-			style.fg |= fgAttr
-		}
-
-		if bgAttr, ok := stringToBgAttr[s]; ok {
-			style.bg |= bgAttr
-		}
-	}
-
-	return nil
-}
-
-// ConfigLocator locates a config file in a given directory.
-type ConfigLocator interface {
+// Locator locates a config file in a given directory.
+type Locator interface {
 	Locate(string) (string, error)
 }
 
-// ConfigLocatorFunc is a function that implements ConfigLocator.
-type ConfigLocatorFunc func(string) (string, error)
+// LocatorFunc is a function that implements Locator.
+type LocatorFunc func(string) (string, error)
 
 // Locate calls the underlying function.
-func (f ConfigLocatorFunc) Locate(dir string) (string, error) {
+func (f LocatorFunc) Locate(dir string) (string, error) {
 	return f(dir)
 }
 
 var configFilenames = []string{"config.json", "config.yaml", "config.yml"}
 
-// defaultConfigLocator searches for a config file with one of the known
+// DefaultConfigLocator searches for a config file with one of the known
 // filenames (config.json, config.yaml, config.yml) in the given directory.
-var defaultConfigLocator = ConfigLocatorFunc(func(dir string) (string, error) {
+var DefaultConfigLocator = LocatorFunc(func(dir string) (string, error) {
 	for _, basename := range configFilenames {
 		file := filepath.Join(dir, basename)
 		if _, err := os.Stat(file); err == nil {
@@ -340,7 +163,7 @@ var defaultConfigLocator = ConfigLocatorFunc(func(dir string) (string, error) {
 })
 
 // LocateRcfile attempts to find the config file in various locations
-func LocateRcfile(locater ConfigLocator) (string, error) {
+func LocateRcfile(locater Locator) (string, error) {
 	// http://standards.freedesktop.org/basedir-spec/basedir-spec-latest.html
 	//
 	// Try in this order:

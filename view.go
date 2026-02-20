@@ -15,7 +15,7 @@ type View struct {
 
 // NewView creates a new View with the given state and its configured layout.
 func NewView(state *Peco) (*View, error) {
-	layout, err := NewLayout(LayoutType(state.LayoutType()), state)
+	layout, err := NewLayout(state.LayoutType(), state)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create layout: %w", err)
 	}

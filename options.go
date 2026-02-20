@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/jessevdk/go-flags"
+	"github.com/peco/peco/config"
 )
 
 // CLIOptions holds the command-line flags parsed by go-flags.
@@ -53,7 +54,7 @@ func (options *CLIOptions) parse(s []string) ([]string, error) {
 // Validate checks the parsed CLI options for correctness (e.g., layout type).
 func (options CLIOptions) Validate() error {
 	if options.OptLayout != "" {
-		if !IsValidLayoutType(LayoutType(options.OptLayout)) {
+		if !config.IsValidLayoutType(options.OptLayout) {
 			return errors.New("unknown layout: '" + options.OptLayout + "'")
 		}
 	}

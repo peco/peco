@@ -12,6 +12,7 @@ import (
 	"context"
 
 	"github.com/lestrrat-go/pdebug"
+	"github.com/peco/peco/config"
 	"github.com/peco/peco/hub"
 	"github.com/peco/peco/internal/keyseq"
 	"github.com/peco/peco/internal/util"
@@ -446,7 +447,7 @@ func doCancel(ctx context.Context, state *Peco, e Event) {
 
 	// peco.Cancel -> end program, exit with failure
 	err := makeIgnorable(errors.New("user canceled"))
-	if state.onCancel == OnCancelError {
+	if state.onCancel == config.OnCancelError {
 		err = setExitStatus(err, 1)
 	}
 	state.Exit(err)
@@ -463,7 +464,7 @@ func batchAction(ctx context.Context, state *Peco, fn func(context.Context)) {
 func doToggleSelectionAndSelectNext(ctx context.Context, state *Peco, e Event) {
 	batchAction(ctx, state, func(ctx context.Context) {
 		doToggleSelection(ctx, state, e)
-		if state.LayoutType() != LayoutTypeBottomUp {
+		if state.LayoutType() != config.LayoutTypeBottomUp {
 			state.Hub().SendPaging(ctx, hub.ToLineBelow)
 		} else {
 			state.Hub().SendPaging(ctx, hub.ToLineAbove)

@@ -9,6 +9,7 @@ import (
 
 	"context"
 
+	"github.com/peco/peco/config"
 	"github.com/peco/peco/filter"
 	"github.com/peco/peco/internal/keyseq"
 	"github.com/peco/peco/line"
@@ -25,7 +26,7 @@ func TestIssue212_SanityCheck(t *testing.T) {
 	require.Equal(t, state.config.Layout, "top-down", "Default layout type should be 'top-down', got '%s'", state.config.Layout)
 	require.Equal(t, len(state.config.Keymap), 0, "Default keymap should be empty, but got '%#v'", state.config.Keymap)
 
-	defstyle := StyleSet{}
+	defstyle := config.StyleSet{}
 	defstyle.Init()
 	require.Equal(t, state.config.Style, defstyle, "should be default style")
 	require.Equal(t, state.config.Prompt, "QUERY>", "Default prompt should be 'QUERY>', but got '%s'", state.config.Prompt)

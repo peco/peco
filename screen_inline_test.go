@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/gdamore/tcell/v2"
+	"github.com/peco/peco/config"
 	"github.com/stretchr/testify/require"
 )
 
@@ -17,7 +18,7 @@ func newTestInlineScreen(termWidth, termHeight, inlineHeight int) (*InlineScreen
 	sim.SetSize(termWidth, termHeight)
 
 	s := &InlineScreen{
-		heightSpec: HeightSpec{Value: inlineHeight, IsPercent: false},
+		heightSpec: config.HeightSpec{Value: inlineHeight, IsPercent: false},
 		screen:     sim,
 		height:     inlineHeight,
 		yOffset:    termHeight - inlineHeight,
@@ -39,7 +40,7 @@ func TestInlineScreenSetCell(t *testing.T) {
 	defer s.screen.Fini()
 
 	// SetCell at virtual y=0 should map to physical y=14 (24-10)
-	s.SetCell(5, 0, 'A', ColorDefault, ColorDefault)
+	s.SetCell(5, 0, 'A', config.ColorDefault, config.ColorDefault)
 	s.Flush()
 
 	// Read back from simulation screen at physical coordinates
@@ -47,7 +48,7 @@ func TestInlineScreenSetCell(t *testing.T) {
 	require.Equal(t, "A", str)
 
 	// SetCell at virtual y=9 (last line) should map to physical y=23
-	s.SetCell(10, 9, 'Z', ColorDefault, ColorDefault)
+	s.SetCell(10, 9, 'Z', config.ColorDefault, config.ColorDefault)
 	s.Flush()
 
 	str, _, _ = sim.Get(10, 23)
@@ -110,7 +111,7 @@ func TestInlineScreenNilSafety(t *testing.T) {
 	require.Equal(t, 0, w)
 	require.Equal(t, 0, h)
 
-	s.SetCell(0, 0, 'X', ColorDefault, ColorDefault)
+	s.SetCell(0, 0, 'X', config.ColorDefault, config.ColorDefault)
 	s.SetCursor(0, 0)
 	require.NoError(t, s.Flush())
 }
