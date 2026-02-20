@@ -97,6 +97,9 @@ func TestQueryDeleteRange(t *testing.T) {
 		{"delete all", "abcdef", 0, 6, ""},
 		{"delete single char", "abcdef", 2, 3, "abdef"},
 		{"start is -1 (no-op)", "abcdef", -1, 3, "abcdef"},
+		{"start is negative (no-op)", "abcdef", -5, 3, "abcdef"},
+		{"start beyond length (no-op)", "abcdef", 10, 15, "abcdef"},
+		{"start equals end (no-op)", "abcdef", 3, 3, "abcdef"},
 		{"start > end (no-op)", "abcdef", 4, 2, "abcdef"},
 		{"end beyond length (clamped)", "abcdef", 4, 100, "abcd"},
 		{"unicode delete", "あいうえお", 1, 3, "あえお"},
@@ -185,6 +188,8 @@ func TestQueryInsertAt(t *testing.T) {
 		{"insert in middle", "hello", 'X', 2, "heXllo"},
 		{"insert into empty", "", 'X', 0, "X"},
 		{"insert unicode", "hello", 'あ', 2, "heあllo"},
+		{"insert at negative index (no-op)", "hello", 'X', -1, "hello"},
+		{"insert beyond length (no-op)", "hello", 'X', 10, "hello"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
