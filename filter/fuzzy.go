@@ -34,7 +34,7 @@ func NewFuzzy(sortLongest bool) *Fuzzy {
 	ff := &Fuzzy{
 		sortLongest: sortLongest,
 	}
-	ff.applyFn = ff.applyInternal
+	ff.impl = ff
 	return ff
 }
 
