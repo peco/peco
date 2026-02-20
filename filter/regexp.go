@@ -268,9 +268,9 @@ func (rf *Regexp) applyInternal(ctx context.Context, lines []line.Line, em LineE
 
 		deduped := make([][]int, 0, len(matches))
 
-		for i, m := range matches {
+		for j, m := range matches {
 			// Always push the first one
-			if i == 0 {
+			if j == 0 {
 				deduped = append(deduped, m)
 				continue
 			}
