@@ -80,7 +80,7 @@ func TestExternalCmd_CancelCleansUpGoroutine(t *testing.T) {
 	case err := <-done:
 		require.ErrorIs(t, err, context.Canceled)
 	case <-time.After(5 * time.Second):
-		t.Fatal("Apply did not return after context cancellation")
+		require.Fail(t, "Apply did not return after context cancellation")
 	}
 
 	// Wait briefly for goroutine cleanup, then verify no goroutine leak
@@ -94,7 +94,7 @@ func TestExternalCmd_CancelCleansUpGoroutine(t *testing.T) {
 		}
 		time.Sleep(50 * time.Millisecond)
 	}
-	t.Errorf("goroutine leak: before=%d, after=%d", before, runtime.NumGoroutine())
+	require.Fail(t, "goroutine leak", "before=%d, after=%d", before, runtime.NumGoroutine())
 }
 
 func TestExternalCmd_ApplyWithoutQueryContext(t *testing.T) {

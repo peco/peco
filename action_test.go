@@ -250,9 +250,8 @@ func TestActionNames(t *testing.T) {
 		"peco.ZoomOut",
 	}
 	for _, name := range names {
-		if _, ok := nameToActions[name]; !ok {
-			t.Errorf("Action %s should exist, but it does not", name)
-		}
+		_, ok := nameToActions[name]
+		require.True(t, ok, "Action %s should exist, but it does not", name)
 	}
 }
 
@@ -449,9 +448,7 @@ func TestRotateFilter(t *testing.T) {
 		prev = state.Filters().Current()
 	}
 
-	if first != prev {
-		t.Errorf("should have rotated back to first one, but didn't")
-	}
+	require.Equal(t, first, prev, "should have rotated back to first one, but didn't")
 
 	// Verify ExecQuery is triggered after rotation: type a query, rotate,
 	// and verify the filtered buffer updates (proving re-execution).

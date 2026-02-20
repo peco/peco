@@ -32,7 +32,7 @@ func TestLoopContextCancel(t *testing.T) {
 	case err := <-errCh:
 		require.ErrorIs(t, err, context.Canceled)
 	case <-time.After(5 * time.Second):
-		t.Fatal("Loop did not exit after context cancellation")
+		require.Fail(t, "Loop did not exit after context cancellation")
 	}
 
 	// After Loop returns, the signal channel should be deregistered.
@@ -79,7 +79,7 @@ func TestLoopSignalReceived(t *testing.T) {
 	case err := <-errCh:
 		require.NoError(t, err)
 	case <-time.After(5 * time.Second):
-		t.Fatal("Loop did not exit after signal")
+		require.Fail(t, "Loop did not exit after signal")
 	}
 
 	require.Equal(t, syscall.SIGUSR1, received, "handler should have received SIGUSR1")

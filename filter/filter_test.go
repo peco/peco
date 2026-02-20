@@ -228,7 +228,7 @@ func testFuzzyLongest(octx context.Context, t *testing.T, filter Filter) {
 					require.NoError(t, err, `filter.Apply should succeed`)
 					break OUTER
 				case <-ctx.Done():
-					t.Fatalf("unexpected timeout")
+					require.Fail(t, "unexpected timeout")
 				}
 			}
 
@@ -619,7 +619,7 @@ func testFuzzyMatch(octx context.Context, t *testing.T, filter Filter) {
 					require.NoError(t, err, `filter.Apply should succeed`)
 					break OUTER
 				case <-ctx.Done():
-					t.Fatalf("unexpected timeout")
+					require.Fail(t, "unexpected timeout")
 				}
 			}
 		})
