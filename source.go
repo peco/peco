@@ -132,7 +132,7 @@ func (s *Source) Setup(ctx context.Context, state *Peco) {
 			}
 			if closer, ok := s.in.(io.Closer); ok {
 				s.inClosed = true
-				_ = closer.Close()
+				closer.Close() // best-effort cleanup; error is not actionable
 			}
 		}()
 
