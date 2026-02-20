@@ -160,6 +160,14 @@ mixed-case (e.g.\ typing \f[V]foo -bar\f[R] then adding an uppercase
 character).
 If this happens, clearing the query and retyping it will produce the
 correct results.
+.PP
+\f[B]Upgrading from v0.5.x:\f[R] This is a breaking change.
+In v0.5.x, a query like \f[V]test -v\f[R] matched lines containing both
+\[lq]test\[rq] and literal \[lq]-v\[rq].
+In v0.6.0, the same query matches \[lq]test\[rq] while
+\f[I]excluding\f[R] lines containing \[lq]v\[rq].
+If you need to search for a literal hyphen-prefixed term, escape it with
+a backslash (e.g.\ \f[V]\[rs]-v\f[R]).
 .SS Select Multiple Lines
 .PP
 You can select multiple lines!
