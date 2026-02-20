@@ -40,16 +40,20 @@ func (q *Text) SaveQuery() {
 func (q *Text) DeleteRange(start, end int) {
 	q.mutex.Lock()
 	defer q.mutex.Unlock()
-	if start == -1 {
+	if start < 0 {
 		return
 	}
 
 	l := len(q.query)
+	if start > l {
+		return
+	}
+
 	if end > l {
 		end = l
 	}
 
-	if start > end {
+	if start >= end {
 		return
 	}
 
@@ -94,7 +98,12 @@ func (q *Text) InsertAt(ch rune, where int) {
 	q.mutex.Lock()
 	defer q.mutex.Unlock()
 
-	if where == len(q.query) {
+	l := len(q.query)
+	if where < 0 || where > l {
+		return
+	}
+
+	if where == l {
 		q.query = append(q.query, ch)
 		return
 	}
