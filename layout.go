@@ -940,6 +940,9 @@ func (l *BasicLayout) DrawScreen(state *Peco, options *hub.DrawOptions) {
 	}
 
 	if err := l.screen.Flush(); err != nil {
+		if pdebug.Enabled {
+			pdebug.Printf("screen.Flush error: %s", err)
+		}
 		return
 	}
 }
