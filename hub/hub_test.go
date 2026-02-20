@@ -123,7 +123,7 @@ func TestBatchPanicReleasesLock(t *testing.T) {
 	case <-done:
 		// success — mutex was properly released
 	case <-time.After(2 * time.Second):
-		t.Fatal("Batch deadlocked — mutex was not released after panic")
+		require.Fail(t, "Batch deadlocked — mutex was not released after panic")
 	}
 }
 
@@ -150,7 +150,7 @@ func TestBatchNestedDoesNotDeadlock(t *testing.T) {
 	case <-done:
 		// success — nested Batch did not deadlock
 	case <-time.After(2 * time.Second):
-		t.Fatal("nested Batch deadlocked")
+		require.Fail(t, "nested Batch deadlocked")
 	}
 }
 

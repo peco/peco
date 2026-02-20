@@ -176,7 +176,7 @@ func TestTcellScreenPollEventLogsPanic(t *testing.T) {
 	case _, ok := <-evCh:
 		require.False(t, ok, "expected channel to be closed after panic")
 	case <-time.After(2 * time.Second):
-		t.Fatal("PollEvent channel was not closed after panic")
+		require.Fail(t, "PollEvent channel was not closed after panic")
 	}
 
 	// Verify that the panic was logged (not silently swallowed).
@@ -221,7 +221,7 @@ func TestTcellScreenSuspendHandlerExitsOnClose(t *testing.T) {
 	case <-exited:
 		// Goroutine exited via doneCh — no leak.
 	case <-time.After(2 * time.Second):
-		t.Fatal("suspend handler goroutine did not exit after Close()")
+		require.Fail(t, "suspend handler goroutine did not exit after Close()")
 	}
 }
 
@@ -253,7 +253,7 @@ func TestTcellScreenPollingGoroutineExitsOnClose(t *testing.T) {
 	case <-exited:
 		// Goroutine exited via doneCh.
 	case <-time.After(2 * time.Second):
-		t.Fatal("polling goroutine did not exit after Close()")
+		require.Fail(t, "polling goroutine did not exit after Close()")
 	}
 }
 
@@ -305,7 +305,7 @@ func TestTcellScreenSuspendThenClose(t *testing.T) {
 	case <-exited:
 		// Goroutine exited after Close() following a suspend.
 	case <-time.After(2 * time.Second):
-		t.Fatal("suspend handler goroutine did not exit after suspend + Close()")
+		require.Fail(t, "suspend handler goroutine did not exit after suspend + Close()")
 	}
 }
 
@@ -333,7 +333,7 @@ func TestTcellScreenResumeNoDeadlock(t *testing.T) {
 	case <-done:
 		// Resume completed without deadlock.
 	case <-time.After(2 * time.Second):
-		t.Fatal("Resume() deadlocked")
+		require.Fail(t, "Resume() deadlocked")
 	}
 }
 
@@ -356,7 +356,7 @@ func TestTcellScreenResumeDoesNotDropSend(t *testing.T) {
 	case <-received:
 		// The receiver goroutine got the message.
 	default:
-		t.Fatal("receiver did not get the resume message")
+		require.Fail(t, "receiver did not get the resume message")
 	}
 }
 
@@ -379,7 +379,7 @@ func TestTcellScreenResumeContextCancelled(t *testing.T) {
 	case <-done:
 		// Resume returned promptly after context cancellation.
 	case <-time.After(2 * time.Second):
-		t.Fatal("Resume() did not unblock after context cancellation")
+		require.Fail(t, "Resume() did not unblock after context cancellation")
 	}
 }
 
@@ -410,7 +410,7 @@ func TestTcellScreenResumeContextCancelledWhileWaitingForReply(t *testing.T) {
 	case <-done:
 		// Resume returned after context cancellation during reply wait.
 	case <-time.After(2 * time.Second):
-		t.Fatal("Resume() did not unblock after context cancellation while waiting for reply")
+		require.Fail(t, "Resume() did not unblock after context cancellation while waiting for reply")
 	}
 
 	// Verify context was indeed cancelled.

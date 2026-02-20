@@ -126,7 +126,7 @@ func TestCopySelf(t *testing.T) {
 	select {
 	case <-done:
 	case <-time.After(2 * time.Second):
-		t.Fatal("Copy(self) deadlocked")
+		require.Fail(t, "Copy(self) deadlocked")
 	}
 
 	require.Equal(t, 2, s.Len())
@@ -157,6 +157,6 @@ func TestCopyCrossNoDeadlock(t *testing.T) {
 	select {
 	case <-done:
 	case <-time.After(2 * time.Second):
-		t.Fatal("cross-Copy deadlocked")
+		require.Fail(t, "cross-Copy deadlocked")
 	}
 }

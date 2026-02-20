@@ -54,7 +54,7 @@ func TestSource(t *testing.T) {
 		_, ok := <-s.Ready()
 		require.False(t, ok, "s.Ready should be false at this point")
 	case <-timeout:
-		t.Fatal("timed out waiting for source")
+		require.Fail(t, "timed out waiting for source")
 	case <-s.Ready():
 	}
 

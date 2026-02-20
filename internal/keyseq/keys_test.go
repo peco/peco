@@ -86,15 +86,9 @@ func TestKeymapStrToKeyValue(t *testing.T) {
 	for n, v := range expected {
 		t.Logf("    checking %s...", n)
 		e, modifier, _, err := ToKey(n)
-		if err != nil {
-			t.Errorf("Key name %s not found", n)
-		}
-		if e != v {
-			t.Errorf("Expected '%s' to be '%d', but got '%d'", n, v, stringToKey[n])
-		}
-		if modifier != 0 {
-			t.Errorf("Key name '%s' is not Alt-prefixed", n)
-		}
+		require.NoError(t, err, "Key name %s not found", n)
+		require.Equal(t, v, e, "Expected '%s' to be '%d', but got '%d'", n, v, stringToKey[n])
+		require.Equal(t, ModifierKey(0), modifier, "Key name '%s' is not Alt-prefixed", n)
 	}
 }
 
@@ -113,18 +107,10 @@ func TestKeymapStrToKeyValueWithAlt(t *testing.T) {
 	for n, v := range expected {
 		t.Logf("    checking %s...", n)
 		k, modifier, ch, err := ToKey(n)
-		if err != nil {
-			t.Errorf("Failed ToKey: Key name %s", n)
-		}
-		if modifier != 1 {
-			t.Errorf("Key name %s has Alt prefix", n)
-		}
-		if k != v.key {
-			t.Errorf("Expected '%s' to be '%d', but got '%d'", n, v.key, k)
-		}
-		if ch != v.ch {
-			t.Errorf("Expected '%s' to be '%c', but got '%c'", n, v.ch, ch)
-		}
+		require.NoError(t, err, "Failed ToKey: Key name %s", n)
+		require.Equal(t, ModifierKey(1), modifier, "Key name %s has Alt prefix", n)
+		require.Equal(t, v.key, k, "Expected '%s' to be '%d', but got '%d'", n, v.key, k)
+		require.Equal(t, v.ch, ch, "Expected '%s' to be '%c', but got '%c'", n, v.ch, ch)
 	}
 }
 
@@ -138,19 +124,11 @@ func TestKeymapStrToKeyValueCh(t *testing.T) {
 	for _, n := range expected {
 		t.Logf("    checking %s...", n)
 		k, modifier, ch, err := ToKey(n)
-		if err != nil {
-			t.Errorf("Failed ToKey: Key name %s", n)
-		}
-		if k != 0 {
-			t.Errorf("Key name %s is mapped key", n)
-		}
-		if modifier == 1 {
-			t.Errorf("Key name %s has Alt prefix", n)
-		}
+		require.NoError(t, err, "Failed ToKey: Key name %s", n)
+		require.Equal(t, KeyType(0), k, "Key name %s is mapped key", n)
+		require.NotEqual(t, ModifierKey(1), modifier, "Key name %s has Alt prefix", n)
 		r, _ := utf8.DecodeRuneInString(n)
-		if ch != r {
-			t.Errorf("key name %s cannot convert to rune", n)
-		}
+		require.Equal(t, r, ch, "key name %s cannot convert to rune", n)
 	}
 }
 

@@ -94,7 +94,7 @@ func TestInlineScreenPollEventLogsPanic(t *testing.T) {
 	case _, ok := <-evCh:
 		require.False(t, ok, "expected channel to be closed after panic")
 	case <-time.After(2 * time.Second):
-		t.Fatal("PollEvent channel was not closed after panic")
+		require.Fail(t, "PollEvent channel was not closed after panic")
 	}
 
 	// Verify that the panic was logged (not silently swallowed).

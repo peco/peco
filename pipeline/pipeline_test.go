@@ -108,16 +108,12 @@ func TestQueryContext(t *testing.T) {
 	t.Run("round-trip", func(t *testing.T) {
 		ctx := NewQueryContext(context.Background(), "hello")
 		got := QueryFromContext(ctx)
-		if got != "hello" {
-			t.Fatalf("expected %q, got %q", "hello", got)
-		}
+		require.Equal(t, "hello", got)
 	})
 
 	t.Run("missing key returns empty", func(t *testing.T) {
 		got := QueryFromContext(context.Background())
-		if got != "" {
-			t.Fatalf("expected empty string, got %q", got)
-		}
+		require.Equal(t, "", got)
 	})
 }
 

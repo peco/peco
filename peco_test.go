@@ -306,9 +306,7 @@ func TestIDGen(t *testing.T) {
 
 	sel := selection.New()
 	for _, l := range lines {
-		if sel.Has(l) {
-			t.Fatalf("Collision detected %d", l.ID())
-		}
+		require.False(t, sel.Has(l), "Collision detected %d", l.ID())
 		sel.Add(l)
 	}
 }
@@ -557,7 +555,7 @@ func TestGHIssue363(t *testing.T) {
 
 	select {
 	case <-ctx.Done():
-		t.Fatal("timeout reached")
+		require.Fail(t, "timeout reached")
 		return
 	case err := <-resultCh:
 		require.True(t, util.IsCollectResultsError(err), "isCollectResultsError")
@@ -663,7 +661,7 @@ func TestExitZero(t *testing.T) {
 
 		select {
 		case <-ctx.Done():
-			t.Fatal("timeout reached")
+			require.Fail(t, "timeout reached")
 			return
 		case err := <-resultCh:
 			require.True(t, util.IsIgnorableError(err), "error should be ignorable")
@@ -709,7 +707,7 @@ func TestExitZero(t *testing.T) {
 			if util.IsIgnorableError(err) {
 				st, ok := util.GetExitStatus(err)
 				if ok && st == 1 {
-					t.Fatal("--exit-0 should not trigger when input is non-empty")
+					require.Fail(t, "--exit-0 should not trigger when input is non-empty")
 				}
 			}
 		}
@@ -729,7 +727,7 @@ func runPecoSelectAll(t *testing.T, p *Peco, ctx context.Context) { //nolint:rev
 
 	select {
 	case <-ctx.Done():
-		t.Fatal("timeout reached")
+		require.Fail(t, "timeout reached")
 	case err := <-resultCh:
 		require.True(t, util.IsCollectResultsError(err), "isCollectResultsError")
 		p.PrintResults()
@@ -837,7 +835,7 @@ func TestPrintQuery(t *testing.T) {
 
 		select {
 		case <-ctx.Done():
-			t.Fatal("timeout reached")
+			require.Fail(t, "timeout reached")
 			return
 		case err := <-resultCh:
 			require.True(t, util.IsCollectResultsError(err), "isCollectResultsError")
@@ -875,7 +873,7 @@ func TestPrintQuery(t *testing.T) {
 
 		select {
 		case <-ctx.Done():
-			t.Fatal("timeout reached")
+			require.Fail(t, "timeout reached")
 			return
 		case err := <-resultCh:
 			require.True(t, util.IsCollectResultsError(err), "isCollectResultsError")
@@ -895,7 +893,7 @@ func TestMemoryBufferMarkComplete(t *testing.T) {
 		case <-mb.Done():
 			// expected
 		default:
-			t.Fatal("Done channel should be closed after MarkComplete")
+			require.Fail(t, "Done channel should be closed after MarkComplete")
 		}
 	})
 
@@ -909,7 +907,7 @@ func TestMemoryBufferMarkComplete(t *testing.T) {
 		case <-mb.Done():
 			// expected
 		default:
-			t.Fatal("Done channel should be closed after MarkComplete")
+			require.Fail(t, "Done channel should be closed after MarkComplete")
 		}
 	})
 
@@ -922,7 +920,7 @@ func TestMemoryBufferMarkComplete(t *testing.T) {
 		// After reset, done should be a new open channel
 		select {
 		case <-mb.Done():
-			t.Fatal("Done channel should not be closed after Reset")
+			require.Fail(t, "Done channel should not be closed after Reset")
 		default:
 			// expected
 		}
@@ -934,7 +932,7 @@ func TestMemoryBufferMarkComplete(t *testing.T) {
 		case <-mb.Done():
 			// expected
 		default:
-			t.Fatal("Done channel should be closed after second MarkComplete")
+			require.Fail(t, "Done channel should be closed after second MarkComplete")
 		}
 	})
 }
@@ -1026,7 +1024,7 @@ func TestCancelFuncDataRace(t *testing.T) {
 		// err could be any of the "exit-N" errors; just verify it's non-nil
 		require.Error(t, err, "Run should return an error after Exit")
 	case <-time.After(5 * time.Second):
-		t.Fatal("timeout waiting for Run to return")
+		require.Fail(t, "timeout waiting for Run to return")
 	}
 }
 
@@ -1054,7 +1052,7 @@ func TestSelect1WithQuery(t *testing.T) {
 
 	select {
 	case <-ctx.Done():
-		t.Fatal("timeout: --select-1 --query bar should have auto-selected")
+		require.Fail(t, "timeout: --select-1 --query bar should have auto-selected")
 	case err := <-resultCh:
 		require.True(t, util.IsCollectResultsError(err), "expected collectResultsError")
 		p.PrintResults()
@@ -1081,7 +1079,7 @@ func TestWaitAndCall(t *testing.T) {
 			elapsed := time.Since(start)
 			require.True(t, elapsed >= 2*time.Second, "should wait at least 2s (got %v)", elapsed)
 		case <-time.After(5 * time.Second):
-			t.Fatal("callback was not fired within 5s")
+			require.Fail(t, "callback was not fired within 5s")
 		}
 	})
 
@@ -1105,7 +1103,7 @@ func TestWaitAndCall(t *testing.T) {
 		case <-done:
 			require.False(t, called, "callback should NOT fire after context cancellation")
 		case <-time.After(5 * time.Second):
-			t.Fatal("waitAndCall did not return after context cancellation")
+			require.Fail(t, "waitAndCall did not return after context cancellation")
 		}
 	})
 }
@@ -1150,7 +1148,7 @@ func TestMouseClickToggleSelection(t *testing.T) {
 
 	select {
 	case <-ctx.Done():
-		t.Fatal("timeout reached")
+		require.Fail(t, "timeout reached")
 	case err := <-resultCh:
 		require.True(t, util.IsCollectResultsError(err), "isCollectResultsError")
 		p.PrintResults()
