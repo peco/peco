@@ -3,6 +3,7 @@ package selection
 import (
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/peco/peco/line"
 	"github.com/stretchr/testify/require"
@@ -109,4 +110,53 @@ func TestRangeStart(t *testing.T) {
 
 	rs.Reset()
 	require.False(t, rs.Valid())
+}
+
+func TestCopySelf(t *testing.T) {
+	s := New()
+	s.Add(line.NewRaw(0, "Alice", false, false))
+	s.Add(line.NewRaw(1, "Bob", false, false))
+
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+		s.Copy(s)
+	}()
+
+	select {
+	case <-done:
+	case <-time.After(2 * time.Second):
+		t.Fatal("Copy(self) deadlocked")
+	}
+
+	require.Equal(t, 2, s.Len())
+}
+
+func TestCopyCrossNoDeadlock(t *testing.T) {
+	a := New()
+	b := New()
+	a.Add(line.NewRaw(0, "Alice", false, false))
+	b.Add(line.NewRaw(1, "Bob", false, false))
+
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+		var wg sync.WaitGroup
+		wg.Add(2)
+		go func() {
+			defer wg.Done()
+			a.Copy(b)
+		}()
+		go func() {
+			defer wg.Done()
+			b.Copy(a)
+		}()
+		wg.Wait()
+	}()
+
+	select {
+	case <-done:
+	case <-time.After(2 * time.Second):
+		t.Fatal("cross-Copy deadlocked")
+	}
 }

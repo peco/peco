@@ -37,11 +37,24 @@ func (s *Set) Add(l line.Line) {
 }
 
 // Copy copies all selected lines from s into dst.
+//
+// Items are collected under the source read lock first, then added to dst
+// after releasing that lock. This avoids deadlocks when dst == s and
+// prevents ABBA deadlocks during concurrent bidirectional copies.
 func (s *Set) Copy(dst *Set) {
-	s.Ascend(func(l line.Line) bool {
-		dst.Add(l)
+	s.mutex.RLock()
+	items := make([]line.Line, 0, s.tree.Len())
+	s.tree.Ascend(func(it btree.Item) bool {
+		if l, ok := it.(line.Line); ok {
+			items = append(items, l)
+		}
 		return true
 	})
+	s.mutex.RUnlock()
+
+	for _, l := range items {
+		dst.Add(l)
+	}
 }
 
 // Remove removes the specified line from the selection.
