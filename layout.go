@@ -972,14 +972,13 @@ func (l *BasicLayout) linesPerPage() int {
 }
 
 // MovePage scrolls the screen
-func (l *BasicLayout) MovePage(state *Peco, p hub.PagingRequest) (moved bool) {
+func (l *BasicLayout) MovePage(state *Peco, p hub.PagingRequest) bool {
 	switch p.Type() {
 	case hub.ToScrollLeft, hub.ToScrollRight:
-		moved = horizontalScroll(state, l, p)
+		return horizontalScroll(state, l, p)
 	default:
-		moved = verticalScroll(state, l, p)
+		return verticalScroll(state, l, p)
 	}
-	return
 }
 
 // computeNewLineNumber calculates the new line number based on the paging
