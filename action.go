@@ -174,8 +174,10 @@ func init() {
 	ActionFunc(doZoomIn).Register("ZoomIn")
 	ActionFunc(doZoomOut).Register("ZoomOut")
 
-	ActionFunc(doGoToNextSelection).Register("GoToNextSelection")
-	ActionFunc(doGoToPreviousSelection).Register("GoToPreviousSelection", keyseq.KeyCtrlJ)
+	ActionFunc(doGoToNextSelection).RegisterKeySequence("GoToNextSelection",
+		keyseq.KeyList{keyseq.Key{Modifier: keyseq.ModAlt, Ch: 'j'}})
+	ActionFunc(doGoToPreviousSelection).RegisterKeySequence("GoToPreviousSelection",
+		keyseq.KeyList{keyseq.Key{Modifier: keyseq.ModAlt, Ch: 'k'}})
 
 	ActionFunc(doKonamiCommand).RegisterKeySequence(
 		"KonamiCommand",
