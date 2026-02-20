@@ -168,7 +168,7 @@ func (f *regexpQueryFactory) evictLRU(targetSize int) {
 
 // Compile parses the query string into positive and negative regexp slices,
 // caching compiled results for reuse within the expiry threshold.
-func (f *regexpQueryFactory) Compile(s string, flags regexpFlags, quotemeta bool) (positive, negative []*regexp.Regexp, err error) {
+func (f *regexpQueryFactory) Compile(s string, flags regexpFlags, quotemeta bool) ([]*regexp.Regexp, []*regexp.Regexp, error) {
 	f.mutex.Lock()
 	defer f.mutex.Unlock()
 
@@ -184,12 +184,14 @@ func (f *regexpQueryFactory) Compile(s string, flags regexpFlags, quotemeta bool
 
 	var posRxs, negRxs []*regexp.Regexp
 	if len(posTerms) > 0 {
+		var err error
 		posRxs, err = termsToRegexps(posTerms, s, flags, quotemeta)
 		if err != nil {
 			return nil, nil, fmt.Errorf("failed to compile positive regular expressions: %w", err)
 		}
 	}
 	if len(negTerms) > 0 {
+		var err error
 		negRxs, err = termsToRegexps(negTerms, s, flags, quotemeta)
 		if err != nil {
 			return nil, nil, fmt.Errorf("failed to compile negative regular expressions: %w", err)
