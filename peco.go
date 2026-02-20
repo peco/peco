@@ -1086,11 +1086,12 @@ func (p *Peco) PrintResults() {
 			selection.Add(l)
 		}
 	}
-	p.SetResultCh(make(chan line.Line))
+	resultCh := make(chan line.Line)
+	p.SetResultCh(resultCh)
 	go func() {
-		defer close(p.resultCh)
+		defer close(resultCh)
 		p.selection.Ascend(func(l line.Line) bool {
-			p.ResultCh() <- l
+			resultCh <- l
 			return true
 		})
 	}()
@@ -1104,7 +1105,7 @@ func (p *Peco) PrintResults() {
 		buf.WriteString(p.Query().String())
 		buf.WriteByte('\n')
 	}
-	for line := range p.ResultCh() {
+	for line := range resultCh {
 		buf.WriteString(line.Output())
 		buf.WriteByte('\n')
 	}
