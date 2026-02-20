@@ -249,7 +249,7 @@ func (rf *Regexp) applyInternal(ctx context.Context, lines []line.Line, em LineE
 		matches := [][]int{}
 	TryRegexps:
 		for _, rx := range posRegexps {
-			match := rx.FindAllStringSubmatchIndex(v, -1)
+			match := rx.FindAllStringIndex(v, -1)
 			if match == nil {
 				allMatched = false
 				break TryRegexps
