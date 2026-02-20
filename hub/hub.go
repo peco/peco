@@ -152,6 +152,8 @@ func send[T any](ctx context.Context, ch chan *Payload[T], r *Payload[T]) {
 	}
 
 	if r.Batch() {
+		// The pool only ever contains chan struct{} values (see doneChPool.Put
+		// in Payload.Done), so this assertion cannot fail in practice.
 		r.done, _ = doneChPool.Get().(chan struct{})
 		if pdebug.Enabled {
 			defer pdebug.Printf("request is part of batch operation. waiting")
