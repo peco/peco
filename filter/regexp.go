@@ -198,9 +198,8 @@ func (f *regexpQueryFactory) Compile(s string, flags regexpFlags, quotemeta bool
 
 	// Evict stale entries if cache is over the size limit
 	if len(f.compiled) >= maxRegexpCacheSize {
-		now := time.Now()
 		for k, v := range f.compiled {
-			if now.Sub(v.lastUsed) >= f.threshold {
+			if time.Since(v.lastUsed) >= f.threshold {
 				delete(f.compiled, k)
 			}
 		}
