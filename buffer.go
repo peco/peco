@@ -94,7 +94,7 @@ func (flb *FilteredBuffer) MaxColumn() int {
 // in this filtered buffer may actually correspond to a totally
 // different line number in the source buffer.
 func (flb FilteredBuffer) LineAt(i int) (line.Line, error) {
-	if i >= len(flb.selection) {
+	if i < 0 || i >= len(flb.selection) {
 		return nil, fmt.Errorf("specified index %d is out of range", len(flb.selection))
 	}
 	return flb.src.LineAt(flb.selection[i])
