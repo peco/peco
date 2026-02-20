@@ -766,6 +766,51 @@ func TestGHIssue428_PgUpPgDnDefaultBindings(t *testing.T) {
 	})
 }
 
+func TestDefaultKeyBindings(t *testing.T) {
+	ctx := context.Background()
+	rHub := &recordingHub{}
+
+	state := New()
+	state.hub = rHub
+	state.selection = selection.New()
+	state.currentLineBuffer = NewMemoryBuffer(0)
+
+	state.config.Keymap = map[string]string{}
+	state.config.Action = map[string][]string{}
+	require.NoError(t, state.populateKeymap(), "populateKeymap should succeed")
+
+	km := state.Keymap()
+
+	tests := []struct {
+		name     string
+		key      keyseq.KeyType
+		expected hub.PagingRequest
+	}{
+		{"ArrowUp triggers SelectUp", keyseq.KeyArrowUp, hub.ToLineAbove},
+		{"ArrowDown triggers SelectDown", keyseq.KeyArrowDown, hub.ToLineBelow},
+		{"ArrowRight triggers ScrollPageDown", keyseq.KeyArrowRight, hub.ToScrollPageDown},
+		{"ArrowLeft triggers ScrollPageUp", keyseq.KeyArrowLeft, hub.ToScrollPageUp},
+		{"PgDn triggers ScrollPageDown", keyseq.KeyPgdn, hub.ToScrollPageDown},
+		{"PgUp triggers ScrollPageUp", keyseq.KeyPgup, hub.ToScrollPageUp},
+		{"Home triggers ScrollFirstItem", keyseq.KeyHome, hub.ToScrollFirstItem},
+		{"End triggers ScrollLastItem", keyseq.KeyEnd, hub.ToScrollLastItem},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			rHub.reset()
+
+			ev := Event{Key: tt.key}
+			err := km.ExecuteAction(ctx, state, ev)
+			require.NoError(t, err, "%s should resolve to an action", tt.name)
+
+			pagingArgs := rHub.getPagingArgs()
+			require.Len(t, pagingArgs, 1, "expected one paging call")
+			require.Equal(t, tt.expected, pagingArgs[0])
+		})
+	}
+}
+
 // TestGHIssue455_RefreshScreenSendsForceSync verifies that doRefreshScreen
 // sends DrawOptions with both DisableCache and ForceSync set to true.
 func TestGHIssue455_RefreshScreenSendsForceSync(t *testing.T) {
