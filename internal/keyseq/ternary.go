@@ -59,6 +59,9 @@ func NewTernaryNode(l Key) *TernaryNode {
 
 // GetList looks up a child node matching the first key in the list.
 func (n *TernaryNode) GetList(k KeyList) Node {
+	if len(k) == 0 {
+		return nil
+	}
 	return n.Get(k[0])
 }
 
