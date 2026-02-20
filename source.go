@@ -70,6 +70,8 @@ func (s *Source) Name() string {
 // IsInfinite reports whether the source is an infinite stream (e.g. tail -f)
 // that has not yet been closed.
 func (s *Source) IsInfinite() bool {
+	s.mutex.RLock()
+	defer s.mutex.RUnlock()
 	return s.isInfinite && !s.inClosed
 }
 
@@ -131,7 +133,9 @@ func (s *Source) Setup(ctx context.Context, state *Peco) {
 				return
 			}
 			if closer, ok := s.in.(io.Closer); ok {
+				s.mutex.Lock()
 				s.inClosed = true
+				s.mutex.Unlock()
 				closer.Close() // best-effort cleanup; error is not actionable
 			}
 		}()
