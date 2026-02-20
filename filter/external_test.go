@@ -78,7 +78,7 @@ func TestExternalCmd_CancelCleansUpGoroutine(t *testing.T) {
 	// Apply should return promptly
 	select {
 	case err := <-done:
-		require.NoError(t, err)
+		require.ErrorIs(t, err, context.Canceled)
 	case <-time.After(5 * time.Second):
 		t.Fatal("Apply did not return after context cancellation")
 	}
