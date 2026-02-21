@@ -93,15 +93,9 @@ func matchOverlaps(a []int, b []int) bool {
 }
 
 // mergeMatches combines two overlapping match ranges into a single range
-// spanning both.
+// spanning both. It mutates and returns a to avoid a heap allocation.
 func mergeMatches(a []int, b []int) []int {
-	ret := make([]int, 2)
-
-	// Note: In practice this should never happen
-	// because we're sorting by N[0] before calling
-	// this routine, but for completeness' sake...
-	ret[0] = min(a[0], b[0])
-
-	ret[1] = max(a[1], b[1])
-	return ret
+	a[0] = min(a[0], b[0])
+	a[1] = max(a[1], b[1])
+	return a
 }
