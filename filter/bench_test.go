@@ -2,15 +2,17 @@ package filter
 
 import (
 	"context"
+	"strings"
 	"testing"
 	"time"
 
+	"github.com/peco/peco/internal/util"
 	"github.com/peco/peco/line"
 	"github.com/peco/peco/pipeline"
 )
 
 // BenchmarkFuzzyFilter benchmarks the fuzzy filter to measure allocations
-// in the hot path.
+// in the hot path (CaseInsensitiveIndexFunc closure, match slices, etc).
 func BenchmarkFuzzyFilter(b *testing.B) {
 	lines := make([]line.Line, 200)
 	for i := range lines {
@@ -18,7 +20,7 @@ func BenchmarkFuzzyFilter(b *testing.B) {
 	}
 
 	f := NewFuzzy(false)
-	query := "trfp"
+	query := "trfp" // matches scattered chars across the line
 
 	b.ResetTimer()
 	b.ReportAllocs()
@@ -27,5 +29,30 @@ func BenchmarkFuzzyFilter(b *testing.B) {
 		ch := make(chan line.Line, len(lines))
 		_ = f.Apply(ctx, lines, pipeline.ChanOutput(ch))
 		cancel()
+	}
+}
+
+// BenchmarkCaseInsensitiveIndexClosure measures the old closure-based approach.
+func BenchmarkCaseInsensitiveIndexClosure(b *testing.B) {
+	txt := "this is a reasonably long line for benchmarking"
+	r := 'r'
+
+	b.ResetTimer()
+	b.ReportAllocs()
+	for b.Loop() {
+		fn := util.CaseInsensitiveIndexFunc(r)
+		strings.IndexFunc(txt, fn)
+	}
+}
+
+// BenchmarkCaseInsensitiveIndexDirect measures the new direct approach.
+func BenchmarkCaseInsensitiveIndexDirect(b *testing.B) {
+	txt := "this is a reasonably long line for benchmarking"
+	r := 'r'
+
+	b.ResetTimer()
+	b.ReportAllocs()
+	for b.Loop() {
+		util.CaseInsensitiveIndex(txt, r)
 	}
 }

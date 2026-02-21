@@ -108,7 +108,7 @@ LINE:
 			if hasUpper {
 				idx = strings.IndexRune(remaining, firstRune)
 			} else {
-				idx = strings.IndexFunc(remaining, util.CaseInsensitiveIndexFunc(firstRune))
+				idx = util.CaseInsensitiveIndex(remaining, firstRune)
 			}
 			if idx == -1 {
 				break
@@ -157,7 +157,7 @@ LINE:
 				if hasUpper {
 					idx = strings.IndexRune(candidateTxt, r)
 				} else {
-					idx = strings.IndexFunc(candidateTxt, util.CaseInsensitiveIndexFunc(r))
+					idx = util.CaseInsensitiveIndex(candidateTxt, r)
 				}
 				if idx == -1 {
 					continue OUTER

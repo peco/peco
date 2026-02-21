@@ -18,6 +18,19 @@ func CaseInsensitiveIndexFunc(r rune) func(rune) bool {
 	}
 }
 
+// CaseInsensitiveIndex returns the byte index of the first rune in s that
+// is case-insensitively equal to r. Returns -1 if not found. This avoids
+// the closure allocation of CaseInsensitiveIndexFunc + strings.IndexFunc.
+func CaseInsensitiveIndex(s string, r rune) int {
+	upper := unicode.ToUpper(r)
+	for i, c := range s {
+		if unicode.ToUpper(c) == upper {
+			return i
+		}
+	}
+	return -1
+}
+
 // ContainsUpper reports whether the string contains any uppercase letter.
 func ContainsUpper(query string) bool {
 	for _, c := range query {
