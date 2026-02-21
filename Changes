@@ -26,11 +26,9 @@ v0.6.0 - UNRELEASED
     Ctrl+K in v0.5.x) and is now bound to Alt+j. `GoToPreviousSelection`
     was previously bound to Ctrl+J and is now bound to Alt+k.
   * ANSI color support is now enabled by default (`--color=auto`).
-    In v0.5.x, ANSI escape sequences in input were stripped and not
-    rendered unless explicitly enabled. To disable, use `--color=none`
-    or set `"Color": "none"` in your config file. The previous `--ansi`
-    flag and `"ANSI": true` config field have been replaced by
-    `--color=auto|none` and `"Color": "auto"|"none"`.
+    ANSI escape sequences in input are now parsed and rendered with
+    colors preserved. To disable, use `--color=none` or set
+    `"Color": "none"` in your config file.
   * Query terms starting with `-` are now interpreted as negative
     (exclusion) filters. In v0.5.x, `foo -bar` searched for lines
     matching both "foo" and literal "-bar"; in v0.6.0 it searches for
