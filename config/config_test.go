@@ -267,6 +267,74 @@ func TestOnCancelBehavior(t *testing.T) {
 	})
 }
 
+func TestColorMode(t *testing.T) {
+	t.Run("valid values via JSON", func(t *testing.T) {
+		for _, tc := range []struct {
+			input    string
+			expected ColorMode
+		}{
+			{`{"Color":"auto"}`, ColorModeAuto},
+			{`{"Color":"none"}`, ColorModeNone},
+			{`{}`, ""}, // absent key stays at zero value; default applied later in ApplyConfig
+		} {
+			var cfg Config
+			require.NoError(t, cfg.Init())
+			require.NoError(t, json.Unmarshal([]byte(tc.input), &cfg))
+			require.Equal(t, tc.expected, cfg.Color)
+		}
+	})
+
+	t.Run("valid values via YAML", func(t *testing.T) {
+		for _, tc := range []struct {
+			input    string
+			expected ColorMode
+		}{
+			{"Color: auto", ColorModeAuto},
+			{"Color: none", ColorModeNone},
+		} {
+			var cfg Config
+			require.NoError(t, cfg.Init())
+			require.NoError(t, yaml.Unmarshal([]byte(tc.input), &cfg))
+			require.Equal(t, tc.expected, cfg.Color)
+		}
+	})
+
+	t.Run("invalid value via JSON", func(t *testing.T) {
+		var cfg Config
+		require.NoError(t, cfg.Init())
+		err := json.Unmarshal([]byte(`{"Color":"bogus"}`), &cfg)
+		require.Error(t, err)
+		require.Contains(t, err.Error(), "bogus")
+	})
+
+	t.Run("invalid value via YAML", func(t *testing.T) {
+		var cfg Config
+		require.NoError(t, cfg.Init())
+		err := yaml.Unmarshal([]byte("Color: bogus"), &cfg)
+		require.Error(t, err)
+		require.Contains(t, err.Error(), "bogus")
+	})
+
+	t.Run("UnmarshalFlag valid values", func(t *testing.T) {
+		var c ColorMode
+		require.NoError(t, c.UnmarshalFlag("auto"))
+		require.Equal(t, ColorModeAuto, c)
+
+		require.NoError(t, c.UnmarshalFlag("none"))
+		require.Equal(t, ColorModeNone, c)
+
+		require.NoError(t, c.UnmarshalFlag(""))
+		require.Equal(t, ColorModeAuto, c)
+	})
+
+	t.Run("UnmarshalFlag invalid value", func(t *testing.T) {
+		var c ColorMode
+		err := c.UnmarshalFlag("bogus")
+		require.Error(t, err)
+		require.Contains(t, err.Error(), "bogus")
+	})
+}
+
 func TestReadFilenameYAML(t *testing.T) {
 	dir := t.TempDir()
 	yamlFile := filepath.Join(dir, "config.yaml")
