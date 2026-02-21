@@ -77,8 +77,12 @@ func NewRaw(id uint64, v string, enableSep bool, enableANSI bool) *Raw {
 			src = rl.buf[:rl.sepLoc]
 		}
 		r := ansi.Parse(src)
-		rl.displayString = r.Stripped
 		rl.ansiAttrs = r.Attrs
+		// Only store displayString when it actually differs from buf
+		// (i.e. when there's a separator or ANSI attributes)
+		if rl.sepLoc > -1 || r.Attrs != nil {
+			rl.displayString = r.Stripped
+		}
 	}
 
 	return rl
@@ -121,10 +125,10 @@ func (rl *Raw) DisplayString() string {
 
 	if i := rl.sepLoc; i > -1 {
 		rl.displayString = util.StripANSISequence(rl.buf[:i])
-	} else {
-		rl.displayString = util.StripANSISequence(rl.buf)
+		return rl.displayString
 	}
-	return rl.displayString
+	// No separator: strip ANSI (fast-path returns buf unchanged when no ESC present)
+	return util.StripANSISequence(rl.buf)
 }
 
 // ANSIAttrs returns the run-length encoded ANSI attributes for this line.

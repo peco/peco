@@ -634,6 +634,31 @@ func testFuzzyMatch(octx context.Context, t *testing.T, filter Filter) {
 	}
 }
 
+func TestMergeMatches(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		name string
+		a    []int
+		b    []int
+		want []int
+	}{
+		{"a before b overlapping", []int{1, 5}, []int{3, 7}, []int{1, 7}},
+		{"b before a overlapping", []int{3, 7}, []int{1, 5}, []int{1, 7}},
+		{"identical ranges", []int{2, 4}, []int{2, 4}, []int{2, 4}},
+		{"a contains b", []int{0, 10}, []int{3, 7}, []int{0, 10}},
+		{"adjacent ranges", []int{0, 3}, []int{3, 6}, []int{0, 6}},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			got := mergeMatches(tt.a, tt.b)
+			require.Equal(t, tt.want, got)
+			// Verify in-place mutation: got should be the same slice as a
+			require.Same(t, &tt.a[0], &got[0], "mergeMatches should mutate a in place")
+		})
+	}
+}
+
 // TestMatchAcrossANSIColorBoundary verifies that filter queries match
 // against the ANSI-stripped text, so a pattern spanning characters
 // rendered in different colors still produces a match.

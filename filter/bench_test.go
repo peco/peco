@@ -111,3 +111,33 @@ func BenchmarkRegexpFilterMultiCycle(b *testing.B) {
 		}
 	}
 }
+
+// BenchmarkRegexpFilterOverlapping benchmarks the regexp filter with a query
+// that produces overlapping match ranges, exercising the mergeMatches path.
+// Each line contains repeating "aabb" patterns; the query terms "aab" and "abb"
+// produce match ranges that overlap (e.g. [0,3] and [1,4]), forcing mergeMatches
+// to be called on every line. With 10k lines the aggregate allocation difference
+// from in-place vs make([]int,2) becomes measurable.
+func BenchmarkRegexpFilterOverlapping(b *testing.B) {
+	// Build a line with many "aabb" repeats so that "aab" and "abb" each match
+	// many times with overlapping ranges between the two terms.
+	base := strings.Repeat("aabb", 20) // 80 chars
+	lines := make([]line.Line, 10_000)
+	for i := range lines {
+		lines[i] = line.NewRaw(uint64(i), base, false, false)
+	}
+
+	f := NewIgnoreCase()
+	// "aab" and "abb" share the middle "ab" in each "aabb" group, so their
+	// match ranges overlap after sorting by start position.
+	query := "aab abb"
+
+	b.ResetTimer()
+	b.ReportAllocs()
+	for b.Loop() {
+		ctx, cancel := context.WithTimeout(f.NewContext(context.Background(), query), 10*time.Second)
+		ch := make(chan line.Line, len(lines))
+		_ = f.Apply(ctx, lines, pipeline.ChanOutput(ch))
+		cancel()
+	}
+}
