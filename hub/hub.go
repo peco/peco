@@ -70,17 +70,16 @@ func New(bufsiz int) *Hub {
 	}
 }
 
-type batchPayloadKey struct{}
-
-// batchLockKey is used to detect re-entrant Batch calls so that
-// nested calls skip mutex acquisition and avoid deadlock.
-type batchLockKey struct{}
+// batchCtxKey is a single context key that signals both "this is a batch
+// payload" and "the hub mutex is already held" for re-entrant detection.
+// Using one key instead of two avoids a second context.WithValue allocation.
+type batchCtxKey struct{}
 
 // Batch allows you to synchronously send messages during the
 // scope of f() being executed. The mutex is acquired automatically
 // unless this is a nested Batch call (detected via context).
 func (h *Hub) Batch(ctx context.Context, f func(ctx context.Context)) {
-	nested, _ := ctx.Value(batchLockKey{}).(bool)
+	nested, _ := ctx.Value(batchCtxKey{}).(bool)
 
 	if pdebug.Enabled {
 		g := pdebug.Marker("Batch (nested=%t)", nested)
@@ -102,8 +101,7 @@ func (h *Hub) Batch(ctx context.Context, f func(ctx context.Context)) {
 		}
 	}()
 
-	batchCtx := context.WithValue(ctx, batchPayloadKey{}, true)
-	batchCtx = context.WithValue(batchCtx, batchLockKey{}, true)
+	batchCtx := context.WithValue(ctx, batchCtxKey{}, true)
 	f(batchCtx)
 }
 
@@ -132,12 +130,8 @@ func (p *Payload[T]) waitDone() {
 
 // isBatchCtx reports whether the context was created by a Batch call.
 func isBatchCtx(ctx context.Context) bool {
-	var isBatchMode bool
-	v := ctx.Value(batchPayloadKey{})
-	if vv, ok := v.(bool); ok {
-		isBatchMode = vv
-	}
-	return isBatchMode
+	v, _ := ctx.Value(batchCtxKey{}).(bool)
+	return v
 }
 
 // send is the low-level generic utility for sending typed payloads.
