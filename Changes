@@ -25,6 +25,12 @@ v0.6.0 - UNRELEASED
     previously unbound (it silently conflicted with `KillEndOfLine` on
     Ctrl+K in v0.5.x) and is now bound to Alt+j. `GoToPreviousSelection`
     was previously bound to Ctrl+J and is now bound to Alt+k.
+  * ANSI color support is now enabled by default (`--color=auto`).
+    In v0.5.x, ANSI escape sequences in input were stripped and not
+    rendered unless explicitly enabled. To disable, use `--color=none`
+    or set `"Color": "none"` in your config file. The previous `--ansi`
+    flag and `"ANSI": true` config field have been replaced by
+    `--color=auto|none` and `"Color": "auto"|"none"`.
   * Query terms starting with `-` are now interpreted as negative
     (exclusion) filters. In v0.5.x, `foo -bar` searched for lines
     matching both "foo" and literal "-bar"; in v0.6.0 it searches for
@@ -37,7 +43,7 @@ v0.6.0 - UNRELEASED
   * Added negative filter terms. Prefix a search term with `-` to exclude
     matching lines, e.g. `-unittests SSO` matches "SSO" but excludes
     lines containing "unittests" (#434, #592).
-  * Added `peco.Freeze` / `peco.Unfreeze` / `peco.ToggleFreeze` actions.
+  * Added `peco.FreezeResults` / `peco.UnfreezeResults` actions.
     Freezing locks the current result set so you can clear the query,
     switch filters, and continue filtering against the frozen subset (#424, #596).
   * Added `--height` option for inline display. Limits peco to the
@@ -45,9 +51,10 @@ v0.6.0 - UNRELEASED
     screen (#471, #598).
   * Added `peco.ZoomIn` / `peco.ZoomOut` actions that expand visible
     context around matched lines, showing surrounding lines (#289, #600).
-  * Added ANSI color rendering support. Colored output from tools like
+  * Added ANSI color rendering support via `--color=auto|none` CLI flag
+    and `"Color"` config field. Colored output from tools like
     `git log --color` or `rg --color` is now displayed with colors
-    preserved (#398, #602).
+    preserved. Default is `auto` (enabled) (#398, #602).
   * Added `IRegexp` filter for case-insensitive regexp matching, so you
     no longer need to manually type `(?i)` in regex queries (#564).
   * Added `--exit-0` option to immediately exit with non-zero status
@@ -59,6 +66,20 @@ v0.6.0 - UNRELEASED
     bottom (#445, #595).
   * Added man page (`peco.1`) for offline documentation (#467, #587).
   * Added support for ANSI color codes in the `--prompt` string (#294, #586).
+  * Added `--select-all` option to select all input lines and immediately
+    exit without displaying the selection view. When combined with
+    `--query`, only matching lines are selected.
+  * Added `SuppressStatusMsg` config field to suppress the status message
+    bar at the bottom of the screen.
+  * Added `FilterBufSize` config field to control the internal buffer
+    size (in lines) used during filtering. Default is 1000.
+  * Added `Prompt` and `Context` style targets. `Prompt` controls the
+    appearance of the query prompt prefix (e.g. `QUERY>`). `Context`
+    controls the appearance of context lines shown by ZoomIn (default:
+    bold).
+  * Added `#RRGGBB` truecolor support in style configuration. You can
+    now use hex color values like `"#ff6600"` for foreground and
+    `"on_#003366"` for background colors.
   * Added `QueryCursor` style for explicit control over the query prompt
     cursor appearance. When not configured, the cursor is derived from
     the `Query` style by swapping fg/bg colors.

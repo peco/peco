@@ -159,13 +159,15 @@ If your input contains very long lines (e.g. minified files) and they do not app
 
 ## ANSI Color Support
 
-When the `--ansi` flag is enabled, peco parses ANSI SGR (Select Graphic Rendition) escape sequences from the input and renders the original colors in the terminal. This lets you pipe colored output from tools like `git log --color`, `rg --color=always`, or `ls --color` through peco while preserving the visual formatting.
+By default (`--color=auto`), peco parses ANSI SGR (Select Graphic Rendition) escape sequences from the input and renders the original colors in the terminal. This lets you pipe colored output from tools like `git log --color`, `rg --color=always`, or `ls --color` through peco while preserving the visual formatting.
 
 ```
-git log --color=always | peco --ansi
-rg --color=always pattern | peco --ansi
-ls --color=always | peco --ansi
+git log --color=always | peco
+rg --color=always pattern | peco
+ls --color=always | peco
 ```
+
+To disable ANSI color rendering, use `--color=none`.
 
 Supported ANSI features:
 - Basic 8 foreground and background colors (30-37, 40-47)
@@ -174,12 +176,12 @@ Supported ANSI features:
 - Bold, underline, and reverse attributes
 - Reset sequences
 
-When ANSI mode is enabled:
+When ANSI color support is enabled:
 - Filtering and matching operate against the **stripped** (plain text) version of each line, so escape codes do not interfere with your queries
 - ANSI colors are displayed as the **base layer**; peco's own selection and match highlighting take precedence over ANSI colors
 - Selected lines' output preserves the **original** ANSI codes, so downstream tools receive colored text
 
-ANSI mode can also be enabled permanently via the configuration file (see [ANSI](#ansi) under Global configuration).
+ANSI color support can be controlled via the configuration file (see [Color](#color) under Global configuration).
 
 ## Context Lines (Zoom In/Out)
 
@@ -421,9 +423,9 @@ Upon exiting from the external command, the control goes back to peco where you 
 
 To exit out of peco when running in this mode, you must execute the Cancel command, usually the escape key.
 
-### --ansi
+### --color `auto|none`
 
-Enables ANSI color code support. When this flag is set, peco parses ANSI SGR escape sequences from the input and renders the colors in the terminal UI. Filtering is performed against the plain text with ANSI codes stripped, and selected output preserves the original ANSI codes.
+Controls ANSI color code support. `auto` (the default) enables parsing and rendering of ANSI SGR escape sequences from the input. `none` disables it, stripping escape sequences without rendering colors.
 
 See [ANSI Color Support](#ansi-color-support) in the Features section for details.
 
@@ -467,7 +469,7 @@ Below are configuration sections that you may specify in your config file:
 * [Styles](#styles)
 * [CustomFilter](#customfilter)
 * [Prompt](#prompt)
-* [ANSI](#ansi)
+* [Color](#color)
 
 ## Global
 
@@ -546,17 +548,17 @@ very long lines that prohibit peco from reading them, try increasing this number
 
 The same time, the default MaxScanBuferSize is 256kb.
 
-### ANSI
+### Color
 
 ```json
 {
-    "ANSI": true
+    "Color": "none"
 }
 ```
 
-Enables ANSI color code support. When set to `true`, peco parses and renders ANSI SGR escape sequences from the input. This is equivalent to using the `--ansi` command line flag. The command line flag takes precedence if both are specified.
+Controls ANSI color code support. Valid values are `"auto"` (parse and render ANSI SGR escape sequences) and `"none"` (disable). This is equivalent to using the `--color` command line flag. The command line flag takes precedence if both are specified.
 
-Default value for ANSI is `false`.
+Default value for Color is `"auto"` (enabled).
 
 See [ANSI Color Support](#ansi-color-support) in the Features section for details.
 
