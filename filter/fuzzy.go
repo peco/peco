@@ -131,12 +131,19 @@ LINE:
 		// Find all candidate matches
 		var candidates []fuzzyMatchedItem
 
+		// Pre-allocate backing array for match pairs to avoid per-match
+		// heap allocations. Each match is a [start, end] pair, so we need
+		// 2 ints per query rune (upper bound).
+		queryRuneCount := utf8.RuneCountInString(fuzzyQuery)
+		matchBacking := make([]int, 0, queryRuneCount*2)
+
 	OUTER:
 		for _, offset := range firstRuneOffsets {
 			q := fuzzyQuery
 			candidateTxt := txt[offset:]
 			candidateBase := offset
-			var matches [][]int
+			matchBacking = matchBacking[:0]
+			matches := make([][]int, 0, queryRuneCount)
 
 			for len(q) > 0 {
 				var r rune
@@ -157,8 +164,10 @@ LINE:
 				}
 
 				candidateTxt = candidateTxt[idx+n:]
-				matches = append(matches, []int{candidateBase + idx, candidateBase + idx + n})
-				candidateBase = candidateBase + idx + n
+				start := candidateBase + idx
+				matchBacking = append(matchBacking, start, start+n)
+				matches = append(matches, matchBacking[len(matchBacking)-2:len(matchBacking):len(matchBacking)])
+				candidateBase = start + n
 			}
 
 			candidates = append(candidates, newFuzzyMatchedItem(l, matches))
