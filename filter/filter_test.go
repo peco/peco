@@ -334,6 +334,14 @@ func makeLines(inputs ...string) []line.Line {
 	return lines
 }
 
+func makeANSILines(inputs ...string) []line.Line {
+	lines := make([]line.Line, len(inputs))
+	for i, s := range inputs {
+		lines[i] = line.NewRaw(uint64(i), s, false, true)
+	}
+	return lines
+}
+
 func TestNegativeMatchingRegexp(t *testing.T) {
 	filters := map[string]Filter{
 		"IgnoreCase":    NewIgnoreCase(),
@@ -622,6 +630,52 @@ func testFuzzyMatch(octx context.Context, t *testing.T, filter Filter) {
 					require.Fail(t, "unexpected timeout")
 				}
 			}
+		})
+	}
+}
+
+// TestMatchAcrossANSIColorBoundary verifies that filter queries match
+// against the ANSI-stripped text, so a pattern spanning characters
+// rendered in different colors still produces a match.
+func TestMatchAcrossANSIColorBoundary(t *testing.T) {
+	// "\033[31mfoo\033[34mbar\033[0m" renders as red "foo" + blue "bar",
+	// but the stripped text is "foobar". A query "oba" spans the boundary.
+	lines := makeANSILines(
+		"\x1b[31mfoo\x1b[34mbar\x1b[0m",  // red "foo" + blue "bar"
+		"\x1b[32mhello\x1b[0m world",       // green "hello" + plain " world"
+		"plain text no ansi",                // no ANSI at all
+		"\x1b[1m\x1b[33mBRI\x1b[35mGHT\x1b[0m", // bold yellow "BRI" + bold magenta "GHT"
+	)
+
+	filters := map[string]Filter{
+		"IgnoreCase":    NewIgnoreCase(),
+		"CaseSensitive": NewCaseSensitive(),
+		"Regexp":        NewRegexp(),
+		"Fuzzy":         NewFuzzy(false),
+	}
+
+	for name, f := range filters {
+		t.Run(name, func(t *testing.T) {
+			t.Run("match spans two color regions", func(t *testing.T) {
+				// "oba" spans red "foo" and blue "bar"
+				results := collectFilterResults(t, f, "oba", lines)
+				require.Len(t, results, 1)
+				require.Equal(t, "foobar", results[0].DisplayString())
+			})
+
+			t.Run("match spans color and plain regions", func(t *testing.T) {
+				// "lo w" spans green "hello" and plain " world"
+				results := collectFilterResults(t, f, "lo w", lines)
+				require.Len(t, results, 1)
+				require.Equal(t, "hello world", results[0].DisplayString())
+			})
+
+			t.Run("match spans bold color change", func(t *testing.T) {
+				// "RIGH" spans bold-yellow "BRI" and bold-magenta "GHT"
+				results := collectFilterResults(t, f, "RIGH", lines)
+				require.Len(t, results, 1)
+				require.Equal(t, "BRIGHT", results[0].DisplayString())
+			})
 		})
 	}
 }
