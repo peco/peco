@@ -1,6 +1,32 @@
 package line
 
-import "github.com/peco/peco/internal/ansi"
+import (
+	"sync"
+
+	"github.com/peco/peco/internal/ansi"
+)
+
+var matchedPool = sync.Pool{
+	New: func() any { return &Matched{} },
+}
+
+// GetMatched retrieves a Matched from the pool and initializes it.
+func GetMatched(rl Line, matches [][]int) *Matched {
+	m, ok := matchedPool.Get().(*Matched)
+	if !ok {
+		m = &Matched{}
+	}
+	m.Line = rl
+	m.indices = matches
+	return m
+}
+
+// ReleaseMatched returns a Matched to the pool after clearing its fields.
+func ReleaseMatched(m *Matched) {
+	m.Line = nil
+	m.indices = nil
+	matchedPool.Put(m)
+}
 
 // Matched contains the indices to the matches
 type Matched struct {

@@ -78,6 +78,40 @@ func BenchmarkRegexpFilter(b *testing.B) {
 	}
 }
 
+// BenchmarkRegexpFilterMultiCycle simulates multiple keystroke filter cycles.
+// On each cycle, the filter produces Matched objects which are collected in a
+// MemoryBuffer, then Reset() is called to release them before the next cycle.
+// This demonstrates pool reuse across keystrokes.
+func BenchmarkRegexpFilterMultiCycle(b *testing.B) {
+	const numLines = 10_000
+	lines := make([]line.Line, numLines)
+	for i := range lines {
+		lines[i] = line.NewRaw(uint64(i), "the quick brown fox jumps over the lazy dog", false, false)
+	}
+
+	f := NewIgnoreCase()
+	query := "fox"
+
+	b.ReportAllocs()
+	b.ResetTimer()
+	for b.Loop() {
+		// Simulate 3 keystroke cycles
+		for range 3 {
+			ctx := f.NewContext(context.Background(), query)
+			ch := make(chan line.Line, numLines)
+			_ = f.Apply(ctx, lines, pipeline.ChanOutput(ch))
+			close(ch)
+
+			// Drain and release (simulating MemoryBuffer.Reset)
+			for l := range ch {
+				if m, ok := l.(*line.Matched); ok {
+					line.ReleaseMatched(m)
+				}
+			}
+		}
+	}
+}
+
 // BenchmarkRegexpFilterOverlapping benchmarks the regexp filter with a query
 // that produces overlapping match ranges, exercising the mergeMatches path.
 // Each line contains repeating "aabb" patterns; the query terms "aab" and "abb"

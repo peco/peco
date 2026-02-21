@@ -246,7 +246,7 @@ func (rf *Regexp) applyInternal(ctx context.Context, lines []line.Line, em LineE
 
 		// All-negative query: emit line with nil indices (no highlighting)
 		if len(posRegexps) == 0 {
-			em.Emit(ctx, line.NewMatched(l, nil))
+			em.Emit(ctx, line.GetMatched(l, nil))
 			continue
 		}
 
@@ -299,7 +299,7 @@ func (rf *Regexp) applyInternal(ctx context.Context, lines []line.Line, em LineE
 		// Make a copy of deduped for emission since we reuse the slice
 		result := make([][]int, len(deduped))
 		copy(result, deduped)
-		em.Emit(ctx, line.NewMatched(l, result))
+		em.Emit(ctx, line.GetMatched(l, result))
 	}
 	return nil
 }
