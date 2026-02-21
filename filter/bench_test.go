@@ -96,7 +96,7 @@ func BenchmarkRegexpFilterMultiCycle(b *testing.B) {
 	b.ResetTimer()
 	for b.Loop() {
 		// Simulate 3 keystroke cycles
-		for cycle := 0; cycle < 3; cycle++ {
+		for range 3 {
 			ctx := f.NewContext(context.Background(), query)
 			ch := make(chan line.Line, numLines)
 			_ = f.Apply(ctx, lines, pipeline.ChanOutput(ch))

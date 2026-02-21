@@ -12,7 +12,10 @@ var matchedPool = sync.Pool{
 
 // GetMatched retrieves a Matched from the pool and initializes it.
 func GetMatched(rl Line, matches [][]int) *Matched {
-	m := matchedPool.Get().(*Matched)
+	m, ok := matchedPool.Get().(*Matched)
+	if !ok {
+		m = &Matched{}
+	}
 	m.Line = rl
 	m.indices = matches
 	return m
