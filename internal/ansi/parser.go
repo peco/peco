@@ -122,8 +122,15 @@ func Parse(input string) ParseResult {
 	}
 }
 
+// maxSGRParams is the maximum number of semicolon-separated parameters
+// we handle in a single SGR sequence. Truecolor (38;2;R;G;B) uses 5.
+// Any sequence with more parameters is truncated.
+const maxSGRParams = 8
+
 // parseSGR interprets SGR parameters (the part between ESC[ and m).
 // It modifies fg and bg in place based on the parameter codes.
+// Parameters are split on semicolons into a stack-allocated array to
+// avoid the heap allocation that strings.Split would cause.
 func parseSGR(params string, fg, bg *Attribute) {
 	if params == "" || params == "0" {
 		// Reset all
@@ -132,8 +139,23 @@ func parseSGR(params string, fg, bg *Attribute) {
 		return
 	}
 
-	parts := strings.Split(params, ";")
-	for i := 0; i < len(parts); i++ {
+	// Split params into a stack-allocated array to avoid strings.Split's
+	// heap-allocated []string slice.
+	var parts [maxSGRParams]string
+	n := 0
+	for n < maxSGRParams {
+		idx := strings.IndexByte(params, ';')
+		if idx == -1 {
+			parts[n] = params
+			n++
+			break
+		}
+		parts[n] = params[:idx]
+		params = params[idx+1:]
+		n++
+	}
+
+	for i := 0; i < n; i++ {
 		code, err := strconv.Atoi(parts[i])
 		if err != nil {
 			continue
@@ -164,7 +186,7 @@ func parseSGR(params string, fg, bg *Attribute) {
 
 		// 256-color or truecolor foreground: 38;5;N or 38;2;R;G;B
 		case code == 38:
-			if i+1 < len(parts) {
+			if i+1 < n {
 				mode, err := strconv.Atoi(parts[i+1])
 				if err != nil {
 					i++
@@ -172,16 +194,16 @@ func parseSGR(params string, fg, bg *Attribute) {
 				}
 				switch mode {
 				case 5: // 256-color: 38;5;N
-					if i+2 < len(parts) {
-						n, err := strconv.Atoi(parts[i+2])
-						if err == nil && n >= 0 && n <= 255 {
+					if i+2 < n {
+						c, err := strconv.Atoi(parts[i+2])
+						if err == nil && c >= 0 && c <= 255 {
 							flags := *fg & (AttrBold | AttrUnderline | AttrReverse)
-							*fg = Attribute(n+1) | flags
+							*fg = Attribute(c+1) | flags
 						}
 						i += 2
 					}
 				case 2: // Truecolor: 38;2;R;G;B
-					if i+4 < len(parts) {
+					if i+4 < n {
 						r, err1 := strconv.Atoi(parts[i+2])
 						g, err2 := strconv.Atoi(parts[i+3])
 						b, err3 := strconv.Atoi(parts[i+4])
@@ -198,7 +220,7 @@ func parseSGR(params string, fg, bg *Attribute) {
 
 		// 256-color or truecolor background: 48;5;N or 48;2;R;G;B
 		case code == 48:
-			if i+1 < len(parts) {
+			if i+1 < n {
 				mode, err := strconv.Atoi(parts[i+1])
 				if err != nil {
 					i++
@@ -206,15 +228,15 @@ func parseSGR(params string, fg, bg *Attribute) {
 				}
 				switch mode {
 				case 5: // 256-color: 48;5;N
-					if i+2 < len(parts) {
-						n, err := strconv.Atoi(parts[i+2])
-						if err == nil && n >= 0 && n <= 255 {
-							*bg = Attribute(n + 1)
+					if i+2 < n {
+						c, err := strconv.Atoi(parts[i+2])
+						if err == nil && c >= 0 && c <= 255 {
+							*bg = Attribute(c + 1)
 						}
 						i += 2
 					}
 				case 2: // Truecolor: 48;2;R;G;B
-					if i+4 < len(parts) {
+					if i+4 < n {
 						r, err1 := strconv.Atoi(parts[i+2])
 						g, err2 := strconv.Atoi(parts[i+3])
 						b, err3 := strconv.Atoi(parts[i+4])
