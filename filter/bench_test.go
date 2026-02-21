@@ -56,3 +56,24 @@ func BenchmarkCaseInsensitiveIndexDirect(b *testing.B) {
 		util.CaseInsensitiveIndex(txt, r)
 	}
 }
+
+// BenchmarkRegexpFilter benchmarks the regexp filter with overlapping matches
+// to exercise the dedup/merge path and matches slice allocation.
+func BenchmarkRegexpFilter(b *testing.B) {
+	lines := make([]line.Line, 200)
+	for i := range lines {
+		lines[i] = line.NewRaw(uint64(i), "the quick brown fox jumps over the lazy brown dog", false, false)
+	}
+
+	f := NewIgnoreCase()
+	query := "brown the"
+
+	b.ResetTimer()
+	b.ReportAllocs()
+	for b.Loop() {
+		ctx, cancel := context.WithTimeout(f.NewContext(context.Background(), query), 10*time.Second)
+		ch := make(chan line.Line, len(lines))
+		_ = f.Apply(ctx, lines, pipeline.ChanOutput(ch))
+		cancel()
+	}
+}

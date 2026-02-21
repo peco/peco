@@ -228,6 +228,11 @@ func (rf *Regexp) applyInternal(ctx context.Context, lines []line.Line, em LineE
 		return fmt.Errorf("failed to compile queries as regular expression: %w", err)
 	}
 
+	// Pre-allocate match and dedup slices outside the loop so they can
+	// be reused across lines, avoiding per-line heap allocations.
+	var matches [][]int
+	var deduped [][]int
+
 	for i, l := range lines {
 		if err := checkCancelled(ctx, i); err != nil {
 			return err
@@ -247,7 +252,7 @@ func (rf *Regexp) applyInternal(ctx context.Context, lines []line.Line, em LineE
 
 		// Positive matching (existing AND logic)
 		allMatched := true
-		matches := [][]int{}
+		matches = matches[:0]
 	TryRegexps:
 		for _, rx := range posRegexps {
 			match := rx.FindAllStringIndex(v, -1)
@@ -267,7 +272,7 @@ func (rf *Regexp) applyInternal(ctx context.Context, lines []line.Line, em LineE
 		// We need to "dedupe" the results. For example, if we matched the
 		// same region twice, we don't want that to be drawn
 
-		deduped := make([][]int, 0, len(matches))
+		deduped = deduped[:0]
 
 		for j, m := range matches {
 			// Always push the first one
@@ -290,7 +295,11 @@ func (rf *Regexp) applyInternal(ctx context.Context, lines []line.Line, em LineE
 				deduped = append(deduped, m)
 			}
 		}
-		em.Emit(ctx, line.NewMatched(l, deduped))
+
+		// Make a copy of deduped for emission since we reuse the slice
+		result := make([][]int, len(deduped))
+		copy(result, deduped)
+		em.Emit(ctx, line.NewMatched(l, result))
 	}
 	return nil
 }
