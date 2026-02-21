@@ -3,6 +3,7 @@ package util
 import (
 	"errors"
 	"regexp"
+	"strings"
 	"unicode"
 )
 
@@ -44,8 +45,13 @@ func ContainsUpper(query string) bool {
 // Global var used to strips ansi sequences
 var reANSIEscapeChars = regexp.MustCompile("\x1B\\[(?:[0-9]{1,2}(?:;[0-9]{1,2})?)*[a-zA-Z]")
 
-// StripANSISequence strips ANSI escape sequences from the given string
+// StripANSISequence strips ANSI escape sequences from the given string.
+// Fast-path: if the string contains no ESC byte, return it unchanged
+// to avoid a regexp allocation.
 func StripANSISequence(s string) string {
+	if !strings.Contains(s, "\x1b") {
+		return s
+	}
 	return reANSIEscapeChars.ReplaceAllString(s, "")
 }
 
