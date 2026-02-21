@@ -3,6 +3,7 @@ package util
 import (
 	"errors"
 	"regexp"
+	"strings"
 	"unicode"
 )
 
@@ -46,6 +47,9 @@ var reANSIEscapeChars = regexp.MustCompile("\x1B\\[(?:[0-9]{1,2}(?:;[0-9]{1,2})?
 
 // StripANSISequence strips ANSI escape sequences from the given string
 func StripANSISequence(s string) string {
+	if !strings.Contains(s, "\x1b") {
+		return s
+	}
 	return reANSIEscapeChars.ReplaceAllString(s, "")
 }
 
