@@ -384,7 +384,7 @@ func TestApplyConfig(t *testing.T) {
 		opts.OptSelectionPrefix = ">"
 		opts.OptPrintQuery = true
 		opts.OptExec = "cat"
-		opts.OptANSI = true
+		opts.OptColor = "auto"
 		opts.OptHeight = "20"
 
 		p := newPeco()
@@ -404,7 +404,7 @@ func TestApplyConfig(t *testing.T) {
 		require.Equal(t, opts.OptSelectionPrefix, p.selectionPrefix, "p.selectionPrefix should be equal to opts.OptSelectionPrefix")
 		require.Equal(t, opts.OptPrintQuery, p.printQuery, "p.printQuery should be equal to opts.OptPrintQuery")
 		require.Equal(t, opts.OptExec, p.execOnFinish, "p.execOnFinish should be equal to opts.OptExec")
-		require.True(t, p.enableANSI, "p.enableANSI should be true when opts.OptANSI is true")
+		require.True(t, p.enableANSI, "p.enableANSI should be true when opts.OptColor is 'auto'")
 		require.NotNil(t, p.heightSpec, "p.heightSpec should be set when opts.OptHeight is provided")
 		require.Equal(t, 20, p.heightSpec.Value, "p.heightSpec.Value should be 20")
 		require.False(t, p.heightSpec.IsPercent, "p.heightSpec.IsPercent should be false for absolute value")
@@ -426,14 +426,13 @@ func TestApplyConfig(t *testing.T) {
 		p := newPeco()
 		p.config.MaxScanBufferSize = 512
 		p.config.FuzzyLongestSort = true
-		p.config.ANSI = true
 
 		var opts CLIOptions
 		require.NoError(t, p.ApplyConfig(opts), "p.ApplyConfig should succeed")
 
 		require.Equal(t, 512, p.maxScanBufferSize, "p.maxScanBufferSize should be equal to config.MaxScanBufferSize")
 		require.True(t, p.fuzzyLongestSort, "p.fuzzyLongestSort should be true when config.FuzzyLongestSort is true")
-		require.True(t, p.enableANSI, "p.enableANSI should be true when config.ANSI is true")
+		require.True(t, p.enableANSI, "p.enableANSI should be true by default")
 	})
 
 	t.Run("MaxScanBufferSize defaults to 256", func(t *testing.T) {
@@ -510,22 +509,21 @@ func TestApplyConfig(t *testing.T) {
 		require.Equal(t, "SmartCase", p.filters.Current().String(), "p.filters.Current() should come from config when CLI option is absent")
 	})
 
-	t.Run("ANSI enabled by either CLI or config", func(t *testing.T) {
-		// Only CLI flag set
+	t.Run("ANSI enabled by default, disabled by --color=none", func(t *testing.T) {
+		// Default (no flags) → enableANSI is true
 		p1 := newPeco()
-		require.NoError(t, p1.ApplyConfig(CLIOptions{OptANSI: true}), "p.ApplyConfig should succeed")
-		require.True(t, p1.enableANSI, "p.enableANSI should be true from CLI flag")
+		require.NoError(t, p1.ApplyConfig(CLIOptions{}), "p.ApplyConfig should succeed")
+		require.True(t, p1.enableANSI, "p.enableANSI should be true by default")
 
-		// Only config set
+		// --color=none → enableANSI is false
 		p2 := newPeco()
-		p2.config.ANSI = true
-		require.NoError(t, p2.ApplyConfig(CLIOptions{}), "p.ApplyConfig should succeed")
-		require.True(t, p2.enableANSI, "p.enableANSI should be true from config")
+		require.NoError(t, p2.ApplyConfig(CLIOptions{OptColor: "none"}), "p.ApplyConfig should succeed")
+		require.False(t, p2.enableANSI, "p.enableANSI should be false when OptColor is 'none'")
 
-		// Neither set
+		// --color=auto → enableANSI is true
 		p3 := newPeco()
-		require.NoError(t, p3.ApplyConfig(CLIOptions{}), "p.ApplyConfig should succeed")
-		require.False(t, p3.enableANSI, "p.enableANSI should be false when neither is set")
+		require.NoError(t, p3.ApplyConfig(CLIOptions{OptColor: "auto"}), "p.ApplyConfig should succeed")
+		require.True(t, p3.enableANSI, "p.enableANSI should be true when OptColor is 'auto'")
 	})
 }
 

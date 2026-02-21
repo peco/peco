@@ -754,7 +754,7 @@ func (p *Peco) ApplyConfig(opts CLIOptions) error {
 	}
 
 	p.enableSep = opts.OptEnableNullSep
-	p.enableANSI = opts.OptANSI || p.config.ANSI
+	p.enableANSI = opts.OptColor != "none"
 
 	if i := opts.OptInitialIndex; i >= 0 {
 		p.Location().SetLineNumber(i)
