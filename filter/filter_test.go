@@ -641,9 +641,9 @@ func TestMatchAcrossANSIColorBoundary(t *testing.T) {
 	// "\033[31mfoo\033[34mbar\033[0m" renders as red "foo" + blue "bar",
 	// but the stripped text is "foobar". A query "oba" spans the boundary.
 	lines := makeANSILines(
-		"\x1b[31mfoo\x1b[34mbar\x1b[0m",  // red "foo" + blue "bar"
-		"\x1b[32mhello\x1b[0m world",       // green "hello" + plain " world"
-		"plain text no ansi",                // no ANSI at all
+		"\x1b[31mfoo\x1b[34mbar\x1b[0m",        // red "foo" + blue "bar"
+		"\x1b[32mhello\x1b[0m world",           // green "hello" + plain " world"
+		"plain text no ansi",                   // no ANSI at all
 		"\x1b[1m\x1b[33mBRI\x1b[35mGHT\x1b[0m", // bold yellow "BRI" + bold magenta "GHT"
 	)
 
