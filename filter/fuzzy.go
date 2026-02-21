@@ -82,7 +82,7 @@ LINE:
 
 		// All-negative query: emit all non-excluded lines with nil indices
 		if len(fuzzyQuery) == 0 {
-			em.Emit(ctx, line.NewMatched(l, nil))
+			em.Emit(ctx, line.GetMatched(l, nil))
 			continue LINE
 		}
 
@@ -190,7 +190,7 @@ LINE:
 	}
 
 	for i := range matched {
-		em.Emit(ctx, line.NewMatched(matched[i].line, matched[i].matches))
+		em.Emit(ctx, line.GetMatched(matched[i].line, matched[i].matches))
 	}
 
 	return nil

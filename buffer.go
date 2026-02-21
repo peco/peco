@@ -136,6 +136,12 @@ func (mb *MemoryBuffer) Reset() {
 		g := pdebug.Marker("MemoryBuffer.Reset")
 		defer g.End()
 	}
+	// Return pooled Matched objects before discarding the slice
+	for _, l := range mb.lines {
+		if m, ok := l.(*line.Matched); ok {
+			line.ReleaseMatched(m)
+		}
+	}
 	mb.done = make(chan struct{})
 	mb.doneOnce = sync.Once{}
 	mb.lines = []line.Line(nil)
