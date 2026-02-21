@@ -384,7 +384,7 @@ func TestApplyConfig(t *testing.T) {
 		opts.OptSelectionPrefix = ">"
 		opts.OptPrintQuery = true
 		opts.OptExec = "cat"
-		opts.OptColor = "auto"
+		opts.OptColor = config.ColorModeAuto
 		opts.OptHeight = "20"
 
 		p := newPeco()
@@ -517,13 +517,20 @@ func TestApplyConfig(t *testing.T) {
 
 		// --color=none → enableANSI is false
 		p2 := newPeco()
-		require.NoError(t, p2.ApplyConfig(CLIOptions{OptColor: "none"}), "p.ApplyConfig should succeed")
+		require.NoError(t, p2.ApplyConfig(CLIOptions{OptColor: config.ColorModeNone}), "p.ApplyConfig should succeed")
 		require.False(t, p2.enableANSI, "p.enableANSI should be false when OptColor is 'none'")
 
 		// --color=auto → enableANSI is true
 		p3 := newPeco()
-		require.NoError(t, p3.ApplyConfig(CLIOptions{OptColor: "auto"}), "p.ApplyConfig should succeed")
+		require.NoError(t, p3.ApplyConfig(CLIOptions{OptColor: config.ColorModeAuto}), "p.ApplyConfig should succeed")
 		require.True(t, p3.enableANSI, "p.enableANSI should be true when OptColor is 'auto'")
+	})
+
+	t.Run("Invalid --color value is rejected", func(t *testing.T) {
+		var c config.ColorMode
+		err := c.UnmarshalFlag("bogus")
+		require.Error(t, err, "invalid --color value should be rejected")
+		require.Contains(t, err.Error(), "bogus")
 	})
 }
 

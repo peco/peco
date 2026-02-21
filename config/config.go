@@ -34,6 +34,36 @@ func (o *OnCancelBehavior) UnmarshalText(b []byte) error {
 	return nil
 }
 
+// ColorMode specifies how peco handles ANSI color codes in input.
+type ColorMode string
+
+const (
+	ColorModeAuto ColorMode = "auto"
+	ColorModeNone ColorMode = "none"
+)
+
+func (c *ColorMode) unmarshal(s string) error {
+	switch s {
+	case "", "auto":
+		*c = ColorModeAuto
+	case "none":
+		*c = ColorModeNone
+	default:
+		return fmt.Errorf("invalid Color value %q: must be %q or %q", s, ColorModeAuto, ColorModeNone)
+	}
+	return nil
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler (used by JSON/YAML decoders).
+func (c *ColorMode) UnmarshalText(b []byte) error {
+	return c.unmarshal(string(b))
+}
+
+// UnmarshalFlag implements go-flags Unmarshaler (used by CLI flag parsing).
+func (c *ColorMode) UnmarshalFlag(s string) error {
+	return c.unmarshal(s)
+}
+
 // Config holds all the data that can be configured in the
 // external configuration file
 type Config struct {
@@ -54,7 +84,7 @@ type Config struct {
 	FilterBufSize       int                           `json:"FilterBufSize" yaml:"FilterBufSize"`
 	FuzzyLongestSort    bool                          `json:"FuzzyLongestSort" yaml:"FuzzyLongestSort"`
 	SuppressStatusMsg   bool                          `json:"SuppressStatusMsg" yaml:"SuppressStatusMsg"`
-	ANSI                bool                          `json:"ANSI" yaml:"ANSI"`
+	Color               ColorMode                     `json:"Color" yaml:"Color"`
 
 	// If this is true, then the prefix for single key jump mode
 	// is displayed by default.
