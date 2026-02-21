@@ -106,6 +106,27 @@ v0.6.0 - UNRELEASED
     that it now correctly binds to the action.
   * Fixed `lastLine` tracking variable not being updated (#574, #578).
   * Fixed tab rendering off-by-one error (#672).
+  * Restored mouse support lost during the tcell migration (#735).
+  * Fixed Ctrl-C not properly exiting peco due to meta character
+    handling (#715, #716).
+  * Fixed `--select-1` not triggering on interactive queries and not
+    respecting context for streaming sources (#726).
+  * Fixed filter cache not being invalidated on freeze/unfreeze,
+    causing stale results (#727).
+  * Fixed external filters (`CustomFilter`) incorrectly running in
+    parallel, which could produce garbled results. They now run
+    sequentially (#722).
+  * Removed redundant Esc key timer; Escape should now feel more
+    responsive (#728).
+  * Filter errors are now reported to the status bar instead of being
+    silently swallowed (#682).
+  * Fixed screen Init error being swallowed on suspend/resume (#681).
+  * Fixed I/O errors during stdin read being silently ignored (#680).
+  * Fixed ANSI SGR parser not handling malformed escape sequences
+    gracefully (#692).
+  * Fixed potential panic on negative index in FilteredBuffer (#770).
+  * Fixed errors from external filters being silently dropped
+    (#752, #766).
   * Fixed various internal race conditions, resource leaks, and
     potential deadlocks.
 
@@ -113,10 +134,10 @@ v0.6.0 - UNRELEASED
   * Optimized filtering for large inputs with parallelized workers,
     achieving 7-30x speedup for ~1M lines (#454, #590).
   * Reduced overall memory consumption (#572).
-
-  [Miscellaneous]
-  * Large-scale internal refactoring and cleanup.
-  * Documented horizontal scrolling in README (#480).
+  * Reduced per-query allocation overhead and GC pauses: sync.Pool for
+    match structs, in-place merge, slice reuse in regexp/fuzzy filters,
+    closure elimination, stack-allocated ANSI parsing, and fast-path
+    ANSI stripping (#781-#789, #765).
 
 v0.5.11 - 21 Mar 2023
   [Features]
