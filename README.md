@@ -60,7 +60,7 @@ Only positive terms produce match highlighting. Lines matched solely by negative
 
 **Note:** When using the SmartCase filter with negative terms, results may be incomplete if the query transitions from all-lowercase to mixed-case (e.g. typing `foo -bar` then adding an uppercase character). If this happens, clearing the query and retyping it will produce the correct results.
 
-**Upgrading from v0.5.x:** This is a breaking change. In v0.5.x, a query like `test -v` matched lines containing both "test" and literal "-v". In v0.6.0, the same query matches "test" while *excluding* lines containing "v". If you need to search for a literal hyphen-prefixed term, escape it with a backslash (e.g. `\-v`).
+**Upgrading from v0.5.x:** In v0.5.x, a query like `test -v` matched lines containing both "test" and literal "-v". From v0.6.0 onwards, `-v` is treated as a negative term, so the query matches "test" while excluding lines containing "v". To search for a literal hyphen-prefixed term, escape it with a backslash (e.g. `\-v`).
 
 ## Select Multiple Lines
 
@@ -169,17 +169,9 @@ ls --color=always | peco
 
 To disable ANSI color rendering, use `--color=none`.
 
-Supported ANSI features:
-- Basic 8 foreground and background colors (30-37, 40-47)
-- 256-color palette (38;5;N, 48;5;N)
-- 24-bit truecolor (38;2;R;G;B, 48;2;R;G;B)
-- Bold, underline, and reverse attributes
-- Reset sequences
+peco uses two independent color layers, both supporting 8 named colors, 256-color, and 24-bit truecolor. The first is peco's own **UI styling** — selection highlighting, match highlighting, prompt colors, etc. — configured via the `Style` section in the config file (see [Styles](#styles)). UI styling is always active and is not affected by the `--color` flag. The second is **input ANSI colors** — escape sequences already present in the piped input from tools like `git log --color`. This layer is controlled by the `--color` flag described above.
 
-When ANSI color support is enabled:
-- Filtering and matching operate against the **stripped** (plain text) version of each line, so escape codes do not interfere with your queries
-- ANSI colors are displayed as the **base layer**; peco's own selection and match highlighting take precedence over ANSI colors
-- Selected lines' output preserves the **original** ANSI codes, so downstream tools receive colored text
+When input ANSI color support is enabled, filtering and matching operate against the **stripped** (plain text) version of each line, so escape codes do not interfere with your queries. Input ANSI colors are displayed as the **base layer**; peco's own UI styling takes precedence. Selected lines' output preserves the **original** ANSI codes, so downstream tools receive colored text.
 
 ANSI color support can be controlled via the configuration file (see [Color](#color) under Global configuration).
 
@@ -204,12 +196,7 @@ These actions are **not bound to any key by default**. Add keybindings in your c
 }
 ```
 
-Notes:
-- ZoomIn only works when there is an active filter query. If you are viewing the unfiltered source, it is a no-op.
-- You cannot zoom in twice — zooming in while already zoomed shows a status message.
-- The cursor position is preserved: after ZoomIn, the cursor stays on the same matched line; after ZoomOut, it returns to where it was before zooming.
-- Context lines cannot be selected — only the original matched lines participate in selection.
-- The `Context` style can be customized in the config file (see [Styles](#styles)).
+ZoomIn only works when there is an active filter query; if you are viewing the unfiltered source, it is a no-op. You cannot zoom in twice — zooming in while already zoomed shows a status message. The cursor position is preserved: after ZoomIn, the cursor stays on the same matched line; after ZoomOut, it returns to where it was before zooming. Context lines cannot be selected — only the original matched lines participate in selection. The `Context` style can be customized in the config file (see [Styles](#styles)).
 
 ## Selectable Layout
 
@@ -368,8 +355,6 @@ Limits the buffer size to `num`. This is an important feature when you are using
 
 ### --null
 
-WARNING: EXPERIMENTAL. This feature will probably stay, but the option name may change in the future.
-
 Changes how peco interprets incoming data. When this flag is set, you may insert NUL ('\0') characters in your input. Anything before the NUL character is treated as the string to be displayed by peco and is used for matching against user query. Anything after the NUL character is used as the "result": i.e., when peco is about to exit, it displays this string instead of the original string displayed.
 
 [Here's a simple example of how to use this feature](https://gist.github.com/mattn/3c7a14c1677ecb193acd)
@@ -413,7 +398,7 @@ For historical and back-compatibility reasons, the default is `success`, meaning
 
 ### --selection-prefix `string`
 
-When specified, peco uses the specified prefix instead of changing line color to indicate currently selected line(s). default is to use colors. This option is experimental.
+When specified, peco uses the specified prefix instead of changing line color to indicate currently selected line(s). Default is to use colors.
 
 ### --exec `string`
 
@@ -696,56 +681,56 @@ Some keys just... don't map correctly / too easily for various reasons. Here, we
 
 | Name | Notes |
 |------|-------|
-| peco.ForwardChar        | Move caret forward 1 character |
+| peco.BackToInitialFilter | Switch to first filter in the list |
 | peco.BackwardChar       | Move caret backward 1 character |
-| peco.ForwardWord        | Move caret forward 1 word |
-| peco.BackwardWord       | Move caret backward 1 word|
-| peco.BackToInitialFilter| Switch to first filter in the list |
+| peco.BackwardWord       | Move caret backward 1 word |
 | peco.BeginningOfLine    | Move caret to the beginning of line |
-| peco.EndOfLine          | Move caret to the end of line |
-| peco.EndOfFile          | Delete one character forward, otherwise exit from peco with failure status |
-| peco.DeleteForwardChar  | Delete one character forward |
+| peco.Cancel             | Exits from peco with failure status, or cancel select mode |
+| peco.CancelRangeMode   | Finish selecting by range and cancel range selection |
+| peco.CancelSelectMode   | (DEPRECATED) Alias to CancelRangeMode |
+| peco.DeleteAll          | Delete all entered characters |
 | peco.DeleteBackwardChar | Delete one character backward |
-| peco.DeleteForwardWord  | Delete one word forward |
 | peco.DeleteBackwardWord | Delete one word backward |
+| peco.DeleteForwardChar  | Delete one character forward |
+| peco.DeleteForwardWord  | Delete one word forward |
+| peco.EndOfFile          | Delete one character forward, otherwise exit from peco with failure status |
+| peco.EndOfLine          | Move caret to the end of line |
+| peco.Finish             | Exits from peco with success status |
+| peco.ForwardChar        | Move caret forward 1 character |
+| peco.ForwardWord        | Move caret forward 1 word |
+| peco.FreezeResults      | Freeze current results and clear the query to start a new filter on top |
+| peco.GoToNextSelection  | Jump cursor to the next saved selection |
+| peco.GoToPreviousSelection | Jump cursor to the previous saved selection |
 | peco.InvertSelection    | Inverts the selected lines |
 | peco.KillBeginningOfLine | Delete the characters under the cursor backward until the beginning of the line |
 | peco.KillEndOfLine      | Delete the characters under the cursor until the end of the line |
-| peco.DeleteAll          | Delete all entered characters |
 | peco.RefreshScreen      | Redraws the screen. Note that this effectively re-runs your query |
-| peco.SelectPreviousPage | (DEPRECATED) Alias to ScrollPageUp |
-| peco.SelectNextPage     | (DEPRECATED) Alias to ScrollPageDown |
-| peco.ScrollPageDown     | Moves the selected line cursor for an entire page, downwards |
-| peco.ScrollPageUp       | Moves the selected line cursor for an entire page, upwards |
-| peco.SelectUp           | Moves the selected line cursor to one line above |
-| peco.SelectDown         | Moves the selected line cursor to one line below |
-| peco.SelectPrevious     | (DEPRECATED) Alias to SelectUp |
-| peco.SelectNext         | (DEPRECATED) Alias to SelectDown |
-| peco.ScrollLeft         | Scrolls the screen to the left |
-| peco.ScrollRight        | Scrolls the screen to the right |
+| peco.RotateFilter       | Rotate between filters (by default, ignore-case/no-ignore-case) |
 | peco.ScrollFirstItem    | Scrolls to the first item (in the entire buffer, not the current screen) |
 | peco.ScrollLastItem     | Scrolls to the last item (in the entire buffer, not the current screen) |
+| peco.ScrollLeft         | Scrolls the screen to the left |
+| peco.ScrollPageDown     | Moves the selected line cursor for an entire page, downwards |
+| peco.ScrollPageUp       | Moves the selected line cursor for an entire page, upwards |
+| peco.ScrollRight        | Scrolls the screen to the right |
+| peco.SelectAll          | Selects the all line, and save it |
+| peco.SelectDown         | Moves the selected line cursor to one line below |
+| peco.SelectNext         | (DEPRECATED) Alias to SelectDown |
+| peco.SelectNextPage     | (DEPRECATED) Alias to ScrollPageDown |
+| peco.SelectNone         | Remove all saved selections |
+| peco.SelectPrevious     | (DEPRECATED) Alias to SelectUp |
+| peco.SelectPreviousPage | (DEPRECATED) Alias to ScrollPageUp |
+| peco.SelectUp           | Moves the selected line cursor to one line above |
+| peco.SelectVisible      | Selects the all visible line, and save it |
+| peco.ToggleQuery        | Toggle list between filtered by query and not filtered |
+| peco.ToggleRangeMode   | Start selecting by range, or append selecting range to selections |
+| peco.ToggleSelectMode   | (DEPRECATED) Alias to ToggleRangeMode |
 | peco.ToggleSelection    | Selects the current line, and saves it |
 | peco.ToggleSelectionAndSelectNext | Selects the current line, saves it, and proceeds to the next line |
 | peco.ToggleSingleKeyJump | Enables SingleKeyJump mode a.k.a. "hit-a-hint" |
-| peco.SelectNone         | Remove all saved selections |
-| peco.SelectAll          | Selects the all line, and save it  |
-| peco.SelectVisible      | Selects the all visible line, and save it |
-| peco.ToggleSelectMode   | (DEPRECATED) Alias to ToggleRangeMode |
-| peco.CancelSelectMode   | (DEPRECATED) Alias to CancelRangeMode |
-| peco.ToggleQuery        | Toggle list between filtered by query and not filtered. |
-| peco.ViewAround         | Toggle display of context lines around each match |
-| peco.GoToNextSelection  | Jump cursor to the next saved selection |
-| peco.GoToPreviousSelection | Jump cursor to the previous saved selection |
-| peco.ToggleRangeMode   | Start selecting by range, or append selecting range to selections |
-| peco.CancelRangeMode   | Finish selecting by range and cancel range selection |
-| peco.RotateFilter       | Rotate between filters (by default, ignore-case/no-ignore-case)|
-| peco.FreezeResults      | Freeze current results and clear the query to start a new filter on top |
 | peco.UnfreezeResults    | Discard frozen results and revert to the original input |
+| peco.ViewAround         | Toggle display of context lines around each match |
 | peco.ZoomIn             | Expand filtered results with context lines around each match |
 | peco.ZoomOut            | Collapse back to the filtered view (undo ZoomIn) |
-| peco.Finish             | Exits from peco with success status |
-| peco.Cancel             | Exits from peco with failure status, or cancel select mode |
 
 
 ### Default Keymap
@@ -754,31 +739,31 @@ Note: If in case below keymap seems wrong, check the source code in [keymap.go](
 
 |Key|Action|
 |---|------|
-|Esc|peco.Cancel|
-|C-c|peco.Cancel|
-|Enter|peco.Finish|
-|C-f|peco.ForwardChar|
-|C-a|peco.BeginningOfLine|
-|C-b|peco.BackwardChar|
-|C-d|peco.DeleteForwardChar|
-|C-e|peco.EndOfLine|
-|C-k|peco.KillEndOfLine|
-|C-u|peco.KillBeginningOfLine|
+|ArrowDown|peco.SelectDown|
+|ArrowLeft|peco.ScrollPageUp|
+|ArrowRight|peco.ScrollPageDown|
+|ArrowUp|peco.SelectUp|
 |BS|peco.DeleteBackwardChar|
 |C-8|peco.DeleteBackwardChar|
-|C-w|peco.DeleteBackwardWord|
+|C-Space|peco.ToggleSelectionAndSelectNext|
+|C-a|peco.BeginningOfLine|
+|C-b|peco.BackwardChar|
+|C-c|peco.Cancel|
+|C-d|peco.DeleteForwardChar|
+|C-e|peco.EndOfLine|
+|C-f|peco.ForwardChar|
 |C-g|peco.SelectNone|
+|C-k|peco.KillEndOfLine|
 |C-n|peco.SelectDown|
 |C-p|peco.SelectUp|
 |C-r|peco.RotateFilter|
 |C-t|peco.ToggleQuery|
-|C-Space|peco.ToggleSelectionAndSelectNext|
-|ArrowUp|peco.SelectUp|
-|ArrowDown|peco.SelectDown|
-|ArrowLeft|peco.ScrollPageUp|
-|ArrowRight|peco.ScrollPageDown|
-|Pgup|peco.ScrollPageUp|
+|C-u|peco.KillBeginningOfLine|
+|C-w|peco.DeleteBackwardWord|
+|Enter|peco.Finish|
+|Esc|peco.Cancel|
 |Pgdn|peco.ScrollPageDown|
+|Pgup|peco.ScrollPageUp|
 
 ## Styles
 
@@ -844,8 +829,6 @@ Styles can be customized in `config.json`.
 - `"on_bold"` for bg: `tcell.AttrBold` (this attribute actually makes the background blink on some platforms/environments, e.g. linux console, xterm...)
 
 ## CustomFilter
-
-This is an experimental feature. Please note that some details of this specification may change
 
 By default `peco` comes with `IgnoreCase`, `CaseSensitive`, `SmartCase`, `IRegexp`, `Regexp` and `Fuzzy` filters, but since v0.1.3, it is possible to create your own custom filter.
 
