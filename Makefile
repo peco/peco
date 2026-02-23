@@ -1,6 +1,8 @@
 MAKEFLAGS += --no-print-directory
 export PATH := $(HOME)/go/bin:$(PATH)
 
+.DEFAULT_GOAL := build
+
 .PHONY: build snapshot test lint generate cover clean deps check-goreleaser
 
 check-goreleaser:
