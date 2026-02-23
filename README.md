@@ -325,7 +325,7 @@ Clone the repository and run:
 make build
 ```
 
-This will build the binary into `releases/peco_<os>_<arch>/peco`. Copy it to somewhere in your `$PATH`.
+This will build the binary into `dist/peco_<os>_<arch>/peco`. Copy it to somewhere in your `$PATH`.
 
 # Command Line Options
 
@@ -932,7 +932,7 @@ make test
 To build, run
 
 ```
-make
+make build
 ```
 
 This will create a `peco` binary in `$(RELEASE_DIR)/peco_$(GOOS)_$(GOARCH)/peco$(SUFFIX)`. Or, of course, you can just run
