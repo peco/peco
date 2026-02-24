@@ -472,7 +472,7 @@ You can change the query line's prompt, which is `QUERY>` by default.
 
 ### InitialFilter
 
-Specifies the filter name to start peco with. You should specify the name of the filter, such as `IgnoreCase`, `CaseSensitive`, `SmartCase`, `Regexp` and `Fuzzy`.
+Specifies the filter name to start peco with. You should specify the name of the filter, such as `IgnoreCase`, `CaseSensitive`, `SmartCase`, `IRegexp`, `Regexp` and `Fuzzy`.
 
 ### FuzzyLongestSort
 
@@ -532,6 +532,20 @@ responsible for reading the input lines. If you believe that your input has
 very long lines that prohibit peco from reading them, try increasing this number.
 
 The same time, the default MaxScanBuferSize is 256kb.
+
+### FilterBufSize
+
+```json
+{
+    "FilterBufSize": 1000
+}
+```
+
+Controls the number of lines buffered internally during filtering. If you are
+working with very large inputs and notice sluggish filter updates, you can try
+adjusting this value.
+
+Default value for FilterBufSize is 1000.
 
 ### Color
 
