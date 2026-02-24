@@ -789,8 +789,8 @@ default.
 .PP
 Specifies the filter name to start peco with.
 You should specify the name of the filter, such as \f[V]IgnoreCase\f[R],
-\f[V]CaseSensitive\f[R], \f[V]SmartCase\f[R], \f[V]Regexp\f[R] and
-\f[V]Fuzzy\f[R].
+\f[V]CaseSensitive\f[R], \f[V]SmartCase\f[R], \f[V]IRegexp\f[R],
+\f[V]Regexp\f[R] and \f[V]Fuzzy\f[R].
 .SS FuzzyLongestSort
 .PP
 Enables the longest substring match and sorts the output.
@@ -859,6 +859,21 @@ If you believe that your input has very long lines that prohibit peco
 from reading them, try increasing this number.
 .PP
 The same time, the default MaxScanBuferSize is 256kb.
+.SS FilterBufSize
+.IP
+.nf
+\f[C]
+{
+    \[dq]FilterBufSize\[dq]: 1000
+}
+\f[R]
+.fi
+.PP
+Controls the number of lines buffered internally during filtering.
+If you are working with very large inputs and notice sluggish filter
+updates, you can try adjusting this value.
+.PP
+Default value for FilterBufSize is 1000.
 .SS Color
 .IP
 .nf
