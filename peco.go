@@ -120,7 +120,7 @@ type MessageHub interface {
 	StatusMsgCh() chan *hub.Payload[hub.StatusMsg]
 }
 
-var version = "v0.5.11"
+var version = "v0.6.0"
 
 type ignorableError struct {
 	err error
