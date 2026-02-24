@@ -22,15 +22,10 @@ jobs:
         with:
           go-version-file: go.mod
 
-      - name: Extract release notes from Changes
-        run: |
-          tag="${{ github.ref_name }}"
-          sed -n "/^${tag} /,/^v[0-9]/{/^v[0-9]/!p}" Changes > release-notes.md
-
       - name: Run GoReleaser
         uses: goreleaser/goreleaser-action@e435ccd777264be153ace6237001ef4d979d3a7a # v6
         with:
           version: "~> v2"
-          args: release --clean --release-notes=release-notes.md
+          args: release --clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
