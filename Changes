@@ -1,7 +1,7 @@
 Changes
 =======
 
-v0.6.0 - UNRELEASED
+v0.6.0 - 24 Feb 2026
   [Breaking Changes]
   * Migrated terminal backend from termbox-go to tcell (#567).
   * Removed deprecated config fields `Matcher`, `InitialMatcher`, and
