@@ -538,6 +538,62 @@ func TestTcellEventToEventCtrlKeysStripModCtrl(t *testing.T) {
 	}
 }
 
+// TestTcellEventToEventCtrlSpace verifies that Ctrl+Space is correctly
+// converted to KeyCtrlSpace (0x00) regardless of how the terminal reports it.
+//
+// Traditional terminals send NUL (0x00); tcell's input handler
+// delivers this as KeyCtrlSpace(64) with ModCtrl.
+// The KeyCtrlSpace..KeyCtrlZ path handles this.
+//
+// CSI u / enhanced terminals report Ctrl+Space as KeyRune with rune=' '
+// and ModCtrl. This must also produce Key=KeyCtrlSpace, Mod=ModNone
+// so that the ToggleSelectionAndSelectNext action fires correctly.
+func TestTcellEventToEventCtrlSpace(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name    string
+		tcellEv *tcell.EventKey
+		wantKey keyseq.KeyType
+		wantCh  rune
+		wantMod keyseq.ModifierKey
+	}{
+		{
+			// Traditional terminal: NUL byte (0x00).
+			// tcell's input handler calls
+			//   NewEventKey(KeyCtrlSpace+Key(r), 0, ModCtrl)
+			// which yields key=KeyCtrlSpace(64), mod=ModCtrl.
+			// The KeyCtrlSpace..KeyCtrlZ path strips ModCtrl and
+			// maps to keyseq.KeyCtrlSpace(0x00).
+			name:    "traditional terminal: NUL byte via KeyCtrlSpace+ModCtrl",
+			tcellEv: tcell.NewEventKey(tcell.KeyCtrlSpace, 0, tcell.ModCtrl),
+			wantKey: keyseq.KeyCtrlSpace,
+			wantCh:  0,
+			wantMod: keyseq.ModNone,
+		},
+		{
+			// CSI u / enhanced terminal: Ctrl+Space reported as
+			// KeyRune with rune=' ' and ModCtrl.
+			name:    "CSI u terminal: Ctrl+Space as rune with ModCtrl",
+			tcellEv: tcell.NewEventKey(tcell.KeyRune, ' ', tcell.ModCtrl),
+			wantKey: keyseq.KeyCtrlSpace,
+			wantCh:  0,
+			wantMod: keyseq.ModNone,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			got := tcellEventToEvent(tt.tcellEv)
+			require.Equal(t, EventKey, got.Type, "event type")
+			require.Equal(t, tt.wantKey, got.Key, "key")
+			require.Equal(t, tt.wantCh, got.Ch, "ch")
+			require.Equal(t, tt.wantMod, got.Mod, "modifier")
+		})
+	}
+}
+
 // TestTcellEventToEventCtrlWithAltPreservesAlt verifies that Ctrl+Alt
 // combinations strip ModCtrl but preserve ModAlt.
 func TestTcellEventToEventCtrlWithAltPreservesAlt(t *testing.T) {

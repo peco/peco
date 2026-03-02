@@ -110,8 +110,20 @@ func tcellEventToEvent(tev tcell.Event) Event {
 				}
 			}
 
-			// Special case: space must be sent as KeySpace with Ch=0
-			// to match the convention expected by doAcceptChar
+			// Ctrl+Space via CSI u: tcell delivers KeyRune with
+			// rune=' ' and ModCtrl. Convert to KeyCtrlSpace (0x00).
+			if r == ' ' && mod&keyseq.ModCtrl != 0 {
+				mod &^= keyseq.ModCtrl
+				return Event{
+					Type: EventKey,
+					Key:  keyseq.KeyCtrlSpace,
+					Ch:   0,
+					Mod:  mod,
+				}
+			}
+
+			// Plain space must be sent as KeySpace with Ch=0
+			// to match the convention expected by doAcceptChar.
 			if r == ' ' {
 				return Event{
 					Type: EventKey,
@@ -138,17 +150,17 @@ func tcellEventToEvent(tev tcell.Event) Event {
 			}
 		}
 
-		// Ctrl+letter keys: tcell.KeyCtrlA(65)..KeyCtrlZ(90).
+		// Ctrl keys: tcell.KeyCtrlSpace(64)..KeyCtrlZ(90).
 		// On terminals with enhanced keyboard protocols (CSI u /
 		// fixterms), tcell normalizes Ctrl+letter to these constants
 		// with ModCtrl set. Peco's keyseq system encodes the ctrl
-		// nature in the key value (0x01-0x1A), not in the modifier,
+		// nature in the key value (0x00-0x1A), not in the modifier,
 		// so strip the redundant ModCtrl. (issue #715)
-		if key >= tcell.KeyCtrlA && key <= tcell.KeyCtrlZ {
+		if key >= tcell.KeyCtrlSpace && key <= tcell.KeyCtrlZ {
 			mod &^= keyseq.ModCtrl
 			return Event{
 				Type: EventKey,
-				Key:  keyseq.KeyType(key - tcell.KeyCtrlA + 1),
+				Key:  keyseq.KeyType(key - tcell.KeyCtrlSpace),
 				Ch:   0,
 				Mod:  mod,
 			}
