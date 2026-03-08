@@ -56,7 +56,7 @@ Hub supports **batch mode** — multiple sends within `Batch()` callback are pro
 - `Screen` interface wraps terminal operations
 - `TcellScreen` — production impl using tcell/v2
 - `InlineScreen` — wraps TcellScreen for height-limited display
-- `DummyScreen` — test mock with event injection
+- `SimScreen` — test mock with event injection
 
 ## Layout System
 

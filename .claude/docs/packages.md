@@ -16,10 +16,10 @@ Interactive filtering tool core. Holds global state, goroutine loops, UI compone
 - **(*Peco).ExecQuery(ctx, func()) → bool** — execute filter with debounce
 - Key types: `Peco`, `Buffer`, `FilteredBuffer`, `MemoryBuffer`, `Source`, `Screen`, `Layout`, `Action`, `Keymap`, `Event`, `CLIOptions`, `Location`, `PageCrop`
 - Key interfaces: `MessageHub`, `Screen`, `Layout`, `Action`, `ActionMap`, `Buffer`, `Keyseq`, `ConfigReader`
-- Screen impls: `TcellScreen` (production), `InlineScreen` (height-limited), `DummyScreen` (tests)
+- Screen impls: `TcellScreen` (production), `InlineScreen` (height-limited), `SimScreen` (tests)
 - Layout impls: `BasicLayout` with builders: `DefaultLayout`, `BottomUpLayout`, `TopDownQueryBottomLayout`
-- Files: `peco.go`, `action.go`, `buffer.go`, `caret.go`, `event.go`, `filter.go`, `input.go`, `keymap.go`, `layout.go`, `layout_any.go`, `layout_windows.go`, `options.go`, `page.go`, `screen.go`, `screen_inline.go`, `source.go`, `state.go`, `view.go`, `vertical_anchor_gen.go`
-- Imports: config, filter, hub, line, pipeline, query, selection, sig, internal/ansi, internal/keyseq, internal/util
+- Files: `peco.go`, `action.go`, `buffer.go`, `event.go`, `filter.go`, `input.go`, `keymap.go`, `layout.go`, `layout_any.go`, `layout_windows.go`, `options.go`, `page.go`, `screen.go`, `screen_inline.go`, `source.go`, `state.go`, `view.go`, `vertical_anchor_gen.go`
+- Imports: config, filter, hub, line, pipeline, query, selection, sig, internal/ansi, internal/buffer, internal/keyseq, internal/util
 
 ## cmd/peco
 
@@ -34,7 +34,7 @@ CLI entry point.
 Benchmark tool for filter performance.
 
 - Files: `main.go`
-- Imports: filter
+- Imports: peco (root), filter, line, pipeline
 
 ## config/
 

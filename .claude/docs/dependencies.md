@@ -4,7 +4,7 @@
 
 ```
 cmd/peco → peco (root), internal/util
-cmd/filterbench → filter
+cmd/filterbench → peco (root), filter, line, pipeline
 
 peco (root) → config, filter, hub, line, pipeline, query, selection, sig
             → internal/ansi, internal/keyseq, internal/util, internal/buffer

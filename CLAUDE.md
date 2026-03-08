@@ -19,9 +19,9 @@ Read the linked doc BEFORE working in that area. No exceptions.
 ## Build & Test Commands
 
 ```bash
-make                # Download deps and build (default target)
-make build          # Build binary to releases/peco_<os>_<arch>/peco
-make test           # Run all tests: go test -v ./...
+make                # Build binary via goreleaser (default target)
+make build          # Build binary to dist/peco_<os>_<arch>/peco
+make test           # Run all tests: go test -v -race ./...
 make deps           # Download Go module dependencies
 make clean          # Remove build artifacts
 ```
@@ -40,7 +40,7 @@ The entry point is `cmd/peco/peco.go`.
 
 peco runs three main goroutines coordinated via context cancellation:
 
-- **Input loop** (`input.go`) — reads termbox key events, resolves key sequences via Keymap, dispatches actions
+- **Input loop** (`input.go`) — reads tcell key events, resolves key sequences via Keymap, dispatches actions
 - **View loop** (`view.go`) — renders screen in response to draw/paging/status messages
 - **Filter loop** (`filter.go`) — executes queries against the line buffer when query text changes
 
@@ -54,14 +54,14 @@ These goroutines communicate through the **Hub** (`hub/`), a central message bus
 4. **Filter** applies the active filter algorithm to produce matched lines
 5. Results flow through the **Pipeline** (`pipeline/`) as `Source → Acceptor → Destination`
 6. **View** receives draw messages and delegates to **Layout** (`layout.go`) which composes `UserPrompt`, `ListArea`, and `StatusBar`
-7. **Screen** (`screen.go`) wraps termbox-go for terminal cell rendering
+7. **Screen** (`screen.go`) wraps tcell/v2 for terminal cell rendering
 
 ### Key Interfaces
 
 - **`Buffer`** — line storage (`LineAt`, `Size`); implemented by `MemoryBuffer`, `FilteredBuffer`, `Source`
 - **`Filter`** (in `filter/`) — `Apply(ctx, []line.Line, ChanOutput)` for each filter algorithm (IgnoreCase, CaseSensitive, SmartCase, Regexp, IRegexp, Fuzzy, ExternalCmd)
 - **`Line`** (`line/`) — represents a single line with `ID`, `Buffer`, `DisplayString`, `Output`
-- **`Screen`** — terminal abstraction (`Init`, `SetCell`, `Flush`, `PollEvent`); `DummyScreen` used in tests
+- **`Screen`** — terminal abstraction (`Init`, `SetCell`, `Flush`, `PollEvent`); `SimScreen` used in tests
 - **`Layout`** — screen composition (`DrawScreen`, `DrawPrompt`, `MovePage`)
 - **`Action`** — user actions bound to keys (`action.go`); ~40 built-in actions, supports combined action sequences
 
@@ -83,8 +83,8 @@ Uses `go:generate` with `stringer` for enum string representations.
 
 ## Testing Patterns
 
-- `newPeco()` helper creates a test instance with `DummyScreen` (mock terminal)
-- `NewDummyScreen()` supports event injection for simulating user input
+- `newPeco()` helper creates a test instance with `SimScreen` (mock terminal)
+- `NewDummyScreen()` returns a `SimScreen` that supports event injection for simulating user input
 - Table-driven tests with `t.Run()` subtests are the common pattern
 - Regression tests for specific GitHub issues in `issues_test.go`
 

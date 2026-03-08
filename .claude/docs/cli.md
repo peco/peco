@@ -19,9 +19,9 @@
 | `--initial-index` | int | Initial cursor position |
 | `--initial-filter` | string | Initial filter name |
 | `--prompt` | string | Prompt string |
-| `--layout` | string | Layout type: top-down, bottom-up |
+| `--layout` | string | Layout type: top-down, bottom-up, top-down-query-bottom |
 | `--select-1` | bool | Auto-select if single match |
-| `--exit-zero` | bool | Exit 0 even on cancel |
+| `--exit-zero` | bool | Exit immediately with status 1 if input is empty |
 | `--select-all` | bool | Select all lines initially |
 | `--on-cancel` | string | Cancel behavior: success/error |
 | `--selection-prefix` | string | Prefix for selected lines |
@@ -33,7 +33,7 @@
 ## Exit Codes
 
 - 0 — success (lines selected)
-- 0 — cancel with `--on-cancel success` or `--exit-zero`
+- 0 — cancel with `--on-cancel success`
 - 1 — cancel (default)
 - Custom — from `--exec` command exit status
 
