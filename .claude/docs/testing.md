@@ -18,9 +18,9 @@ go test -race -coverprofile=coverage.out ./...  # coverage
 
 ## Key Test Helpers
 
-- `newPeco() → *Peco` — creates test instance with DummyScreen, default config
-- `NewDummyScreen() → *DummyScreen` — mock terminal; supports `SendEvent(Event)` for input injection
-- DummyScreen has fixed size, no-op rendering, collects events
+- `newPeco() → *Peco` — creates test instance with SimScreen, default config
+- `NewDummyScreen() → *SimScreen` — mock terminal; supports `SendEvent(Event)` for input injection
+- SimScreen has fixed size, no-op rendering, collects events
 
 ## Test Patterns
 

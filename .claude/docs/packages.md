@@ -57,7 +57,7 @@ Filter algorithm implementations.
 - **Filter** interface — `Apply(ctx, []line.Line, ChanOutput) → error`, `BufSize() → int`, `NewContext(ctx, string) → ctx`, `String() → string`, `SupportsParallel() → bool`
 - **Collector** interface (optional) — `ApplyCollect(ctx, []line.Line) → ([]line.Line, error)`
 - **Set** — filter collection with rotation: `Add(Filter)`, `Rotate()`, `Current() → Filter`, `SetCurrentByName(string) → error`
-- Implementations: `NewIgnoreCase()`, `NewCaseSensitive()`, `NewSmartCase()`, `NewRegexp()`, `NewIRegexp()`, `NewFuzzy(longestSort bool)`, `NewExternalCmd(name, cmd string, args []string, threshold int, idgen IDGenerator, enableSep bool)`
+- Implementations: `NewIgnoreCase()`, `NewCaseSensitive()`, `NewSmartCase()`, `NewRegexp()`, `NewIRegexp()`, `NewFuzzy(sortLongest bool)`, `NewExternalCmd(name, cmd string, args []string, threshold int, idgen IDGenerator, enableSep bool)`
 - Files: `filter.go`, `base.go`, `regexp.go`, `fuzzy.go`, `external.go`, `set.go`
 - Imports: line, pipeline, internal/util
 

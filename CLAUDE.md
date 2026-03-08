@@ -75,7 +75,7 @@ Uses `google/btree` for ordered selection storage. Supports multi-select, range 
 
 ### Platform-Specific Code
 
-Files suffixed `_posix.go` / `_windows.go` in `screen.go` and `internal/util/` handle TTY detection, shell integration, and home directory resolution per platform.
+Platform-specific behavior lives in `layout_any.go` / `layout_windows.go` (handling the `extraOffset` layout constant) and in files suffixed `_posix.go` / `_windows.go` under `internal/util/` (TTY detection, shell integration, home directory resolution).
 
 ### Code Generation
 
