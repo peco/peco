@@ -45,7 +45,7 @@ internal/buffer → line
 ### Application
 - `peco` (root) → all above
 - `cmd/peco` → peco, internal/util
-- `cmd/filterbench` → filter
+- `cmd/filterbench` → peco (root), filter, line, pipeline
 
 ## External Dependencies
 - `github.com/gdamore/tcell/v2` — terminal UI (screen.go)

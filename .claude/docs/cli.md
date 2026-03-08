@@ -33,8 +33,8 @@
 ## Exit Codes
 
 - 0 — success (lines selected)
-- 0 — cancel with `--on-cancel success`
-- 1 — cancel (default)
+- 0 — cancel (default, `--on-cancel success`)
+- 1 — cancel with `--on-cancel error`
 - Custom — from `--exec` command exit status
 
 ## Input
