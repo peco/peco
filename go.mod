@@ -3,7 +3,7 @@ module github.com/peco/peco
 go 1.25.0
 
 require (
-	github.com/gdamore/tcell/v2 v2.13.8
+	github.com/gdamore/tcell/v2 v2.13.9
 	github.com/goccy/go-yaml v1.19.2
 	github.com/google/btree v1.1.3
 	github.com/jessevdk/go-flags v1.6.1
