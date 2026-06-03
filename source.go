@@ -26,11 +26,16 @@ type Source struct {
 	inClosed   bool
 	isInfinite bool
 	lines      []line.Line
-	name       string
-	mutex      sync.RWMutex
-	ready      chan struct{}
-	setupDone  chan struct{}
-	setupOnce  sync.Once
+	// start is the index of the oldest live line within lines. When a
+	// capacity is set, Append advances start instead of reallocating on
+	// every line; the dead prefix lines[:start] is reclaimed in bulk by a
+	// periodic compaction. The live window is always lines[start:].
+	start     int
+	name      string
+	mutex     sync.RWMutex
+	ready     chan struct{}
+	setupDone chan struct{}
+	setupOnce sync.Once
 }
 
 // drawRefreshInterval is the interval at which the screen is redrawn while
@@ -225,7 +230,12 @@ func (s *Source) Start(ctx context.Context, out pipeline.ChanOutput) {
 
 	if !resume {
 		// no fancy resume handling needed. Send individual lines.
-		for _, l := range s.lines {
+		// setupDone is closed, so the buffer is stable; snapshot the live
+		// window (lines[start:]) under the lock and iterate it.
+		s.mutex.RLock()
+		live := s.lines[s.start:]
+		s.mutex.RUnlock()
+		for _, l := range live {
 			select {
 			case <-ctx.Done():
 				if pdebug.Enabled {
@@ -314,40 +324,60 @@ func (s *Source) SetupDone() <-chan struct{} {
 	return s.setupDone
 }
 
-// linesInRange returns a slice of lines between start and end indices from the buffer.
-func (s *Source) linesInRange(start, end int) []line.Line {
+// linesInRange returns a slice of lines between from and to (indices into the
+// live window) from the buffer.
+func (s *Source) linesInRange(from, to int) []line.Line {
 	s.mutex.RLock()
 	defer s.mutex.RUnlock()
-	return s.lines[start:end]
+	return s.lines[s.start+from : s.start+to]
 }
 
-// LineAt returns the line at the given index from the buffer.
+// LineAt returns the line at the given index (within the live window) from the buffer.
 func (s *Source) LineAt(n int) (line.Line, error) {
 	s.mutex.RLock()
 	defer s.mutex.RUnlock()
-	return bufferLineAt(s.lines, n)
+	return bufferLineAt(s.lines[s.start:], n)
 }
 
 // Size returns the number of lines currently in the buffer.
 func (s *Source) Size() int {
 	s.mutex.RLock()
 	defer s.mutex.RUnlock()
-	return len(s.lines)
+	return len(s.lines) - s.start
 }
 
 // Append adds a new line to the source buffer. If a capacity is set and
 // exceeded, the oldest lines are discarded to maintain the limit.
+//
+// Discarding is amortized O(1): rather than reallocating and copying the
+// whole window on every line once saturated (which is O(capacity) per
+// Append), we advance the logical start index and only compact — copying
+// the live window to the front and releasing the discarded lines — once the
+// dead prefix has grown to a full window. Compaction therefore happens once
+// every capacity appends, so the per-line cost is O(1) amortized while peak
+// memory stays bounded at ~2*capacity lines.
 func (s *Source) Append(l line.Line) {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
 
 	s.lines = append(s.lines, l)
-	if s.capacity > 0 && len(s.lines) > s.capacity {
-		diff := len(s.lines) - s.capacity
+	if s.capacity <= 0 {
+		return
+	}
 
-		// Copy to a new slice to allow GC of discarded lines
-		newLines := make([]line.Line, s.capacity)
-		copy(newLines, s.lines[diff:])
-		s.lines = newLines
+	// Drop the oldest line logically once we are over capacity. len-start
+	// is the live size, so this keeps Size() pinned at exactly capacity.
+	if len(s.lines)-s.start > s.capacity {
+		s.start++
+	}
+
+	// Once the dead prefix is as large as the live window (len == 2*capacity),
+	// compact: slide the live window to the front, clear the freed tail so the
+	// discarded lines can be GC'd, and reset start.
+	if s.start >= s.capacity {
+		n := copy(s.lines, s.lines[s.start:])
+		clear(s.lines[n:])
+		s.lines = s.lines[:n]
+		s.start = 0
 	}
 }
