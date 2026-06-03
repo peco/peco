@@ -96,6 +96,8 @@ type Peco struct {
 
 	frozen FrozenState
 
+	follow FollowState
+
 	zoom ZoomState
 
 	// cancelFunc is called for Exit()
@@ -289,6 +291,16 @@ func (p *Peco) Source() pipeline.Source {
 
 func (p *Peco) Frozen() *FrozenState {
 	return &p.frozen
+}
+
+// Follow returns the follow-mode state.
+func (p *Peco) Follow() *FollowState {
+	return &p.follow
+}
+
+// IsFollowing reports whether follow mode is currently active.
+func (p *Peco) IsFollowing() bool {
+	return p.follow.Enabled()
 }
 
 func (p *Peco) Zoom() *ZoomState {
@@ -794,6 +806,8 @@ func (p *Peco) ApplyConfig(opts CLIOptions) error {
 	p.selectOneAndExit = opts.OptSelect1
 	p.exitZeroAndExit = opts.OptExitZero
 	p.selectAllAndExit = opts.OptSelectAll
+	// Follow mode: CLI flag overrides config.
+	p.follow.Set(opts.OptFollow || p.config.Follow)
 	p.printQuery = opts.OptPrintQuery
 	p.initialQuery = opts.OptQuery
 	p.initialFilter = opts.OptInitialFilter

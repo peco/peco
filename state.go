@@ -2,6 +2,7 @@ package peco
 
 import (
 	"sync"
+	"sync/atomic"
 	"time"
 )
 
@@ -73,6 +74,24 @@ func (z *ZoomState) Clear() {
 	defer z.mutex.Unlock()
 	z.buffer = nil
 	z.lineNo = 0
+}
+
+// FollowState tracks whether follow mode is active. In follow mode peco
+// auto-scrolls to keep the newest input lines visible, like "tail -f".
+// It is toggled at runtime: manual cursor movement turns it off, and the
+// ToggleFollow action turns it back on.
+type FollowState struct {
+	enabled atomic.Bool
+}
+
+// Enabled reports whether follow mode is currently active.
+func (f *FollowState) Enabled() bool {
+	return f.enabled.Load()
+}
+
+// Set turns follow mode on or off.
+func (f *FollowState) Set(enabled bool) {
+	f.enabled.Store(enabled)
 }
 
 // FrozenState holds a snapshot of filter results when the user

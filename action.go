@@ -172,6 +172,8 @@ func init() {
 	ActionFunc(doFreezeResults).Register("FreezeResults")
 	ActionFunc(doUnfreezeResults).Register("UnfreezeResults")
 
+	ActionFunc(doToggleFollow).Register("ToggleFollow")
+
 	ActionFunc(doZoomIn).Register("ZoomIn")
 	ActionFunc(doZoomOut).Register("ZoomOut")
 
@@ -964,6 +966,27 @@ func doUnfreezeResults(ctx context.Context, state *Peco, _ Event) {
 	state.ResetCurrentLineBuffer(ctx)
 	state.Hub().SendStatusMsg(ctx, "Results unfrozen", 0)
 	state.Hub().SendDrawPrompt(ctx)
+}
+
+// doToggleFollow turns follow mode on or off. In follow mode peco auto-scrolls
+// to keep the newest input lines visible, like "tail -f". Enabling it redraws
+// so the viewport jumps to the tail immediately.
+func doToggleFollow(ctx context.Context, state *Peco, _ Event) {
+	if pdebug.Enabled {
+		g := pdebug.Marker("doToggleFollow")
+		defer g.End()
+	}
+
+	follow := state.Follow()
+	enabled := !follow.Enabled()
+	follow.Set(enabled)
+
+	if enabled {
+		state.Hub().SendStatusMsg(ctx, "Follow mode on", 0)
+		state.Hub().SendDraw(ctx, &hub.DrawOptions{DisableCache: true})
+		return
+	}
+	state.Hub().SendStatusMsg(ctx, "Follow mode off", 0)
 }
 
 // doZoomIn expands the view to show context lines around matched lines by building
