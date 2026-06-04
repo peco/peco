@@ -6,8 +6,9 @@ v0.6.1 - UNRELEASED
   * Mouse reporting is now disabled by default. Enabling it (as v0.6.0
     did unconditionally) prevents the terminal's own text selection,
     e.g. select-and-copy in iTerm2 is blocked. To bind mouse buttons
-    (`MouseLeft`/`MouseMiddle`/`MouseRight`) to actions, set
-    `"Mouse": true` in your config file (#823).
+    (`MouseLeft`/`MouseMiddle`/`MouseRight`) to actions, enable it with
+    the `--mouse` command line option or `"Mouse": true` in your config
+    file (#823).
 
 v0.6.0 - 24 Feb 2026
   [Breaking Changes]

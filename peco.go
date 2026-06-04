@@ -817,6 +817,11 @@ func (p *Peco) ApplyConfig(opts CLIOptions) error {
 		p.heightSpec = &spec
 	}
 
+	// Mouse: --mouse forces it on; otherwise the config value applies.
+	if opts.OptMouse {
+		p.config.Mouse = true
+	}
+
 	p.populateFilters()
 
 	if err := p.populateKeymap(); err != nil {

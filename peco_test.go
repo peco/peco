@@ -469,6 +469,35 @@ func TestApplyConfig(t *testing.T) {
 		require.False(t, p.heightSpec.IsPercent, "p.heightSpec.IsPercent should be false for absolute CLI value")
 	})
 
+	t.Run("Mouse off by default", func(t *testing.T) {
+		p := newPeco()
+
+		var opts CLIOptions
+		require.NoError(t, p.ApplyConfig(opts), "p.ApplyConfig should succeed")
+
+		require.False(t, p.config.Mouse, "mouse should be off when neither --mouse nor config is set")
+	})
+
+	t.Run("--mouse enables mouse", func(t *testing.T) {
+		p := newPeco()
+
+		var opts CLIOptions
+		opts.OptMouse = true
+		require.NoError(t, p.ApplyConfig(opts), "p.ApplyConfig should succeed")
+
+		require.True(t, p.config.Mouse, "p.config.Mouse should be true when --mouse is set")
+	})
+
+	t.Run("config Mouse honored when --mouse absent", func(t *testing.T) {
+		p := newPeco()
+		p.config.Mouse = true
+
+		var opts CLIOptions
+		require.NoError(t, p.ApplyConfig(opts), "p.ApplyConfig should succeed")
+
+		require.True(t, p.config.Mouse, "config Mouse:true should be preserved when --mouse is absent")
+	})
+
 	t.Run("Config OnCancel used when CLI option absent", func(t *testing.T) {
 		p := newPeco()
 		p.config.OnCancel = config.OnCancelError

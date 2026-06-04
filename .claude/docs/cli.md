@@ -29,6 +29,7 @@
 | `--print-query` | bool | Print query as first output line |
 | `--color` | ColorMode | Color mode: auto, none |
 | `--height` | string | Terminal height spec |
+| `--mouse` | bool | Enable mouse reporting (off by default; OR'd with `Mouse` config) |
 
 ## Exit Codes
 

@@ -437,6 +437,12 @@ Without `--height`, peco uses the full terminal screen (default behavior, unchan
 
 **Note:** In inline mode, peco sets the environment variable `TCELL_ALTSCREEN=disable` to prevent tcell from using the alternate screen buffer, and restores the original value on exit. If peco is killed abnormally (e.g. `SIGKILL`), you may need to unset this variable manually: `unset TCELL_ALTSCREEN`.
 
+### --mouse
+
+Enables terminal mouse reporting so you can bind mouse buttons (`MouseLeft`, `MouseMiddle`, `MouseRight`) to actions in your `Keymap`.
+
+Mouse reporting is disabled by default because it prevents the terminal's own text selection (for example, select-and-copy in iTerm2 is blocked while mouse reporting is on). This flag is equivalent to setting `"Mouse": true` in the config file; the two are OR'd together, so either one enables it.
+
 # Configuration File
 
 peco by default consults a few locations for the config files.
@@ -524,6 +530,9 @@ It is disabled by default because enabling mouse reporting prevents the
 terminal's own text selection (for example, select-and-copy in iTerm2 is
 blocked while mouse reporting is on). Only turn this on if you actually bind
 mouse buttons to peco actions.
+
+This is equivalent to the `--mouse` command line option; the two are OR'd
+together, so either one enables mouse reporting.
 
 Default value for Mouse is false.
 
