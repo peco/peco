@@ -23,8 +23,7 @@ func BenchmarkSourceAppendSaturated(b *testing.B) {
 	}
 
 	l := line.NewRaw(uint64(capacity), "payload", false, false)
-	b.ResetTimer()
-	for range b.N {
+	for b.Loop() {
 		s.Append(l)
 	}
 }
