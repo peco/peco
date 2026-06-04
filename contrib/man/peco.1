@@ -741,6 +741,18 @@ behavior, unchanged).
 alternate screen buffer, and restores the original value on exit.
 If peco is killed abnormally (e.g.\ \f[V]SIGKILL\f[R]), you may need to
 unset this variable manually: \f[V]unset TCELL_ALTSCREEN\f[R].
+.SS \[en]mouse
+.PP
+Enables terminal mouse reporting so you can bind mouse buttons
+(\f[V]MouseLeft\f[R], \f[V]MouseMiddle\f[R], \f[V]MouseRight\f[R]) to
+actions in your \f[V]Keymap\f[R].
+.PP
+Mouse reporting is disabled by default because it prevents the
+terminal\[cq]s own text selection (for example, select-and-copy in
+iTerm2 is blocked while mouse reporting is on).
+This flag is equivalent to setting \f[V]\[dq]Mouse\[dq]: true\f[R] in
+the config file; the two are OR\[cq]d together, so either one enables
+it.
 .SH Configuration File
 .PP
 peco by default consults a few locations for the config files.
@@ -831,6 +843,29 @@ When set to true, messages like \[lq]Running query\&...\[rq] will not be
 displayed.
 .PP
 Default value for SuppressStatusMsg is false.
+.SS Mouse
+.IP
+.nf
+\f[C]
+{
+    \[dq]Mouse\[dq]: true
+}
+\f[R]
+.fi
+.PP
+Mouse enables terminal mouse reporting, which lets you bind mouse
+buttons (\f[V]MouseLeft\f[R], \f[V]MouseMiddle\f[R],
+\f[V]MouseRight\f[R]) to actions in the \f[V]Keymap\f[R] section.
+.PP
+It is disabled by default because enabling mouse reporting prevents the
+terminal\[cq]s own text selection (for example, select-and-copy in
+iTerm2 is blocked while mouse reporting is on).
+Only turn this on if you actually bind mouse buttons to peco actions.
+.PP
+This is equivalent to the \f[V]--mouse\f[R] command line option; the two
+are OR\[cq]d together, so either one enables mouse reporting.
+.PP
+Default value for Mouse is false.
 .SS OnCancel
 .IP
 .nf

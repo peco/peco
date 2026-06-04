@@ -258,7 +258,7 @@ func attributeToTcellStyle(fg, bg config.Attribute) tcell.Style {
 	return style
 }
 
-func (t *TcellScreen) Init(_ *config.Config) error {
+func (t *TcellScreen) Init(cfg *config.Config) error {
 	screen, err := tcell.NewScreen()
 	if err != nil {
 		return fmt.Errorf("failed to create tcell screen: %w", err)
@@ -268,7 +268,9 @@ func (t *TcellScreen) Init(_ *config.Config) error {
 		return fmt.Errorf("failed to initialize tcell screen: %w", err)
 	}
 
-	screen.EnableMouse()
+	if cfg != nil && cfg.Mouse {
+		screen.EnableMouse()
+	}
 
 	t.screen = screen
 	return nil

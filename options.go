@@ -33,6 +33,7 @@ type CLIOptions struct {
 	OptPrintQuery      bool             `long:"print-query" description:"print out the current query as first line of output"`
 	OptColor           config.ColorMode `long:"color" description:"color mode: 'auto' (default, parse ANSI codes) or 'none' (disable)" default:"auto"`
 	OptHeight          string           `long:"height" description:"display height in lines or percentage (e.g. '10', '50%')"`
+	OptMouse           bool             `long:"mouse" description:"enable mouse reporting. disabled by default because it\nblocks the terminal's own text selection (e.g. copy in iTerm2)"`
 }
 
 // parse parses command-line arguments and validates the resulting options.

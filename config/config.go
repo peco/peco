@@ -96,6 +96,11 @@ type Config struct {
 	// Height specifies the display height in lines or percentage (e.g. "10", "50%").
 	// When set, peco renders inline without using the alternate screen buffer.
 	Height string `json:"Height" yaml:"Height"`
+
+	// Mouse enables terminal mouse reporting. It is disabled by default
+	// because enabling it prevents the terminal's native text selection
+	// (e.g. select-and-copy in iTerm2). Set to true to opt in.
+	Mouse bool `json:"Mouse" yaml:"Mouse"`
 }
 
 // SingleKeyJumpConfig holds configuration for single key jump mode.

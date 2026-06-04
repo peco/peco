@@ -335,6 +335,45 @@ func TestColorMode(t *testing.T) {
 	})
 }
 
+func TestMouse(t *testing.T) {
+	t.Run("disabled by default", func(t *testing.T) {
+		var cfg Config
+		require.NoError(t, cfg.Init())
+		require.False(t, cfg.Mouse, "mouse reporting must be off by default")
+	})
+
+	t.Run("opt-in via JSON", func(t *testing.T) {
+		for _, tc := range []struct {
+			input    string
+			expected bool
+		}{
+			{`{"Mouse":true}`, true},
+			{`{"Mouse":false}`, false},
+			{`{}`, false}, // absent key stays off
+		} {
+			var cfg Config
+			require.NoError(t, cfg.Init())
+			require.NoError(t, json.Unmarshal([]byte(tc.input), &cfg))
+			require.Equal(t, tc.expected, cfg.Mouse)
+		}
+	})
+
+	t.Run("opt-in via YAML", func(t *testing.T) {
+		for _, tc := range []struct {
+			input    string
+			expected bool
+		}{
+			{"Mouse: true", true},
+			{"Mouse: false", false},
+		} {
+			var cfg Config
+			require.NoError(t, cfg.Init())
+			require.NoError(t, yaml.Unmarshal([]byte(tc.input), &cfg))
+			require.Equal(t, tc.expected, cfg.Mouse)
+		}
+	})
+}
+
 func TestReadFilenameYAML(t *testing.T) {
 	dir := t.TempDir()
 	yamlFile := filepath.Join(dir, "config.yaml")
