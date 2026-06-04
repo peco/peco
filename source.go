@@ -324,12 +324,17 @@ func (s *Source) SetupDone() <-chan struct{} {
 	return s.setupDone
 }
 
-// linesInRange returns a slice of lines between from and to (indices into the
-// live window) from the buffer.
+// linesInRange returns the lines between from and to (indices into the live
+// window) from the buffer. The returned slice is a copy: Append may compact
+// the backing array in place after the lock is released, which would
+// otherwise overwrite or clear the slice the caller is still iterating.
 func (s *Source) linesInRange(from, to int) []line.Line {
 	s.mutex.RLock()
 	defer s.mutex.RUnlock()
-	return s.lines[s.start+from : s.start+to]
+	src := s.lines[s.start+from : s.start+to]
+	out := make([]line.Line, len(src))
+	copy(out, src)
+	return out
 }
 
 // LineAt returns the line at the given index (within the live window) from the buffer.

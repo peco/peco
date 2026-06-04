@@ -3,6 +3,7 @@ package peco
 import (
 	"fmt"
 	"strings"
+	"sync"
 	"testing"
 
 	"github.com/peco/peco/line"
@@ -73,4 +74,50 @@ func TestSourceUnlimitedRetainsAll(t *testing.T) {
 	last, err := s.LineAt(total - 1)
 	require.NoError(t, err)
 	require.Equal(t, fmt.Sprintf("line%d", total-1), last.DisplayString())
+}
+
+// TestSourceLinesInRangeConcurrentAppend verifies that the slice returned by
+// linesInRange remains stable for the caller even when Append concurrently
+// compacts the backing array. Run under -race, this catches any future
+// regression where linesInRange returns a slice aliased into the live storage.
+func TestSourceLinesInRangeConcurrentAppend(t *testing.T) {
+	const capacity = 32
+	ig := newIDGen()
+	go ig.Run(t.Context())
+
+	s := NewSource("-", strings.NewReader(""), false, ig, capacity, false, false)
+	for i := range capacity {
+		s.Append(line.NewRaw(uint64(i), fmt.Sprintf("seed%d", i), false, false))
+	}
+
+	stop := make(chan struct{})
+	var wg sync.WaitGroup
+	wg.Go(func() {
+		i := uint64(capacity)
+		for {
+			select {
+			case <-stop:
+				return
+			default:
+			}
+			s.Append(line.NewRaw(i, fmt.Sprintf("hot%d", i), false, false))
+			i++
+		}
+	})
+
+	// Repeatedly grab a window and read every element. If linesInRange
+	// returned a slice aliased into s.lines, a concurrent compaction would
+	// either nil out entries (post-clear) or rewrite them, producing a race
+	// detector hit and/or a nil DisplayString() deref.
+	for range 2000 {
+		rng := s.linesInRange(0, capacity)
+		require.Len(t, rng, capacity)
+		for _, l := range rng {
+			require.NotNil(t, l)
+			_ = l.DisplayString()
+		}
+	}
+
+	close(stop)
+	wg.Wait()
 }
