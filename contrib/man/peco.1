@@ -831,6 +831,26 @@ When set to true, messages like \[lq]Running query\&...\[rq] will not be
 displayed.
 .PP
 Default value for SuppressStatusMsg is false.
+.SS Mouse
+.IP
+.nf
+\f[C]
+{
+    \[dq]Mouse\[dq]: true
+}
+\f[R]
+.fi
+.PP
+Mouse enables terminal mouse reporting, which lets you bind mouse
+buttons (\f[V]MouseLeft\f[R], \f[V]MouseMiddle\f[R],
+\f[V]MouseRight\f[R]) to actions in the \f[V]Keymap\f[R] section.
+.PP
+It is disabled by default because enabling mouse reporting prevents the
+terminal\[cq]s own text selection (for example, select-and-copy in
+iTerm2 is blocked while mouse reporting is on).
+Only turn this on if you actually bind mouse buttons to peco actions.
+.PP
+Default value for Mouse is false.
 .SS OnCancel
 .IP
 .nf

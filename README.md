@@ -509,6 +509,24 @@ When set to true, messages like "Running query..." will not be displayed.
 
 Default value for SuppressStatusMsg is false.
 
+### Mouse
+
+```json
+{
+    "Mouse": true
+}
+```
+
+Mouse enables terminal mouse reporting, which lets you bind mouse buttons
+(`MouseLeft`, `MouseMiddle`, `MouseRight`) to actions in the `Keymap` section.
+
+It is disabled by default because enabling mouse reporting prevents the
+terminal's own text selection (for example, select-and-copy in iTerm2 is
+blocked while mouse reporting is on). Only turn this on if you actually bind
+mouse buttons to peco actions.
+
+Default value for Mouse is false.
+
 ### OnCancel
 
 ```json

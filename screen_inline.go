@@ -39,7 +39,7 @@ func NewInlineScreen(spec config.HeightSpec) *InlineScreen {
 }
 
 // Init initializes the tcell screen for inline mode, disabling the alternate screen buffer.
-func (s *InlineScreen) Init(_ *config.Config) error {
+func (s *InlineScreen) Init(cfg *config.Config) error {
 	// Save and override TCELL_ALTSCREEN to prevent alternate screen buffer
 	s.savedAltscreen = os.Getenv("TCELL_ALTSCREEN")
 	os.Setenv("TCELL_ALTSCREEN", "disable")
@@ -55,7 +55,9 @@ func (s *InlineScreen) Init(_ *config.Config) error {
 		return fmt.Errorf("failed to initialize tcell screen: %w", err)
 	}
 
-	screen.EnableMouse()
+	if cfg != nil && cfg.Mouse {
+		screen.EnableMouse()
+	}
 
 	s.mutex.Lock()
 	s.screen = screen
