@@ -33,6 +33,7 @@ type CLIOptions struct {
 	OptPrintQuery      bool             `long:"print-query" description:"print out the current query as first line of output"`
 	OptColor           config.ColorMode `long:"color" description:"color mode: 'auto' (default, parse ANSI codes) or 'none' (disable)" default:"auto"`
 	OptHeight          string           `long:"height" description:"display height in lines or percentage (e.g. '10', '50%')"`
+	OptFollow          bool             `long:"follow" short:"f" description:"follow streaming input, auto-scrolling to keep the newest lines\nvisible (like 'tail -f'). Manual cursor movement turns this off"`
 }
 
 // parse parses command-line arguments and validates the resulting options.

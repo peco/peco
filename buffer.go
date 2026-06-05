@@ -52,13 +52,23 @@ type ContextLine struct {
 // NewFilteredBuffer creates a FilteredBuffer containing one page of lines from
 // the source buffer, computing the maximum column width for horizontal scrolling.
 func NewFilteredBuffer(src Buffer, page, perPage int) *FilteredBuffer {
+	return newFilteredBufferRange(src, perPage*(page-1), perPage)
+}
+
+// newFilteredBufferRange creates a FilteredBuffer holding up to count lines
+// from the source buffer starting at the given index. This is the shared core
+// behind both page-aligned cropping (NewFilteredBuffer) and the sliding-window
+// crop used by follow mode (WindowCrop), where start is not page-aligned.
+func newFilteredBufferRange(src Buffer, start, count int) *FilteredBuffer {
 	fb := FilteredBuffer{
 		src: src,
 	}
 
-	start := perPage * (page - 1)
+	if start < 0 {
+		start = 0
+	}
 
-	// if for whatever reason we wanted a page that goes over the
+	// if for whatever reason we wanted a range that goes over the
 	// capacity of the original buffer, we don't need to do any more
 	// calculations. bail out
 	if start > src.Size() {
@@ -66,7 +76,7 @@ func NewFilteredBuffer(src Buffer, page, perPage int) *FilteredBuffer {
 	}
 
 	// Copy over the selections that are applicable to this filtered buffer.
-	end := min(start+perPage, src.Size())
+	end := min(start+count, src.Size())
 	selection := make([]int, 0, end-start)
 
 	lines := src.linesInRange(start, end)

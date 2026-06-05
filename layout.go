@@ -328,6 +328,9 @@ func (u UserPrompt) Draw(state *Peco) {
 
 	loc := state.Location()
 	pmsg := fmt.Sprintf("%s [%d (%d/%d)]", state.Filters().Current().String(), loc.Total(), loc.Page(), loc.MaxPage())
+	if state.IsFollowing() {
+		pmsg = "FOLLOW " + pmsg
+	}
 	u.screen.Print(PrintArgs{
 		X:   width - runewidth.StringWidth(pmsg),
 		Y:   location,
@@ -581,16 +584,26 @@ func (l *ListArea) Draw(state *Peco, parent Layout, perPage int, options *hub.Dr
 
 	loc := state.Location()
 	linebuf := state.CurrentLineBuffer()
+	following := state.IsFollowing()
 
-	if options != nil && options.RunningQuery {
+	// While following, the viewport is pinned to the tail of the buffer
+	// (see calculateFollowPage), so the running-query page adjustment must
+	// not move it.
+	if !following && options != nil && options.RunningQuery {
 		adjustPageForRunningQuery(loc, linebuf, parent, state)
 	}
 
-	pf := loc.PageCrop()
-	if pdebug.Enabled {
-		pdebug.Printf("Cropping linebuf which contains %d lines at page %d (%d entries per page)", linebuf.Size(), pf.currentPage, pf.perPage)
+	var buf *FilteredBuffer
+	if following {
+		// Sliding window over the tail so the newest line is on the last row.
+		buf = WindowCrop{offset: loc.Offset(), perPage: loc.PerPage()}.Crop(linebuf)
+	} else {
+		pf := loc.PageCrop()
+		if pdebug.Enabled {
+			pdebug.Printf("Cropping linebuf which contains %d lines at page %d (%d entries per page)", linebuf.Size(), pf.currentPage, pf.perPage)
+		}
+		buf = pf.Crop(linebuf)
 	}
-	buf := pf.Crop(linebuf)
 	bufsiz := buf.Size()
 
 	// This protects us from losing the selected line in case our selected
@@ -910,6 +923,39 @@ func (l *BasicLayout) CalculatePage(state *Peco, perPage int) error {
 	return nil
 }
 
+// calculateFollowPage pins the viewport to the tail of the buffer for follow
+// mode. Unlike CalculatePage, the offset is a sliding window (Size-perPage)
+// rather than a page boundary, so the newest line always lands on the last
+// visible row. The cursor is pinned to the newest line.
+func (l *BasicLayout) calculateFollowPage(state *Peco, perPage int) error {
+	if pdebug.Enabled {
+		g := pdebug.Marker("BasicLayout.calculateFollowPage %d", perPage)
+		defer g.End()
+	}
+	buf := state.CurrentLineBuffer()
+	loc := state.Location()
+
+	total := buf.Size()
+	loc.SetPerPage(perPage)
+	loc.SetTotal(total)
+
+	if total == 0 {
+		loc.SetOffset(0)
+		loc.SetLineNumber(0)
+		loc.SetPage(1)
+		loc.SetMaxPage(1)
+		// wait for targets
+		return errors.New("no targets or query. nothing to do")
+	}
+
+	loc.SetOffset(max(total-perPage, 0))
+	loc.SetLineNumber(total - 1)
+	loc.SetMaxPage((total + perPage - 1) / perPage)
+	loc.SetPage(loc.MaxPage())
+
+	return nil
+}
+
 // DrawPrompt draws the prompt to the terminal
 func (l *BasicLayout) DrawPrompt(state *Peco) {
 	l.prompt.Draw(state)
@@ -924,7 +970,11 @@ func (l *BasicLayout) DrawScreen(state *Peco, options *hub.DrawOptions) {
 
 	perPage := l.linesPerPage()
 
-	if err := l.CalculatePage(state, perPage); err != nil {
+	calculate := l.CalculatePage
+	if state.IsFollowing() {
+		calculate = l.calculateFollowPage
+	}
+	if err := calculate(state, perPage); err != nil {
 		return
 	}
 
@@ -1097,6 +1147,10 @@ func updateRangeSelection(state *Peco, buf Buffer, loc *Location, lineBefore, lc
 
 // verticalScroll moves the cursor position vertically
 func verticalScroll(state *Peco, l *BasicLayout, p hub.PagingRequest) bool {
+	// Manual vertical navigation cancels follow mode so the user can scroll
+	// back through history. Re-enable it with the ToggleFollow action.
+	state.Follow().Set(false)
+
 	loc := state.Location()
 	lineBefore := loc.LineNumber()
 

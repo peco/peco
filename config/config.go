@@ -96,6 +96,11 @@ type Config struct {
 	// Height specifies the display height in lines or percentage (e.g. "10", "50%").
 	// When set, peco renders inline without using the alternate screen buffer.
 	Height string `json:"Height" yaml:"Height"`
+
+	// Follow enables follow mode at startup: peco auto-scrolls to keep the
+	// newest input lines visible, like "tail -f". The --follow CLI flag
+	// overrides this value.
+	Follow bool `json:"Follow" yaml:"Follow"`
 }
 
 // SingleKeyJumpConfig holds configuration for single key jump mode.

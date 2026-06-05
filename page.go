@@ -120,3 +120,17 @@ func (l *Location) PageCrop() PageCrop {
 func (pf PageCrop) Crop(in Buffer) *FilteredBuffer {
 	return NewFilteredBuffer(in, pf.currentPage, pf.perPage)
 }
+
+// WindowCrop crops a fixed-size window of lines starting at an explicit
+// offset rather than a page boundary. Follow mode uses it to show the tail
+// of the buffer (the newest lines) regardless of page alignment.
+type WindowCrop struct {
+	offset  int
+	perPage int
+}
+
+// Crop returns a new Buffer containing up to perPage lines starting at the
+// window's offset.
+func (wc WindowCrop) Crop(in Buffer) *FilteredBuffer {
+	return newFilteredBufferRange(in, wc.offset, wc.perPage)
+}

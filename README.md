@@ -437,6 +437,26 @@ Without `--height`, peco uses the full terminal screen (default behavior, unchan
 
 **Note:** In inline mode, peco sets the environment variable `TCELL_ALTSCREEN=disable` to prevent tcell from using the alternate screen buffer, and restores the original value on exit. If peco is killed abnormally (e.g. `SIGKILL`), you may need to unset this variable manually: `unset TCELL_ALTSCREEN`.
 
+### -f, --follow
+
+When specified, peco follows streaming input, automatically scrolling to keep the newest lines visible at the bottom of the list, just like `tail -f`. This is useful for live log streams:
+
+```
+journalctl -f -n 1000 | peco --follow --layout top-down-query-bottom
+```
+
+Moving the cursor manually (e.g. with the arrow keys) turns follow mode off so you can scroll back through the history. The `ToggleFollow` action turns it back on; bind it to a key in your configuration file, for example:
+
+```json
+{
+    "Keymap": {
+        "C-f": "peco.ToggleFollow"
+    }
+}
+```
+
+Follow mode can also be enabled by default with the `Follow` configuration variable. The `--follow` command line option takes precedence over the configuration file.
+
 # Configuration File
 
 peco by default consults a few locations for the config files.
@@ -737,6 +757,7 @@ Some keys just... don't map correctly / too easily for various reasons. Here, we
 | peco.SelectVisible      | Selects the all visible line, and save it |
 | peco.ToggleQuery        | Toggle list between filtered by query and not filtered |
 | peco.ToggleRangeMode   | Start selecting by range, or append selecting range to selections |
+| peco.ToggleFollow       | Toggle follow mode (auto-scroll to the newest lines, like tail -f) |
 | peco.ToggleSelectMode   | (DEPRECATED) Alias to ToggleRangeMode |
 | peco.ToggleSelection    | Selects the current line, and saves it |
 | peco.ToggleSelectionAndSelectNext | Selects the current line, saves it, and proceeds to the next line |
