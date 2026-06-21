@@ -6,9 +6,11 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"maps"
 	"os"
 	"reflect"
 	"runtime"
+	"slices"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -884,6 +886,7 @@ func (p *Peco) populateSingleKeyJump() error { //nolint:unparam
 
 // populateFilters registers the built-in filter set (IgnoreCase, CaseSensitive,
 // SmartCase, Regexp, Fuzzy, etc.) and any custom external filters from config.
+// Custom filters are registered in alphabetical order by name.
 func (p *Peco) populateFilters() {
 	p.filters.Add(filter.NewIgnoreCase())
 	p.filters.Add(filter.NewCaseSensitive())
@@ -892,7 +895,8 @@ func (p *Peco) populateFilters() {
 	p.filters.Add(filter.NewRegexp())
 	p.filters.Add(filter.NewFuzzy(p.fuzzyLongestSort))
 
-	for name, c := range p.config.CustomFilter {
+	for _, name := range slices.Sorted(maps.Keys(p.config.CustomFilter)) {
+		c := p.config.CustomFilter[name]
 		f := filter.NewExternalCmd(name, c.Cmd, c.Args, c.BufferThreshold, p.idgen, p.enableSep)
 		p.filters.Add(f)
 	}
