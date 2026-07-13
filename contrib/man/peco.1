@@ -741,6 +741,38 @@ behavior, unchanged).
 alternate screen buffer, and restores the original value on exit.
 If peco is killed abnormally (e.g.\ \f[V]SIGKILL\f[R]), you may need to
 unset this variable manually: \f[V]unset TCELL_ALTSCREEN\f[R].
+.SS -f, \[en]follow
+.PP
+When specified, peco follows streaming input, automatically scrolling to
+keep the newest lines visible at the bottom of the list, just like
+\f[V]tail -f\f[R].
+This is useful for live log streams:
+.IP
+.nf
+\f[C]
+journalctl -f -n 1000 | peco --follow --layout top-down-query-bottom
+\f[R]
+.fi
+.PP
+Moving the cursor manually (e.g.\ with the arrow keys) turns follow mode
+off so you can scroll back through the history.
+The \f[V]ToggleFollow\f[R] action turns it back on; bind it to a key in
+your configuration file, for example:
+.IP
+.nf
+\f[C]
+{
+    \[dq]Keymap\[dq]: {
+        \[dq]C-f\[dq]: \[dq]peco.ToggleFollow\[dq]
+    }
+}
+\f[R]
+.fi
+.PP
+Follow mode can also be enabled by default with the \f[V]Follow\f[R]
+configuration variable.
+The \f[V]--follow\f[R] command line option takes precedence over the
+configuration file.
 .SH Configuration File
 .PP
 peco by default consults a few locations for the config files.
@@ -1397,6 +1429,11 @@ T{
 peco.ToggleRangeMode
 T}@T{
 Start selecting by range, or append selecting range to selections
+T}
+T{
+peco.ToggleFollow
+T}@T{
+Toggle follow mode (auto-scroll to the newest lines, like tail -f)
 T}
 T{
 peco.ToggleSelectMode
