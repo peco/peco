@@ -1113,6 +1113,96 @@ func TestWaitAndCall(t *testing.T) {
 	})
 }
 
+// TestCustomFilterAlphabeticalOrder verifies that custom filters from the
+// config map are registered in alphabetical order by name.
+func TestCustomFilterAlphabeticalOrder(t *testing.T) {
+	const echoCmd = "echo"
+
+	t.Run("multiple filters are sorted alphabetically", func(t *testing.T) {
+		p := newPeco()
+		p.config.CustomFilter = map[string]config.CustomFilterConfig{
+			"ZFilter": {Cmd: echoCmd, Args: []string{"z"}},
+			"AFilter": {Cmd: echoCmd, Args: []string{"a"}},
+			"MFilter": {Cmd: echoCmd, Args: []string{"m"}},
+		}
+		var opts CLIOptions
+		require.NoError(t, p.ApplyConfig(opts))
+
+		require.NoError(t, p.filters.SetCurrentByName("AFilter"))
+		p.filters.Rotate()
+		require.Equal(t, "MFilter", p.filters.Current().String())
+		p.filters.Rotate()
+		require.Equal(t, "ZFilter", p.filters.Current().String())
+	})
+
+	t.Run("nil custom filters", func(t *testing.T) {
+		p := newPeco()
+		p.config.CustomFilter = nil
+		var opts CLIOptions
+		require.NoError(t, p.ApplyConfig(opts))
+		builtinCount := p.filters.Size()
+
+		first := p.filters.Current().String()
+		for range builtinCount {
+			p.filters.Rotate()
+		}
+		require.Equal(t, first, p.filters.Current().String(),
+			"rotating through all filters should return to the starting filter")
+	})
+
+	t.Run("empty map custom filters", func(t *testing.T) {
+		p := newPeco()
+		p.config.CustomFilter = map[string]config.CustomFilterConfig{}
+		var opts CLIOptions
+		require.NoError(t, p.ApplyConfig(opts))
+		builtinCount := p.filters.Size()
+
+		first := p.filters.Current().String()
+		for range builtinCount {
+			p.filters.Rotate()
+		}
+		require.Equal(t, first, p.filters.Current().String(),
+			"rotating through all filters should return to the starting filter")
+	})
+
+	t.Run("single custom filter", func(t *testing.T) {
+		baseline := newPeco()
+		require.NoError(t, baseline.ApplyConfig(CLIOptions{}))
+		builtinCount := baseline.filters.Size()
+
+		p := newPeco()
+		p.config.CustomFilter = map[string]config.CustomFilterConfig{
+			"Single": {Cmd: echoCmd, Args: []string{"x"}},
+		}
+		var opts CLIOptions
+		require.NoError(t, p.ApplyConfig(opts))
+
+		require.Equal(t, builtinCount+1, p.filters.Size())
+		require.NoError(t, p.filters.SetCurrentByName("Single"))
+	})
+
+	t.Run("mixed case filter names", func(t *testing.T) {
+		p := newPeco()
+		p.config.CustomFilter = map[string]config.CustomFilterConfig{
+			"zyxFilter": {Cmd: echoCmd, Args: []string{"z"}},
+			"ABC":       {Cmd: echoCmd, Args: []string{"a"}},
+			"abcFilter": {Cmd: echoCmd, Args: []string{"b"}},
+			"XYZ":       {Cmd: echoCmd, Args: []string{"x"}},
+		}
+		var opts CLIOptions
+		require.NoError(t, p.ApplyConfig(opts))
+
+		// slices.Sorted uses byte-wise comparison: 'A' < 'X' < 'Y' < 'Z' < 'a' < 'z'
+		require.NoError(t, p.filters.SetCurrentByName("ABC"))
+		p.filters.Rotate()
+		require.Equal(t, "XYZ", p.filters.Current().String())
+		p.filters.Rotate()
+		require.Equal(t, "abcFilter", p.filters.Current().String())
+		p.filters.Rotate()
+		require.Equal(t, "zyxFilter", p.filters.Current().String())
+	})
+}
+
 // TestMouseClickToggleSelection verifies that mouse events flow through
 // the full pipeline: InjectMouse → tcellEventToEvent → input loop →
 // keymap dispatch → action. This is an integration test for the mouse
