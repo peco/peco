@@ -101,6 +101,12 @@ type Config struct {
 	// newest input lines visible, like "tail -f". The --follow CLI flag
 	// overrides this value.
 	Follow bool `json:"Follow" yaml:"Follow"`
+
+	// Filters names the filters to register, in the order they rotate.
+	// Each name is a built-in filter or a key from CustomFilter. When this
+	// is empty, peco registers every built-in filter followed by the
+	// custom filters. The --filter CLI flag overrides this value.
+	Filters []string `json:"Filters" yaml:"Filters"`
 }
 
 // SingleKeyJumpConfig holds configuration for single key jump mode.
