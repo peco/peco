@@ -898,7 +898,7 @@ func (p *Peco) populateSingleKeyJump() error { //nolint:unparam
 // from the config. If the Filters config or the --filter option names a set of
 // filters, only those are registered, in the order they were given.
 func (p *Peco) populateFilters() error {
-	available := []filter.Filter{
+	builtins := []filter.Filter{
 		filter.NewIgnoreCase(),
 		filter.NewCaseSensitive(),
 		filter.NewSmartCase(),
@@ -907,6 +907,8 @@ func (p *Peco) populateFilters() error {
 		filter.NewFuzzy(p.fuzzyLongestSort),
 	}
 
+	available := make([]filter.Filter, 0, len(builtins)+len(p.config.CustomFilter))
+	available = append(available, builtins...)
 	for name, c := range p.config.CustomFilter {
 		available = append(available, filter.NewExternalCmd(name, c.Cmd, c.Args, c.BufferThreshold, p.idgen, p.enableSep))
 	}
