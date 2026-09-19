@@ -71,6 +71,7 @@ type Peco struct {
 	location            Location
 	maxScanBufferSize   int
 	mutex               sync.Mutex
+	negationPrefix      string // query term prefix that excludes matching lines. Empty turns negative matching off
 	onCancel            config.OnCancelBehavior
 	printQuery          bool
 	prompt              string
@@ -823,6 +824,16 @@ func (p *Peco) ApplyConfig(opts CLIOptions) error {
 	}
 	p.fuzzyLongestSort = p.config.FuzzyLongestSort
 
+	// Negation prefix: CLI option overrides config, and the config in turn
+	// overrides the built-in default.
+	p.negationPrefix = filter.DefaultNegationPrefix
+	if v := p.config.NegationPrefix; v != nil {
+		p.negationPrefix = *v
+	}
+	if v := opts.OptNegationPrefix; v != nil {
+		p.negationPrefix = *v
+	}
+
 	// Height: CLI option overrides config
 	var heightStr string
 	if v := opts.OptHeight; v != "" {
@@ -898,13 +909,14 @@ func (p *Peco) populateSingleKeyJump() error { //nolint:unparam
 // from the config. If the Filters config or the --filter option names a set of
 // filters, only those are registered, in the order they were given.
 func (p *Peco) populateFilters() error {
+	negation := filter.WithNegationPrefix(p.negationPrefix)
 	builtins := []filter.Filter{
-		filter.NewIgnoreCase(),
-		filter.NewCaseSensitive(),
-		filter.NewSmartCase(),
-		filter.NewIRegexp(),
-		filter.NewRegexp(),
-		filter.NewFuzzy(p.fuzzyLongestSort),
+		filter.NewIgnoreCase(negation),
+		filter.NewCaseSensitive(negation),
+		filter.NewSmartCase(negation),
+		filter.NewIRegexp(negation),
+		filter.NewRegexp(negation),
+		filter.NewFuzzy(p.fuzzyLongestSort, negation),
 	}
 
 	available := make([]filter.Filter, 0, len(builtins)+len(p.config.CustomFilter))

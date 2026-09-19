@@ -57,8 +57,10 @@ Filter algorithm implementations.
 - **Filter** interface — `Apply(ctx, []line.Line, ChanOutput) → error`, `BufSize() → int`, `NewContext(ctx, string) → ctx`, `String() → string`, `SupportsParallel() → bool`
 - **Collector** interface (optional) — `ApplyCollect(ctx, []line.Line) → ([]line.Line, error)`
 - **Set** — filter collection with rotation: `Add(Filter)`, `Rotate()`, `Current() → Filter`, `SetCurrentByName(string) → error`
-- Implementations: `NewIgnoreCase()`, `NewCaseSensitive()`, `NewSmartCase()`, `NewRegexp()`, `NewIRegexp()`, `NewFuzzy(sortLongest bool)`, `NewExternalCmd(name, cmd string, args []string, threshold int, idgen IDGenerator, enableSep bool)`
-- Files: `filter.go`, `base.go`, `regexp.go`, `fuzzy.go`, `external.go`, `set.go`
+- Implementations: `NewIgnoreCase(...Option)`, `NewCaseSensitive(...Option)`, `NewSmartCase(...Option)`, `NewRegexp(...Option)`, `NewIRegexp(...Option)`, `NewFuzzy(sortLongest bool, ...Option)`, `NewExternalCmd(name, cmd string, args []string, threshold int, idgen IDGenerator, enableSep bool)`
+- **Option** — `WithNegationPrefix(string)` sets the negative-term prefix; `DefaultNegationPrefix` is `"-"`; empty prefix → no negative matching
+- **SplitQueryTerms(query, negationPrefix string) → (positive, negative []string)** — split a query into positive/negative terms
+- Files: `filter.go`, `base.go`, `regexp.go`, `fuzzy.go`, `external.go`, `option.go`, `set.go`
 - Imports: line, pipeline, internal/util
 
 ## hub/

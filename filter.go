@@ -362,15 +362,15 @@ func NewFilter(state *Peco) *Filter {
 // 1. Positive portion of prev is a prefix of positive portion of new
 // 2. All previous negative terms are still present in new
 // 3. New query may have additional positive or negative terms
-func isQueryRefinement(prev, cur string) bool {
+func isQueryRefinement(prev, cur, negationPrefix string) bool {
 	prev = strings.TrimSpace(prev)
 	cur = strings.TrimSpace(cur)
 	if prev == "" || cur == "" {
 		return false
 	}
 
-	prevPos, prevNeg := filter.SplitQueryTerms(prev)
-	newPos, newNeg := filter.SplitQueryTerms(cur)
+	prevPos, prevNeg := filter.SplitQueryTerms(prev, negationPrefix)
+	newPos, newNeg := filter.SplitQueryTerms(cur, negationPrefix)
 
 	// Positive portion: the joined prev positive terms must be a prefix of the joined new positive terms
 	prevPosStr := strings.Join(prevPos, " ")
@@ -441,7 +441,7 @@ func (f *Filter) Work(ctx context.Context, q *hub.Payload[string]) {
 	if f.prevResults != nil &&
 		f.prevFilterName == filterName &&
 		f.prevFrozenSrc == state.Frozen().Source() &&
-		isQueryRefinement(f.prevQuery, query) {
+		isQueryRefinement(f.prevQuery, query, state.negationPrefix) {
 		if pdebug.Enabled {
 			pdebug.Printf("Using incremental source (prev=%q, new=%q, prevSize=%d)", f.prevQuery, query, f.prevResults.Size())
 		}
