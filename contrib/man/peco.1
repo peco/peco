@@ -213,6 +213,10 @@ It sorts the matched lines by the following precedence: 1.
 longer substring, 2.
 earlier (left positioned) substring, and 3.
 shorter line.
+.PP
+If you only use a few of these, the \f[V]Filters\f[R] configuration
+section and the \f[V]--filter\f[R] command line option cut the rotation
+down to the filters you name, in the order you name them.
 [IMAGE: Executed \f[V]ps aux | peco\f[R], then typed \f[V]google\f[R],
 which matches the Chrome.app under IgnoreCase filter type.
 When you change it to Regexp filter, this is no longer the case.
@@ -633,6 +637,29 @@ You should specify the name of the filter like \f[V]IgnoreCase\f[R],
 \f[V]CaseSensitive\f[R], \f[V]SmartCase\f[R], \f[V]IRegexp\f[R],
 \f[V]Regexp\f[R] and \f[V]Fuzzy\f[R].
 Default is \f[V]IgnoreCase\f[R].
+.SS \[en]filter \f[V]name\f[R]
+.PP
+Registers only the named filter, instead of all of them.
+Repeat the option to register several filters;
+\f[V]peco.RotateFilter\f[R] (bound to \f[V]C-r\f[R] by default) then
+rotates through them in the order you gave, and no others:
+.IP
+.nf
+\f[C]
+peco --filter IgnoreCase --filter Fuzzy
+\f[R]
+.fi
+.PP
+The name is a built-in filter (\f[V]IgnoreCase\f[R],
+\f[V]CaseSensitive\f[R], \f[V]SmartCase\f[R], \f[V]IRegexp\f[R],
+\f[V]Regexp\f[R], \f[V]Fuzzy\f[R]) or a key from the
+\f[V]CustomFilter\f[R] section of your configuration file.
+A name that matches neither makes peco exit with an error that lists the
+names it accepts.
+.PP
+This option takes precedence over the configuration file\[cq]s
+\f[V]Filters\f[R] section.
+\f[V]--initial-filter\f[R] must name one of the filters you registered.
 .SS \[en]prompt
 .PP
 Specifies the query line\[cq]s prompt string.
@@ -823,6 +850,32 @@ Specifies the filter name to start peco with.
 You should specify the name of the filter, such as \f[V]IgnoreCase\f[R],
 \f[V]CaseSensitive\f[R], \f[V]SmartCase\f[R], \f[V]IRegexp\f[R],
 \f[V]Regexp\f[R] and \f[V]Fuzzy\f[R].
+.SS Filters
+.PP
+Registers only the listed filters, in the listed order, instead of all
+of them.
+\f[V]peco.RotateFilter\f[R] rotates through exactly this list:
+.IP
+.nf
+\f[C]
+{
+    \[dq]Filters\[dq]: [ \[dq]IgnoreCase\[dq], \[dq]Fuzzy\[dq], \[dq]MyFilter\[dq] ]
+}
+\f[R]
+.fi
+.PP
+Each entry is a built-in filter (\f[V]IgnoreCase\f[R],
+\f[V]CaseSensitive\f[R], \f[V]SmartCase\f[R], \f[V]IRegexp\f[R],
+\f[V]Regexp\f[R], \f[V]Fuzzy\f[R]) or a key from the CustomFilter
+section.
+An entry that matches neither makes peco exit with an error that lists
+the names it accepts.
+.PP
+When \f[V]Filters\f[R] is absent, every built-in filter is registered,
+followed by your custom filters.
+\f[V]InitialFilter\f[R] must name one of the registered filters.
+The \f[V]--filter\f[R] command line option takes precedence over this
+section.
 .SS FuzzyLongestSort
 .PP
 Enables the longest substring match and sorts the output.
