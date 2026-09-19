@@ -17,7 +17,8 @@ import (
 // Fuzzy is a filter that performs fuzzy matching.
 type Fuzzy struct {
 	baseFilter
-	sortLongest bool
+	sortLongest    bool
+	negationPrefix string
 }
 
 // NewFuzzy builds a fuzzy-finder type of filter.
@@ -29,9 +30,10 @@ type Fuzzy struct {
 //  1. Longer match
 //  2. Earlier match
 //  3. Shorter line length
-func NewFuzzy(sortLongest bool) *Fuzzy {
+func NewFuzzy(sortLongest bool, options ...Option) *Fuzzy {
 	ff := &Fuzzy{
-		sortLongest: sortLongest,
+		sortLongest:    sortLongest,
+		negationPrefix: buildOptions(options).negationPrefix,
 	}
 	ff.impl = ff
 	return ff
@@ -51,7 +53,7 @@ func (ff *Fuzzy) applyInternal(ctx context.Context, lines []line.Line, em LineEm
 	originalQuery := pipeline.QueryFromContext(ctx)
 
 	// Parse negative terms and compile them as case-insensitive regexps
-	posTerms, negTerms := SplitQueryTerms(originalQuery)
+	posTerms, negTerms := SplitQueryTerms(originalQuery, ff.negationPrefix)
 	var negRegexps []*regexp.Regexp
 	for _, t := range negTerms {
 		re, err := regexpFor(t, []string{"i"}, true)

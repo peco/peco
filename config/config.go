@@ -107,6 +107,12 @@ type Config struct {
 	// is empty, peco registers every built-in filter followed by the
 	// custom filters. The --filter CLI flag overrides this value.
 	Filters []string `json:"Filters" yaml:"Filters"`
+
+	// NegationPrefix is the query term prefix that excludes the lines a term
+	// matches. It defaults to "-", and an empty string turns negative matching
+	// off, so that every term is matched as typed. A nil value means the
+	// default. The --negation-prefix CLI flag overrides this value.
+	NegationPrefix *string `json:"NegationPrefix" yaml:"NegationPrefix"`
 }
 
 // SingleKeyJumpConfig holds configuration for single key jump mode.

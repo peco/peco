@@ -23,6 +23,7 @@ type CLIOptions struct {
 	OptInitialIndex    int              `long:"initial-index" description:"position of the initial index of the selection (0 base)"`
 	OptInitialFilter   string           `long:"initial-filter" description:"specify the default filter"`
 	OptFilters         []string         `long:"filter" description:"restrict the filters available for rotation, in the order given.\nMay be repeated. Takes precedence over the 'Filters' configuration"`
+	OptNegationPrefix  *string          `long:"negation-prefix" description:"query term prefix that excludes matching lines. Default is '-'.\nPass an empty string to match every term as typed"`
 	OptPrompt          string           `long:"prompt" description:"specify the prompt string"`
 	OptLayout          string           `long:"layout" description:"layout to be used. 'top-down', 'bottom-up', or 'top-down-query-bottom'. default is 'top-down'"`
 	OptSelect1         bool             `long:"select-1" description:"select first item and immediately exit if the input contains only 1 item"`

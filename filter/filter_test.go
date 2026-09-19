@@ -301,11 +301,111 @@ func TestSplitQueryTerms(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			gotPos, gotNeg := SplitQueryTerms(tt.query)
+			gotPos, gotNeg := SplitQueryTerms(tt.query, DefaultNegationPrefix)
 			require.Equal(t, tt.wantPos, gotPos, "positive terms")
 			require.Equal(t, tt.wantNeg, gotNeg, "negative terms")
 		})
 	}
+}
+
+func TestSplitQueryTermsNegationPrefix(t *testing.T) {
+	tests := []struct {
+		name    string
+		prefix  string
+		query   string
+		wantPos []string
+		wantNeg []string
+	}{
+		{
+			name:    "empty prefix matches every term as typed",
+			prefix:  "",
+			query:   `--some-option -v \-x`,
+			wantPos: []string{"--some-option", "-v", `\-x`},
+		},
+		{
+			name:    "bang prefix negates",
+			prefix:  "!",
+			query:   "foo !bar",
+			wantPos: []string{"foo"},
+			wantNeg: []string{"bar"},
+		},
+		{
+			name:    "hyphen is an ordinary character under a bang prefix",
+			prefix:  "!",
+			query:   "--some-option",
+			wantPos: []string{"--some-option"},
+		},
+		{
+			name:    "bang prefix can be escaped",
+			prefix:  "!",
+			query:   `\!foo`,
+			wantPos: []string{"!foo"},
+		},
+		{
+			name:    "bare bang is a positive literal",
+			prefix:  "!",
+			query:   "!",
+			wantPos: []string{"!"},
+		},
+		{
+			name:    "multi character prefix negates",
+			prefix:  "not:",
+			query:   "foo not:bar",
+			wantPos: []string{"foo"},
+			wantNeg: []string{"bar"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			gotPos, gotNeg := SplitQueryTerms(tt.query, tt.prefix)
+			require.Equal(t, tt.wantPos, gotPos, "positive terms")
+			require.Equal(t, tt.wantNeg, gotNeg, "negative terms")
+		})
+	}
+}
+
+func TestNegationPrefixFiltering(t *testing.T) {
+	lines := makeLines(
+		"git commit --amend",
+		"git commit",
+		"ls -l",
+		"ls",
+	)
+
+	t.Run("empty prefix matches a hyphen-prefixed query literally", func(t *testing.T) {
+		filters := map[string]Filter{
+			"IgnoreCase":    NewIgnoreCase(WithNegationPrefix("")),
+			"CaseSensitive": NewCaseSensitive(WithNegationPrefix("")),
+			"SmartCase":     NewSmartCase(WithNegationPrefix("")),
+			"Fuzzy":         NewFuzzy(false, WithNegationPrefix("")),
+		}
+
+		for name, f := range filters {
+			t.Run(name, func(t *testing.T) {
+				results := collectFilterResults(t, f, "--amend", lines)
+				require.Len(t, results, 1)
+				require.Equal(t, "git commit --amend", results[0].DisplayString())
+			})
+		}
+	})
+
+	t.Run("default prefix excludes instead", func(t *testing.T) {
+		results := collectFilterResults(t, NewIgnoreCase(), "--amend", lines)
+		require.Len(t, results, 3, "every line without '-amend' should match")
+	})
+
+	t.Run("bang prefix negates and hyphens stay literal", func(t *testing.T) {
+		f := NewIgnoreCase(WithNegationPrefix("!"))
+
+		results := collectFilterResults(t, f, "-l", lines)
+		require.Len(t, results, 1)
+		require.Equal(t, "ls -l", results[0].DisplayString())
+
+		results = collectFilterResults(t, f, "git !amend", lines)
+		require.Len(t, results, 1)
+		require.Equal(t, "git commit", results[0].DisplayString())
+	})
 }
 
 // collectFilterResults runs the filter and collects all emitted lines.

@@ -56,6 +56,8 @@ You can exclude lines from the results by prefixing a term with `-`. For example
 
 Negative matching works with all built-in filters (IgnoreCase, CaseSensitive, SmartCase, Regexp, IRegexp, and Fuzzy). For the Fuzzy filter, negative terms use regexp-based exclusion rather than fuzzy matching. External custom filters receive the query as-is and are responsible for their own parsing.
 
+The `-` prefix is configurable. Pass `--negation-prefix=` (an empty value) to match every term as typed, which is what you want when your input is full of hyphens, such as shell history. Pass another character, for example `--negation-prefix='!'`, to keep negative matching while leaving hyphens alone. The same setting lives in the configuration file as [`NegationPrefix`](#negationprefix).
+
 Only positive terms produce match highlighting. Lines matched solely by negative exclusion (e.g. an all-negative query like `-foo`) are shown without highlighting.
 
 **Note:** When using the SmartCase filter with negative terms, results may be incomplete if the query transitions from all-lowercase to mixed-case (e.g. typing `foo -bar` then adding an uppercase character). If this happens, clearing the query and retyping it will produce the correct results.
@@ -381,6 +383,24 @@ The name is a built-in filter (`IgnoreCase`, `CaseSensitive`, `SmartCase`, `IReg
 
 This option takes precedence over the configuration file's `Filters` section. `--initial-filter` must name one of the filters you registered.
 
+### --negation-prefix `string`
+
+Specifies the query term prefix that excludes the lines it matches (see [Negative Matching](#negative-matching)). The default is `-`.
+
+An empty value turns negative matching off, so every term is matched as typed:
+
+```
+history | peco --negation-prefix=
+```
+
+A query of `--some-option` then matches lines containing `--some-option`, instead of excluding lines containing `-some-option`. Any other value moves negation to that prefix and leaves hyphens alone:
+
+```
+peco --negation-prefix='!'
+```
+
+Write the value with `=` as shown. Without it, a value starting with `-` is read as another option. When specified, this takes precedence over the configuration file's `NegationPrefix` section.
+
 ### --prompt
 
 Specifies the query line's prompt string. When specified, takes precedence over the configuration file's `Prompt` section. The default value is `QUERY>`.
@@ -521,6 +541,28 @@ Registers only the listed filters, in the listed order, instead of all of them. 
 Each entry is a built-in filter (`IgnoreCase`, `CaseSensitive`, `SmartCase`, `IRegexp`, `Regexp`, `Fuzzy`) or a key from the [CustomFilter](#customfilter) section. An entry that matches neither makes peco exit with an error that lists the names it accepts.
 
 When `Filters` is absent, every built-in filter is registered, followed by your custom filters. `InitialFilter` must name one of the registered filters. The `--filter` command line option takes precedence over this section.
+
+### NegationPrefix
+
+Specifies the query term prefix that excludes the lines it matches (see [Negative Matching](#negative-matching)). The default is `-`.
+
+An empty string turns negative matching off, and every term is then matched as typed:
+
+```json
+{
+    "NegationPrefix": ""
+}
+```
+
+Any other string moves negation to that prefix, leaving hyphens to be matched literally:
+
+```json
+{
+    "NegationPrefix": "!"
+}
+```
+
+The `--negation-prefix` command line option takes precedence over this value.
 
 ### FuzzyLongestSort
 

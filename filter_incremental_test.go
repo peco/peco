@@ -45,10 +45,24 @@ func TestIsQueryRefinement(t *testing.T) {
 	for _, tt := range tests {
 		name := fmt.Sprintf("%q->%q", tt.prev, tt.new)
 		t.Run(name, func(t *testing.T) {
-			result := isQueryRefinement(tt.prev, tt.new)
+			result := isQueryRefinement(tt.prev, tt.new, filter.DefaultNegationPrefix)
 			require.Equal(t, tt.expected, result)
 		})
 	}
+}
+
+func TestIsQueryRefinementNegationPrefix(t *testing.T) {
+	t.Run("hyphen-prefixed query refines when negation is off", func(t *testing.T) {
+		require.True(t, isQueryRefinement("--some", "--some-o", ""),
+			"with negation off both queries are positive, so the longer one refines the shorter")
+		require.False(t, isQueryRefinement("--some", "--some-o", filter.DefaultNegationPrefix),
+			"with negation on the two queries exclude different terms")
+	})
+
+	t.Run("negation moved to another prefix", func(t *testing.T) {
+		require.True(t, isQueryRefinement("foo", "foo !bar", "!"))
+		require.False(t, isQueryRefinement("foo !bar", "foo", "!"))
+	})
 }
 
 func TestIsQueryRefinementWithNegation(t *testing.T) {
@@ -76,7 +90,7 @@ func TestIsQueryRefinementWithNegation(t *testing.T) {
 	for _, tt := range tests {
 		name := fmt.Sprintf("%q->%q", tt.prev, tt.new)
 		t.Run(name, func(t *testing.T) {
-			result := isQueryRefinement(tt.prev, tt.new)
+			result := isQueryRefinement(tt.prev, tt.new, filter.DefaultNegationPrefix)
 			require.Equal(t, tt.expected, result)
 		})
 	}

@@ -19,6 +19,7 @@
 | `--initial-index` | int | Initial cursor position |
 | `--initial-filter` | string | Initial filter name |
 | `--filter` | []string | Filters to register, in rotation order. Repeatable. Overrides config `Filters`. Unknown name → error |
+| `--negation-prefix` | *string | Query term prefix that excludes lines (default `-`). Empty → no negative matching. Overrides config `NegationPrefix` |
 | `--prompt` | string | Prompt string |
 | `--layout` | string | Layout type: top-down, bottom-up, top-down-query-bottom |
 | `--select-1` | bool | Auto-select if single match |

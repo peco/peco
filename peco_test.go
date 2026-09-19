@@ -16,10 +16,12 @@ import (
 	"github.com/gdamore/tcell/v2"
 	"github.com/lestrrat-go/pdebug"
 	"github.com/peco/peco/config"
+	"github.com/peco/peco/filter"
 	"github.com/peco/peco/hub"
 	"github.com/peco/peco/internal/keyseq"
 	"github.com/peco/peco/internal/util"
 	"github.com/peco/peco/line"
+	"github.com/peco/peco/pipeline"
 	"github.com/peco/peco/selection"
 	"github.com/stretchr/testify/require"
 )
@@ -362,6 +364,76 @@ func TestConfigFuzzyFilter(t *testing.T) {
 	// Ensure that it's possible to enable the Fuzzy filter
 	opts.OptInitialFilter = "Fuzzy"
 	require.NoError(t, p.ApplyConfig(opts), "p.ApplyConfig should succeed")
+}
+
+// TestNegationPrefix exercises the NegationPrefix configuration and the
+// --negation-prefix option, which choose the query term prefix that excludes
+// lines, and turn negative matching off when the prefix is empty.
+func TestNegationPrefix(t *testing.T) {
+	prefix := func(s string) *string { return &s }
+
+	t.Run("the default prefix is a hyphen", func(t *testing.T) {
+		p := newPeco()
+		require.NoError(t, p.ApplyConfig(CLIOptions{}), "p.ApplyConfig should succeed")
+
+		require.Equal(t, filter.DefaultNegationPrefix, p.negationPrefix)
+	})
+
+	t.Run("the config sets the prefix", func(t *testing.T) {
+		p := newPeco()
+		p.config.NegationPrefix = prefix("!")
+		require.NoError(t, p.ApplyConfig(CLIOptions{}), "p.ApplyConfig should succeed")
+
+		require.Equal(t, "!", p.negationPrefix)
+	})
+
+	t.Run("an empty prefix in the config turns negation off", func(t *testing.T) {
+		p := newPeco()
+		p.config.NegationPrefix = prefix("")
+		require.NoError(t, p.ApplyConfig(CLIOptions{}), "p.ApplyConfig should succeed")
+
+		require.Equal(t, "", p.negationPrefix)
+	})
+
+	t.Run("--negation-prefix overrides the config", func(t *testing.T) {
+		p := newPeco()
+		p.config.NegationPrefix = prefix("!")
+		require.NoError(t, p.ApplyConfig(CLIOptions{OptNegationPrefix: prefix("")}), "p.ApplyConfig should succeed")
+
+		require.Equal(t, "", p.negationPrefix)
+	})
+
+	t.Run("--negation-prefix accepts an empty value", func(t *testing.T) {
+		var opts CLIOptions
+		_, err := opts.parse([]string{"--negation-prefix", ""})
+		require.NoError(t, err, "parsing the command line should succeed")
+
+		require.NotNil(t, opts.OptNegationPrefix, "an empty value must be distinguishable from an unset option")
+		require.Equal(t, "", *opts.OptNegationPrefix)
+	})
+
+	t.Run("the registered filters use the prefix", func(t *testing.T) {
+		lines := []line.Line{
+			line.NewRaw(0, "git commit --amend", false, false),
+			line.NewRaw(1, "git commit", false, false),
+		}
+
+		p := newPeco()
+		p.config.NegationPrefix = prefix("")
+		require.NoError(t, p.ApplyConfig(CLIOptions{}), "p.ApplyConfig should succeed")
+
+		f := p.Filters().Current()
+		ch := make(chan line.Line, len(lines)+1)
+		require.NoError(t, f.Apply(f.NewContext(t.Context(), "--amend"), lines, pipeline.ChanOutput(ch)))
+		close(ch)
+
+		var got []string
+		for l := range ch {
+			got = append(got, l.DisplayString())
+		}
+		require.Equal(t, []string{"git commit --amend"}, got,
+			"with negation off the query should match the hyphen-prefixed text literally")
+	})
 }
 
 // TestConfigurableFilters exercises the Filters configuration and the

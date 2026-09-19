@@ -24,9 +24,10 @@ type regexpFlagList []string
 type regexpFlagFunc func(string) []string
 
 type regexpQueryFactory struct {
-	compiled  map[string]regexpQuery
-	mutex     sync.Mutex
-	threshold time.Duration
+	compiled       map[string]regexpQuery
+	mutex          sync.Mutex
+	negationPrefix string
+	threshold      time.Duration
 }
 
 type regexpQuery struct {
@@ -75,25 +76,34 @@ func regexpFor(q string, flags []string, quotemeta bool) (*regexp.Regexp, error)
 }
 
 // SplitQueryTerms splits a query string into positive and negative term slices.
-// Terms starting with `-` (followed by at least one non-hyphen char) are negative (the `-` is stripped).
-// Terms starting with `\-` are positive literals (the `\` is stripped).
-// Bare `-` or `--` are positive literals.
+// Terms starting with the negation prefix (followed by at least one more char)
+// are negative (the prefix is stripped).
+// Terms starting with a backslash followed by the prefix are positive literals
+// (the backslash is stripped).
+// A term that is exactly the prefix, or the prefix twice, is a positive literal.
+// An empty prefix turns negative matching off: every term is positive, and
+// backslashes are left alone.
 // Empty tokens are skipped.
-func SplitQueryTerms(query string) (positive, negative []string) {
+func SplitQueryTerms(query, negationPrefix string) (positive, negative []string) {
 	tokens := strings.SplitSeq(strings.TrimSpace(query), " ")
 	for tok := range tokens {
 		if tok == "" {
 			continue
 		}
-		if strings.HasPrefix(tok, `\-`) {
+		if negationPrefix == "" {
+			// Negative matching is off: everything is matched as typed
+			positive = append(positive, tok)
+			continue
+		}
+		if strings.HasPrefix(tok, `\`+negationPrefix) {
 			// Escaped negative: treat as literal positive term (strip the backslash)
 			positive = append(positive, tok[1:])
-		} else if tok == "-" || tok == "--" {
-			// Bare hyphen(s): literal positive
+		} else if tok == negationPrefix || tok == negationPrefix+negationPrefix {
+			// Bare prefix: literal positive
 			positive = append(positive, tok)
-		} else if strings.HasPrefix(tok, "-") {
-			// Negative term: strip the leading hyphen
-			negative = append(negative, tok[1:])
+		} else if strings.HasPrefix(tok, negationPrefix) {
+			// Negative term: strip the prefix
+			negative = append(negative, tok[len(negationPrefix):])
 		} else {
 			positive = append(positive, tok)
 		}
@@ -117,11 +127,12 @@ func termsToRegexps(terms []string, fullQuery string, flags regexpFlags, quoteme
 
 // newRegexpFilter is an internal helper that constructs a Regexp filter
 // with the given name, flags, and quotemeta setting.
-func newRegexpFilter(name string, flags regexpFlags, quotemeta bool) *Regexp {
+func newRegexpFilter(name string, flags regexpFlags, quotemeta bool, options []Option) *Regexp {
 	rf := &Regexp{
 		factory: &regexpQueryFactory{
-			compiled:  make(map[string]regexpQuery),
-			threshold: time.Minute,
+			compiled:       make(map[string]regexpQuery),
+			threshold:      time.Minute,
+			negationPrefix: buildOptions(options).negationPrefix,
 		},
 		flags:     flags,
 		quotemeta: quotemeta,
@@ -132,13 +143,13 @@ func newRegexpFilter(name string, flags regexpFlags, quotemeta bool) *Regexp {
 }
 
 // NewRegexp creates a new regexp based filter
-func NewRegexp() *Regexp {
-	return newRegexpFilter("Regexp", defaultFlags, false)
+func NewRegexp(options ...Option) *Regexp {
+	return newRegexpFilter("Regexp", defaultFlags, false, options)
 }
 
 // NewIRegexp creates a new case-insensitive regexp based filter
-func NewIRegexp() *Regexp {
-	return newRegexpFilter("IRegexp", ignoreCaseFlags, false)
+func NewIRegexp(options ...Option) *Regexp {
+	return newRegexpFilter("IRegexp", ignoreCaseFlags, false, options)
 }
 
 const maxRegexpCacheSize = 100
@@ -180,7 +191,7 @@ func (f *regexpQueryFactory) Compile(s string, flags regexpFlags, quotemeta bool
 		delete(f.compiled, s)
 	}
 
-	posTerms, negTerms := SplitQueryTerms(s)
+	posTerms, negTerms := SplitQueryTerms(s, f.negationPrefix)
 
 	var posRxs, negRxs []*regexp.Regexp
 	if len(posTerms) > 0 {
@@ -313,22 +324,22 @@ func (rf *Regexp) String() string {
 }
 
 // NewIgnoreCase creates a case-insensitive literal string filter.
-func NewIgnoreCase() *Regexp {
-	return newRegexpFilter("IgnoreCase", ignoreCaseFlags, true)
+func NewIgnoreCase(options ...Option) *Regexp {
+	return newRegexpFilter("IgnoreCase", ignoreCaseFlags, true, options)
 }
 
 // NewCaseSensitive creates a case-sensitive literal string filter.
-func NewCaseSensitive() *Regexp {
-	return newRegexpFilter("CaseSensitive", defaultFlags, true)
+func NewCaseSensitive(options ...Option) *Regexp {
+	return newRegexpFilter("CaseSensitive", defaultFlags, true, options)
 }
 
 // NewSmartCase creates a filter that turns ON the ignore-case flag in the regexp
 // if the query contains no upper-case character
-func NewSmartCase() *Regexp {
+func NewSmartCase(options ...Option) *Regexp {
 	return newRegexpFilter("SmartCase", regexpFlagFunc(func(q string) []string {
 		if util.ContainsUpper(q) {
 			return defaultFlags
 		}
 		return []string{"i"}
-	}), true)
+	}), true, options)
 }
