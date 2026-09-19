@@ -150,6 +150,16 @@ than fuzzy matching.
 External custom filters receive the query as-is and are responsible for
 their own parsing.
 .PP
+The \f[V]-\f[R] prefix is configurable.
+Pass \f[V]--negation-prefix=\f[R] (an empty value) to match every term
+as typed, which is what you want when your input is full of hyphens,
+such as shell history.
+Pass another character, for example
+\f[V]--negation-prefix=\[aq]!\[aq]\f[R], to keep negative matching while
+leaving hyphens alone.
+The same setting lives in the configuration file as
+\f[V]NegationPrefix\f[R].
+.PP
 Only positive terms produce match highlighting.
 Lines matched solely by negative exclusion (e.g.\ an all-negative query
 like \f[V]-foo\f[R]) are shown without highlighting.
@@ -660,6 +670,36 @@ names it accepts.
 This option takes precedence over the configuration file\[cq]s
 \f[V]Filters\f[R] section.
 \f[V]--initial-filter\f[R] must name one of the filters you registered.
+.SS \[en]negation-prefix \f[V]string\f[R]
+.PP
+Specifies the query term prefix that excludes the lines it matches (see
+Negative Matching).
+The default is \f[V]-\f[R].
+.PP
+An empty value turns negative matching off, so every term is matched as
+typed:
+.IP
+.nf
+\f[C]
+history | peco --negation-prefix=
+\f[R]
+.fi
+.PP
+A query of \f[V]--some-option\f[R] then matches lines containing
+\f[V]--some-option\f[R], instead of excluding lines containing
+\f[V]-some-option\f[R].
+Any other value moves negation to that prefix and leaves hyphens alone:
+.IP
+.nf
+\f[C]
+peco --negation-prefix=\[aq]!\[aq]
+\f[R]
+.fi
+.PP
+Write the value with \f[V]=\f[R] as shown.
+Without it, a value starting with \f[V]-\f[R] is read as another option.
+When specified, this takes precedence over the configuration file\[cq]s
+\f[V]NegationPrefix\f[R] section.
 .SS \[en]prompt
 .PP
 Specifies the query line\[cq]s prompt string.
@@ -876,6 +916,36 @@ followed by your custom filters.
 \f[V]InitialFilter\f[R] must name one of the registered filters.
 The \f[V]--filter\f[R] command line option takes precedence over this
 section.
+.SS NegationPrefix
+.PP
+Specifies the query term prefix that excludes the lines it matches (see
+Negative Matching).
+The default is \f[V]-\f[R].
+.PP
+An empty string turns negative matching off, and every term is then
+matched as typed:
+.IP
+.nf
+\f[C]
+{
+    \[dq]NegationPrefix\[dq]: \[dq]\[dq]
+}
+\f[R]
+.fi
+.PP
+Any other string moves negation to that prefix, leaving hyphens to be
+matched literally:
+.IP
+.nf
+\f[C]
+{
+    \[dq]NegationPrefix\[dq]: \[dq]!\[dq]
+}
+\f[R]
+.fi
+.PP
+The \f[V]--negation-prefix\f[R] command line option takes precedence
+over this value.
 .SS FuzzyLongestSort
 .PP
 Enables the longest substring match and sorts the output.
