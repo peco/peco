@@ -364,6 +364,119 @@ func TestConfigFuzzyFilter(t *testing.T) {
 	require.NoError(t, p.ApplyConfig(opts), "p.ApplyConfig should succeed")
 }
 
+// TestConfigurableFilters exercises the Filters configuration and the
+// --filter option, which choose which filters are available for rotation
+// and in what order they rotate.
+func TestConfigurableFilters(t *testing.T) {
+	// registeredFilters lists the registered filters in rotation order,
+	// starting from the currently active one.
+	registeredFilters := func(p *Peco) []string {
+		names := make([]string, 0, p.filters.Size())
+		for range p.filters.Size() {
+			names = append(names, p.filters.Current().String())
+			p.filters.Rotate()
+		}
+		return names
+	}
+	customFilter := func(name string) map[string]config.CustomFilterConfig {
+		return map[string]config.CustomFilterConfig{
+			name: {Cmd: "echo", Args: []string{"$QUERY"}},
+		}
+	}
+
+	t.Run("no Filters registers every filter", func(t *testing.T) {
+		p := newPeco()
+		p.config.CustomFilter = customFilter("MyFilter")
+		require.NoError(t, p.ApplyConfig(CLIOptions{}), "p.ApplyConfig should succeed")
+
+		require.Equal(t,
+			[]string{"IgnoreCase", "CaseSensitive", "SmartCase", "IRegexp", "Regexp", "Fuzzy", "MyFilter"},
+			registeredFilters(p),
+			"every built-in filter should be registered, followed by the custom filter")
+	})
+
+	t.Run("Filters config restricts and orders the rotation", func(t *testing.T) {
+		p := newPeco()
+		p.config.Filters = []string{"Fuzzy", "IgnoreCase"}
+		require.NoError(t, p.ApplyConfig(CLIOptions{}), "p.ApplyConfig should succeed")
+
+		require.Equal(t, []string{"Fuzzy", "IgnoreCase"}, registeredFilters(p),
+			"only the configured filters should be registered, in the configured order")
+	})
+
+	t.Run("custom filters may be named in Filters", func(t *testing.T) {
+		p := newPeco()
+		p.config.CustomFilter = customFilter("MyFilter")
+		p.config.Filters = []string{"MyFilter", "Regexp"}
+		require.NoError(t, p.ApplyConfig(CLIOptions{}), "p.ApplyConfig should succeed")
+
+		require.Equal(t, []string{"MyFilter", "Regexp"}, registeredFilters(p))
+	})
+
+	t.Run("--filter takes precedence over the Filters config", func(t *testing.T) {
+		p := newPeco()
+		p.config.Filters = []string{"Regexp"}
+		opts := CLIOptions{OptFilters: []string{"SmartCase", "Fuzzy"}}
+		require.NoError(t, p.ApplyConfig(opts), "p.ApplyConfig should succeed")
+
+		require.Equal(t, []string{"SmartCase", "Fuzzy"}, registeredFilters(p))
+	})
+
+	t.Run("unknown filter name is rejected", func(t *testing.T) {
+		p := newPeco()
+		p.config.Filters = []string{"IgnoreCase", "NoSuchFilter"}
+		err := p.ApplyConfig(CLIOptions{})
+
+		require.Error(t, err, "p.ApplyConfig should fail")
+		require.Contains(t, err.Error(), `unknown filter "NoSuchFilter"`)
+		require.Contains(t, err.Error(), "IgnoreCase", "the error should list the available filters")
+	})
+
+	t.Run("initial filter is chosen from the restricted set", func(t *testing.T) {
+		p := newPeco()
+		p.config.Filters = []string{"IgnoreCase", "Fuzzy"}
+		require.NoError(t, p.ApplyConfig(CLIOptions{OptInitialFilter: "Fuzzy"}), "p.ApplyConfig should succeed")
+
+		require.Equal(t, "Fuzzy", p.filters.Current().String())
+	})
+
+	t.Run("initial filter outside the restricted set fails", func(t *testing.T) {
+		p := newPeco()
+		p.config.Filters = []string{"IgnoreCase", "Fuzzy"}
+		err := p.ApplyConfig(CLIOptions{OptInitialFilter: "Regexp"})
+
+		require.Error(t, err, "p.ApplyConfig should fail")
+	})
+
+	t.Run("--filter may be repeated on the command line", func(t *testing.T) {
+		var opts CLIOptions
+		_, err := opts.parse([]string{"--filter", "IgnoreCase", "--filter", "Fuzzy"})
+		require.NoError(t, err, "parsing the command line should succeed")
+
+		require.Equal(t, []string{"IgnoreCase", "Fuzzy"}, opts.OptFilters)
+	})
+
+	t.Run("RotateFilter cycles through the registered filters only", func(t *testing.T) {
+		p := newPeco()
+		p.Argv = append(p.Argv, "--filter", "SmartCase", "--filter", "Fuzzy")
+
+		ctx, cancel := context.WithCancel(context.Background())
+		t.Cleanup(cancel)
+		go p.Run(ctx)
+		<-p.Ready()
+
+		require.Equal(t, 2, p.Filters().Size(), "only the two filters given on the command line should be registered")
+		require.Equal(t, "SmartCase", p.Filters().Current().String())
+
+		for _, expected := range []string{"Fuzzy", "SmartCase"} {
+			p.screen.SendEvent(Event{Type: EventKey, Key: keyseq.KeyCtrlR})
+			require.Eventually(t, func() bool {
+				return p.Filters().Current().String() == expected
+			}, 5*time.Second, 10*time.Millisecond, "C-r should rotate the filter to %s", expected)
+		}
+	})
+}
+
 func TestApplyConfig(t *testing.T) {
 	// This is a placeholder test address
 	// https://github.com/peco/peco/pull/338#issuecomment-244462220

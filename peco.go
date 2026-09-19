@@ -9,6 +9,8 @@ import (
 	"os"
 	"reflect"
 	"runtime"
+	"slices"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -59,6 +61,7 @@ type Peco struct {
 	enableSep           bool // Enable parsing on separators
 	execOnFinish        string
 	filters             filter.Set
+	filterNames         []string // names of the filters to register, in rotation order. Empty means "all of them"
 	idgen               *idgen
 	initialFilter       string
 	initialQuery        string   // populated if --query is specified
@@ -814,6 +817,10 @@ func (p *Peco) ApplyConfig(opts CLIOptions) error {
 	if len(p.initialFilter) <= 0 {
 		p.initialFilter = p.config.InitialFilter
 	}
+	p.filterNames = opts.OptFilters
+	if len(p.filterNames) <= 0 {
+		p.filterNames = p.config.Filters
+	}
 	p.fuzzyLongestSort = p.config.FuzzyLongestSort
 
 	// Height: CLI option overrides config
@@ -831,7 +838,9 @@ func (p *Peco) ApplyConfig(opts CLIOptions) error {
 		p.heightSpec = &spec
 	}
 
-	p.populateFilters()
+	if err := p.populateFilters(); err != nil {
+		return fmt.Errorf("failed to populate filters: %w", err)
+	}
 
 	if err := p.populateKeymap(); err != nil {
 		return fmt.Errorf("failed to populate keymap: %w", err)
@@ -882,20 +891,59 @@ func (p *Peco) populateSingleKeyJump() error { //nolint:unparam
 	return nil
 }
 
-// populateFilters registers the built-in filter set (IgnoreCase, CaseSensitive,
-// SmartCase, Regexp, Fuzzy, etc.) and any custom external filters from config.
-func (p *Peco) populateFilters() {
-	p.filters.Add(filter.NewIgnoreCase())
-	p.filters.Add(filter.NewCaseSensitive())
-	p.filters.Add(filter.NewSmartCase())
-	p.filters.Add(filter.NewIRegexp())
-	p.filters.Add(filter.NewRegexp())
-	p.filters.Add(filter.NewFuzzy(p.fuzzyLongestSort))
+// populateFilters registers the filters that the user can rotate through.
+//
+// By default these are the built-in filters (IgnoreCase, CaseSensitive,
+// SmartCase, IRegexp, Regexp, Fuzzy) followed by the custom external filters
+// from the config. If the Filters config or the --filter option names a set of
+// filters, only those are registered, in the order they were given.
+func (p *Peco) populateFilters() error {
+	builtins := []filter.Filter{
+		filter.NewIgnoreCase(),
+		filter.NewCaseSensitive(),
+		filter.NewSmartCase(),
+		filter.NewIRegexp(),
+		filter.NewRegexp(),
+		filter.NewFuzzy(p.fuzzyLongestSort),
+	}
 
+	available := make([]filter.Filter, 0, len(builtins)+len(p.config.CustomFilter))
+	available = append(available, builtins...)
 	for name, c := range p.config.CustomFilter {
-		f := filter.NewExternalCmd(name, c.Cmd, c.Args, c.BufferThreshold, p.idgen, p.enableSep)
+		available = append(available, filter.NewExternalCmd(name, c.Cmd, c.Args, c.BufferThreshold, p.idgen, p.enableSep))
+	}
+
+	if len(p.filterNames) <= 0 {
+		for _, f := range available {
+			p.filters.Add(f)
+		}
+		return nil
+	}
+
+	byName := make(map[string]filter.Filter, len(available))
+	for _, f := range available {
+		byName[f.String()] = f
+	}
+
+	for _, name := range p.filterNames {
+		f, ok := byName[name]
+		if !ok {
+			return fmt.Errorf("unknown filter %q: available filters are %s", name, strings.Join(sortedFilterNames(available), ", "))
+		}
 		p.filters.Add(f)
 	}
+	return nil
+}
+
+// sortedFilterNames lists the names of the given filters, sorted, so that error
+// messages do not depend on the order the filters were created in.
+func sortedFilterNames(filters []filter.Filter) []string {
+	names := make([]string, 0, len(filters))
+	for _, f := range filters {
+		names = append(names, f.String())
+	}
+	slices.Sort(names)
+	return names
 }
 
 // populateKeymap creates a new Keymap from the config and applies the

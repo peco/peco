@@ -84,6 +84,8 @@ The Regexp filter allows you to use any valid regular expression to match lines.
 
 The Fuzzy filter allows you to find matches using partial patterns. For example, when searching for `ALongString`, you can enable the Fuzzy filter and search `ALS` to find it. The Fuzzy filter uses smart case search like the SmartCase filter. With the `FuzzyLongestSort` flag enabled in the configuration file, it does a smarter match. It sorts the matched lines by the following precedence: 1. longer substring, 2. earlier (left positioned) substring, and 3. shorter line.
 
+If you only use a few of these, the [`Filters`](#filters) configuration section and the `--filter` command line option cut the rotation down to the filters you name, in the order you name them.
+
 ![Executed `ps aux | peco`, then typed `google`, which matches the Chrome.app under IgnoreCase filter type. When you change it to Regexp filter, this is no longer the case. But you can type `(?i)google` instead to toggle case-insensitive mode](http://peco.github.io/images/peco-demo-matcher.gif)
 
 ## Multi-Stage Filtering (Freeze Results)
@@ -367,6 +369,18 @@ Specifies the initial line position upon start up. E.g. If you want to start out
 
 Specifies the initial filter to use upon start up. You should specify the name of the filter like `IgnoreCase`, `CaseSensitive`, `SmartCase`, `IRegexp`, `Regexp` and `Fuzzy`. Default is `IgnoreCase`.
 
+### --filter `name`
+
+Registers only the named filter, instead of all of them. Repeat the option to register several filters; `peco.RotateFilter` (bound to `C-r` by default) then rotates through them in the order you gave, and no others:
+
+```
+peco --filter IgnoreCase --filter Fuzzy
+```
+
+The name is a built-in filter (`IgnoreCase`, `CaseSensitive`, `SmartCase`, `IRegexp`, `Regexp`, `Fuzzy`) or a key from the `CustomFilter` section of your configuration file. A name that matches neither makes peco exit with an error that lists the names it accepts.
+
+This option takes precedence over the configuration file's `Filters` section. `--initial-filter` must name one of the filters you registered.
+
 ### --prompt
 
 Specifies the query line's prompt string. When specified, takes precedence over the configuration file's `Prompt` section. The default value is `QUERY>`.
@@ -493,6 +507,20 @@ You can change the query line's prompt, which is `QUERY>` by default.
 ### InitialFilter
 
 Specifies the filter name to start peco with. You should specify the name of the filter, such as `IgnoreCase`, `CaseSensitive`, `SmartCase`, `IRegexp`, `Regexp` and `Fuzzy`.
+
+### Filters
+
+Registers only the listed filters, in the listed order, instead of all of them. `peco.RotateFilter` rotates through exactly this list:
+
+```json
+{
+    "Filters": [ "IgnoreCase", "Fuzzy", "MyFilter" ]
+}
+```
+
+Each entry is a built-in filter (`IgnoreCase`, `CaseSensitive`, `SmartCase`, `IRegexp`, `Regexp`, `Fuzzy`) or a key from the [CustomFilter](#customfilter) section. An entry that matches neither makes peco exit with an error that lists the names it accepts.
+
+When `Filters` is absent, every built-in filter is registered, followed by your custom filters. `InitialFilter` must name one of the registered filters. The `--filter` command line option takes precedence over this section.
 
 ### FuzzyLongestSort
 

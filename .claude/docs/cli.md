@@ -18,6 +18,7 @@
 | `--null` | bool | Use NUL as line separator |
 | `--initial-index` | int | Initial cursor position |
 | `--initial-filter` | string | Initial filter name |
+| `--filter` | []string | Filters to register, in rotation order. Repeatable. Overrides config `Filters`. Unknown name → error |
 | `--prompt` | string | Prompt string |
 | `--layout` | string | Layout type: top-down, bottom-up, top-down-query-bottom |
 | `--select-1` | bool | Auto-select if single match |
