@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"regexp"
+	"slices"
 	"sort"
 	"strings"
 	"sync"
@@ -243,6 +244,12 @@ func (rf *Regexp) applyInternal(ctx context.Context, lines []line.Line, em LineE
 	// be reused across lines, avoiding per-line heap allocations.
 	var matches [][]int
 	var deduped [][]int
+	var flat []int
+
+	lits := make([]literalMatcher, len(posRegexps))
+	for i, rx := range posRegexps {
+		lits[i] = newLiteralMatcher(rx)
+	}
 
 	for i, l := range lines {
 		if err := checkCancelled(ctx, i); err != nil {
@@ -264,8 +271,18 @@ func (rf *Regexp) applyInternal(ctx context.Context, lines []line.Line, em LineE
 		// Positive matching (existing AND logic)
 		allMatched := true
 		matches = matches[:0]
+		flat = flat[:0]
 	TryRegexps:
-		for _, rx := range posRegexps {
+		for ri, rx := range posRegexps {
+			if lm := &lits[ri]; lm.ok {
+				n := len(flat)
+				flat = lm.appendAll(flat, v)
+				if len(flat) == n {
+					allMatched = false
+					break TryRegexps
+				}
+				continue
+			}
 			match := rx.FindAllStringIndex(v, -1)
 			if match == nil {
 				allMatched = false
@@ -278,7 +295,16 @@ func (rf *Regexp) applyInternal(ctx context.Context, lines []line.Line, em LineE
 			continue
 		}
 
-		sort.Sort(byMatchStart(matches))
+		for k := 0; k+1 < len(flat); k += 2 {
+			matches = append(matches, flat[k:k+2:k+2])
+		}
+
+		slices.SortFunc(matches, func(a, b []int) int {
+			if a[0] != b[0] {
+				return a[0] - b[0]
+			}
+			return (a[1] - a[0]) - (b[1] - b[0])
+		})
 
 		// We need to "dedupe" the results. For example, if we matched the
 		// same region twice, we don't want that to be drawn
@@ -309,7 +335,11 @@ func (rf *Regexp) applyInternal(ctx context.Context, lines []line.Line, em LineE
 
 		// Make a copy of deduped for emission since we reuse the slice
 		result := make([][]int, len(deduped))
-		copy(result, deduped)
+		pairs := make([]int, 2*len(deduped))
+		for k, m := range deduped {
+			pairs[2*k], pairs[2*k+1] = m[0], m[1]
+			result[k] = pairs[2*k : 2*k+2 : 2*k+2]
+		}
 		em.Emit(ctx, line.GetMatched(l, result))
 	}
 	return nil
@@ -342,4 +372,79 @@ func NewSmartCase(options ...Option) *Regexp {
 		}
 		return []string{"i"}
 	}), true, options)
+}
+
+// literalMatcher finds non-overlapping occurrences of a plain ASCII literal,
+// either case-sensitively or ASCII-case-insensitively, producing the same
+// ranges as the equivalent regexp without per-match allocations.
+type literalMatcher struct {
+	ok   bool
+	fold bool
+	lit  string // lower-cased when fold is set
+}
+
+func newLiteralMatcher(rx *regexp.Regexp) literalMatcher {
+	if prefix, complete := rx.LiteralPrefix(); complete && prefix != "" {
+		return literalMatcher{ok: true, lit: prefix}
+	}
+	src, ok := strings.CutPrefix(rx.String(), "(?i)")
+	if !ok || src == "" {
+		return literalMatcher{}
+	}
+	for i := 0; i < len(src); i++ {
+		c := src[i]
+		switch {
+		case c >= '0' && c <= '9', c == ' ', c == '_':
+		case c >= 'a' && c <= 'z', c >= 'A' && c <= 'Z':
+			// k and s have non-ASCII case-fold equivalents
+			switch c {
+			case 'k', 'K', 's', 'S':
+				return literalMatcher{}
+			}
+		default:
+			return literalMatcher{}
+		}
+	}
+	return literalMatcher{ok: true, fold: true, lit: strings.ToLower(src)}
+}
+
+func (m *literalMatcher) appendAll(dst []int, v string) []int {
+	n := len(m.lit)
+	if !m.fold {
+		pos := 0
+		for {
+			i := strings.Index(v[pos:], m.lit)
+			if i < 0 {
+				return dst
+			}
+			dst = append(dst, pos+i, pos+i+n)
+			pos += i + n
+		}
+	}
+	first := m.lit[0]
+	for i := 0; i+n <= len(v); {
+		if lower(v[i]) != first || !equalFoldASCII(v[i:i+n], m.lit) {
+			i++
+			continue
+		}
+		dst = append(dst, i, i+n)
+		i += n
+	}
+	return dst
+}
+
+func lower(c byte) byte {
+	if c >= 'A' && c <= 'Z' {
+		return c + 'a' - 'A'
+	}
+	return c
+}
+
+func equalFoldASCII(s, lit string) bool {
+	for i := 0; i < len(lit); i++ {
+		if lower(s[i]) != lit[i] {
+			return false
+		}
+	}
+	return true
 }
